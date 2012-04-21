@@ -238,10 +238,9 @@ struct AutoComplete
 
 	string parenComplete(size_t cursor)
 	{
-		auto index = assumeSorted(tokens).lowerBound(cursor).length;
-		if (index > 2)
-			index -= 2;
-		else
+		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
+		Token t = tokens[index];
+		if (t.startIndex + t.value.length + 1 != cursor)
 			return [];
 		if (tokens[index] == TokenType.tVersion)
 		{
@@ -252,12 +251,11 @@ struct AutoComplete
 
 	string dotComplete(size_t cursor)
 	{
-		auto index = assumeSorted(tokens).lowerBound(cursor).length;
-		if (index > 2)
-			index -= 2;
-		else
+		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
+		Token t = tokens[index];
+		if (t.startIndex + t.value.length + 1 != cursor)
 			return "";
-		auto t = tokens[index];
+		stderr.writeln(t);
 		string[] chain = callChainBackwards(tokens, index);
 		auto type = getTypeOfExpression(chain, tokens, cursor);
 
