@@ -25,7 +25,7 @@
  ******************************************************************************/
 
 
-module highlighter
+module highlighter;
 
 import std.stdio;
 import langutils;

@@ -25,7 +25,7 @@
  ******************************************************************************/
 
 
-module tokenizer
+module tokenizer;
 
 import std.range;
 import std.file;
