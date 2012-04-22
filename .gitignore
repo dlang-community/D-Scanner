@@ -1,0 +1,19 @@
+# Vim swap file
+*.swp
+
+# Backup files
+*~
+
+# Mono-D files
+*.pidb
+*.userprefs
+
+# Sublime Text 2
+*.sublime-workspace
+
+# Subversion
+.svn/
+
+# D Scanner binaries
+dscanner
+dscanner.o
