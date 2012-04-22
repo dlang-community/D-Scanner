@@ -136,8 +136,10 @@ void main(string[] args)
 	bool json;
 	bool parenComplete;
 	bool highlight;
+	bool ctags;
 	getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
-		"json", &json, "parenComplete", &parenComplete, "highlight", &highlight);
+		"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
+		"ctags", &ctags);
 
 	importDirs ~= loadConfig();
 
@@ -174,11 +176,14 @@ void main(string[] args)
 		return;
 	}
 
-	if (json)
+	if (json || ctags)
 	{
 		auto tokens = tokenize(readText(args[1]));
 		auto mod = parseModule(tokens);
-		mod.writeJSONTo(stdout);
+		if (json)
+			mod.writeJSONTo(stdout);
+		else
+			mod.writeCtagsTo(stdout, args[1]);
 	}
 }
 

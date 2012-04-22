@@ -160,7 +160,7 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 {
 	auto startIndex = endIndex;
 	++endIndex;
-	string open = to!string(inputString[endIndex]);
+	string open = inputString[endIndex .. endIndex + 1];
 	string close;
 	bool nesting = false;
 	switch (open)

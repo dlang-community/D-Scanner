@@ -28,6 +28,14 @@ immutable string[] versions = ["AIX", "all", "Alpha", "ARM", "BigEndian", "BSD",
 	"Win64", "Windows", "X86", "X86_64"
 ];
 
+/+/**
+ * Returns: indicies into the token array
+ */
+Tuple!(size_t, size_t) findEndOfStatement(const Token[] tokens, size_t index, out size_t)
+{
+
+}+/
+
 string[] callChainBackwards(const Token[] tokens, size_t index)
 {
 	if (index == 0)
@@ -220,12 +228,21 @@ struct AutoComplete
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
 		Token t = tokens[index];
 		if (t.startIndex + t.value.length + 1 != cursor)
-			return [];
-		if (tokens[index] == TokenType.tVersion)
+			return "";
+		switch (tokens[index].type)
 		{
+		case TokenType.tVersion:
 			return to!string(array(join(map!`a ~ "?1"`(versions), " ")));
+		case TokenType.tIf:
+		case TokenType.tCast:
+		case TokenType.tWhile:
+		case TokenType.tFor:
+		case TokenType.tForeach:
+		case TokenType.tSwitch:
+			return "";
+		default:
+			return "";
 		}
-		return "";
 	}
 
 	string dotComplete(size_t cursor)

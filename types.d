@@ -11,6 +11,7 @@ import std.array;
 import std.range;
 import std.algorithm;
 import std.typecons;
+import std.string;
 
 /**
  * Returns: s with any quote characters backslash-escaped
@@ -172,6 +173,23 @@ public:
 		return null;
 	}
 
+	string[] getCtags(string fileName)
+	{
+		auto app = appender!(string[])();
+		app.put(format("%s\t%s\t%d;\"\ts", name, fileName, line));
+		foreach (Function f; functions)
+		{
+			app.put(format("%s\t%s\t%d;\"\tf\tarity:%d\tstruct:", f.name, fileName,
+				f.line, f.parameters.length, name));
+		}
+		foreach (Variable v; variables)
+		{
+			app.put(format("%s\t%s\t%d;\"\tm\tstruct:%s", v.name, fileName,
+				v.line, name));
+		}
+		return app.data();
+	}
+
 protected:
 
 	override void printMembers(File f, uint indent = 0) const
@@ -245,6 +263,24 @@ public:
 	 */
 	string[] baseClasses;
 
+	override string[] getCtags(string fileName)
+	{
+		auto app = appender!(string[])();
+		app.put(format("%s\t%s\t%d;\"\tc\tinherits:%s", name, fileName, line,
+			array(baseClasses.joiner(","))));
+		foreach (Function f; functions)
+		{
+			app.put(format("%s\t%s\t%d;\"\tf\tarity:%d\tstruct:", f.name, fileName,
+				f.line, f.parameters.length, name));
+		}
+		foreach (Variable v; variables)
+		{
+			app.put(format("%s\t%s\t%d;\"\tm\tstruct:%s", v.name, fileName,
+				v.line, name));
+		}
+		return app.data();
+	}
+
 protected:
 
 	override void printMembers(File f, uint indent = 0) const
@@ -277,6 +313,17 @@ public:
 	/// Enum members; may be empty
 	EnumMember[] members;
 
+	string[] getCtags(string fileName) const
+	{
+		auto app = appender!(string[])();
+		app.put(format("%s\t%s\t%d;\"\tg", name, fileName, line));
+		foreach (EnumMember member; members)
+		{
+			app.put(format("%s\t%s\t%d;\"\te\tenum:%s", member.name, fileName, member.line, name));
+		}
+		return app.data;
+	}
+
 protected:
 
 	override void printMembers(File f, uint indent = 0) const
@@ -299,6 +346,7 @@ protected:
 		}
 		f.write(std.array.replicate("  ", indent), "]");
 	}
+
 }
 
 /**
@@ -422,6 +470,49 @@ public:
 				f.writeln();
 		}
 		f.writeln("  ]\n}");
+	}
+
+	/**
+	 * Standards: http://ctags.sourceforge.net/FORMAT
+	 */
+	void writeCtagsTo(File file, string fileName)
+	{
+		string[] tags;
+		foreach (Enum e; enums)
+		{
+			tags ~= e.getCtags(fileName);
+		}
+
+		foreach (Variable v; variables)
+		{
+			tags ~= format("%s\t%s\t%d;\"\tv", v.name, fileName, v.line);
+		}
+
+		foreach (Function f; functions)
+		{
+			tags ~= format("%s\t%s\t%d;\"\tf\tarity:%d", f.name, fileName,
+				f.line, f.parameters.length);
+		}
+		foreach (Inherits c; classes)
+		{
+			tags ~= c.getCtags(fileName);
+		}
+		foreach (Inherits i; interfaces)
+		{
+			tags ~= i.getCtags(fileName);
+		}
+		foreach (Struct s; structs)
+		{
+			tags ~= s.getCtags(fileName);
+		}
+
+		sort(tags);
+		file.writeln("{!_TAG_FILE_FORMAT 2}");
+		file.writeln("{!_TAG_FILE_SORTED 1}");
+		foreach (tag; tags)
+		{
+			file.writeln(tag);
+		}
 	}
 }
 

@@ -217,6 +217,10 @@ is transformed into the following JSON markup:
 		  ]
 		}
 
+# Ctags output
+Dscanner can create a tags file from the specified file. Output is formatted as
+specified at http://ctags.sourceforge.net/FORMAT
+
 # Line of Code count
 This option counts the logical lines of code in the given source files, not
 simply the physical lines. More specifically, it counts the number of
