@@ -16,6 +16,8 @@ resulting HTML will be written to standard output.
 * **-I** _includePath_ - Include _includePath_ in the list of paths used to search
 for imports. By default dscanner will search in the current working directory as
 well as any paths specified in /etc/dmd.conf.
+* **--ctags** _sourceFile_ - Generates ctags information from the given source
+code file.
 
 # Dot Completion
 
