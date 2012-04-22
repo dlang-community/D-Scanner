@@ -163,12 +163,12 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 	string open = inputString[endIndex .. endIndex + 1];
 	string close;
 	bool nesting = false;
-	switch (open)
+	switch (open[0])
 	{
-	case "[": close = "]"; ++endIndex; nesting = true; break;
-	case "<": close = ">"; ++endIndex; nesting = true; break;
-	case "{": close = "}"; ++endIndex; nesting = true; break;
-	case "(": close = ")"; ++endIndex; nesting = true; break;
+	case '[': close = "]"; ++endIndex; nesting = true; break;
+	case '<': close = ">"; ++endIndex; nesting = true; break;
+	case '{': close = "}"; ++endIndex; nesting = true; break;
+	case '(': close = ")"; ++endIndex; nesting = true; break;
 	default:
 		while(!isWhite(inputString[endIndex])) endIndex++;
 		close = open = inputString[startIndex + 1 .. endIndex];
