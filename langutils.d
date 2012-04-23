@@ -254,11 +254,19 @@ enum TokenType: uint
 // Misc
 	MISC_BEGIN,
 	comment, /// /** comment */ or // comment or ///comment
+	NUMBERS_BEGIN,
+	floatLiteral, /// 123.456f or 0x123_45p-af
+	doubleLiteral, /// 123.456
+	realLiteral, /// 123.456L
+	intLiteral, /// 123 or 0b1101010101
+	unsignedIntLiteral, /// 123u
+	longLiteral, /// 123L
+	unsignedLongLiteral, /// 123uL
+	NUMBERS_END,
 	stringLiteral, /// "a string"
-	numberLiteral, /// int, float, etc...
-	identifier,
+	identifier, /// anything else
 	whitespace, /// whitespace
-	blank,
+	blank, /// unknown token type
 	MISC_END,
 }
 

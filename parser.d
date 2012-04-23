@@ -275,25 +275,26 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 			else if (tokens[index] == TokenType.assign)
 				tokens.skipBlockStatement(index);
 			break;
+		case TokenType.tDeprecated:
+		case TokenType.tNothrow:
+		case TokenType.tOverride:
+		case TokenType.tSynchronized:
 		case TokenType.atDisable:
 		case TokenType.atProperty:
 		case TokenType.atSafe:
 		case TokenType.atSystem:
 		case TokenType.tAbstract:
-		case TokenType.tConst:
-		case TokenType.tDeprecated:
-		case TokenType.tExtern:
 		case TokenType.tFinal:
 		case TokenType.t__gshared:
+		case TokenType.tStatic:
+			localAttributes ~= tokens[index++].value;
+			break;
+		case TokenType.tConst:
 		case TokenType.tImmutable:
 		case TokenType.tInout:
-		case TokenType.tNothrow:
-		case TokenType.tOverride:
 		case TokenType.tPure:
 		case TokenType.tScope:
 		case TokenType.tShared:
-		case TokenType.tStatic:
-		case TokenType.tSynchronized:
 			auto tmp = tokens[index++].value;
 			if (tokens[index] == TokenType.lParen)
 				type = tmp ~ parenContent(tokens, index);
@@ -302,10 +303,10 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 				index++;
 				attributes ~= tmp;
 			}
-			else
-				localAttributes ~= tmp;
+			localAttributes ~= tmp;
 			break;
 		case TokenType.tAlign:
+		case TokenType.tExtern:
 			string attribute = tokens[index++].value;
 			if (tokens[index] == TokenType.lParen)
 				attribute ~= parenContent(tokens, index);

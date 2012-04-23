@@ -507,8 +507,9 @@ public:
 		}
 
 		sort(tags);
-		file.writeln("{!_TAG_FILE_FORMAT 2}");
-		file.writeln("{!_TAG_FILE_SORTED 1}");
+		file.writeln("!_TAG_FILE_FORMAT 2");
+		file.writeln("!_TAG_FILE_SORTED 1");
+		file.writeln("!_TAG_PROGRAM_URL https://github.com/Hackerpilot/Dscanner/");
 		foreach (tag; tags)
 		{
 			file.writeln(tag);

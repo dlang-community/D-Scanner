@@ -20,208 +20,225 @@ well as any paths specified in /etc/dmd.conf.
 code file.
 
 # Dot Completion
+This is currently under development.
 
 # Paren Completion
+This is currently under development.
 
 # JSON output
 Generates a JSON summary of the input file.
 
 ### Example
 The given D code:
-		module example;
 
-		import std.stdio;
+	module example;
 
-		interface Iface {
-			double interfaceMethod();
-		}
+	import std.stdio;
 
-		class SomeClass(T) if (isSomeString!T) : IFace {
-		public:
-			this() {}
-			void doStuff(T);
-			override double interfaceMethod() {}
-		private:
-			T theTee;
-		}
+	interface Iface {
+		double interfaceMethod();
+	}
 
-		int freeFunction(int x) { return x + x; }
+	class SomeClass(T) if (isSomeString!T) : IFace {
+	public:
+		this() {}
+		void doStuff(T);
+		override double interfaceMethod() {}
+	private:
+		T theTee;
+	}
 
-		void main(string[] args) {
+	int freeFunction(int x) { return x + x; }
 
-		}
+	void main(string[] args) {
+
+	}
 
 is transformed into the following JSON markup:
 
+	{
+	  "name" : "example",
+	  "imports" : [
+		"std.stdio"
+	  ],
+	  "interfaces" : [
 		{
-		  "name" : "example",
-		  "imports" : [
-			"std.stdio"
+		  "name" : "Iface",
+		  "line" : 5,
+		  "protection" : "public",
+		  "attributes" : [
 		  ],
-		  "interfaces" : [
+		  "constraint" : "",
+		  "templateParameters" : [
+		  ],
+		  "functions" : [
 			{
-			  "name" : "Iface",
-			  "line" : 5,
-			  "protection" : "public",
+			  "name" : "interfaceMethod",
+			  "line" : 6,
+			  "protection" : "",
 			  "attributes" : [
 			  ],
 			  "constraint" : "",
 			  "templateParameters" : [
 			  ],
-			  "functions" : [
-				{
-				  "name" : "interfaceMethod",
-				  "line" : 6,
-				  "protection" : "",
-				  "attributes" : [
-				  ],
-				  "constraint" : "",
-				  "templateParameters" : [
-				  ],
-				  "parameters" : [
-				  ],
-				  "returnType" : "double"
-				}
+			  "parameters" : [
 			  ],
-			  "variables" : [
-			  ],
-			  "baseClasses" : [
-			  ]
+			  "returnType" : "double"
 			}
 		  ],
-		  "classes" : [
+		  "variables" : [
+		  ],
+		  "baseClasses" : [
+		  ]
+		}
+	  ],
+	  "classes" : [
+		{
+		  "name" : "SomeClass",
+		  "line" : 9,
+		  "protection" : "public",
+		  "attributes" : [
+		  ],
+		  "constraint" : "if (isSomeString!T)",
+		  "templateParameters" : [
+			"T"
+		  ],
+		  "functions" : [
 			{
-			  "name" : "SomeClass",
-			  "line" : 9,
-			  "protection" : "public",
+			  "name" : "this",
+			  "line" : 11,
+			  "protection" : "",
 			  "attributes" : [
 			  ],
-			  "constraint" : "if (isSomeString!T)",
+			  "constraint" : "",
 			  "templateParameters" : [
-				"T"
 			  ],
-			  "functions" : [
-				{
-				  "name" : "this",
-				  "line" : 11,
-				  "protection" : "",
-				  "attributes" : [
-				  ],
-				  "constraint" : "",
-				  "templateParameters" : [
-				  ],
-				  "parameters" : [
-				  ],
-				  "returnType" : ""
-				},
-				{
-				  "name" : "doStuff",
-				  "line" : 12,
-				  "protection" : "",
-				  "attributes" : [
-				  ],
-				  "constraint" : "",
-				  "templateParameters" : [
-				  ],
-				  "parameters" : [
-					{
-					  "name" : "",
-					  "line" : 0,
-					  "protection" : "",
-					  "attributes" : [
-					  ],
-					  "type" : "T"
-					}
-				  ],
-				  "returnType" : "void"
-				},
-				{
-				  "name" : "interfaceMethod",
-				  "line" : 13,
-				  "protection" : "",
-				  "attributes" : [
-					"override"
-				  ],
-				  "constraint" : "",
-				  "templateParameters" : [
-				  ],
-				  "parameters" : [
-				  ],
-				  "returnType" : "double"
-				}
+			  "parameters" : [
 			  ],
-			  "variables" : [
+			  "returnType" : ""
+			},
+			{
+			  "name" : "doStuff",
+			  "line" : 12,
+			  "protection" : "",
+			  "attributes" : [
+			  ],
+			  "constraint" : "",
+			  "templateParameters" : [
+			  ],
+			  "parameters" : [
 				{
-				  "name" : "theTee",
-				  "line" : 15,
-				  "protection" : "private",
+				  "name" : "",
+				  "line" : 0,
+				  "protection" : "",
 				  "attributes" : [
 				  ],
 				  "type" : "T"
 				}
 			  ],
-			  "baseClasses" : [
-				"IFace"
-			  ]
+			  "returnType" : "void"
+			},
+			{
+			  "name" : "interfaceMethod",
+			  "line" : 13,
+			  "protection" : "",
+			  "attributes" : [
+				"override"
+			  ],
+			  "constraint" : "",
+			  "templateParameters" : [
+			  ],
+			  "parameters" : [
+			  ],
+			  "returnType" : "double"
 			}
 		  ],
-		  "structs" : [
-		  ],
-		  "structs" : [
-		  ],
-		  "functions" : [
+		  "variables" : [
 			{
-			  "name" : "freeFunction",
+			  "name" : "theTee",
+			  "line" : 15,
+			  "protection" : "private",
+			  "attributes" : [
+			  ],
+			  "type" : "T"
+			}
+		  ],
+		  "baseClasses" : [
+			"IFace"
+		  ]
+		}
+	  ],
+	  "structs" : [
+	  ],
+	  "structs" : [
+	  ],
+	  "functions" : [
+		{
+		  "name" : "freeFunction",
+		  "line" : 18,
+		  "protection" : "",
+		  "attributes" : [
+		  ],
+		  "constraint" : "",
+		  "templateParameters" : [
+		  ],
+		  "parameters" : [
+			{
+			  "name" : "x",
 			  "line" : 18,
 			  "protection" : "",
 			  "attributes" : [
 			  ],
-			  "constraint" : "",
-			  "templateParameters" : [
-			  ],
-			  "parameters" : [
-				{
-				  "name" : "x",
-				  "line" : 18,
-				  "protection" : "",
-				  "attributes" : [
-				  ],
-				  "type" : "int"
-				}
-			  ],
-			  "returnType" : "int"
-			},
+			  "type" : "int"
+			}
+		  ],
+		  "returnType" : "int"
+		},
+		{
+		  "name" : "main",
+		  "line" : 20,
+		  "protection" : "",
+		  "attributes" : [
+		  ],
+		  "constraint" : "",
+		  "templateParameters" : [
+		  ],
+		  "parameters" : [
 			{
-			  "name" : "main",
+			  "name" : "args",
 			  "line" : 20,
 			  "protection" : "",
 			  "attributes" : [
 			  ],
-			  "constraint" : "",
-			  "templateParameters" : [
-			  ],
-			  "parameters" : [
-				{
-				  "name" : "args",
-				  "line" : 20,
-				  "protection" : "",
-				  "attributes" : [
-				  ],
-				  "type" : "string[]"
-				}
-			  ],
-			  "returnType" : "void"
+			  "type" : "string[]"
 			}
 		  ],
-		  "variables" : [
-		  ],
-		  "enums" : [
-		  ]
+		  "returnType" : "void"
 		}
+	  ],
+	  "variables" : [
+	  ],
+	  "enums" : [
+	  ]
+	}
 
 # Ctags output
 Dscanner can create a tags file from the specified file. Output is formatted as
-specified at http://ctags.sourceforge.net/FORMAT
+specified at http://ctags.sourceforge.net/FORMAT. The result of generating ctags
+on the same file used in the JSON example will produce this output:
+
+	!_TAG_FILE_FORMAT 2
+	!_TAG_FILE_SORTED 1
+	!_TAG_PROGRAM_URL https://github.com/Hackerpilot/Dscanner/
+	Iface	tmp.d	3;"	c	inherits:
+	SomeClass	tmp.d	7;"	c	inherits:IFace
+	doStuff	tmp.d	10;"	f	arity:1	struct:SomeClass
+	freeFunction	tmp.d	16;"	f	arity:1
+	interfaceMethod	tmp.d	11;"	f	arity:0	struct:SomeClass
+	interfaceMethod	tmp.d	4;"	f	arity:0	struct:Iface
+	main	tmp.d	18;"	f	arity:1
+	theTee	tmp.d	13;"	m	struct:SomeClass
+	this	tmp.d	9;"	f	arity:0	struct:SomeClass
 
 # Line of Code count
 This option counts the logical lines of code in the given source files, not
