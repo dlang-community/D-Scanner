@@ -30,6 +30,7 @@ Generates a JSON summary of the input file.
 
 ### Example
 The given D code:
+
 		module example;
 
 		import std.stdio;
@@ -225,6 +226,7 @@ is transformed into the following JSON markup:
 Dscanner can create a tags file from the specified file. Output is formatted as
 specified at http://ctags.sourceforge.net/FORMAT. The result of generating ctags
 on the same file used in the JSON example will produce this output:
+
 		{!_TAG_FILE_FORMAT 2}
 		{!_TAG_FILE_SORTED 1}
 		Iface	tmp.d	3;"	c	inherits:
