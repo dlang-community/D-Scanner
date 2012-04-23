@@ -30,7 +30,7 @@ html { background-color: #111; color: #ccc; }
 .string { color: Tomato; font-style: italic; }
 .property { color: HotPink; font-weight: bold;}
 .operator { color: tan; font-weight: bold; }
-.type { color: cyan; }
+.type { color: cyan; font-weight: bold; }
 </style>
 <pre>]");
 
@@ -50,7 +50,7 @@ html { background-color: #111; color: #ccc; }
 		case TokenType.stringLiteral:
 			writeSpan("string", t.value);
 			break;
-		case TokenType.numberLiteral:
+		case TokenType.NUMBERS_BEGIN: .. case TokenType.NUMBERS_END:
 			writeSpan("number", t.value);
 			break;
 		case TokenType.OPERATORS_BEGIN: .. case TokenType.OPERATORS_END:

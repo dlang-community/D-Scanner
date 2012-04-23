@@ -141,10 +141,14 @@ body
 		++endIndex;
 	}
 	++endIndex;
+	if (endIndex < inputString.length && (inputString[endIndex] == 'w'
+		|| inputString[endIndex] == 'd' || inputString[endIndex] == 'c'))
+	{
+		++endIndex;
+	}
 	endIndex = min(endIndex, inputString.length);
 	return inputString[startIndex .. endIndex];
 }
-
 
 /**
  * Lexes the various crazy D string literals such as q{}, q"WTF is this? WTF",
@@ -218,79 +222,230 @@ string lexTokenString(S)(ref S inputString, ref size_t endIndex, ref uint lineNu
 	return "";
 }
 
-/**
- *
- */
-pure nothrow string lexNumber(S)(ref S inputString, ref size_t endIndex) if (isSomeString!S)
+pure nothrow Token lexNumber(S)(ref S inputString, ref size_t endIndex)
+	if (isSomeString!S)
 {
-	auto startIndex = endIndex;
-	bool foundDot = false;
-	bool foundX = false;
-	bool foundB = false;
-	bool foundE = false;
-	numberLoop: while (endIndex < inputString.length)
+	Token token;
+	size_t startIndex = endIndex;
+	if (inputString[endIndex] == '0')
+	{
+		endIndex++;
+		if (endIndex >= inputString.length)
+		{
+			token.type = TokenType.intLiteral;
+			token.value = inputString[startIndex .. endIndex];
+			return token;
+		}
+		switch (inputString[endIndex])
+		{
+		case '0': .. case '9':
+			// The current language spec doesn't cover octal literals, so this
+			// is decimal.
+			lexDecimal(inputString, startIndex, endIndex, token);
+			return token;
+		case 'b':
+		case 'B':
+			lexBinary(inputString, startIndex, ++endIndex, token);
+			return token;
+		case 'x':
+		case 'X':
+			lexHex(inputString, startIndex, ++endIndex, token);
+			return token;
+		default:
+			token.type = TokenType.intLiteral;
+			token.value = inputString[startIndex .. endIndex];
+			return token;
+		}
+	}
+	else
+	{
+		lexDecimal(inputString, startIndex, endIndex, token);
+		return token;
+	}
+}
+
+pure nothrow void lexBinary(S)(ref S inputString, size_t startIndex,
+	ref size_t endIndex, ref Token token) if (isSomeString!S)
+{
+	bool lexingSuffix = false;
+	bool isLong = false;
+	bool isUnsigned = false;
+	token.type = TokenType.intLiteral;
+	binaryLoop: while (endIndex < inputString.length)
 	{
 		switch (inputString[endIndex])
 		{
 		case '0':
-			if (!foundX)
-			{
-				++endIndex;
-				if (endIndex < inputString.length
-					&& (inputString[endIndex] == 'x' || inputString[endIndex] == 'X'))
-				{
-					++endIndex;
-					foundX = true;
-				}
-			}
+		case '1':
+		case '_':
+			++endIndex;
+			if (lexingSuffix)
+				break binaryLoop;
+			break;
+		case 'u':
+		case 'U':
+			++endIndex;
+			lexingSuffix = true;
+			if (isLong)
+				token.type = TokenType.unsignedLongLiteral;
 			else
-				++endIndex;
+				token.type = TokenType.unsignedIntLiteral;
 			break;
-		case 'b':
-			if (foundB)
-				break numberLoop;
-			foundB = true;
+		case 'L':
 			++endIndex;
+			if (isLong)
+				break binaryLoop;
+			if (isUnsigned)
+				token.type = TokenType.unsignedLongLiteral;
+			else
+				token.type = TokenType.longLiteral;
+			isLong = true;
 			break;
-		case '.':
-			if (foundDot || foundX || foundE)
-				break numberLoop;
-			foundDot = true;
+		default:
+			break binaryLoop;
+		}
+	}
+
+	token.value = inputString[startIndex .. endIndex];
+}
+
+pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
+	ref size_t endIndex, ref Token token) if (isSomeString!S)
+{
+	bool lexingSuffix = false;
+	bool isLong = false;
+	bool isUnsigned = false;
+	bool isFloat = false;
+	bool isReal = false;
+	bool isDouble = false;
+	bool foundDot = false;
+	bool foundE = false;
+	bool foundPlusMinus = false;
+	token.type = TokenType.intLiteral;
+	decimalLoop: while (endIndex < inputString.length)
+	{
+		switch (inputString[endIndex])
+		{
+		case '0': .. case '9':
+		case '_':
 			++endIndex;
+			if (lexingSuffix)
+				break decimalLoop;
+			break;
+		case 'e':
+		case 'E':
+			if (foundE)
+				break decimalLoop;
+			++endIndex;
+			foundE = true;
 			break;
 		case '+':
 		case '-':
-			if (!foundE)
-				break numberLoop;
+			if (foundPlusMinus || !foundE)
+				break decimalLoop;
+			foundPlusMinus = true;
 			++endIndex;
+			break;
+		case '.':
+			if (foundDot)
+				break decimalLoop;
+			++endIndex;
+			foundDot = true;
+			token.type = TokenType.doubleLiteral;
+			isDouble = true;
+			break;
+		case 'u':
+		case 'U':
+			++endIndex;
+			lexingSuffix = true;
+			if (isLong)
+				token.type = TokenType.unsignedLongLiteral;
+			else
+				token.type = TokenType.unsignedIntLiteral;
+			isUnsigned = true;
+			break;
+		case 'L':
+			++endIndex;
+			lexingSuffix = true;
+			if (isLong || isReal)
+				break decimalLoop;
+			if (isDouble)
+				token.type = TokenType.realLiteral;
+			else if (isUnsigned)
+				token.type = TokenType.unsignedLongLiteral;
+			else
+				token.type = TokenType.longLiteral;
+			isLong = true;
+			break;
+		case 'f':
+		case 'F':
+			lexingSuffix = true;
+			if (isUnsigned || isLong)
+				break decimalLoop;
+			++endIndex;
+			token.type = TokenType.floatLiteral;
+			break decimalLoop;
+		default:
+			break decimalLoop;
+		}
+	}
+
+	token.value = inputString[startIndex .. endIndex];
+}
+
+nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
+	ref size_t endIndex, ref Token token) if (isSomeString!S)
+{
+	bool lexingSuffix = false;
+	bool isLong = false;
+	bool isUnsigned = false;
+	bool isFloat = false;
+	bool isReal = false;
+	bool isDouble = false;
+	bool foundDot = false;
+	bool foundE = false;
+	bool foundPlusMinus = false;
+	token.type = TokenType.intLiteral;
+	hexLoop: while (endIndex < inputString.length)
+	{
+		switch (inputString[endIndex])
+		{
+		case '0': .. case '9':
+		case 'a': .. case 'f':
+		case 'A': .. case 'F':
+		case '_':
+			++endIndex;
+			if (lexingSuffix)
+				break hexLoop;
 			break;
 		case 'p':
 		case 'P':
-			if (!foundX)
-				break numberLoop;
+			if (foundE)
+				break hexLoop;
+			++endIndex;
 			foundE = true;
-			goto case '_';
-		case 'e':
-		case 'E':
-			if (foundE || foundX)
-				break numberLoop;
-			foundE = true;
-			goto case '_';
-		case '1': .. case '9':
-		case '_':
+			break;
+		case '+':
+		case '-':
+			if (foundPlusMinus || !foundE)
+				break hexLoop;
+			foundPlusMinus = true;
 			++endIndex;
 			break;
-		case 'F':
-		case 'f':
-		case 'L':
-		case 'i':
+		case '.':
+			if (foundDot)
+				break hexLoop;
 			++endIndex;
-			break numberLoop;
+			foundDot = true;
+			token.type = TokenType.doubleLiteral;
+			isDouble = true;
+			break;
 		default:
-			break numberLoop;
+			break hexLoop;
 		}
 	}
-	return inputString[startIndex .. endIndex];
+
+	token.value = inputString[startIndex .. endIndex];
 }
 
 
@@ -337,8 +492,10 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 
 	size_t endIndex = 0;
 	uint lineNumber = 1;
+
 	while (endIndex < inputString.length)
 	{
+		size_t prevIndex = endIndex;
 		Token currentToken;
 		auto startIndex = endIndex;
 		if (isWhite(inputString[endIndex]))
@@ -421,11 +578,8 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			"^",    "TokenType.xor",
 			"^=",   "TokenType.xorEquals",
 		));
-
 		case '0': .. case '9':
-			currentToken.value = lexNumber(inputString, endIndex);
-			currentToken.type = TokenType.numberLiteral;
-			currentToken.lineNumber = lineNumber;
+			currentToken = lexNumber(inputString, endIndex);
 			break;
 		case '/':
 			++endIndex;
@@ -528,8 +682,15 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			currentToken.lineNumber = lineNumber;
 			break;
 		}
-//		writeln(currentToken);
+		//stderr.writeln(currentToken);
 		tokenAppender.put(currentToken);
+
+		// This should never happen.
+		if (endIndex <= prevIndex)
+		{
+			stderr.writeln("FAIL");
+			return [];
+		}
 	}
 	return tokenAppender.data;
 }

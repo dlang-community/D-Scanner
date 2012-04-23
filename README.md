@@ -20,8 +20,10 @@ well as any paths specified in /etc/dmd.conf.
 code file.
 
 # Dot Completion
+This is currently under development.
 
 # Paren Completion
+This is currently under development.
 
 # JSON output
 Generates a JSON summary of the input file.

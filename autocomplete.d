@@ -1,4 +1,3 @@
-
 //          Copyright Brian Schott (Sir Alaran) 2012.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
@@ -28,99 +27,18 @@ immutable string[] versions = ["AIX", "all", "Alpha", "ARM", "BigEndian", "BSD",
 	"Win64", "Windows", "X86", "X86_64"
 ];
 
-/+/**
+/**
  * Returns: indicies into the token array
  */
-Tuple!(size_t, size_t) findEndOfStatement(const Token[] tokens, size_t index, out size_t)
+size_t findEndOfExpression(const Token[] tokens, size_t index)
 {
-
-}+/
-
-string[] callChainBackwards(const Token[] tokens, size_t index)
-{
-	if (index == 0)
-		return [tokens[index].value];
-	string[] callChain;
-	string current;
-	loop: while(true)
-	{
-		switch(tokens[index].type)
-		{
-		case TokenType.tThis:
-		case TokenType.identifier:
-		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
-			current = tokens[index].value ~ current;
-			callChain = current ~ callChain;
-			current = "";
-			if (index == 0)
-				break loop;
-			else
-				--index;
-			if (tokens[index] == TokenType.not)
-				callChain = callChain[1 .. $];
-			break;
-		case TokenType.rBracket:
-			tokens.skipBrackets(index);
-			current ~= "[]";
-			break;
-		case TokenType.rParen:
-			tokens.skipParens(index);
-			break;
-		case TokenType.not:
-		case TokenType.dot:
-			if (index == 0)
-				break loop;
-			else
-				--index;
-			break;
-		default:
-			break loop;
-		}
-	}
-	return callChain;
+	return index;
 }
 
-
-string[] callChainForwards(const Token[] tokens, size_t index)
+size_t findBeginningOfExpression(const Token[] tokens, size_t index)
 {
-	string[] callChain;
-	while (index < tokens.length)
-	{
-		switch(tokens[index].type)
-		{
-		case TokenType.tNew:
-			++index;
-			break;
-		case TokenType.tThis:
-		case TokenType.identifier:
-		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
-			callChain ~= tokens[index++].value;
-			break;
-		case TokenType.lParen:
-			tokens.skipParens(index);
-			break;
-		case TokenType.lBracket:
-			tokens.skipBrackets(index);
-			callChain[$ - 1] ~= "[i]";
-			break;
-		case TokenType.not:
-			++index;
-			if (tokens.startsWith(TokenType.lParen))
-				tokens.skipParens(index);
-			else
-				++index;
-			break;
-		default:
-			break;
-		}
-		if (index >= tokens.length || tokens[index] != TokenType.dot)
-			break;
-		else
-			++index;
-	}
-	return callChain;
+	return index;
 }
-
 
 struct AutoComplete
 {
@@ -130,39 +48,42 @@ struct AutoComplete
 		this.context = context;
 	}
 
-	string getTypeOfExpression(string[] chain, const Token[] tokens, size_t cursor)
+	string getTypeOfExpression(const(Token)[] expression, const Token[] tokens, size_t cursor)
 	{
-		if (chain.length == 0)
-			return "void";
-		auto type = typeOfVariable(chain[0], cursor);
-		if (type == "void")
-			return type;
-		chain = chain[1 .. $];
-		while (chain.length >= 1)
-		{
-			auto typeMap = context.getMembersOfType(type);
-			if (typeMap is null)
-				return "void";
-			auto memberType = typeMap[chain[0]][0];
-			if (memberType is null)
-				return "void";
-			type = memberType;
-			chain = chain[1 .. $];
-		}
-		return type;
+		return "void";
 	}
 
 	/**
 	 * This is where the magic happens
 	 */
-	string typeOfVariable(string symbol, size_t cursor)
+	string typeOfVariable(Token symbol, size_t cursor)
 	{
 		// int is of type int, double of type double, and so on
-		if (symbol in typeProperties)
-			return symbol;
+		if (symbol.value in typeProperties)
+			return symbol.value;
 
-		if (context.getMembersOfType(symbol))
-			return symbol;
+		switch (symbol.type)
+		{
+			case TokenType.floatLiteral:
+				return "float";
+			case TokenType.doubleLiteral:
+				return "double";
+			case TokenType.realLiteral:
+				return "real";
+			case TokenType.intLiteral:
+				return "int";
+			case TokenType.unsignedIntLiteral:
+				return "uint";
+			case TokenType.longLiteral:
+				return "long";
+			case TokenType.unsignedLongLiteral:
+				return "ulong";
+			default:
+				break;
+		}
+
+		if (context.getMembersOfType(symbol.value))
+			return symbol.value;
 
 		// Arbitrarily define the depth of the cursor position as zero
 		// iterate backwards through the code to try to find the variable
@@ -183,14 +104,13 @@ struct AutoComplete
 					|| p == TokenType.tConst)
 					&& preceedingTokens[index + 1] == TokenType.assign)
 				{
-					auto chain = callChainForwards(tokens, index + 2);
-					return getTypeOfExpression(chain, tokens, cursor);
+					return null;
 				}
-				if (p == TokenType.identifier
+				else if (p == TokenType.identifier
 					|| (p.type > TokenType.TYPES_BEGIN
 					&& p.type < TokenType.TYPES_END))
 				{
-					return preceedingTokens[index - 1].value;
+					return p.value;
 				}
 			}
 			if (index == 0)
@@ -207,7 +127,7 @@ struct AutoComplete
 			return minCount!("a.bodyStart > b.bodyStart")(structs)[0].name;
 		foreach (s; structs)
 		{
-			auto t = s.getMemberType(symbol);
+			auto t = s.getMemberType(symbol.value);
 			if (t !is null)
 				return t;
 		}
@@ -225,14 +145,16 @@ struct AutoComplete
 
 	string parenComplete(size_t cursor)
 	{
+		stderr.writeln("parenComplete");
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
 		Token t = tokens[index];
+		stderr.writeln(t);
 		if (t.startIndex + t.value.length + 1 != cursor)
 			return "";
 		switch (tokens[index].type)
 		{
 		case TokenType.tVersion:
-			return to!string(array(join(map!`a ~ "?1"`(versions), " ")));
+			return to!string(join(map!`a ~ "?1"`(versions), " ").array());
 		case TokenType.tIf:
 		case TokenType.tCast:
 		case TokenType.tWhile:
@@ -251,20 +173,7 @@ struct AutoComplete
 		Token t = tokens[index];
 		if (t.startIndex + t.value.length + 1 != cursor)
 			return "";
-		stderr.writeln(t);
-		string[] chain = callChainBackwards(tokens, index);
-		auto type = getTypeOfExpression(chain, tokens, cursor);
-
-		if (type && type in typeProperties)
-		{
-			string r;
-			foreach (i, prop; typeProperties[type])
-				if (i == typeProperties.length)
-					r = r ~ prop;
-				else
-					r = r ~ prop ~ " ";
-			return r;
-		}
+		auto type = typeOfVariable(t, cursor);
 
 		const Tuple!(string, string)[string] typeMap = context.getMembersOfType(type);
 		if (typeMap is null)
@@ -272,7 +181,7 @@ struct AutoComplete
 		auto app = appender!(string[])();
 		foreach (k, t; typeMap)
 			app.put(k ~ t[1]);
-		return to!string(array(join(sort(app.data), " ")));
+		return to!string(array(join(sort!"a.toLower() < b.toLower()"(app.data), " ")));
 	}
 
 	const(Token)[] tokens;

@@ -218,7 +218,6 @@ string parseTypeDeclaration(const Token[] tokens, ref size_t index)
 			break buildingType;
 		}
 	}
-	stderr.writeln("type = ", type);
 	return type;
 }
 
