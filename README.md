@@ -223,7 +223,19 @@ is transformed into the following JSON markup:
 
 # Ctags output
 Dscanner can create a tags file from the specified file. Output is formatted as
-specified at http://ctags.sourceforge.net/FORMAT
+specified at http://ctags.sourceforge.net/FORMAT. The result of generating ctags
+on the same file used in the JSON example will produce this output:
+		{!_TAG_FILE_FORMAT 2}
+		{!_TAG_FILE_SORTED 1}
+		Iface	tmp.d	3;"	c	inherits:
+		SomeClass	tmp.d	7;"	c	inherits:IFace
+		doStuff	tmp.d	10;"	f	arity:1	struct:SomeClass
+		freeFunction	tmp.d	16;"	f	arity:1
+		interfaceMethod	tmp.d	11;"	f	arity:0	struct:SomeClass
+		interfaceMethod	tmp.d	4;"	f	arity:0	struct:Iface
+		main	tmp.d	18;"	f	arity:1
+		theTee	tmp.d	13;"	m	struct:SomeClass
+		this	tmp.d	9;"	f	arity:0	struct:SomeClass
 
 # Line of Code count
 This option counts the logical lines of code in the given source files, not
