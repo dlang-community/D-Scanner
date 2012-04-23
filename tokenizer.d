@@ -48,6 +48,30 @@ pure nothrow string lexWhitespace(S)(S inputString, ref size_t endIndex,
 	}
 }
 
+/**
+ * If inputString starts from #!, increments endIndex until it indexes the next line.
+ * Params:
+ *     inputString = the source code to examine
+ *     endIndex = an index into inputString
+ *     lineNumber = the line number that corresponds to endIndex
+  * Returns: The script line, or null if this inputString doesn't start from script line
+ */
+pure nothrow string lexScriptLine(S)(ref S inputString, ref size_t endIndex,
+	ref uint lineNumber) if (isSomeString!S)
+{
+	auto startIndex = endIndex; // in current implementation endIndex is 0, but that could change (e.g., if BOM is not stripped from inputString)
+	string result = null;
+	if(inputString.length > 1 && inputString[0..2] == "#!") // safety check
+	{
+		endIndex = 2; // skip #!
+		while (endIndex < inputString.length && inputString[endIndex] != '\n')
+			++endIndex;
+
+		result = inputString[startIndex..endIndex];
+		++lineNumber;
+	}
+	return result;
+}
 
 /**
  * Increments endIndex until it indexes a character directly after a comment
@@ -492,6 +516,14 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 
 	size_t endIndex = 0;
 	uint lineNumber = 1;
+
+	if (inputString.length > 1 && inputString[0..2] == "#!")
+	{
+		Token currentToken;
+		currentToken.lineNumber = lineNumber; // lineNumber is always 1
+		currentToken.value = lexScriptLine(inputString, endIndex, lineNumber);
+		currentToken.type = TokenType.scriptLine;
+	}
 
 	while (endIndex < inputString.length)
 	{

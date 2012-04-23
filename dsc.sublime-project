@@ -1,0 +1,9 @@
+{
+	"build_system": "Packages/Makefile/Make.sublime-build",
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	]
+}

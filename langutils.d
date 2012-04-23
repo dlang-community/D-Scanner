@@ -253,6 +253,7 @@ enum TokenType: uint
 
 // Misc
 	MISC_BEGIN,
+	scriptLine, // Line at the beginning of source file that starts from #!
 	comment, /// /** comment */ or // comment or ///comment
 	NUMBERS_BEGIN,
 	floatLiteral, /// 123.456f or 0x123_45p-af
