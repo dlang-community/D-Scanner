@@ -227,8 +227,9 @@ Dscanner can create a tags file from the specified file. Output is formatted as
 specified at http://ctags.sourceforge.net/FORMAT. The result of generating ctags
 on the same file used in the JSON example will produce this output:
 
-	{!_TAG_FILE_FORMAT 2}
-	{!_TAG_FILE_SORTED 1}
+	!_TAG_FILE_FORMAT 2
+	!_TAG_FILE_SORTED 1
+	!_TAG_PROGRAM_URL https://github.com/Hackerpilot/Dscanner/
 	Iface	tmp.d	3;"	c	inherits:
 	SomeClass	tmp.d	7;"	c	inherits:IFace
 	doStuff	tmp.d	10;"	f	arity:1	struct:SomeClass
