@@ -407,10 +407,10 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 		case 'L':
 			if (isLong)
 				break decimalLoop;
-			++endIndex;
-			lexingSuffix = true;
 			if (isReal)
 				break decimalLoop;
+			++endIndex;
+			lexingSuffix = true;
 			if (isDouble)
 				token.type = TokenType.realLiteral;
 			else if (isUnsigned)
