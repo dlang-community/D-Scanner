@@ -59,10 +59,10 @@ enum TokenType: uint
 	vararg,	/// ...
 	bitAnd,	/// &
 	bitAndEquals,	/// &=
-	lAnd,	/// &&
+	logicAnd,	/// &&
 	bitOr,	/// |
 	bitOrEquals,	/// |=
-	lOr,	/// ||
+	logicOr,	/// ||
 	minus,	/// -
 	minusEquals,	/// -=
 	uMinus,	/// --
@@ -119,6 +119,8 @@ enum TokenType: uint
 // Types
 	TYPES_BEGIN,
 	tString, /// string
+	tWString, /// wstring
+	tDString, /// dstring
 	tBool, /// bool,
 	tByte, /// byte,
 	tCdouble, /// cdouble,
@@ -264,7 +266,11 @@ enum TokenType: uint
 	longLiteral, /// 123L
 	unsignedLongLiteral, /// 123uL
 	NUMBERS_END,
+	STRINGS_BEGIN,
 	stringLiteral, /// "a string"
+	wStringLiteral, /// "16-bit character string"w
+	dStringLiteral, /// "32-bit character string"d
+	STRINGS_END,
 	identifier, /// anything else
 	whitespace, /// whitespace
 	blank, /// unknown token type
@@ -310,6 +316,7 @@ static this()
 		"deprecated" : TokenType.tDeprecated,
 		"do" : TokenType.tDo,
 		"double" : TokenType.tDouble,
+		"dstring" : TokenType.tDString,
 		"else" : TokenType.tElse,
 		"enum" : TokenType.tEnum,
 		"export" : TokenType.tExport,
@@ -384,6 +391,7 @@ static this()
 		"wchar" : TokenType.tWchar,
 		"while" : TokenType.tWhile,
 		"with" : TokenType.tWith,
+		"wstring" : TokenType.tWString,
 		"__FILE__" : TokenType.t__FILE__,
 		"__LINE__" : TokenType.t__LINE__,
 		"__gshared" : TokenType.t__gshared,

@@ -49,7 +49,7 @@ pure nothrow string lexWhitespace(S)(S inputString, ref size_t endIndex,
 }
 
 /**
- * If inputString starts from #!, increments endIndex until it indexes the next line.
+ * If inputString starts with #!, increments endIndex until it indexes the next line.
  * Params:
  *     inputString = the source code to examine
  *     endIndex = an index into inputString
@@ -139,7 +139,6 @@ pure nothrow string lexComment(S)(ref S inputString, ref size_t endIndex,
  *     quote = the opening (and closing) quote character for the string to be
  *         lexed
  * Returns: a string literal, including its opening and closing quote characters
- * Bugs: Does not handle string suffixes
  */
 pure nothrow string lexString(S, C)(S inputString, ref size_t endIndex, ref uint lineNumber,
 	C quote, bool canEscape = true) if (isSomeString!S && isSomeChar!C)
@@ -609,14 +608,14 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			">",    "TokenType.greater",
 			">=",   "TokenType.greaterEqual",
 			"#",    "TokenType.hash",
-			"&&",   "TokenType.lAnd",
+			"&&",   "TokenType.logicAnd",
 			"{",    "TokenType.lBrace",
 			"[",    "TokenType.lBracket",
 			"<",    "TokenType.less",
 			"<=",   "TokenType.lessEqual",
 			"<>=",  "TokenType.lessEqualGreater",
 			"<>",   "TokenType.lessOrGreater",
-			"||",   "TokenType.lOr",
+			"||",   "TokenType.logicOr",
 			"(",    "TokenType.lParen",
 			"-",    "TokenType.minus",
 			"-=",   "TokenType.minusEquals",
