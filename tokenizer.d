@@ -29,11 +29,11 @@ import codegen;
  * Returns: The whitespace, or null if style was CODE_ONLY
  */
 pure nothrow string lexWhitespace(S)(S inputString, ref size_t endIndex,
-	ref uint lineNumber, IterationStyle style = IterationStyle.CODE_ONLY)
+	ref uint lineNumber, IterationStyle style = IterationStyle.CODE_ONLY) // I suggest to remove the last param
 	if (isSomeString!S)
 {
 	immutable startIndex = endIndex;
-	while (endIndex < inputString.length && isWhite(inputString[endIndex]))
+	while (!isEoF(inputString, endIndex) && isWhite(inputString[endIndex]))
 	{
 		if (inputString[endIndex] == '\n')
 			lineNumber++;
@@ -64,7 +64,7 @@ pure nothrow string lexScriptLine(S)(ref S inputString, ref size_t endIndex,
 	if(inputString.length > 1 && inputString[0..2] == "#!") // safety check
 	{
 		endIndex = 2; // skip #!
-		while (endIndex < inputString.length && inputString[endIndex] != '\n')
+		while (!isEoF(inputString, endIndex) && inputString[endIndex] != '\n')
 			++endIndex;
 
 		result = inputString[startIndex..endIndex];
@@ -85,13 +85,13 @@ pure nothrow string lexScriptLine(S)(ref S inputString, ref size_t endIndex,
 pure nothrow string lexComment(S)(ref S inputString, ref size_t endIndex,
 	ref uint lineNumber) if (isSomeString!S)
 {
-	if (inputString.length == 0)
+	if (isEoF(inputString, endIndex))
 		return "";
 	auto startIndex = endIndex - 1;
 	switch(inputString[endIndex])
 	{
 	case '/':
-		while (endIndex < inputString.length && inputString[endIndex] != '\n')
+		while (!isEoF(inputString, endIndex) && inputString[endIndex] != '\n')
 		{
 			if (inputString[endIndex] == '\n')
 				++lineNumber;
@@ -99,7 +99,7 @@ pure nothrow string lexComment(S)(ref S inputString, ref size_t endIndex,
 		}
 		break;
 	case '*':
-		while (endIndex < inputString.length
+		while (!isEoF(inputString, endIndex)
 			&& !inputString[endIndex..$].startsWith("*/"))
 		{
 			if (inputString[endIndex] == '\n')
@@ -111,7 +111,7 @@ pure nothrow string lexComment(S)(ref S inputString, ref size_t endIndex,
 	case '+':
 		++endIndex;
 		int depth = 1;
-		while (depth > 0 && endIndex + 1 < inputString.length)
+		while (depth > 0 && !isEoF(inputString, endIndex))
 		{
 			if (inputString[endIndex] == '\n')
 				lineNumber++;
@@ -121,7 +121,8 @@ pure nothrow string lexComment(S)(ref S inputString, ref size_t endIndex,
 				depth++;
 			++endIndex;
 		}
-		++endIndex;
+		if (!isEoF(inputString, endIndex))
+			++endIndex;
 		break;
 	default:
 		break;
@@ -145,7 +146,7 @@ pure nothrow string lexString(S, C)(S inputString, ref size_t endIndex, ref uint
 in
 {
 	assert (inputString[endIndex] == quote);
-	assert (quote == '\'' || quote == '\"' || quote == '`');
+	assert (quote == '\'' || quote == '"' || quote == '`');
 }
 body
 {
@@ -154,7 +155,7 @@ body
 	auto startIndex = endIndex;
 	++endIndex;
 	bool escape = false;
-	while (endIndex < inputString.length && (inputString[endIndex] != quote || escape))
+	while (!isEoF(inputString, endIndex) && (inputString[endIndex] != quote || escape))
 	{
 		if (escape)
 			escape = false;
@@ -165,12 +166,11 @@ body
 		++endIndex;
 	}
 	++endIndex;
-	if (endIndex < inputString.length && (inputString[endIndex] == 'w'
+	if (!isEoF(inputString, endIndex) && (inputString[endIndex] == 'w'
 		|| inputString[endIndex] == 'd' || inputString[endIndex] == 'c'))
 	{
 		++endIndex;
 	}
-	endIndex = min(endIndex, inputString.length);
 	return inputString[startIndex .. endIndex];
 }
 
@@ -188,6 +188,7 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 {
 	auto startIndex = endIndex;
 	++endIndex;
+	assert(!isEoF(inputString, endIndex)); // todo: what should happen if this is EoF?
 	string open = inputString[endIndex .. endIndex + 1];
 	string close;
 	bool nesting = false;
@@ -198,12 +199,13 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 	case '{': close = "}"; ++endIndex; nesting = true; break;
 	case '(': close = ")"; ++endIndex; nesting = true; break;
 	default:
-		while(!isWhite(inputString[endIndex])) endIndex++;
+		while(!isEoF(inputString, endIndex) && !isWhite(inputString[endIndex]))
+			endIndex++;
 		close = open = inputString[startIndex + 1 .. endIndex];
 		break;
 	}
 	int depth = 1;
-	while (endIndex < inputString.length && depth > 0)
+	while (!isEoF(inputString, endIndex) && depth > 0)
 	{
 		if (inputString[endIndex] == '\n')
 		{
@@ -213,9 +215,9 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 		else if (inputString[endIndex..$].startsWith(open))
 		{
 			endIndex += open.length;
-			if (!nesting)
+			if (!nesting && !isEoF(inputString, endIndex))
 			{
-				if (inputString[endIndex] == '\"')
+				if (inputString[endIndex] == '"')
 					++endIndex;
 				break;
 			}
@@ -231,7 +233,7 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 		else
 			++endIndex;
 	}
-	if (endIndex < inputString.length && inputString[endIndex] == '\"')
+	if (!isEoF(inputString, endIndex) && inputString[endIndex] == '"')
 		++endIndex;
 	return inputString[startIndex .. endIndex];
 }
@@ -254,7 +256,7 @@ pure nothrow Token lexNumber(S)(ref S inputString, ref size_t endIndex)
 	if (inputString[endIndex] == '0')
 	{
 		endIndex++;
-		if (endIndex >= inputString.length)
+		if (isEoF(inputString, endIndex))
 		{
 			token.type = TokenType.intLiteral;
 			token.value = inputString[startIndex .. endIndex];
@@ -295,32 +297,42 @@ pure nothrow void lexBinary(S)(ref S inputString, size_t startIndex,
 	bool isLong = false;
 	bool isUnsigned = false;
 	token.type = TokenType.intLiteral;
-	binaryLoop: while (endIndex < inputString.length)
+	binaryLoop: while (!isEoF(inputString, endIndex))
 	{
 		switch (inputString[endIndex])
 		{
 		case '0':
 		case '1':
 		case '_':
-			++endIndex;
 			if (lexingSuffix)
 				break binaryLoop;
+			++endIndex;
 			break;
 		case 'u':
 		case 'U':
+			if (isUnsigned)
+				break;
 			++endIndex;
 			lexingSuffix = true;
 			if (isLong)
+			{
 				token.type = TokenType.unsignedLongLiteral;
+				break binaryLoop;
+			}
 			else
 				token.type = TokenType.unsignedIntLiteral;
+			isUnsigned = true;
 			break;
 		case 'L':
-			++endIndex;
 			if (isLong)
 				break binaryLoop;
+			++endIndex;
+			lexingSuffix = true;
 			if (isUnsigned)
+			{
 				token.type = TokenType.unsignedLongLiteral;
+				break binaryLoop;
+			}
 			else
 				token.type = TokenType.longLiteral;
 			isLong = true;
@@ -346,15 +358,15 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 	bool foundE = false;
 	bool foundPlusMinus = false;
 	token.type = TokenType.intLiteral;
-	decimalLoop: while (endIndex < inputString.length)
+	decimalLoop: while (!isEoF(inputString, endIndex))
 	{
 		switch (inputString[endIndex])
 		{
 		case '0': .. case '9':
 		case '_':
-			++endIndex;
 			if (lexingSuffix)
 				break decimalLoop;
+			++endIndex;
 			break;
 		case 'e':
 		case 'E':
@@ -371,8 +383,10 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			++endIndex;
 			break;
 		case '.':
+			if (!isEoF(inputString, endIndex + 1) && inputString[endIndex + 1] == '.')
+				break decimalLoop; // possibly slice expression
 			if (foundDot)
-				break decimalLoop;
+				break decimalLoop; // two dots with other characters between them
 			++endIndex;
 			foundDot = true;
 			token.type = TokenType.doubleLiteral;
@@ -380,6 +394,8 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			break;
 		case 'u':
 		case 'U':
+			if (isUnsigned)
+				break decimalLoop;
 			++endIndex;
 			lexingSuffix = true;
 			if (isLong)
@@ -389,10 +405,12 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			isUnsigned = true;
 			break;
 		case 'L':
+			if (isLong)
+				break decimalLoop;
+			if (isReal)
+				break decimalLoop;
 			++endIndex;
 			lexingSuffix = true;
-			if (isLong || isReal)
-				break decimalLoop;
 			if (isDouble)
 				token.type = TokenType.realLiteral;
 			else if (isUnsigned)
@@ -414,7 +432,32 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 		}
 	}
 
+	// suggest to extract lexing integers into a separate function
+	// please see unittest below
+
 	token.value = inputString[startIndex .. endIndex];
+}
+
+unittest {
+	dump!lexDecimal("55e-4"); // yeilds intLiteral, but should be float
+	dump!lexDecimal("3e+f"); // floatLiteral, but should be considered invalid
+	dump!lexDecimal("3e++f"); // intLiteral 3e+, but should be considered invalid
+	// actually, there are lots of bugs. The point is that without decomposition of integer lexing from floating-point lexing
+	// it is very hard to prove algorithm correctness
+}
+
+// Temporary function to illustrate some problems
+// Executes T and dumps results to console
+void dump(alias T)(string s) {
+	size_t start;
+	size_t end;
+	Token tok;
+	T!(string)(s, start, end, tok);
+	// dump results
+	writeln(tok.type);
+	writeln(tok.value);
+	writeln(start);
+	writeln(end);
 }
 
 nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
@@ -430,7 +473,7 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 	bool foundE = false;
 	bool foundPlusMinus = false;
 	token.type = TokenType.intLiteral;
-	hexLoop: while (endIndex < inputString.length)
+	hexLoop: while (!isEoF(inputString, endIndex))
 	{
 		switch (inputString[endIndex])
 		{
@@ -438,9 +481,9 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 		case 'a': .. case 'f':
 		case 'A': .. case 'F':
 		case '_':
-			++endIndex;
 			if (lexingSuffix)
 				break hexLoop;
+			++endIndex;
 			break;
 		case 'p':
 		case 'P':
@@ -457,8 +500,10 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 			++endIndex;
 			break;
 		case '.':
+			if (!isEoF(inputString, endIndex + 1) && inputString[endIndex + 1] == '.')
+				break hexLoop; // possibly slice expression
 			if (foundDot)
-				break hexLoop;
+				break hexLoop; // two dots with other characters between them
 			++endIndex;
 			foundDot = true;
 			token.type = TokenType.doubleLiteral;
@@ -525,7 +570,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 		currentToken.type = TokenType.scriptLine;
 	}
 
-	while (endIndex < inputString.length)
+	while (!isEoF(inputString, endIndex))
 	{
 		size_t prevIndex = endIndex;
 		Token currentToken;
@@ -536,7 +581,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			{
 				currentToken.lineNumber = lineNumber;
 				currentToken.value = lexWhitespace(inputString, endIndex,
-					lineNumber, IterationStyle.EVERYTHING);
+					lineNumber, IterationStyle.EVERYTHING); // note: I suggest to remove the last parameter to simplify lexWhitespace
 				currentToken.type = TokenType.whitespace;
 				tokenAppender.put(currentToken);
 			}
@@ -615,7 +660,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			break;
 		case '/':
 			++endIndex;
-			if (endIndex >= inputString.length)
+			if (isEoF(inputString, endIndex))
 			{
 				currentToken.value = "/";
 				currentToken.type = TokenType.div;
@@ -651,18 +696,14 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			}
 			break;
 		case 'r':
-			currentToken.value = "r";
 			++endIndex;
-			if (inputString[endIndex] == '\"')
-			{
-				currentToken.lineNumber = lineNumber;
-				currentToken.value = lexString(inputString, endIndex,
-					lineNumber, inputString[endIndex], false);
-				currentToken.type = TokenType.stringLiteral;
-				break;
-			}
-			else
+			if (isEoF(inputString, endIndex) || inputString[endIndex] != '"')
 				goto default;
+			currentToken.lineNumber = lineNumber;
+			currentToken.value = lexString(inputString, endIndex,
+				lineNumber, inputString[endIndex], false);
+			currentToken.type = TokenType.stringLiteral;
+			break;
 		case '`':
 			currentToken.lineNumber = lineNumber;
 			currentToken.value = lexString(inputString, endIndex, lineNumber,
@@ -670,12 +711,11 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			currentToken.type = TokenType.stringLiteral;
 			break;
 		case 'x':
-			currentToken.value = "x";
 			++endIndex;
-			if (inputString[endIndex] == '\"')
-				goto case '\"';
-			else
+			if (isEoF(inputString, endIndex) || inputString[endIndex] != '"')
 				goto default;
+			else
+				goto case '"'; // BUG: this is incorrect! according to specification, hex data should be lexed differently than "normal" strings
 		case '\'':
 		case '"':
 			currentToken.lineNumber = lineNumber;
@@ -684,30 +724,34 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			currentToken.type = TokenType.stringLiteral;
 			break;
 		case 'q':
+			currentToken.value = "q";
 			++endIndex;
-			switch (inputString[endIndex])
+			if (!isEoF(inputString, endIndex))
 			{
-				case '\"':
-					currentToken.lineNumber = lineNumber;
-					currentToken.value ~= "q" ~ lexDelimitedString(inputString,
-						endIndex, lineNumber);
-					currentToken.type = TokenType.stringLiteral;
-					break outerSwitch;
-				case '{':
-					currentToken.lineNumber = lineNumber;
-					currentToken.value ~= "q" ~ lexTokenString(inputString,
-						endIndex, lineNumber);
-					currentToken.type = TokenType.stringLiteral;
-					break outerSwitch;
-				default:
-					break;
+				switch (inputString[endIndex])
+				{
+					case '"':
+						currentToken.lineNumber = lineNumber;
+						currentToken.value ~= lexDelimitedString(inputString,
+							endIndex, lineNumber);
+						currentToken.type = TokenType.stringLiteral;
+						break outerSwitch;
+					case '{':
+						currentToken.lineNumber = lineNumber;
+						currentToken.value ~= lexTokenString(inputString,
+							endIndex, lineNumber);
+						currentToken.type = TokenType.stringLiteral;
+						break outerSwitch;
+					default:
+						break;
+				}
 			}
 			goto default;
 		case '@':
 			++endIndex;
 			goto default;
 		default:
-			while(endIndex < inputString.length && !isSeparating(inputString[endIndex]))
+			while(!isEoF(inputString, endIndex) && !isSeparating(inputString[endIndex]))
 				++endIndex;
 			currentToken.value = inputString[startIndex .. endIndex];
 			currentToken.type = lookupTokenType(currentToken.value);
