@@ -60,7 +60,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 		if (v.children.length > 0)
 		{
 			caseStatement ~= indentString;
-			caseStatement ~= "\tif (endIndex >= inputString.length)\n";
+			caseStatement ~= "\tif (isEoF(inputString, endIndex))\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= indentString;
@@ -110,3 +110,28 @@ string generateCaseTrie(string[] args ...)
 	}
 	return printCaseStatements(t, "");
 }
+
+/**
+ * Returns: true if index points to end of inputString, false otherwise
+ */
+pure nothrow bool isEoF(S)(S inputString, size_t index)
+{
+	// note: EoF is determined according to D specification
+	return index >= inputString.length
+		|| inputString[index] == Character.NUL
+		|| inputString[index] == Character.SUB;
+}
+
+private:
+
+	// Unicode character literals
+	enum Character
+	{
+		// End of file (EoF)
+		NUL = '\u0000',	// NUL character
+		SUB = '\u001A',	// Substitute character
+
+		// Line feed (EoL)
+		CR = '\u000D', // CR character
+		LF = '\u000A',	// LF character	
+	}

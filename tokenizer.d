@@ -432,10 +432,32 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 		}
 	}
 
-	// todo: in some cases loop is interrupted before float literal is parsed, and some invalid inputs are accepted;
-	// suggested solution is to extract lexing integer into a separate function
+	// suggest to extract lexing integers into a separate function
+	// please see unittest below
 
 	token.value = inputString[startIndex .. endIndex];
+}
+
+unittest {
+	dump!lexDecimal("55e-4"); // yeilds intLiteral, but should be float
+	dump!lexDecimal("3e+f"); // floatLiteral, but should be considered invalid
+	dump!lexDecimal("3e++f"); // intLiteral 3e+, but should be considered invalid
+	// actually, there are lots of bugs. The point is that without decomposition of integer lexing from floating-point lexing
+	// it is very hard to prove algorithm correctness
+}
+
+// Temporary function to illustrate some problems
+// Executes T and dumps results to console
+void dump(alias T)(string s) {
+	size_t start;
+	size_t end;
+	Token tok;
+	T!(string)(s, start, end, tok);
+	// dump results
+	writeln(tok.type);
+	writeln(tok.value);
+	writeln(start);
+	writeln(end);
 }
 
 nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
@@ -742,30 +764,9 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 		// This should never happen.
 		if (endIndex <= prevIndex)
 		{
-			stderr.writeln("FAIL"); // why not put assert(false)? being here indicates a bug in code, I guess
+			stderr.writeln("FAIL");
 			return [];
 		}
 	}
 	return tokenAppender.data;
 }
-
-private:
-
-	/**
-	 * Returns: true if index points to end of inputString, false otherwise
-	 */
-	pure nothrow bool isEoF(S)(S inputString, size_t index)
-	{
-		// note: EoF is determined according to D specification
-		return index >= inputString.length
-			|| inputString[index] == NUL_CHAR
-			|| inputString[index] == SUB_CHAR;
-	}
-
-	// End of file (EoF)
-	const NUL_CHAR = '\u0000';	// NUL character
-	const SUB_CHAR = '\u001A';	// Substitute character
-
-	// Line feed (EoL)
-	const CR_CHAR = '\u000D';	// CR character
-	const LF_CHAR = '\u000A';	// LF character
