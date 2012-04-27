@@ -29,7 +29,7 @@ import codegen;
  * Returns: The whitespace, or null if style was CODE_ONLY
  */
 pure nothrow string lexWhitespace(S)(S inputString, ref size_t endIndex,
-	ref uint lineNumber, IterationStyle style = IterationStyle.CODE_ONLY) // I suggest to remove the last param
+	ref uint lineNumber)
 	if (isSomeString!S)
 {
 	immutable startIndex = endIndex;
@@ -39,13 +39,7 @@ pure nothrow string lexWhitespace(S)(S inputString, ref size_t endIndex,
 			lineNumber++;
 		++endIndex;
 	}
-	final switch (style)
-	{
-	case IterationStyle.EVERYTHING:
-		return inputString[startIndex .. endIndex];
-	case IterationStyle.CODE_ONLY:
-		return null;
-	}
+	return inputString[startIndex .. endIndex];
 }
 
 /**
@@ -257,7 +251,7 @@ pure nothrow Token lexNumber(S)(ref S inputString, ref size_t endIndex)
 		endIndex++;
 		if (isEoF(inputString, endIndex))
 		{
-			token.type = TokenType.intLiteral;
+			token.type = TokenType.IntLiteral;
 			token.value = inputString[startIndex .. endIndex];
 			return token;
 		}
@@ -277,7 +271,7 @@ pure nothrow Token lexNumber(S)(ref S inputString, ref size_t endIndex)
 			lexHex(inputString, startIndex, ++endIndex, token);
 			return token;
 		default:
-			token.type = TokenType.intLiteral;
+			token.type = TokenType.IntLiteral;
 			token.value = inputString[startIndex .. endIndex];
 			return token;
 		}
@@ -295,7 +289,7 @@ pure nothrow void lexBinary(S)(ref S inputString, size_t startIndex,
 	bool lexingSuffix = false;
 	bool isLong = false;
 	bool isUnsigned = false;
-	token.type = TokenType.intLiteral;
+	token.type = TokenType.IntLiteral;
 	binaryLoop: while (!isEoF(inputString, endIndex))
 	{
 		switch (inputString[endIndex])
@@ -315,11 +309,11 @@ pure nothrow void lexBinary(S)(ref S inputString, size_t startIndex,
 			lexingSuffix = true;
 			if (isLong)
 			{
-				token.type = TokenType.unsignedLongLiteral;
+				token.type = TokenType.UnsignedLongLiteral;
 				break binaryLoop;
 			}
 			else
-				token.type = TokenType.unsignedIntLiteral;
+				token.type = TokenType.UnsignedIntLiteral;
 			isUnsigned = true;
 			break;
 		case 'L':
@@ -329,11 +323,11 @@ pure nothrow void lexBinary(S)(ref S inputString, size_t startIndex,
 			lexingSuffix = true;
 			if (isUnsigned)
 			{
-				token.type = TokenType.unsignedLongLiteral;
+				token.type = TokenType.UnsignedLongLiteral;
 				break binaryLoop;
 			}
 			else
-				token.type = TokenType.longLiteral;
+				token.type = TokenType.LongLiteral;
 			isLong = true;
 			break;
 		default:
@@ -356,7 +350,7 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 	bool foundDot = false;
 	bool foundE = false;
 	bool foundPlusMinus = false;
-	token.type = TokenType.intLiteral;
+	token.type = TokenType.IntLiteral;
 	decimalLoop: while (!isEoF(inputString, endIndex))
 	{
 		switch (inputString[endIndex])
@@ -369,10 +363,30 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			break;
 		case 'e':
 		case 'E':
-			if (foundE)
+			// For this to be a valid exponent, the next character must be a
+			// decimal character or a sign
+			if (foundE || isEoF(inputString, endIndex + 1))
 				break decimalLoop;
+			switch (inputString[endIndex + 1])
+			{
+			case '+':
+			case '-':
+				if (isEoF(inputString, endIndex + 2)
+					|| inputString[endIndex + 2] < '0'
+					|| inputString[endIndex + 2] > '9')
+				{
+					break decimalLoop;
+				}
+				break;
+			case '0': .. case '9':
+				break;
+			default:
+				break decimalLoop;
+			}
 			++endIndex;
 			foundE = true;
+			isDouble = true;
+			token.type = TokenType.DoubleLiteral;
 			break;
 		case '+':
 		case '-':
@@ -388,7 +402,7 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 				break decimalLoop; // two dots with other characters between them
 			++endIndex;
 			foundDot = true;
-			token.type = TokenType.doubleLiteral;
+			token.type = TokenType.DoubleLiteral;
 			isDouble = true;
 			break;
 		case 'u':
@@ -398,9 +412,9 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			++endIndex;
 			lexingSuffix = true;
 			if (isLong)
-				token.type = TokenType.unsignedLongLiteral;
+				token.type = TokenType.UnsignedLongLiteral;
 			else
-				token.type = TokenType.unsignedIntLiteral;
+				token.type = TokenType.UnsignedIntLiteral;
 			isUnsigned = true;
 			break;
 		case 'L':
@@ -411,11 +425,11 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			++endIndex;
 			lexingSuffix = true;
 			if (isDouble)
-				token.type = TokenType.realLiteral;
+				token.type = TokenType.RealLiteral;
 			else if (isUnsigned)
-				token.type = TokenType.unsignedLongLiteral;
+				token.type = TokenType.UnsignedLongLiteral;
 			else
-				token.type = TokenType.longLiteral;
+				token.type = TokenType.LongLiteral;
 			isLong = true;
 			break;
 		case 'f':
@@ -424,40 +438,70 @@ pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
 			if (isUnsigned || isLong)
 				break decimalLoop;
 			++endIndex;
-			token.type = TokenType.floatLiteral;
+			token.type = TokenType.FloatLiteral;
 			break decimalLoop;
+		case 'i':
+			++endIndex;
+			// Spec says that this is the last suffix, so all cases break the
+			// loop.
+			if (isDouble)
+			{
+				token.type = TokenType.Idouble;
+				break decimalLoop;
+			}
+			else if (isFloat)
+			{
+				token.type = TokenType.Ifloat;
+				break decimalLoop;
+			}
+			else if (isReal)
+			{
+				token.type = TokenType.Ireal;
+				break decimalLoop;
+			}
+			else
+			{
+				// There is no imaginary int
+				--endIndex;
+				break decimalLoop;
+			}
 		default:
 			break decimalLoop;
 		}
 	}
 
-	// suggest to extract lexing integers into a separate function
-	// please see unittest below
-
 	token.value = inputString[startIndex .. endIndex];
 }
 
+
 unittest {
-	dump!lexDecimal("55e-4"); // yeilds intLiteral, but should be float
-	dump!lexDecimal("3e+f"); // floatLiteral, but should be considered invalid
-	dump!lexDecimal("3e++f"); // intLiteral 3e+, but should be considered invalid
-	// actually, there are lots of bugs. The point is that without decomposition of integer lexing from floating-point lexing
-	// it is very hard to prove algorithm correctness
+	Token t;
+	size_t start, end;
+	lexDecimal!string("55e-4", start, end, t);
+	assert(t.value == "55e-4");
+	assert(t.type == TokenType.DoubleLiteral);
+
+	start = end = 0;
+	lexDecimal!string("123.45f", start, end, t);
+	assert(t.value == "123.45f");
+	assert(t.type == TokenType.FloatLiteral);
+
+	start = end = 0;
+	lexDecimal!string("3e+f", start, end, t);
+	assert(t.value == "3");
+	assert(t.type == TokenType.IntLiteral);
+
+	start = end = 0;
+	lexDecimal!string("3e++f", start, end, t);
+	assert(t.value == "3");
+	assert(t.type == TokenType.IntLiteral);
+
+	start = end = 0;
+	lexDecimal!string("1234..1237", start, end, t);
+	assert(t.value == "1234");
+	assert(t.type == TokenType.IntLiteral);
 }
 
-// Temporary function to illustrate some problems
-// Executes T and dumps results to console
-void dump(alias T)(string s) {
-	size_t start;
-	size_t end;
-	Token tok;
-	T!(string)(s, start, end, tok);
-	// dump results
-	writeln(tok.type);
-	writeln(tok.value);
-	writeln(start);
-	writeln(end);
-}
 
 nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 	ref size_t endIndex, ref Token token) if (isSomeString!S)
@@ -471,7 +515,7 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 	bool foundDot = false;
 	bool foundE = false;
 	bool foundPlusMinus = false;
-	token.type = TokenType.intLiteral;
+	token.type = TokenType.IntLiteral;
 	hexLoop: while (!isEoF(inputString, endIndex))
 	{
 		switch (inputString[endIndex])
@@ -505,7 +549,7 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 				break hexLoop; // two dots with other characters between them
 			++endIndex;
 			foundDot = true;
-			token.type = TokenType.doubleLiteral;
+			token.type = TokenType.DoubleLiteral;
 			isDouble = true;
 			break;
 		default:
@@ -566,7 +610,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 		Token currentToken;
 		currentToken.lineNumber = lineNumber; // lineNumber is always 1
 		currentToken.value = lexScriptLine(inputString, endIndex, lineNumber);
-		currentToken.type = TokenType.scriptLine;
+		currentToken.type = TokenType.ScriptLine;
 	}
 
 	while (!isEoF(inputString, endIndex))
@@ -580,8 +624,8 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			{
 				currentToken.lineNumber = lineNumber;
 				currentToken.value = lexWhitespace(inputString, endIndex,
-					lineNumber, IterationStyle.EVERYTHING); // note: I suggest to remove the last parameter to simplify lexWhitespace
-				currentToken.type = TokenType.whitespace;
+					lineNumber);
+				currentToken.type = TokenType.Whitespace;
 				tokenAppender.put(currentToken);
 			}
 			else
@@ -593,66 +637,66 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 		outerSwitch: switch(inputString[endIndex])
 		{
 		mixin(generateCaseTrie(
-			"=",    "TokenType.assign",
-			"&",    "TokenType.bitAnd",
-			"&=",   "TokenType.bitAndEquals",
-			"|",    "TokenType.bitOr",
-			"|=",   "TokenType.bitOrEquals",
-			"~=",   "TokenType.catEquals",
-			":",    "TokenType.colon",
-			",",    "TokenType.comma",
-			"$",    "TokenType.dollar",
-			".",    "TokenType.dot",
-			"==",   "TokenType.equals",
-			"=>",   "TokenType.goesTo",
-			">",    "TokenType.greater",
-			">=",   "TokenType.greaterEqual",
-			"#",    "TokenType.hash",
-			"&&",   "TokenType.logicAnd",
-			"{",    "TokenType.lBrace",
-			"[",    "TokenType.lBracket",
-			"<",    "TokenType.less",
-			"<=",   "TokenType.lessEqual",
-			"<>=",  "TokenType.lessEqualGreater",
-			"<>",   "TokenType.lessOrGreater",
-			"||",   "TokenType.logicOr",
-			"(",    "TokenType.lParen",
-			"-",    "TokenType.minus",
-			"-=",   "TokenType.minusEquals",
-			"%",    "TokenType.mod",
-			"%=",   "TokenType.modEquals",
-			"*=",   "TokenType.mulEquals",
-			"!",    "TokenType.not",
-			"!=",   "TokenType.notEquals",
-			"!>",   "TokenType.notGreater",
-			"!>=",  "TokenType.notGreaterEqual",
-			"!<",   "TokenType.notLess",
-			"!<=",  "TokenType.notLessEqual",
-			"!<>",  "TokenType.notLessEqualGreater",
-			"+",    "TokenType.plus",
-			"+=",   "TokenType.plusEquals",
-			"^^",   "TokenType.pow",
-			"^^=",  "TokenType.powEquals",
-			"}",    "TokenType.rBrace",
-			"]",    "TokenType.rBracket",
-			")",    "TokenType.rParen",
-			";",    "TokenType.semicolon",
-			"<<",   "TokenType.shiftLeft",
-			"<<=",  "TokenType.shiftLeftEqual",
-			">>",   "TokenType.shiftRight",
-			">>=",  "TokenType.shiftRightEqual",
-			"..",   "TokenType.slice",
-			"*",    "TokenType.star",
-			"?",    "TokenType.ternary",
-			"~",    "TokenType.tilde",
-			"--",   "TokenType.uMinus",
-			"!<>=", "TokenType.unordered",
-			">>>",  "TokenType.unsignedShiftRight",
-			">>>=", "TokenType.unsignedShiftRightEqual",
-			"++",   "TokenType.uPlus",
-			"...",  "TokenType.vararg",
-			"^",    "TokenType.xor",
-			"^=",   "TokenType.xorEquals",
+			"=",    "TokenType.Assign",
+			"&",    "TokenType.BitAnd",
+			"&=",   "TokenType.BitAndEquals",
+			"|",    "TokenType.BitOr",
+			"|=",   "TokenType.BitOrEquals",
+			"~=",   "TokenType.CatEquals",
+			":",    "TokenType.Colon",
+			",",    "TokenType.Comma",
+			"$",    "TokenType.Dollar",
+			".",    "TokenType.Dot",
+			"==",   "TokenType.Equals",
+			"=>",   "TokenType.GoesTo",
+			">",    "TokenType.Greater",
+			">=",   "TokenType.GreaterEqual",
+			"#",    "TokenType.Hash",
+			"&&",   "TokenType.LogicAnd",
+			"{",    "TokenType.LBrace",
+			"[",    "TokenType.LBracket",
+			"<",    "TokenType.Less",
+			"<=",   "TokenType.LessEqual",
+			"<>=",  "TokenType.LessEqualGreater",
+			"<>",   "TokenType.LessOrGreater",
+			"||",   "TokenType.LogicOr",
+			"(",    "TokenType.LParen",
+			"-",    "TokenType.Minus",
+			"-=",   "TokenType.MinusEquals",
+			"%",    "TokenType.Mod",
+			"%=",   "TokenType.ModEquals",
+			"*=",   "TokenType.MulEquals",
+			"!",    "TokenType.Not",
+			"!=",   "TokenType.NotEquals",
+			"!>",   "TokenType.NotGreater",
+			"!>=",  "TokenType.NotGreaterEqual",
+			"!<",   "TokenType.NotLess",
+			"!<=",  "TokenType.NotLessEqual",
+			"!<>",  "TokenType.NotLessEqualGreater",
+			"+",    "TokenType.Plus",
+			"+=",   "TokenType.PlusEquals",
+			"^^",   "TokenType.Pow",
+			"^^=",  "TokenType.PowEquals",
+			"}",    "TokenType.RBrace",
+			"]",    "TokenType.RBracket",
+			")",    "TokenType.RParen",
+			";",    "TokenType.Semicolon",
+			"<<",   "TokenType.ShiftLeft",
+			"<<=",  "TokenType.ShiftLeftEqual",
+			">>",   "TokenType.ShiftRight",
+			">>=",  "TokenType.ShiftRightEqual",
+			"..",   "TokenType.Slice",
+			"*",    "TokenType.Star",
+			"?",    "TokenType.Ternary",
+			"~",    "TokenType.Tilde",
+			"--",   "TokenType.Decrement",
+			"!<>=", "TokenType.Unordered",
+			">>>",  "TokenType.UnsignedShiftRight",
+			">>>=", "TokenType.UnsignedShiftRightEqual",
+			"++",   "TokenType.Increment",
+			"...",  "TokenType.Vararg",
+			"^",    "TokenType.Xor",
+			"^=",   "TokenType.XorEquals",
 		));
 		case '0': .. case '9':
 			currentToken = lexNumber(inputString, endIndex);
@@ -662,7 +706,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			if (isEoF(inputString, endIndex))
 			{
 				currentToken.value = "/";
-				currentToken.type = TokenType.div;
+				currentToken.type = TokenType.Div;
 				currentToken.lineNumber = lineNumber;
 				break;
 			}
@@ -680,17 +724,17 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 				else
 				{
 					currentToken.value = lexComment(inputString, endIndex, lineNumber);
-					currentToken.type = TokenType.comment;
+					currentToken.type = TokenType.Comment;
 					break;
 				}
 			case '=':
 				currentToken.value = "/=";
-				currentToken.type = TokenType.divEquals;
+				currentToken.type = TokenType.DivEquals;
 				++endIndex;
 				break;
 			default:
 				currentToken.value = "/";
-				currentToken.type = TokenType.div;
+				currentToken.type = TokenType.Div;
 				break;
 			}
 			break;
@@ -701,13 +745,13 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			currentToken.lineNumber = lineNumber;
 			currentToken.value = lexString(inputString, endIndex,
 				lineNumber, inputString[endIndex], false);
-			currentToken.type = TokenType.stringLiteral;
+			currentToken.type = TokenType.StringLiteral;
 			break;
 		case '`':
 			currentToken.lineNumber = lineNumber;
 			currentToken.value = lexString(inputString, endIndex, lineNumber,
 				inputString[endIndex], false);
-			currentToken.type = TokenType.stringLiteral;
+			currentToken.type = TokenType.StringLiteral;
 			break;
 		case 'x':
 			++endIndex;
@@ -720,7 +764,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			currentToken.lineNumber = lineNumber;
 			currentToken.value = lexString(inputString, endIndex, lineNumber,
 				inputString[endIndex]);
-			currentToken.type = TokenType.stringLiteral;
+			currentToken.type = TokenType.StringLiteral;
 			break;
 		case 'q':
 			currentToken.value = "q";
@@ -733,13 +777,13 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 						currentToken.lineNumber = lineNumber;
 						currentToken.value ~= lexDelimitedString(inputString,
 							endIndex, lineNumber);
-						currentToken.type = TokenType.stringLiteral;
+						currentToken.type = TokenType.StringLiteral;
 						break outerSwitch;
 					case '{':
 						currentToken.lineNumber = lineNumber;
 						currentToken.value ~= lexTokenString(inputString,
 							endIndex, lineNumber);
-						currentToken.type = TokenType.stringLiteral;
+						currentToken.type = TokenType.StringLiteral;
 						break outerSwitch;
 					default:
 						break;

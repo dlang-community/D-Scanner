@@ -44,10 +44,10 @@ html { background-color: #111; color: #ccc; }
 		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
 			writeSpan("type", t.value);
 			break;
-		case TokenType.comment:
+		case TokenType.Comment:
 			writeSpan("comment", t.value);
 			break;
-		case TokenType.stringLiteral:
+		case TokenType.STRINGS_BEGIN: .. case TokenType.STRINGS_END:
 			writeSpan("string", t.value);
 			break;
 		case TokenType.NUMBERS_BEGIN: .. case TokenType.NUMBERS_END:

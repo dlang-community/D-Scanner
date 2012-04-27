@@ -27,12 +27,13 @@ pure bool isLineOfCode(TokenType t)
 {
 	switch(t)
 	{
-	case TokenType.semicolon:
-	case TokenType.tWhile:
-	case TokenType.tIf:
-	case TokenType.tFor:
-	case TokenType.tForeach:
-	case TokenType.tCase:
+	case TokenType.Semicolon:
+	case TokenType.While:
+	case TokenType.If:
+	case TokenType.For:
+	case TokenType.Foreach:
+	case TokenType.Foreach_reverse:
+	case TokenType.Case:
 		return true;
 	default:
 		return false;

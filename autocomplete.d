@@ -32,7 +32,31 @@ immutable string[] versions = ["AIX", "all", "Alpha", "ARM", "BigEndian", "BSD",
  */
 size_t findEndOfExpression(const Token[] tokens, size_t index)
 {
-	return index;
+	size_t i = index;
+	while (i < tokens.length)
+	{
+		switch (tokens[i].type)
+		{
+		case TokenType.RBrace:
+		case TokenType.RParen:
+		case TokenType.RBracket:
+		case TokenType.Semicolon:
+			break;
+		case TokenType.LParen:
+			skipParens(tokens, index);
+			break;
+		case TokenType.LBrace:
+			skipBraces(tokens, index);
+			break;
+		case TokenType.LBracket:
+			skipBrackets(tokens, index);
+			break;
+		default:
+			++i;
+			break;
+		}
+	}
+	return i;
 }
 
 size_t findBeginningOfExpression(const Token[] tokens, size_t index)
@@ -64,19 +88,19 @@ struct AutoComplete
 
 		switch (symbol.type)
 		{
-			case TokenType.floatLiteral:
+			case TokenType.FloatLiteral:
 				return "float";
-			case TokenType.doubleLiteral:
+			case TokenType.DoubleLiteral:
 				return "double";
-			case TokenType.realLiteral:
+			case TokenType.RealLiteral:
 				return "real";
-			case TokenType.intLiteral:
+			case TokenType.IntLiteral:
 				return "int";
-			case TokenType.unsignedIntLiteral:
+			case TokenType.UnsignedIntLiteral:
 				return "uint";
-			case TokenType.longLiteral:
+			case TokenType.LongLiteral:
 				return "long";
-			case TokenType.unsignedLongLiteral:
+			case TokenType.UnsignedLongLiteral:
 				return "ulong";
 			default:
 				break;
@@ -92,21 +116,21 @@ struct AutoComplete
 		auto index = preceedingTokens.length - 1;
 		while (true)
 		{
-			if (preceedingTokens[index] == TokenType.lBrace)
+			if (preceedingTokens[index] == TokenType.LBrace)
 				--depth;
-			else if (preceedingTokens[index] == TokenType.rBrace)
+			else if (preceedingTokens[index] == TokenType.RBrace)
 				++depth;
 			else if (depth <= 0 && preceedingTokens[index].value == symbol)
 			{
 				// Found the symbol, now determine if it was declared here.
 				auto p = preceedingTokens[index - 1];
-				if ((p == TokenType.tAuto || p == TokenType.tImmutable
-					|| p == TokenType.tConst)
-					&& preceedingTokens[index + 1] == TokenType.assign)
+				if ((p == TokenType.Auto || p == TokenType.Immutable
+					|| p == TokenType.Const)
+					&& preceedingTokens[index + 1] == TokenType.Assign)
 				{
 					return null;
 				}
-				else if (p == TokenType.identifier
+				else if (p == TokenType.Identifier
 					|| (p.type > TokenType.TYPES_BEGIN
 					&& p.type < TokenType.TYPES_END))
 				{
@@ -153,14 +177,14 @@ struct AutoComplete
 			return "";
 		switch (tokens[index].type)
 		{
-		case TokenType.tVersion:
+		case TokenType.Version:
 			return to!string(join(map!`a ~ "?1"`(versions), " ").array());
-		case TokenType.tIf:
-		case TokenType.tCast:
-		case TokenType.tWhile:
-		case TokenType.tFor:
-		case TokenType.tForeach:
-		case TokenType.tSwitch:
+		case TokenType.If:
+		case TokenType.Cast:
+		case TokenType.While:
+		case TokenType.For:
+		case TokenType.Foreach:
+		case TokenType.Switch:
 			return "";
 		default:
 			return "";

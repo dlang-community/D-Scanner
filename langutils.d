@@ -1,4 +1,3 @@
-
 //          Copyright Brian Schott (Sir Alaran) 2012.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
@@ -41,7 +40,7 @@ pure nothrow TokenType lookupTokenType(const string input)
 	if (type !is null)
 		return *type;
 	else
-		return TokenType.identifier;
+		return TokenType.Identifier;
 }
 
 
@@ -52,228 +51,226 @@ enum TokenType: uint
 {
 // Operators
 	OPERATORS_BEGIN,
-	div,	/// /
-	divEquals,	/// /=
-	dot,	/// .
-	slice, // ..
-	vararg,	/// ...
-	bitAnd,	/// &
-	bitAndEquals,	/// &=
-	logicAnd,	/// &&
-	bitOr,	/// |
-	bitOrEquals,	/// |=
-	logicOr,	/// ||
-	minus,	/// -
-	minusEquals,	/// -=
-	uMinus,	/// --
-	plus,	/// +
-	plusEquals,	/// +=
-	uPlus,	/// ++
-	less,	/// <
-	lessEqual,	/// <=
-	shiftLeft,	/// <<
-	shiftLeftEqual,	/// <<=
-	lessOrGreater,	/// <>
-	lessEqualGreater, // <>=
-	greater,	/// >
-	greaterEqual,	/// >=
-	shiftRightEqual,	/// >>=
-	unsignedShiftRightEqual,	/// >>>=
-	shiftRight,	/// >>
-	unsignedShiftRight,	/// >>>
-	not,	/// !
-	notEquals,	/// !=
-	notLessEqualGreater,	/// !<>
-	unordered,	/// !<>=
-	notLess,	/// !<
-	notLessEqual,	/// !<=
-	notGreater,	/// !>
-	notGreaterEqual,	/// !>=
-	lParen,	/// $(LPAREN)
-	rParen,	/// $(RPAREN)
-	lBracket,	/// [
-	rBracket,	/// ]
-	lBrace,	/// {
-	rBrace,	/// }
-	ternary,	/// ?
-	comma,	/// ,
-	semicolon,	/// ;
-	colon,	/// :
-	dollar,	/// $
-	assign,	/// =
-	equals,	/// ==
-	star,	/// *
-	mulEquals,	/// *=
-	mod,	/// %
-	modEquals,	/// %=
-	xor,	/// ^
-	xorEquals,	/// ^=
-	pow,	/// ^^
-	powEquals,	/// ^^=
-	tilde,	/// ~
-	catEquals,	/// ~=
-	hash, // #
-	goesTo, // =>
+	Assign,	/// =
+	BitAnd,	/// &
+	BitAndEquals,	/// &=
+	BitOr,	/// |
+	BitOrEquals,	/// |=
+	CatEquals,	/// ~=
+	Colon,	/// :
+	Comma,	/// ,
+	Decrement,	/// --
+	Div,	/// /
+	DivEquals,	/// /=
+	Dollar,	/// $
+	Dot,	/// .
+	Equals,	/// ==
+	GoesTo, // =>
+	Greater,	/// >
+	GreaterEqual,	/// >=
+	Hash, // #
+	Increment,	/// ++
+	LBrace,	/// {
+	LBracket,	/// [
+	Less,	/// <
+	LessEqual,	/// <=
+	LessEqualGreater, // <>=
+	LessOrGreater,	/// <>
+	LogicAnd,	/// &&
+	LogicOr,	/// ||
+	LParen,	/// $(LPAREN)
+	Minus,	/// -
+	MinusEquals,	/// -=
+	Mod,	/// %
+	ModEquals,	/// %=
+	MulEquals,	/// *=
+	Not,	/// !
+	NotEquals,	/// !=
+	NotGreater,	/// !>
+	NotGreaterEqual,	/// !>=
+	NotLess,	/// !<
+	NotLessEqual,	/// !<=
+	NotLessEqualGreater,	/// !<>
+	Plus,	/// +
+	PlusEquals,	/// +=
+	Pow,	/// ^^
+	PowEquals,	/// ^^=
+	RBrace,	/// }
+	RBracket,	/// ]
+	RParen,	/// $(RPAREN)
+	Semicolon,	/// ;
+	ShiftLeft,	/// <<
+	ShiftLeftEqual,	/// <<=
+	ShiftRight,	/// >>
+	ShiftRightEqual,	/// >>=
+	Slice, // ..
+	Star,	/// *
+	Ternary,	/// ?
+	Tilde,	/// ~
+	Unordered,	/// !<>=
+	UnsignedShiftRight,	/// >>>
+	UnsignedShiftRightEqual,	/// >>>=
+	Vararg,	/// ...
+	Xor,	/// ^
+	XorEquals,	/// ^=
 	OPERATORS_END,
 
-// Types
+	// Types
 	TYPES_BEGIN,
-	tString, /// string
-	tWString, /// wstring
-	tDString, /// dstring
-	tBool, /// bool,
-	tByte, /// byte,
-	tCdouble, /// cdouble,
-	tCent, /// cent,
-	tCfloat, /// cfloat,
-	tChar, /// char,
-	tCreal, /// creal,
-	tDchar, /// dchar,
-	tDouble, /// double,
-	tFloat, /// float,
-	tUbyte, /// ubyte,
-	tUcent, /// ucent,
-	tUint, /// uint,
-	tUlong, /// ulong,
-	tShort, /// short,
-	tReal, /// real,
-	tLong, /// long,
-	tInt, /// int,
-	tFunction, /// function,
-	tIdouble, /// idouble,
-	tIreal, /// ireal,
-	tWchar, /// wchar,
-	tVoid, /// void,
-	tUshort, /// ushort,
-	tIfloat, /// if loat,
+	Bool, /// bool,
+	Byte, /// byte,
+	Cdouble, /// cdouble,
+	Cent, /// cent,
+	Cfloat, /// cfloat,
+	Char, /// char,
+	Creal, /// creal,
+	Dchar, /// dchar,
+	Double, /// double,
+	DString, /// dstring
+	Float, /// float,
+	Function, /// function,
+	Idouble, /// idouble,
+	Ifloat, /// ifloat,
+	Int, /// int,
+	Ireal, /// ireal,
+	Long, /// long,
+	Real, /// real,
+	Short, /// short,
+	String, /// string
+	Ubyte, /// ubyte,
+	Ucent, /// ucent,
+	Uint, /// uint,
+	Ulong, /// ulong,
+	Ushort, /// ushort,
+	Void, /// void,
+	Wchar, /// wchar,
+	WString, /// wstring
 	TYPES_END,
-	tTemplate, /// template,
+	Template, /// template,
 
-// Keywords
+	// Keywords
 	KEYWORDS_BEGIN,
 	ATTRIBUTES_BEGIN,
-		tExtern, /// extern,
-		tAlign, /// align,
-		tPragma, /// pragma,
-		tDeprecated, /// deprecated,
+		Align, /// align,
+		Deprecated, /// deprecated,
+		Extern, /// extern,
+		Pragma, /// pragma,
 		PROTECTION_BEGIN,
-			tPackage, /// package,
-			tPrivate, /// private,
-			tProtected, /// protected,
-			tPublic, /// public,
-			tExport, /// export,
+			Export, /// export,
+			Package, /// package,
+			Private, /// private,
+			Protected, /// protected,
+			Public, /// public,
 		PROTECTION_END,
-		tStatic, /// static,
-		tSynchronized, /// synchronized,
-		tFinal, /// final
-		tAbstract, /// abstract,
-		tConst, /// const,
-		tAuto, /// auto,
-		tScope, /// scope,
-		t__gshared, /// __gshared,
-		tShared, // shared,
-		tImmutable, // immutable,
-		tInout, // inout,
-		atDisable, /// @disable
+		Abstract, /// abstract,
+		AtDisable, /// @disable
+		Auto, /// auto,
+		Const, /// const,
+		Final, /// final
+		Gshared, /// __gshared,
+		Immutable, // immutable,
+		Inout, // inout,
+		Scope, /// scope,
+		Shared, // shared,
+		Static, /// static,
+		Synchronized, /// synchronized,
 	ATTRIBUTES_END,
-	tAlias, /// alias,
-	tAsm, /// asm,
-	tAssert, /// assert,
-	tBody, /// body,
-	tBreak, /// break,
-	tCase, /// case,
-	tCast, /// cast,
-	tCatch, /// catch,
-	tClass, /// class,
-	tContinue, /// continue,
-	tDebug, /// debug,
-	tDefault, /// default,
-	tDelegate, /// delegate,
-	tDelete, /// delete,
-	tDo, /// do,
-	tElse, /// else,
-	tEnum, /// enum,
-	tFalse, /// false,
-	tFinally, /// finally,
-	tFor, /// for,
-	tForeach, /// foreach,
-	tForeach_reverse, /// foreach_reverse,
-	tGoto, /// goto,
-	tIf, /// if ,
-	tImport, /// import,
-	tIn, /// in,
-	tInterface, /// interface,
-	tInvariant, /// invariant,
-	tIs, /// is,
-	tLazy, /// lazy,
-	tMacro, /// macro,
-	tMixin, /// mixin,
-	tModule, /// module,
-	tNew, /// new,
-	tNothrow, /// nothrow,
-	tNull, /// null,
-	tOut, /// out,
-	tOverride, /// override,
-	tPure, /// pure,
-	tRef, /// ref,
-	tReturn, /// return,
-	tStruct, /// struct,
-	tSuper, /// super,
-	tSwitch, /// switch ,
-	tThis, /// this,
-	tThrow, /// throw,
-	tTrue, /// true,
-	tTry, /// try,
-	tTypedef, /// typedef,
-	tTypeid, /// typeid,
-	tTypeof, /// typeof,
-	tUnion, /// union,
-	tUnittest, /// unittest,
-	tVersion, /// version,
-	tVolatile, /// volatile,
-	tWhile, /// while ,
-	tWith, /// with,
+	Alias, /// alias,
+	Asm, /// asm,
+	Assert, /// assert,
+	Body, /// body,
+	Break, /// break,
+	Case, /// case,
+	Cast, /// cast,
+	Catch, /// catch,
+	Class, /// class,
+	Continue, /// continue,
+	Debug, /// debug,
+	Default, /// default,
+	Delegate, /// delegate,
+	Delete, /// delete,
+	Do, /// do,
+	Else, /// else,
+	Enum, /// enum,
+	False, /// false,
+	Finally, /// finally,
+	Foreach, /// foreach,
+	Foreach_reverse, /// foreach_reverse,
+	For, /// for,
+	Goto, /// goto,
+	If, /// if ,
+	Import, /// import,
+	In, /// in,
+	Interface, /// interface,
+	Invariant, /// invariant,
+	Is, /// is,
+	Lazy, /// lazy,
+	Macro, /// macro,
+	Mixin, /// mixin,
+	Module, /// module,
+	New, /// new,
+	Nothrow, /// nothrow,
+	Null, /// null,
+	Out, /// out,
+	Override, /// override,
+	Pure, /// pure,
+	Ref, /// ref,
+	Return, /// return,
+	Struct, /// struct,
+	Super, /// super,
+	Switch, /// switch ,
+	This, /// this,
+	Throw, /// throw,
+	True, /// true,
+	Try, /// try,
+	Typedef, /// typedef,
+	Typeid, /// typeid,
+	Typeof, /// typeof,
+	Union, /// union,
+	Unittest, /// unittest,
+	Version, /// version,
+	Volatile, /// volatile,
+	While, /// while ,
+	With, /// with,
 	KEYWORDS_END,
 
 // Constants
 	CONSTANTS_BEGIN,
-	t__FILE__, /// __FILE__,
-	t__LINE__, /// __LINE__,
-
-	t__thread, /// __thread,
-	t__traits, /// __traits,
+	File, /// __FILE__,
+	Line, /// __LINE__,
+	Thread, /// __thread,
+	Traits, /// __traits,
 	CONSTANTS_END,
 
 // Properties
 	PROPERTIES_BEGIN,
-
-	atProperty, /// @property
-	atSafe, /// @safe
-	atSystem, /// @system
-	atTrusted, /// @trusted
+	AtProperty, /// @property
+	AtSafe, /// @safe
+	AtSystem, /// @system
+	AtTrusted, /// @trusted
 	PROPERTIES_END,
 
 // Misc
 	MISC_BEGIN,
-	scriptLine, // Line at the beginning of source file that starts from #!
-	comment, /// /** comment */ or // comment or ///comment
+	Blank, /// unknown token type
+	Comment, /// /** comment */ or // comment or ///comment
+	Identifier, /// anything else
+	ScriptLine, // Line at the beginning of source file that starts from #!
+	Whitespace, /// whitespace
 	NUMBERS_BEGIN,
-	floatLiteral, /// 123.456f or 0x123_45p-af
-	doubleLiteral, /// 123.456
-	realLiteral, /// 123.456L
-	intLiteral, /// 123 or 0b1101010101
-	unsignedIntLiteral, /// 123u
-	longLiteral, /// 123L
-	unsignedLongLiteral, /// 123uL
+	DoubleLiteral, /// 123.456
+	FloatLiteral, /// 123.456f or 0x123_45p-af
+	IntLiteral, /// 123 or 0b1101010101
+	LongLiteral, /// 123L
+	RealLiteral, /// 123.456L
+	UnsignedIntLiteral, /// 123u
+	UnsignedLongLiteral, /// 123uL
 	NUMBERS_END,
 	STRINGS_BEGIN,
-	stringLiteral, /// "a string"
-	wStringLiteral, /// "16-bit character string"w
-	dStringLiteral, /// "32-bit character string"d
+	DStringLiteral, /// "32-bit character string"d
+	StringLiteral, /// "a string"
+	WStringLiteral, /// "16-bit character string"w
 	STRINGS_END,
-	identifier, /// anything else
-	whitespace, /// whitespace
-	blank, /// unknown token type
 	MISC_END,
 }
 
@@ -287,121 +284,121 @@ immutable TokenType[string] tokenLookup;
 static this()
 {
 	tokenLookup = [
-		"abstract" : TokenType.tAbstract,
-		"alias" : TokenType.tAlias,
-		"align" : TokenType.tAlign,
-		"asm" : TokenType.tAsm,
-		"assert" : TokenType.tAssert,
-		"auto" : TokenType.tAuto,
-		"body" : TokenType.tBody,
-		"bool" : TokenType.tBool,
-		"break" : TokenType.tBreak,
-		"byte" : TokenType.tByte,
-		"case" : TokenType.tCase,
-		"cast" : TokenType.tCast,
-		"catch" : TokenType.tCatch,
-		"cdouble" : TokenType.tCdouble,
-		"cent" : TokenType.tCent,
-		"cfloat" : TokenType.tCfloat,
-		"char" : TokenType.tChar,
-		"class" : TokenType.tClass,
-		"const" : TokenType.tConst,
-		"continue" : TokenType.tContinue,
-		"creal" : TokenType.tCreal,
-		"dchar" : TokenType.tDchar,
-		"debug" : TokenType.tDebug,
-		"default" : TokenType.tDefault,
-		"delegate" : TokenType.tDelegate,
-		"delete" : TokenType.tDelete,
-		"deprecated" : TokenType.tDeprecated,
-		"do" : TokenType.tDo,
-		"double" : TokenType.tDouble,
-		"dstring" : TokenType.tDString,
-		"else" : TokenType.tElse,
-		"enum" : TokenType.tEnum,
-		"export" : TokenType.tExport,
-		"extern" : TokenType.tExtern,
-		"false" : TokenType.tFalse,
-		"final" : TokenType.tFinal,
-		"finally" : TokenType.tFinally,
-		"float" : TokenType.tFloat,
-		"for" : TokenType.tFor,
-		"foreach" : TokenType.tForeach,
-		"foreach_reverse" : TokenType.tForeach_reverse,
-		"function" : TokenType.tFunction,
-		"goto" : TokenType.tGoto,
-		"idouble" : TokenType.tIdouble,
-		"if" : TokenType.tIf,
-		"ifloat" : TokenType.tIfloat,
-		"immutable" : TokenType.tImmutable,
-		"import" : TokenType.tImport,
-		"in" : TokenType.tIn,
-		"inout" : TokenType.tInout,
-		"int" : TokenType.tInt,
-		"interface" : TokenType.tInterface,
-		"invariant" : TokenType.tInvariant,
-		"ireal" : TokenType.tIreal,
-		"is" : TokenType.tIs,
-		"lazy" : TokenType.tLazy,
-		"long" : TokenType.tLong,
-		"macro" : TokenType.tMacro,
-		"mixin" : TokenType.tMixin,
-		"module" : TokenType.tModule,
-		"new" : TokenType.tNew,
-		"nothrow" : TokenType.tNothrow,
-		"null" : TokenType.tNull,
-		"out" : TokenType.tOut,
-		"override" : TokenType.tOverride,
-		"package" : TokenType.tPackage,
-		"pragma" : TokenType.tPragma,
-		"private" : TokenType.tPrivate,
-		"protected" : TokenType.tProtected,
-		"public" : TokenType.tPublic,
-		"pure" : TokenType.tPure,
-		"real" : TokenType.tReal,
-		"ref" : TokenType.tRef,
-		"return" : TokenType.tReturn,
-		"scope" : TokenType.tScope,
-		"shared" : TokenType.tShared,
-		"short" : TokenType.tShort,
-		"static" : TokenType.tStatic,
-		"struct" : TokenType.tStruct,
-		"string" : TokenType.tString,
-		"super" : TokenType.tSuper,
-		"switch" : TokenType.tSwitch,
-		"synchronized" : TokenType.tSynchronized,
-		"template" : TokenType.tTemplate,
-		"this" : TokenType.tThis,
-		"throw" : TokenType.tThrow,
-		"true" : TokenType.tTrue,
-		"try" : TokenType.tTry,
-		"typedef" : TokenType.tTypedef,
-		"typeid" : TokenType.tTypeid,
-		"typeof" : TokenType.tTypeof,
-		"ubyte" : TokenType.tUbyte,
-		"ucent" : TokenType.tUcent,
-		"uint" : TokenType.tUint,
-		"ulong" : TokenType.tUlong,
-		"union" : TokenType.tUnion,
-		"unittest" : TokenType.tUnittest,
-		"ushort" : TokenType.tUshort,
-		"version" : TokenType.tVersion,
-		"void" : TokenType.tVoid,
-		"volatile" : TokenType.tVolatile,
-		"wchar" : TokenType.tWchar,
-		"while" : TokenType.tWhile,
-		"with" : TokenType.tWith,
-		"wstring" : TokenType.tWString,
-		"__FILE__" : TokenType.t__FILE__,
-		"__LINE__" : TokenType.t__LINE__,
-		"__gshared" : TokenType.t__gshared,
-		"__thread" : TokenType.t__thread,
-		"__traits" : TokenType.t__traits,
-		"@disable" : TokenType.atDisable,
-		"@property" : TokenType.atProperty,
-		"@safe" : TokenType.atSafe,
-		"@system" : TokenType.atSystem,
-		"@trusted" : TokenType.atTrusted,
+		"abstract" : TokenType.Abstract,
+		"alias" : TokenType.Alias,
+		"align" : TokenType.Align,
+		"asm" : TokenType.Asm,
+		"assert" : TokenType.Assert,
+		"auto" : TokenType.Auto,
+		"body" : TokenType.Body,
+		"bool" : TokenType.Bool,
+		"break" : TokenType.Break,
+		"byte" : TokenType.Byte,
+		"case" : TokenType.Case,
+		"cast" : TokenType.Cast,
+		"catch" : TokenType.Catch,
+		"cdouble" : TokenType.Cdouble,
+		"cent" : TokenType.Cent,
+		"cfloat" : TokenType.Cfloat,
+		"char" : TokenType.Char,
+		"class" : TokenType.Class,
+		"const" : TokenType.Const,
+		"continue" : TokenType.Continue,
+		"creal" : TokenType.Creal,
+		"dchar" : TokenType.Dchar,
+		"debug" : TokenType.Debug,
+		"default" : TokenType.Default,
+		"delegate" : TokenType.Delegate,
+		"delete" : TokenType.Delete,
+		"deprecated" : TokenType.Deprecated,
+		"@disable" : TokenType.AtDisable,
+		"do" : TokenType.Do,
+		"double" : TokenType.Double,
+		"dstring" : TokenType.DString,
+		"else" : TokenType.Else,
+		"enum" : TokenType.Enum,
+		"export" : TokenType.Export,
+		"extern" : TokenType.Extern,
+		"false" : TokenType.False,
+		"__FILE__" : TokenType.File,
+		"finally" : TokenType.Finally,
+		"final" : TokenType.Final,
+		"float" : TokenType.Float,
+		"foreach_reverse" : TokenType.Foreach_reverse,
+		"foreach" : TokenType.Foreach,
+		"for" : TokenType.For,
+		"function" : TokenType.Function,
+		"goto" : TokenType.Goto,
+		"__gshared" : TokenType.Gshared,
+		"idouble" : TokenType.Idouble,
+		"ifloat" : TokenType.Ifloat,
+		"if" : TokenType.If,
+		"immutable" : TokenType.Immutable,
+		"import" : TokenType.Import,
+		"inout" : TokenType.Inout,
+		"interface" : TokenType.Interface,
+		"in" : TokenType.In,
+		"int" : TokenType.Int,
+		"invariant" : TokenType.Invariant,
+		"ireal" : TokenType.Ireal,
+		"is" : TokenType.Is,
+		"lazy" : TokenType.Lazy,
+		"__LINE__" : TokenType.Line,
+		"long" : TokenType.Long,
+		"macro" : TokenType.Macro,
+		"mixin" : TokenType.Mixin,
+		"module" : TokenType.Module,
+		"new" : TokenType.New,
+		"nothrow" : TokenType.Nothrow,
+		"null" : TokenType.Null,
+		"out" : TokenType.Out,
+		"override" : TokenType.Override,
+		"package" : TokenType.Package,
+		"pragma" : TokenType.Pragma,
+		"private" : TokenType.Private,
+		"@property" : TokenType.AtProperty,
+		"protected" : TokenType.Protected,
+		"public" : TokenType.Public,
+		"pure" : TokenType.Pure,
+		"real" : TokenType.Real,
+		"ref" : TokenType.Ref,
+		"return" : TokenType.Return,
+		"@safe" : TokenType.AtSafe,
+		"scope" : TokenType.Scope,
+		"shared" : TokenType.Shared,
+		"short" : TokenType.Short,
+		"static" : TokenType.Static,
+		"string" : TokenType.String,
+		"struct" : TokenType.Struct,
+		"super" : TokenType.Super,
+		"switch" : TokenType.Switch,
+		"synchronized" : TokenType.Synchronized,
+		"@system" : TokenType.AtSystem,
+		"template" : TokenType.Template,
+		"this" : TokenType.This,
+		"__thread" : TokenType.Thread,
+		"throw" : TokenType.Throw,
+		"__traits" : TokenType.Traits,
+		"true" : TokenType.True,
+		"@trusted" : TokenType.AtTrusted,
+		"try" : TokenType.Try,
+		"typedef" : TokenType.Typedef,
+		"typeid" : TokenType.Typeid,
+		"typeof" : TokenType.Typeof,
+		"ubyte" : TokenType.Ubyte,
+		"ucent" : TokenType.Ucent,
+		"uint" : TokenType.Uint,
+		"ulong" : TokenType.Ulong,
+		"union" : TokenType.Union,
+		"unittest" : TokenType.Unittest,
+		"ushort" : TokenType.Ushort,
+		"version" : TokenType.Version,
+		"void" : TokenType.Void,
+		"volatile" : TokenType.Volatile,
+		"wchar" : TokenType.Wchar,
+		"while" : TokenType.While,
+		"with" : TokenType.With,
+		"wstring" : TokenType.WString,
 	];
 }
 
