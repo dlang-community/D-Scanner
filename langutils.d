@@ -266,7 +266,7 @@ enum TokenType: uint
 	UnsignedIntLiteral, /// 123u
 	UnsignedLongLiteral, /// 123uL
 	NUMBERS_END,
-	STRINGS_BEGIN,
+	STRINGS_BEGIN, // note: alternative way to pass information about string postfix is to use TokenAnnotation
 	DStringLiteral, /// "32-bit character string"d
 	StringLiteral, /// "a string"
 	WStringLiteral, /// "16-bit character string"w
@@ -402,9 +402,38 @@ static this()
 	];
 }
 
+/**
+ * Token annotations are useful to pass meta information about tokens
+ */
+enum TokenAnnotation
+{
+	None = 0x0, // no annotations by default
+
+	// validity
+	Invalid = 0x1, // token lexing failed
+	Unterminated = 0x2 | Invalid, // lexing failed because token has not been terminated correctly // todo: what could be other reasons to fail?
+
+	// character or string literals
+	TextLiteral = 0x4, // either character literal or string literal
+	SomeString = 0x8 | TextLiteral, // string, wstring or dstring literal (this annotation is used alone when string postfix is not specified)
+	SomeCharacter = 0x10 | TextLiteral, // char, wchar or dchar literal (depending on its value)
+	NarrowText = 0x20 | TextLiteral, // string or wstring, but not dstring; char or wchar, but not dchar
+	TextC = 0x40 | NarrowText, // string (c postfix) or char with value < 0x80 except EoL, EoF and escaped unicode literals starting from \u or \U
+	TextW = 0x80 | NarrowText, // wstring (w postfix) or wchar if value is in [0xE000..0xFFFE) U [0x80..0xD800) \ [0x2028..0x2029] or escaped Unicode literal \uXXXX
+	TextD = 0x100 | TextLiteral, // dstring (d postfix) or dchar (escaped Unicode literal \Uxxxxxxxx or any value which is not char or wchar)
+	WysiwygString = 0x200 | SomeString, // example usage: WysiwygString | TextC
+	AlternateWysiwygString = 0x400 | SomeString,
+	DoubleQuotedString = 0x800 | SomeString,
+	HexString = 0x1000 | SomeString,
+	// note: specification doesn't include postfix (c, w, d) for DelimitedString and TokenString, but DMD supports them
+	DelimitedString = 0x2000 | SomeString, // note: delimiter is included in token value along with double quotes
+	TokenString = 0x4000 | SomeString,
+}
+
 struct Token
 {
 	TokenType type;
+	TokenAnnotation annotations;
 	string value;
 	uint lineNumber;
 	size_t startIndex;
