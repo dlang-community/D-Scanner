@@ -164,7 +164,8 @@ body
 	{
 		++endIndex;
 	}
-	return inputString[startIndex .. endIndex];
+	auto e = endIndex > inputString.length ? inputString.length : endIndex;
+	return inputString[startIndex .. e];
 }
 
 /**

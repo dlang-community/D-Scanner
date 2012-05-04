@@ -169,16 +169,12 @@ struct AutoComplete
 
 	string parenComplete(size_t cursor)
 	{
-		stderr.writeln("parenComplete");
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
 		Token t = tokens[index];
-		stderr.writeln(t);
-		if (t.startIndex + t.value.length + 1 != cursor)
-			return "";
 		switch (tokens[index].type)
 		{
 		case TokenType.Version:
-			return to!string(join(map!`a ~ "?1"`(versions), " ").array());
+			return to!string(join(map!`a ~ "?5"`(versions), " ").array());
 		case TokenType.If:
 		case TokenType.Cast:
 		case TokenType.While:

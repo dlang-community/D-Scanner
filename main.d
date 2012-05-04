@@ -128,7 +128,6 @@ string[] loadConfig()
 	return dirs;
 }
 
-
 void main(string[] args)
 {
 	string[] importDirs;
@@ -159,6 +158,10 @@ void main(string[] args)
 
 	if (dotComplete || parenComplete)
 	{
+		if (isAbsolute(args[1]))
+			importDirs ~= dirName(args[1]);
+		else
+			importDirs ~= getcwd();
 		auto tokens = args[1].readText().tokenize();
 		auto mod = parseModule(tokens);
 		auto context = new CompletionContext(mod);

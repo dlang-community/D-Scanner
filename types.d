@@ -349,16 +349,9 @@ protected:
 
 }
 
-/**
- * Module is a container class for the other classes
- */
-class Module
+class HasDeclarations
 {
 public:
-
-	/// Module name. Will be blank if there is no module statement
-	string name;
-
 	/// List of interfaces declared in this module
 	Inherits[] interfaces;
 
@@ -379,6 +372,17 @@ public:
 
 	/// List of enums declared in this module
 	Enum[] enums;
+}
+
+/**
+ * Module is a container class for the other classes
+ */
+class Module : HasDeclarations
+{
+public:
+
+	/// Module name. Will be blank if there is no module statement
+	string name;
 
 	/// List of other modules that are imported by this one
 	string[] imports;
