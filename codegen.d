@@ -132,6 +132,6 @@ private:
 		SUB = '\u001A',	// Substitute character
 
 		// Line feed (EoL)
-		CR = '\u000D', // CR character
-		LF = '\u000A',	// LF character	
+		CR = '\u000D', // CR character ('\r')
+		LF = '\u000A',	// LF character	('\n')
 	}

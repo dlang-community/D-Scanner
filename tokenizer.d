@@ -169,7 +169,7 @@ body
 }
 
 /**
- * Lexes the various crazy D string literals such as q{}, q"WTF is this? WTF",
+ * Lexes the various crazy D string literals such as q"{}", q"WTF is this? WTF",
  * and q"<>".
  * Params:
  *     inputString = the source code to examine
@@ -229,9 +229,14 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 	}
 	if (!isEoF(inputString, endIndex) && inputString[endIndex] == '"')
 		++endIndex;
+	// note: specification doesn't mention postfixes for delimited and token string literals, but DMD supports them
+	if (!isEoF(inputString, endIndex) && (inputString[endIndex] == 'w'
+		|| inputString[endIndex] == 'd' || inputString[endIndex] == 'c'))
+	{
+		++endIndex; // todo: add token annotation according to postfix
+	}
 	return inputString[startIndex .. endIndex];
 }
-
 
 string lexTokenString(S)(ref S inputString, ref size_t endIndex, ref uint lineNumber)
 {
@@ -239,6 +244,13 @@ string lexTokenString(S)(ref S inputString, ref size_t endIndex, ref uint lineNu
 	string s = getBraceContent(r);
 	range.popFrontN(s.length);
 	return s;+/
+
+	//// note: specification doesn't mention postfixes for delimited and token string literals, but DMD supports them
+	//if (!isEoF(inputString, endIndex) && (inputString[endIndex] == 'w'
+	//	|| inputString[endIndex] == 'd' || inputString[endIndex] == 'c'))
+	//{
+	//	++endIndex; // todo: add token annotation according to postfix
+	//}
 	return "";
 }
 
@@ -563,7 +575,7 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 
 
 /**
- * Returns: true if  ch marks the ending of one token and the beginning of
+ * Returns: true if ch marks the ending of one token and the beginning of
  *     another, false otherwise
  */
 pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
@@ -747,25 +759,38 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			currentToken.value = lexString(inputString, endIndex,
 				lineNumber, inputString[endIndex], false);
 			currentToken.type = TokenType.StringLiteral;
+			currentToken.annotations |= TokenAnnotation.WysiwygString;
 			break;
 		case '`':
 			currentToken.lineNumber = lineNumber;
 			currentToken.value = lexString(inputString, endIndex, lineNumber,
 				inputString[endIndex], false);
 			currentToken.type = TokenType.StringLiteral;
+			currentToken.annotations |= TokenAnnotation.AlternateWysiwygString;
 			break;
-		case 'x':
+ 		case 'x':
 			++endIndex;
 			if (isEoF(inputString, endIndex) || inputString[endIndex] != '"')
 				goto default;
-			else
-				goto case '"'; // BUG: this is incorrect! according to specification, hex data should be lexed differently than "normal" strings
+			currentToken.lineNumber = lineNumber;
+			currentToken.value = lexString(inputString, endIndex, lineNumber,
+				inputString[endIndex]); // todo: create lexHexString function
+			currentToken.type = TokenType.StringLiteral;
+			currentToken.annotations |= TokenAnnotation.HexString;
+			break;
 		case '\'':
+			currentToken.lineNumber = lineNumber;
+			currentToken.value = lexString(inputString, endIndex, lineNumber,
+				inputString[endIndex]); // todo: create dedicated function for lexing character literals
+			currentToken.type = TokenType.StringLiteral;
+			currentToken.annotations |= TokenAnnotation.SomeCharacter;
+			break;
 		case '"':
 			currentToken.lineNumber = lineNumber;
 			currentToken.value = lexString(inputString, endIndex, lineNumber,
 				inputString[endIndex]);
 			currentToken.type = TokenType.StringLiteral;
+			currentToken.annotations |= TokenAnnotation.DoubleQuotedString;
 			break;
 		case 'q':
 			currentToken.value = "q";
@@ -779,12 +804,14 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 						currentToken.value ~= lexDelimitedString(inputString,
 							endIndex, lineNumber);
 						currentToken.type = TokenType.StringLiteral;
+						currentToken.annotations |= TokenAnnotation.DelimitedString;
 						break outerSwitch;
 					case '{':
 						currentToken.lineNumber = lineNumber;
 						currentToken.value ~= lexTokenString(inputString,
 							endIndex, lineNumber);
 						currentToken.type = TokenType.StringLiteral;
+						currentToken.annotations |= TokenAnnotation.TokenString;
 						break outerSwitch;
 					default:
 						break;
