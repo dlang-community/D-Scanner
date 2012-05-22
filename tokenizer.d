@@ -637,6 +637,7 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 
 		outerSwitch: switch(inputString[endIndex])
 		{
+		// TODO: Re-enable code generator when DMD bug 7900 is fixed
 		mixin(generateCaseTrie(
 			"=",    "TokenType.Assign",
 			"&",    "TokenType.BitAnd",

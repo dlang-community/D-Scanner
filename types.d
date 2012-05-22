@@ -605,9 +605,9 @@ public:
 					continue;
 				Tuple!(string, string)[string] typeMap;
 				foreach(var; s.variables)
-					typeMap[var.name] = Tuple!(string, string)(var.type, "?1");
+					typeMap[var.name] = Tuple!(string, string)(var.type, "m");
 				foreach(fun; s.functions)
-					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, "?2");
+					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, "f");
 				return typeMap;
 			}
 			foreach (Enum e; m.enums)
@@ -616,7 +616,7 @@ public:
 					continue;
 				Tuple!(string, string)[string] typeMap;
 				foreach (member; e.members)
-					typeMap[member.name] = Tuple!(string, string)(e.type, "?1");
+					typeMap[member.name] = Tuple!(string, string)(e.type, "e");
 				return typeMap;
 			}
 		}

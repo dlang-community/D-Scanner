@@ -54,7 +54,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 		caseStatement ~= k;
 		caseStatement ~= "';\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\tcurrentToken.lineNumber = lineNumber;";
+		caseStatement ~= "\tcurrentToken.lineNumber = lineNumber;\n";
 		caseStatement ~= indentString;
 		caseStatement ~= "\t++endIndex;\n";
 		if (v.children.length > 0)
@@ -133,5 +133,5 @@ private:
 
 		// Line feed (EoL)
 		CR = '\u000D', // CR character
-		LF = '\u000A',	// LF character	
+		LF = '\u000A',	// LF character
 	}

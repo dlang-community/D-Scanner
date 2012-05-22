@@ -27,13 +27,15 @@ immutable string[] versions = ["AIX", "all", "Alpha", "ARM", "BigEndian", "BSD",
 	"Win64", "Windows", "X86", "X86_64"
 ];
 
+immutable string[] scopes = ["exit", "failure", "success"];
+
 /**
  * Returns: indicies into the token array
  */
-size_t findEndOfExpression(const Token[] tokens, size_t index)
+size_t findEndOfExpression(const Token[] tokens, const size_t index)
 {
 	size_t i = index;
-	while (i < tokens.length)
+	loop: while (i < tokens.length)
 	{
 		switch (tokens[i].type)
 		{
@@ -41,15 +43,15 @@ size_t findEndOfExpression(const Token[] tokens, size_t index)
 		case TokenType.RParen:
 		case TokenType.RBracket:
 		case TokenType.Semicolon:
-			break;
+			break loop;
 		case TokenType.LParen:
-			skipParens(tokens, index);
+			skipParens(tokens, i);
 			break;
 		case TokenType.LBrace:
-			skipBraces(tokens, index);
+			skipBraces(tokens, i);
 			break;
 		case TokenType.LBracket:
-			skipBrackets(tokens, index);
+			skipBrackets(tokens, i);
 			break;
 		default:
 			++i;
@@ -59,10 +61,59 @@ size_t findEndOfExpression(const Token[] tokens, size_t index)
 	return i;
 }
 
-size_t findBeginningOfExpression(const Token[] tokens, size_t index)
+size_t findBeginningOfExpression(const Token[] tokens, const size_t index)
 {
-	return index;
+	size_t i = index;
+	loop: while (i < tokens.length)
+	{
+		switch (tokens[i].type)
+		{
+		case TokenType.RBrace:
+		case TokenType.RParen:
+		case TokenType.RBracket:
+		case TokenType.Semicolon:
+			break loop;
+		case TokenType.LBrace:
+			skipBraces(tokens, i);
+			break;
+		case TokenType.LParen:
+			skipParens(tokens, i);
+			break;
+		case TokenType.LBracket:
+			skipBrackets(tokens, i);
+			break;
+		default:
+			if (i == 0)
+				break loop;
+			i--;
+			break;
+		}
+	}
+	return i;
 }
+
+const(Token)[] splitCallChain(const(Token)[] tokens)
+{
+	auto app = appender!(Token[])();
+	size_t i = 0;
+	while (i < tokens.length)
+	{
+		app.put(tokens[i++]);
+		while (i < tokens.length && tokens[i] == TokenType.LParen) skipParens(tokens, i);
+		while (i < tokens.length && tokens[i] == TokenType.LBracket) skipBrackets(tokens, i);
+		while (i < tokens.length && tokens[i] == TokenType.Dot) ++i;
+	}
+	writeln(app.data);
+	return app.data;
+}
+
+unittest
+{
+	auto code = `a.b[10].c("grcl").x`;
+	auto tokens = tokenize(code);
+	assert (splitCallChain(tokens) == ["a", "b", "c", "x"]);
+}
+
 
 struct AutoComplete
 {
@@ -74,12 +125,24 @@ struct AutoComplete
 
 	string getTypeOfExpression(const(Token)[] expression, const Token[] tokens, size_t cursor)
 	{
-		return "void";
+		auto type = typeOfVariable(expression[0], cursor);
+		if (type is null)
+			return null;
+		size_t index = 1;
+		while (index < expression.length)
+		{
+			const Tuple!(string, string)[string] typeMap = context.getMembersOfType(
+				type);
+			const Tuple!(string, string)* memberType = expression[index].value in typeMap;
+			if (memberType is null)
+				return "void";
+			else
+				type = (*memberType)[0];
+			index++;
+		}
+		return type;
 	}
 
-	/**
-	 * This is where the magic happens
-	 */
 	string typeOfVariable(Token symbol, size_t cursor)
 	{
 		// int is of type int, double of type double, and so on
@@ -171,10 +234,14 @@ struct AutoComplete
 	{
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
 		Token t = tokens[index];
+		if (t.startIndex + t.value.length + 1 != cursor)
+			return "";
 		switch (tokens[index].type)
 		{
 		case TokenType.Version:
-			return to!string(join(map!`a ~ "?5"`(versions), " ").array());
+			return to!string(join(map!`a ~ " k"`(versions), "\n").array());
+		case TokenType.Scope:
+			return to!string(join(map!`a ~ " k"`(scopes), "\n").array());
 		case TokenType.If:
 		case TokenType.Cast:
 		case TokenType.While:
@@ -183,6 +250,9 @@ struct AutoComplete
 		case TokenType.Switch:
 			return "";
 		default:
+			size_t startIndex = findBeginningOfExpression(tokens, index);
+			auto expressionType = getTypeOfExpression(tokens[startIndex .. index],
+				tokens, index);
 			return "";
 		}
 	}
@@ -193,17 +263,36 @@ struct AutoComplete
 		Token t = tokens[index];
 		if (t.startIndex + t.value.length + 1 != cursor)
 			return "";
-		auto type = typeOfVariable(t, cursor);
+		size_t startIndex = findBeginningOfExpression(tokens, index);
+		auto expressionType = getTypeOfExpression(
+			splitCallChain(tokens[startIndex .. index]), tokens, index);
 
-		const Tuple!(string, string)[string] typeMap = context.getMembersOfType(type);
+		const Tuple!(string, string)[string] typeMap = context.getMembersOfType(
+			expressionType);
 		if (typeMap is null)
 			return "";
 		auto app = appender!(string[])();
 		foreach (k, t; typeMap)
-			app.put(k ~ t[1]);
-		return to!string(array(join(sort!"a.toLower() < b.toLower()"(app.data), " ")));
+			app.put(k ~ " " ~ t[1]);
+		return to!string(array(join(sort!"a.toLower() < b.toLower()"(app.data), "\n")));
 	}
 
 	const(Token)[] tokens;
 	CompletionContext context;
+}
+
+unittest
+{
+	auto code = q{
+struct TestStruct { int a; int b; }
+TestStruct ts;
+ts.a.
+	};
+
+	auto tokens = tokenize(code);
+	auto mod = parseModule(tokens);
+	auto context = new CompletionContext(mod);
+	auto completion = AutoComplete(tokens, context);
+	assert (completion.getTypeOfExpression(splitCallChain(tokens[13 .. 16]),
+		tokens, 56) == "int");
 }

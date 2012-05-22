@@ -21,6 +21,29 @@ code file.
 
 # Dot Completion
 This is currently under development.
+### Output format
+The output of the --dotComplete option is a list of valid completions at the
+given cursor position. The completions are printed one per line. Lines are ended
+by a single line feed character (0x0a). Each line consists of the symbol name
+followed by a single space character (0x20), followed by one character indicating
+what the symbol is. Symbol definitions are taken from the list of recommended
+"kind" values from the CTAGS standard unless there was no relevant recommendaton
+present.
+
+##### Example output:
+	foo v
+	bar f
+
+##### Supported kinds
+* c -- class names
+* i -- interface names
+* s -- structure names
+* v -- variable
+* m -- member variable
+* k -- keyword, built-in version, scope statement
+* f -- function or method
+* g -- enum name
+
 
 # Paren Completion
 This is currently under development.
