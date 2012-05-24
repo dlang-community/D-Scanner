@@ -440,7 +440,7 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 			break;
 		case TokenType.This:
 			name ~= tokens[index++].value;
-			if (tokens[index] == TokenType.LParen)
+			if (index < tokens.length && tokens[index] == TokenType.LParen)
 			{
 				mod.functions ~= parseFunction(tokens, index, "", name,
 					tokens[index - 1].lineNumber,

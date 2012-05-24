@@ -72,14 +72,20 @@ size_t findBeginningOfExpression(const Token[] tokens, const size_t index)
 		case TokenType.RParen:
 		case TokenType.RBracket:
 		case TokenType.Semicolon:
-			break loop;
+			return i + 1;
 		case TokenType.LBrace:
+			if (i == 0)
+				break loop;
 			skipBraces(tokens, i);
 			break;
 		case TokenType.LParen:
+			if (i == 0)
+				break loop;
 			skipParens(tokens, i);
 			break;
 		case TokenType.LBracket:
+			if (i == 0)
+				break loop;
 			skipBrackets(tokens, i);
 			break;
 		default:
@@ -103,7 +109,6 @@ const(Token)[] splitCallChain(const(Token)[] tokens)
 		while (i < tokens.length && tokens[i] == TokenType.LBracket) skipBrackets(tokens, i);
 		while (i < tokens.length && tokens[i] == TokenType.Dot) ++i;
 	}
-	writeln(app.data);
 	return app.data;
 }
 
@@ -125,9 +130,11 @@ struct AutoComplete
 
 	string getTypeOfExpression(const(Token)[] expression, const Token[] tokens, size_t cursor)
 	{
+		if (expression.length == 0)
+			return "void";
 		auto type = typeOfVariable(expression[0], cursor);
 		if (type is null)
-			return null;
+			return "void";
 		size_t index = 1;
 		while (index < expression.length)
 		{
@@ -234,8 +241,6 @@ struct AutoComplete
 	{
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
 		Token t = tokens[index];
-		if (t.startIndex + t.value.length + 1 != cursor)
-			return "";
 		switch (tokens[index].type)
 		{
 		case TokenType.Version:
@@ -250,19 +255,17 @@ struct AutoComplete
 		case TokenType.Switch:
 			return "";
 		default:
-			size_t startIndex = findBeginningOfExpression(tokens, index);
-			auto expressionType = getTypeOfExpression(tokens[startIndex .. index],
-				tokens, index);
+//			size_t startIndex = findBeginningOfExpression(tokens, index);
+//			auto expressionType = getTypeOfExpression(tokens[startIndex .. index],
+//				tokens, index);
 			return "";
 		}
 	}
 
 	string dotComplete(size_t cursor)
 	{
-		auto index = assumeSorted(tokens).lowerBound(cursor).length - 2;
+		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
-		if (t.startIndex + t.value.length + 1 != cursor)
-			return "";
 		size_t startIndex = findBeginningOfExpression(tokens, index);
 		auto expressionType = getTypeOfExpression(
 			splitCallChain(tokens[startIndex .. index]), tokens, index);

@@ -416,8 +416,8 @@ struct Token
 	bool opEquals(TokenType t) const { return type == t; }
 	int opCmp(size_t i) const
 	{
-		if (i > startIndex) return -1;
-		if (i < startIndex) return 1;
+		if (startIndex < i) return -1;
+		if (startIndex > i) return 1;
 		return 0;
 	}
 }

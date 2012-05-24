@@ -246,6 +246,7 @@ pure nothrow Token lexNumber(S)(ref S inputString, ref size_t endIndex)
 	if (isSomeString!S)
 {
 	Token token;
+	token.startIndex = endIndex;
 	size_t startIndex = endIndex;
 	if (inputString[endIndex] == '0')
 	{
