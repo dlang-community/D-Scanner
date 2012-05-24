@@ -631,6 +631,9 @@ public:
 		{
 			if (s.bodyStart <= cursorPosition && s.bodyEnd >= cursorPosition)
 				app.put(s);
+			else
+				stderr.writeln(s.name, " does not contain ", cursorPosition,
+					"(", s.bodyStart, ", ", s.bodyEnd, ")");
 		}
 		return app.data();
 	}

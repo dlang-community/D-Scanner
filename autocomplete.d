@@ -33,12 +33,22 @@ immutable string[] scopes = ["exit", "failure", "success"];
  * Returns: indicies into the token array
  */
 size_t findEndOfExpression(const Token[] tokens, const size_t index)
+out (result)
+{
+	assert (result < tokens.length);
+	assert (result >= index);
+}
+body
 {
 	size_t i = index;
 	loop: while (i < tokens.length)
 	{
 		switch (tokens[i].type)
 		{
+		case TokenType.Return:
+		case TokenType.New:
+		case TokenType.Delete:
+		case TokenType.Comma:
 		case TokenType.RBrace:
 		case TokenType.RParen:
 		case TokenType.RBracket:
@@ -62,28 +72,41 @@ size_t findEndOfExpression(const Token[] tokens, const size_t index)
 }
 
 size_t findBeginningOfExpression(const Token[] tokens, const size_t index)
+in
+{
+	assert (index < tokens.length);
+	assert (tokens.length > 0);
+}
+out (result)
+{
+	import std.string;
+	assert (result < tokens.length);
+	assert (result <= index, format("%d, %d", result, index));
+}
+body
 {
 	size_t i = index;
 	loop: while (i < tokens.length)
 	{
 		switch (tokens[i].type)
 		{
-		case TokenType.RBrace:
-		case TokenType.RParen:
-		case TokenType.RBracket:
-		case TokenType.Semicolon:
-			return i + 1;
+		case TokenType.Return:
+		case TokenType.New:
+		case TokenType.Case:
+		case TokenType.Delete:
 		case TokenType.LBrace:
-			if (i == 0)
-				break loop;
-			skipBraces(tokens, i);
-			break;
 		case TokenType.LParen:
+		case TokenType.LBracket:
+		case TokenType.Comma:
+		case TokenType.Semicolon:
+		case TokenType.RBrace:
+			return i + 1;
+		case TokenType.RParen:
 			if (i == 0)
 				break loop;
 			skipParens(tokens, i);
 			break;
-		case TokenType.LBracket:
+		case TokenType.RBracket:
 			if (i == 0)
 				break loop;
 			skipBrackets(tokens, i);
@@ -95,7 +118,7 @@ size_t findBeginningOfExpression(const Token[] tokens, const size_t index)
 			break;
 		}
 	}
-	return i;
+	return i + 1;
 }
 
 const(Token)[] splitCallChain(const(Token)[] tokens)
@@ -133,6 +156,7 @@ struct AutoComplete
 		if (expression.length == 0)
 			return "void";
 		auto type = typeOfVariable(expression[0], cursor);
+		stderr.writeln("type of ", expression[0].value , " is ", type);
 		if (type is null)
 			return "void";
 		size_t index = 1;
@@ -216,9 +240,16 @@ struct AutoComplete
 		// Find all struct or class bodies that we're in.
 		// Check for the symbol in those class/struct/interface bodies
 		// if match is found, return it
+		if (symbol == "this")
+			stderr.writeln("this");
 		auto structs = context.getStructsContaining(cursor);
+		stderr.writeln(structs.length, " structs contain cursor position ", cursor);
 		if (symbol == "this" && structs.length > 0)
+		{
+			stderr.writeln("this");
 			return minCount!("a.bodyStart > b.bodyStart")(structs)[0].name;
+		}
+
 		foreach (s; structs)
 		{
 			auto t = s.getMemberType(symbol.value);
@@ -267,8 +298,9 @@ struct AutoComplete
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
 		size_t startIndex = findBeginningOfExpression(tokens, index);
+		stderr.writeln("call chain: ", splitCallChain(tokens[startIndex .. index]));
 		auto expressionType = getTypeOfExpression(
-			splitCallChain(tokens[startIndex .. index]), tokens, index);
+			splitCallChain(tokens[startIndex .. index]), tokens, cursor);
 
 		const Tuple!(string, string)[string] typeMap = context.getMembersOfType(
 			expressionType);
