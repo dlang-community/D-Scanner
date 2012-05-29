@@ -109,7 +109,7 @@ body
 		case TokenType.RBracket:
 			if (i == 0)
 				break loop;
-			skipBrackets()(tokens, i);
+			skipBrackets(tokens, i);
 			break;
 		default:
 			if (i == 0)
