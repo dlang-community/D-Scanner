@@ -254,7 +254,7 @@ public:
 			if (i + 1 < parameters.length)
 				r ~= ",\\n\\t";
 		}
-		r ~= ") " ~ format("%d", line);
+		r ~= ")";
 		return r;
 	}
 
