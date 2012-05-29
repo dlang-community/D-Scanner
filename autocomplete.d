@@ -109,7 +109,7 @@ body
 		case TokenType.RBracket:
 			if (i == 0)
 				break loop;
-			skipBrackets(tokens, i);
+			skipBrackets()(tokens, i);
 			break;
 		default:
 			if (i == 0)
@@ -156,7 +156,6 @@ struct AutoComplete
 		if (expression.length == 0)
 			return "void";
 		auto type = typeOfVariable(expression[0], cursor);
-		stderr.writeln("type of ", expression[0].value , " is ", type);
 		if (type is null)
 			return "void";
 		size_t index = 1;
@@ -240,13 +239,9 @@ struct AutoComplete
 		// Find all struct or class bodies that we're in.
 		// Check for the symbol in those class/struct/interface bodies
 		// if match is found, return it
-		if (symbol == "this")
-			stderr.writeln("this");
 		auto structs = context.getStructsContaining(cursor);
-		stderr.writeln(structs.length, " structs contain cursor position ", cursor);
 		if (symbol == "this" && structs.length > 0)
 		{
-			stderr.writeln("this");
 			return minCount!("a.bodyStart > b.bodyStart")(structs)[0].name;
 		}
 
@@ -286,10 +281,11 @@ struct AutoComplete
 		case TokenType.Switch:
 			return "";
 		default:
-//			size_t startIndex = findBeginningOfExpression(tokens, index);
-//			auto expressionType = getTypeOfExpression(tokens[startIndex .. index],
-//				tokens, index);
-			return "";
+			size_t startIndex = findBeginningOfExpression(tokens, index);
+			auto callChain = splitCallChain(tokens[startIndex .. index + 1]);
+			auto expressionType = getTypeOfExpression(
+				callChain[0 .. $ - 1], tokens, cursor);
+			return to!string(context.getCallTipsFor(expressionType, callChain[$ - 1].value).join("\n").array());
 		}
 	}
 
@@ -298,7 +294,6 @@ struct AutoComplete
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
 		size_t startIndex = findBeginningOfExpression(tokens, index);
-		stderr.writeln("call chain: ", splitCallChain(tokens[startIndex .. index]));
 		auto expressionType = getTypeOfExpression(
 			splitCallChain(tokens[startIndex .. index]), tokens, cursor);
 

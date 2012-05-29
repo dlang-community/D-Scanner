@@ -173,6 +173,21 @@ public:
 		return null;
 	}
 
+	string[] getFunctionDocs(string functionName)
+	{
+		auto app = appender!(string[])();
+		foreach (fun; functions)
+		{
+			if (fun.name != functionName)
+				continue;
+			app.put(fun.documentString());
+		}
+		return app.data;
+		// TODO: Try this again with a newer DMD
+		//return array(map!(a => a.documentString())(
+		//	filter!(a => a.name == functionName)(functions)));
+	}
+
 	string[] getCtags(string fileName)
 	{
 		auto app = appender!(string[])();
@@ -229,6 +244,19 @@ public:
 
 	/// Parameter list; may be empty
 	Variable[] parameters;
+
+	string documentString()
+	{
+		string r = returnType ~ " " ~ name ~ "(";
+		foreach (i, param; parameters)
+		{
+			r ~= param.type ~ " " ~ param.name;
+			if (i + 1 < parameters.length)
+				r ~= ",\\n\\t";
+		}
+		r ~= ") " ~ format("%d", line);
+		return r;
+	}
 
 protected:
 	override void printMembers(File f, uint indent) const
@@ -631,11 +659,28 @@ public:
 		{
 			if (s.bodyStart <= cursorPosition && s.bodyEnd >= cursorPosition)
 				app.put(s);
-			else
-				stderr.writeln(s.name, " does not contain ", cursorPosition,
-					"(", s.bodyStart, ", ", s.bodyEnd, ")");
 		}
 		return app.data();
+	}
+
+
+
+	string[] getCallTipsFor(string container, string functionName)
+	{
+		stderr.writeln("getCallTipsFor ", container, " ", functionName);
+		if (container == null || container.length == 0 || container == "void")
+			return getCallTipsFor(functionName);
+
+		foreach (m; chain(modules, [currentModule]))
+		{
+			foreach (s; chain(m.structs, m.interfaces, m.classes, m.unions))
+			{
+				if (s.name != container)
+					continue;
+				return s.getFunctionDocs(functionName);
+			}
+		}
+		return [];
 	}
 
 	void addModule(Module mod)
@@ -645,4 +690,21 @@ public:
 
 	Module currentModule;
 	Module[] modules;
+
+private:
+
+	string[] getCallTipsFor(string functionName)
+	{
+		stderr.writeln("Getting call tips for ", functionName);
+		auto app = appender!(string[])();
+		foreach (m; chain(modules, [currentModule]))
+		{
+			foreach (fun; m.functions)
+			{
+				if (fun.name == functionName)
+					app.put(fun.documentString());
+			}
+		}
+		return app.data;
+	}
 }

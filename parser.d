@@ -593,11 +593,18 @@ body
 
 	if (tokens[index] == TokenType.If)
 		f.constraint = parseConstraint(tokens, index);
+
 	while (index < tokens.length &&
 		(tokens[index] == TokenType.In || tokens[index] == TokenType.Out
 		|| tokens[index] == TokenType.Body))
 	{
 		++index;
+		if (index < tokens.length && tokens[index] == TokenType.LParen
+			&& tokens[index - 1] == TokenType.Out)
+		{
+			tokens.skipParens(index);
+		}
+
 		if (index < tokens.length && tokens[index] == TokenType.LBrace)
 			tokens.skipBlockStatement(index);
 	}
