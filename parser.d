@@ -562,7 +562,7 @@ body
 	f.attributes.insertInPlace(f.attributes.length, attributes);
 
 	Variable[] vars1 = parseParameters(tokens, index);
-	if (tokens[index] == TokenType.LParen)
+	if (index < tokens.length && tokens[index] == TokenType.LParen)
 	{
 		f.templateParameters.insertInPlace(f.templateParameters.length,
 			map!("a.type")(vars1));
