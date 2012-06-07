@@ -627,14 +627,33 @@ public:
 	{
 		foreach (m; chain(modules, [currentModule]))
 		{
-			foreach (s; chain(m.structs, m.interfaces, m.classes, m.unions))
+			foreach (inherits; chain(m.interfaces, m.classes))
+			{
+				if (inherits.name != name)
+					continue;
+				Tuple!(string, string)[string] typeMap;
+				foreach (var; inherits.variables)
+					typeMap[var.name] = Tuple!(string, string)(var.type, "m");
+				foreach (fun; inherits.functions)
+					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, "f");
+				foreach (parent; inherits.baseClasses)
+				{
+					foreach (k, v; getMembersOfType(parent))
+					{
+						typeMap[k] = v;
+					}
+				}
+				return typeMap;
+			}
+
+			foreach (s; chain(m.structs, m.unions))
 			{
 				if (s.name != name)
 					continue;
 				Tuple!(string, string)[string] typeMap;
-				foreach(var; s.variables)
+				foreach (var; s.variables)
 					typeMap[var.name] = Tuple!(string, string)(var.type, "m");
-				foreach(fun; s.functions)
+				foreach (fun; s.functions)
 					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, "f");
 				return typeMap;
 			}
@@ -665,11 +684,23 @@ public:
 
 
 
-	string[] getCallTipsFor(string container, string functionName)
+	string[] getCallTipsFor(string container, string functionName,
+		size_t cursorPosition)
 	{
-		stderr.writeln("getCallTipsFor ", container, " ", functionName);
 		if (container == null || container.length == 0 || container == "void")
+		{
+			// Try member functions first if the cursor is inside of a class
+			// or structure definiton
+			Struct[] structs = getStructsContaining(cursorPosition);
+			foreach (s; structs)
+			{
+				auto docs = s.getFunctionDocs(functionName);
+				if (docs.length > 0)
+					return docs;
+			}
+			// Try global functions if the above failed.
 			return getCallTipsFor(functionName);
+		}
 
 		foreach (m; chain(modules, [currentModule]))
 		{

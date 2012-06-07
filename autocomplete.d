@@ -142,7 +142,6 @@ unittest
 	assert (splitCallChain(tokens) == ["a", "b", "c", "x"]);
 }
 
-
 struct AutoComplete
 {
 	this(const (Token)[] tokens, CompletionContext context)
@@ -285,7 +284,8 @@ struct AutoComplete
 			auto callChain = splitCallChain(tokens[startIndex .. index + 1]);
 			auto expressionType = getTypeOfExpression(
 				callChain[0 .. $ - 1], tokens, cursor);
-			return to!string(context.getCallTipsFor(expressionType, callChain[$ - 1].value).join("\n").array());
+			return to!string(context.getCallTipsFor(expressionType,
+				callChain[$ - 1].value, cursor).join("\n").array());
 		}
 	}
 
