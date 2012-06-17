@@ -15,9 +15,13 @@ position is the character position in the **file**, not the line.
 resulting HTML will be written to standard output.
 * **-I** _includePath_ - Include _includePath_ in the list of paths used to search
 for imports. By default dscanner will search in the current working directory as
-well as any paths specified in /etc/dmd.conf.
+well as any paths specified in /etc/dmd.conf. This is only used for the
+--parenComplete and --dotComplete options
 * **--ctags** _sourceFile_ - Generates ctags information from the given source
 code file.
+* **--recursive** **-R** **-r** _directory_ - When used with --ctags, dscanner
+will produce ctags output for all .d and .di files contained within _directory_
+and its sub-directories.
 
 # Dot Completion
 This is currently under development.
@@ -48,7 +52,27 @@ present.
 
 
 # Paren Completion
-This is currently under development.
+Provides either a call tip for a function call or a list of pre-defined version
+identifiers for a version() statement, or a list of scope identifiers for a
+scope() statement. Anyone integrating dscanner into a text editor needs to look
+at the first line of the output to determine whether to display an autocomplete
+list or a call tip. (In the case of Scintilla, these are different)
+### Call tips
+Outputs the word "calltips" followed by a newline, followed by the call tips for
+the function before the cursor. One overload of the function is printed per
+line. The call tip may have newlines and tabs escaped in the common "\n" and
+"\t" format. These should be un-escaped for display.
+##### Example output
+	calltips
+	Token[] tokenize(S inputString,\n\tIterationStyle iterationStyle)
+### Completions
+Outputs the word "completions" followed by a newline, followed by a completion
+list. See the documentation on the --dotComplete option for details
+##### Example output
+	completions
+	exit k
+	failure k
+	success k
 
 # JSON output
 Generates a JSON summary of the input file.

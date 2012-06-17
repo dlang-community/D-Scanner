@@ -137,9 +137,10 @@ void main(string[] args)
 	bool parenComplete;
 	bool highlight;
 	bool ctags;
+	bool recursiveCtags;
 	getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
 		"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
-		"ctags", &ctags);
+		"ctags", &ctags, "recursive|r|R", &recursiveCtags);
 
 	importDirs ~= loadConfig();
 
@@ -183,12 +184,42 @@ void main(string[] args)
 
 	if (json || ctags)
 	{
-		auto tokens = tokenize(readText(args[1]));
-		auto mod = parseModule(tokens);
+
 		if (json)
+		{
+			auto tokens = tokenize(readText(args[1]));
+			auto mod = parseModule(tokens);
 			mod.writeJSONTo(stdout);
+		}
 		else
-			mod.writeCtagsTo(stdout, args[1]);
+		{
+			if (!recursiveCtags)
+			{
+				auto tokens = tokenize(readText(args[1]));
+				auto mod = parseModule(tokens);
+				mod.writeCtagsTo(stdout, args[1]);
+			}
+			else
+			{
+				Module m;
+				foreach (dirEntry; dirEntries(args[1], SpanMode.breadth))
+				{
+					if (!dirEntry.name.endsWith(".d", ".di"))
+						continue;
+					stderr.writeln("Generating tags for ", dirEntry.name);
+					auto tokens = tokenize(readText(dirEntry.name));
+					if (m is null)
+						m = parseModule(tokens);
+					else
+					{
+						auto mod = parseModule(tokens);
+						m.merge(mod);
+					}
+				}
+				m.writeCtagsTo(stdout, "");
+			}
+		}
+
 	}
 }
 

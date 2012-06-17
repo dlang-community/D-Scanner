@@ -95,6 +95,7 @@ body
 		case TokenType.Return:
 		case TokenType.New:
 		case TokenType.Case:
+		case TokenType.Assign:
 		case TokenType.Delete:
 		case TokenType.LBrace:
 		case TokenType.LParen:
@@ -272,9 +273,9 @@ struct AutoComplete
 		switch (tokens[index].type)
 		{
 		case TokenType.Version:
-			return to!string(join(map!`a ~ " k"`(versions), "\n").array());
+			return "completions\n" ~ to!string(join(map!`a ~ " k"`(versions), "\n").array());
 		case TokenType.Scope:
-			return to!string(join(map!`a ~ " k"`(scopes), "\n").array());
+			return "completions\n" ~ to!string(join(map!`a ~ " k"`(scopes), "\n").array());
 		case TokenType.If:
 		case TokenType.Cast:
 		case TokenType.While:
@@ -287,7 +288,7 @@ struct AutoComplete
 			auto callChain = splitCallChain(tokens[startIndex .. index + 1]);
 			auto expressionType = getTypeOfExpression(
 				callChain[0 .. $ - 1], tokens, cursor);
-			return to!string(context.getCallTipsFor(expressionType,
+			return "calltips\n" ~ to!string(context.getCallTipsFor(expressionType,
 				callChain[$ - 1].value, cursor).join("\n").array());
 		}
 	}
