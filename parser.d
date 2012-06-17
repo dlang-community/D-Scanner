@@ -591,7 +591,7 @@ body
 		}
 	}
 
-	if (tokens[index] == TokenType.If)
+	if (index < tokens.length && tokens[index] == TokenType.If)
 		f.constraint = parseConstraint(tokens, index);
 
 	while (index < tokens.length &&
