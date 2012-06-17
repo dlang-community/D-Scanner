@@ -721,6 +721,7 @@ public:
 
 	Module currentModule;
 	Module[] modules;
+	string[] importDirectories;
 
 private:
 

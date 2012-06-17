@@ -164,7 +164,8 @@ void main(string[] args)
 			importDirs ~= getcwd();
 		auto tokens = args[1].readText().tokenize();
 		auto mod = parseModule(tokens);
-		auto context = new CompletionContext(mod);
+		CompletionContext context = new CompletionContext(mod);
+		context.importDirectories = importDirs;
 		foreach (im; parallel(mod.imports))
 		{
 			auto p = findAbsPath(importDirs, im);

@@ -11,6 +11,8 @@ import std.array;
 import std.conv;
 import std.stdio;
 import std.typecons;
+import std.path;
+import std.file;
 
 import parser;
 import langutils;
@@ -294,6 +296,12 @@ struct AutoComplete
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
 		size_t startIndex = findBeginningOfExpression(tokens, index);
+
+		if (startIndex - 1 < tokens.length && tokens[startIndex - 1] == TokenType.Import)
+		{
+			return importComplete(splitCallChain(tokens[startIndex .. index]));
+		}
+
 		auto expressionType = getTypeOfExpression(
 			splitCallChain(tokens[startIndex .. index]), tokens, cursor);
 
@@ -305,6 +313,15 @@ struct AutoComplete
 		foreach (k, t; typeMap)
 			app.put(k ~ " " ~ t[1]);
 		return to!string(array(join(sort!"a.toLower() < b.toLower()"(app.data), "\n")));
+	}
+
+	string importComplete(const(Token)[] tokens)
+	{
+		string part = tokens.map("a.value").join("/").array();
+		foreach (path; context.importDirectories)
+		{
+			if (exists())
+		}
 	}
 
 	const(Token)[] tokens;
