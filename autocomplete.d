@@ -326,10 +326,10 @@ struct AutoComplete
 		foreach (path; context.importDirectories)
 		{
 			stderr.writeln("Searching for ", path, "/", part);
-			if (!exists(path ~ "/" ~ part))
+			if (!exists(buildPath(path, part))
 				continue;
 			stderr.writeln("found it");
-			foreach (DirEntry dirEntry; dirEntries(path ~ "/" ~ part,
+			foreach (DirEntry dirEntry; dirEntries(buildPath(path, part),
 				SpanMode.shallow))
 			{
 				if (dirEntry.isDir)

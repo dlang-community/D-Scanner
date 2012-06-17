@@ -219,7 +219,5 @@ void main(string[] args)
 				m.writeCtagsTo(stdout, "");
 			}
 		}
-
 	}
 }
-
