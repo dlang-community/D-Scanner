@@ -43,6 +43,8 @@ present.
 * k -- keyword, built-in version, scope statement
 * f -- function or method
 * g -- enum name
+* P -- package
+* M -- module
 
 
 # Paren Completion

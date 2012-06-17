@@ -98,6 +98,7 @@ body
 		case TokenType.Delete:
 		case TokenType.LBrace:
 		case TokenType.LParen:
+		case TokenType.Import:
 		case TokenType.LBracket:
 		case TokenType.Comma:
 		case TokenType.Semicolon:
@@ -293,10 +294,11 @@ struct AutoComplete
 
 	string dotComplete(size_t cursor)
 	{
+		stderr.writeln("dotComplete");
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
 		size_t startIndex = findBeginningOfExpression(tokens, index);
-
+		stderr.writeln("Token before startIndex is ", tokens[startIndex - 1]);
 		if (startIndex - 1 < tokens.length && tokens[startIndex - 1] == TokenType.Import)
 		{
 			return importComplete(splitCallChain(tokens[startIndex .. index]));
@@ -312,16 +314,30 @@ struct AutoComplete
 		auto app = appender!(string[])();
 		foreach (k, t; typeMap)
 			app.put(k ~ " " ~ t[1]);
-		return to!string(array(join(sort!"a.toLower() < b.toLower()"(app.data), "\n")));
+		return to!string(array(join(sort!("a.toLower() < b.toLower()")(app.data), "\n")));
 	}
 
 	string importComplete(const(Token)[] tokens)
 	{
-		string part = tokens.map("a.value").join("/").array();
+		stderr.writeln("importComplete");
+		auto app = appender!(string[])();
+		string part = to!string(map!"a.value.dup"(tokens).join("/").array());
 		foreach (path; context.importDirectories)
 		{
-			if (exists())
+			stderr.writeln("Searching for ", path, "/", part);
+			if (!exists(path ~ "/" ~ part))
+				continue;
+			stderr.writeln("found it");
+			foreach (DirEntry dirEntry; dirEntries(path ~ "/" ~ part,
+				SpanMode.shallow))
+			{
+				if (dirEntry.isDir)
+					app.put(baseName(dirEntry.name) ~ " P");
+				else if (dirEntry.name.endsWith(".d", ".di"))
+					app.put(stripExtension(baseName(dirEntry.name)) ~ " M");
+			}
 		}
+		return to!string(sort!("a.toLower() < b.toLower()")(app.data).join("\n").array());
 	}
 
 	const(Token)[] tokens;
