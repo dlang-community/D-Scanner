@@ -83,16 +83,16 @@ string findAbsPath(string[] dirs, string moduleName)
 	// For file names
 	if (endsWith(moduleName, ".d") || endsWith(moduleName, ".di"))
 	{
-		if (startsWith(moduleName, "/"))
+		if (isAbsolute(moduleName))
 			return moduleName;
 		else
-			return getcwd() ~ "/" ~ moduleName;
+			return buildPath(getcwd(), moduleName);
 	}
 
 	// Try to find the file name from a module name like "std.stdio"
 	foreach(dir; dirs)
 	{
-		string fileLocation = dir ~ "/" ~ replace(moduleName, ".", "/");
+		string fileLocation = buildPath(dir, replace(moduleName, ".", dirSeparator));
 		string dfile = fileLocation ~ ".d";
 		if (exists(dfile) && isFile(dfile))
 		{
@@ -109,14 +109,14 @@ string findAbsPath(string[] dirs, string moduleName)
 
 string[] loadConfig()
 {
-	string path = expandTilde("~/.dscanner");
+	string path = expandTilde("~" ~ dirSeparator ~ ".dscanner");
 	string[] dirs;
 	if (exists(path))
 	{
 		auto f = File(path, "r");
 		scope(exit) f.close();
 
-		auto trimRegex = ctRegex!("\\s*$");
+		auto trimRegex = ctRegex!(`\s*$`);
 		foreach(string line; lines(f))
 		{
 			dirs ~= replace(line, trimRegex, "");
