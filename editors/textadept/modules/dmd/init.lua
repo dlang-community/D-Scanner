@@ -26,7 +26,6 @@
 local M = {}
 
 _M.common.cstyle = require "common.cstyle"
-local callStack = _M.common.cstyle.callStack
 
 if type(_G.snippets) == 'table' then
   _G.snippets.dmd = {}
@@ -381,7 +380,6 @@ events.connect(events.CHAR_ADDED, function(ch)
 			.. fileName .. " " .. buffer.current_pos .. " -I" .. buffer.filename:match(".+[\\/]")
 		local p = io.popen(command)
 		local r = p:read("*a")
-		print ("[[" .. r .. "]]")
 		if r ~= "\n" then
 			if character == "." then
 				showCompletionList(r)
