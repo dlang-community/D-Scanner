@@ -465,7 +465,7 @@ public:
 			else
 				f.writeln();
 		}
-		f.writeln("  ],\n  \"structs\" : [");
+		f.writeln("  ],\n  \"unions\" : [");
 		foreach(i, un; unions)
 		{
 			un.writeJSONTo(f, indent + 1);
