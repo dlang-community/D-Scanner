@@ -800,7 +800,8 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 			while(!isEoF(inputString, endIndex) && !isSeparating(inputString[endIndex]))
 				++endIndex;
 			currentToken.value = inputString[startIndex .. endIndex];
-			currentToken.type = lookupTokenType(currentToken.value);
+			currentToken.type = lookupTokenTypeOptimized(currentToken.value);
+			//currentToken.type = lookupTokenType(currentToken.value);
 			currentToken.lineNumber = lineNumber;
 			break;
 		}

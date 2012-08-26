@@ -138,9 +138,18 @@ void main(string[] args)
 	bool highlight;
 	bool ctags;
 	bool recursiveCtags;
-	getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
-		"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
-		"ctags", &ctags, "recursive|r|R", &recursiveCtags);
+	bool format;
+
+	try
+	{
+		getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
+			"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
+			"ctags", &ctags, "recursive|r|R", &recursiveCtags);
+	}
+	catch (Exception e)
+	{
+		stderr.writeln(e.msg);
+	}
 
 	importDirs ~= loadConfig();
 
@@ -182,42 +191,40 @@ void main(string[] args)
 		return;
 	}
 
-	if (json || ctags)
+	if (json)
 	{
+		auto tokens = tokenize(readText(args[1]));
+		auto mod = parseModule(tokens);
+		mod.writeJSONTo(stdout);
+		return;
+	}
 
-		if (json)
+	if (ctags)
+	{
+		if (!recursiveCtags)
 		{
 			auto tokens = tokenize(readText(args[1]));
 			auto mod = parseModule(tokens);
-			mod.writeJSONTo(stdout);
+			mod.writeCtagsTo(stdout, args[1]);
 		}
 		else
 		{
-			if (!recursiveCtags)
+			Module m;
+			foreach (dirEntry; dirEntries(args[1], SpanMode.breadth))
 			{
-				auto tokens = tokenize(readText(args[1]));
-				auto mod = parseModule(tokens);
-				mod.writeCtagsTo(stdout, args[1]);
-			}
-			else
-			{
-				Module m;
-				foreach (dirEntry; dirEntries(args[1], SpanMode.breadth))
+				if (!dirEntry.name.endsWith(".d", ".di"))
+					continue;
+				stderr.writeln("Generating tags for ", dirEntry.name);
+				auto tokens = tokenize(readText(dirEntry.name));
+				if (m is null)
+					m = parseModule(tokens);
+				else
 				{
-					if (!dirEntry.name.endsWith(".d", ".di"))
-						continue;
-					stderr.writeln("Generating tags for ", dirEntry.name);
-					auto tokens = tokenize(readText(dirEntry.name));
-					if (m is null)
-						m = parseModule(tokens);
-					else
-					{
-						auto mod = parseModule(tokens);
-						m.merge(mod);
-					}
+					auto mod = parseModule(tokens);
+					m.merge(mod);
 				}
-				m.writeCtagsTo(stdout, "");
 			}
+			m.writeCtagsTo(stdout, "");
 		}
 	}
 }

@@ -308,6 +308,10 @@ struct AutoComplete
 		auto expressionType = getTypeOfExpression(
 			splitCallChain(tokens[startIndex .. index]), tokens, cursor);
 
+		// Complete pointers and references the same way
+		if (expressionType[$ - 1] == '*')
+			expressionType = expressionType[0 .. $ - 1];
+
 		const Tuple!(string, string)[string] typeMap = context.getMembersOfType(
 			expressionType);
 		if (typeMap is null)

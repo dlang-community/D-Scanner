@@ -44,6 +44,188 @@ pure nothrow TokenType lookupTokenType(const string input)
 }
 
 
+pure nothrow TokenType lookupTokenTypeOptimized(const string input)
+{
+	switch(input.length)
+	{
+	case 2:
+		switch (input)
+		{
+		case "do": return TokenType.Do;
+		case "if": return TokenType.If;
+		case "in": return TokenType.In;
+		case "is": return TokenType.Is;
+		default: break;
+		}
+		break;
+	case 3:
+		switch (input)
+		{
+		case "asm": return TokenType.Asm;
+		case "for": return TokenType.For;
+		case "int": return TokenType.Int;
+		case "new": return TokenType.New;
+		case "out": return TokenType.Out;
+		case "ref": return TokenType.Ref;
+		case "try": return TokenType.Try;
+		default: break;
+		}
+		break;
+	case 4:
+		switch (input)
+		{
+		case "auto": return TokenType.Auto;
+		case "body": return TokenType.Body;
+		case "bool": return TokenType.Bool;
+		case "byte": return TokenType.Byte;
+		case "case": return TokenType.Case;
+		case "cast": return TokenType.Cast;
+		case "cent": return TokenType.Cent;
+		case "char": return TokenType.Char;
+		case "else": return TokenType.Else;
+		case "enum": return TokenType.Enum;
+		case "goto": return TokenType.Goto;
+		case "lazy": return TokenType.Lazy;
+		case "long": return TokenType.Long;
+		case "null": return TokenType.Null;
+		case "pure": return TokenType.Pure;
+		case "real": return TokenType.Real;
+		case "this": return TokenType.This;
+		case "true": return TokenType.True;
+		case "uint": return TokenType.Uint;
+		case "void": return TokenType.Void;
+		case "with": return TokenType.With;
+		default: break;
+		}
+		break;
+	case 5:
+		switch (input)
+		{
+		case "@safe": return TokenType.AtSafe;
+		case "alias": return TokenType.Alias;
+		case "align": return TokenType.Align;
+		case "break": return TokenType.Break;
+		case "catch": return TokenType.Catch;
+		case "class": return TokenType.Class;
+		case "const": return TokenType.Const;
+		case "creal": return TokenType.Creal;
+		case "dchar": return TokenType.Dchar;
+		case "debug": return TokenType.Debug;
+		case "false": return TokenType.False;
+		case "final": return TokenType.Final;
+		case "float": return TokenType.Float;
+		case "inout": return TokenType.Inout;
+		case "ireal": return TokenType.Ireal;
+		case "macro": return TokenType.Macro;
+		case "mixin": return TokenType.Mixin;
+		case "scope": return TokenType.Scope;
+		case "short": return TokenType.Short;
+		case "super": return TokenType.Super;
+		case "throw": return TokenType.Throw;
+		case "ubyte": return TokenType.Ubyte;
+		case "ucent": return TokenType.Ucent;
+		case "ulong": return TokenType.Ulong;
+		case "union": return TokenType.Union;
+		case "wchar": return TokenType.Wchar;
+		case "while": return TokenType.While;
+		default: break;
+		}
+		break;
+	case 6:
+		switch (input)
+		{
+		case "assert": return TokenType.Assert;
+		case "cfloat": return TokenType.Cfloat;
+		case "delete": return TokenType.Delete;
+		case "double": return TokenType.Double;
+		case "export": return TokenType.Export;
+		case "extern": return TokenType.Extern;
+		case "ifloat": return TokenType.Ifloat;
+		case "import": return TokenType.Import;
+		case "module": return TokenType.Module;
+		case "pragma": return TokenType.Pragma;
+		case "public": return TokenType.Public;
+		case "return": return TokenType.Return;
+		case "shared": return TokenType.Shared;
+		case "static": return TokenType.Static;
+		case "string": return TokenType.String;
+		case "struct": return TokenType.Struct;
+		case "switch": return TokenType.Switch;
+		case "typeid": return TokenType.Typeid;
+		case "typeof": return TokenType.Typeof;
+		case "ushort": return TokenType.Ushort;
+		default: break;
+		}
+		break;
+	case 7:
+		switch (input)
+		{
+		case "@system": return TokenType.AtSystem;
+		case "cdouble": return TokenType.Cdouble;
+		case "default": return TokenType.Default;
+		case "dstring": return TokenType.DString;
+		case "finally": return TokenType.Finally;
+		case "foreach": return TokenType.Foreach;
+		case "idouble": return TokenType.Idouble;
+		case "nothrow": return TokenType.Nothrow;
+		case "package": return TokenType.Package;
+		case "private": return TokenType.Private;
+		case "typedef": return TokenType.Typedef;
+		case "version": return TokenType.Version;
+		case "wstring": return TokenType.WString;
+		default: break;
+		}
+		break;
+	case 8:
+		switch (input)
+		{
+		case "override": return TokenType.Override;
+		case "continue": return TokenType.Continue;
+		case "__LINE__": return TokenType.Line;
+		case "template": return TokenType.Template;
+		case "abstract": return TokenType.Abstract;
+		case "__thread": return TokenType.Thread;
+		case "__traits": return TokenType.Traits;
+		case "volatile": return TokenType.Volatile;
+		case "@trusted": return TokenType.AtTrusted;
+		case "delegate": return TokenType.Delegate;
+		case "@disable": return TokenType.AtDisable;
+		case "function": return TokenType.Function;
+		case "unittest": return TokenType.Unittest;
+		case "__FILE__": return TokenType.File;
+		default: break;
+		}
+		break;
+	case 9:
+		switch (input)
+		{
+		case "__gshared": return TokenType.Gshared;
+		case "@property": return TokenType.AtProperty;
+		case "immutable": return TokenType.Immutable;
+		case "interface": return TokenType.Interface;
+		case "invariant": return TokenType.Invariant;
+		case "protected": return TokenType.Protected;
+		default: break;
+		}
+		break;
+	case 10:
+		if (input == "deprecated")
+			return TokenType.Deprecated;
+		break;
+	case 11:
+		if (input == "synchronized")
+			return TokenType.Synchronized;
+		break;
+	case 13:
+		if (input == "foreach_reverse")
+			return TokenType.Foreach_reverse;
+		break;
+	default: break;
+	}
+	return TokenType.Identifier;
+}
+
+
 /**
  * Listing of all the tokens in the D language
  */
