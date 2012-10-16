@@ -172,7 +172,27 @@ void main(string[] args)
 			importDirs ~= dirName(args[1]);
 		else
 			importDirs ~= getcwd();
-		auto tokens = args[1].readText().tokenize();
+		bool useStdin = false;
+		try
+		{
+		  to!size_t(args[1]);
+		  useStdin = true;
+		}
+		catch(ConvException e) {}
+		Token[] tokens;
+		if (useStdin)
+		{
+			string f;
+			char[] buf;
+			while (stdin.readln(buf))
+			  f ~= buf;
+			tokens = f.tokenize();
+		}
+		else
+		{
+			tokens = args[1].readText().tokenize();
+			args.popFront();
+		}
 		auto mod = parseModule(tokens);
 		CompletionContext context = new CompletionContext(mod);
 		context.importDirectories = importDirs;
@@ -185,9 +205,9 @@ void main(string[] args)
 		}
 		auto complete = AutoComplete(tokens, context);
 		if (parenComplete)
-			writeln(complete.parenComplete(to!size_t(args[2])));
+			writeln(complete.parenComplete(to!size_t(args[1])));
 		else if (dotComplete)
-			writeln(complete.dotComplete(to!size_t(args[2])));
+			writeln(complete.dotComplete(to!size_t(args[1])));
 		return;
 	}
 
