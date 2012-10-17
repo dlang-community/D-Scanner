@@ -745,18 +745,20 @@ private:
 	string getFunctionType(Function f) {
 		string result = "f";
 		if (extendedFunctionTypes) {
-			result ~= "::";
+			result ~= " : ";
+			result ~= "[#" ~ f.returnType ~ "#]";
+			result ~= f.name ~ "(";
 			bool first = true;
 			foreach (param; f.parameters) {
 				if (first) {
 					first = false;
 				}
 				else {
-					result ~= "::";
+					result ~= ",";
 				}
-				result ~= param.type ~ " " ~ param.name;
+				result ~= "<#" ~ param.type ~ " " ~ param.name ~ "#>";
 			}
-			result ~= "::";
+			result ~= ")";
 		}
 		return result;
 	}
