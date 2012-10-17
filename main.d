@@ -139,12 +139,13 @@ void main(string[] args)
 	bool ctags;
 	bool recursiveCtags;
 	bool format;
+	bool extendedFunctionTypes;
 
 	try
 	{
 		getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
 			"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
-			"ctags", &ctags, "recursive|r|R", &recursiveCtags);
+			"ctags", &ctags, "recursive|r|R", &recursiveCtags, "extended|e", &extendedFunctionTypes);
 	}
 	catch (Exception e)
 	{
@@ -174,7 +175,7 @@ void main(string[] args)
 			importDirs ~= getcwd();
 		auto tokens = args[1].readText().tokenize();
 		auto mod = parseModule(tokens);
-		CompletionContext context = new CompletionContext(mod);
+		CompletionContext context = new CompletionContext(mod, extendedFunctionTypes);
 		context.importDirectories = importDirs;
 		foreach (im; parallel(mod.imports))
 		{
