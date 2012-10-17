@@ -172,23 +172,17 @@ void main(string[] args)
 			importDirs ~= dirName(args[1]);
 		else
 			importDirs ~= getcwd();
-		bool useStdin = false;
+		Token[] tokens;
 		try
 		{
-		  to!size_t(args[1]);
-		  useStdin = true;
-		}
-		catch(ConvException e) {}
-		Token[] tokens;
-		if (useStdin)
-		{
+			to!size_t(args[1]);
 			string f;
 			char[] buf;
 			while (stdin.readln(buf))
-			  f ~= buf;
+				f ~= buf;
 			tokens = f.tokenize();
 		}
-		else
+		catch(ConvException e)
 		{
 			tokens = args[1].readText().tokenize();
 			args.popFront();
