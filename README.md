@@ -2,23 +2,23 @@
 Dscanner is a tool used to analyze D source code.
 
 ### Options
-* **--dotComplete** _sourceFile_ _cursorPosition_ - Provide autocompletion for the
+* **--dotComplete** [_sourceFile_] _cursorPosition_ - Provide autocompletion for the
 insertion of the dot operator. The cursor position is the character position in
-the **file**, not the position in the line.
-* **--sloc** _sourceFiles_ - count the number of logical lines of code in the given
-source files.
-* **--json** _sourceFile_ - Generate a JSON summary of the given source file
-* **--parenComplete** _sourceFile_ _cursorPosition_ - Provides a listing of function
+the **file**, not the position in the line. If no file is specified the file is read from stdin.
+* **--sloc** [_sourceFiles_] - count the number of logical lines of code in the given
+source files. If no files are specified, a file is read from stdin.
+* **--json** [_sourceFile_] - Generate a JSON summary of the given source file. If no file is specifed, the file is read from stdin.
+* **--parenComplete** [_sourceFile_] _cursorPosition_ - Provides a listing of function
 parameters or pre-defined version identifiers at the cursor position. The cursor
-position is the character position in the **file**, not the line.
-* **--highlight** _sourceFile_ - Syntax-highlight the given source file. The
+position is the character position in the **file**, not the line. If no file is specified, the contents are read from stdin.
+* **--highlight** [_sourceFile_] - Syntax-highlight the given source file. The
 resulting HTML will be written to standard output.
 * **-I** _includePath_ - Include _includePath_ in the list of paths used to search
 for imports. By default dscanner will search in the current working directory as
 well as any paths specified in /etc/dmd.conf. This is only used for the
---parenComplete and --dotComplete options
+--parenComplete and --dotComplete options. If no file is specified, the file is read from stdin.
 * **--ctags** _sourceFile_ - Generates ctags information from the given source
-code file.
+code file. Note that ctags information requires a filename, so stdin cannot be used in place of a filename.
 * **--recursive** **-R** **-r** _directory_ - When used with --ctags, dscanner
 will produce ctags output for all .d and .di files contained within _directory_
 and its sub-directories.

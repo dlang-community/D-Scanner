@@ -155,14 +155,37 @@ void main(string[] args)
 
 	if (sloc)
 	{
-		writeln(args[1..$].map!(a => a.readText().tokenize())().joiner()
-			.count!(a => isLineOfCode(a.type))());
+		if (args.length == 1)
+		{
+			string f;
+			char[] buf;
+			while (stdin.readln(buf))
+				f ~= buf;
+			f.tokenize().count!(a => isLineOfCode(a.type))();
+		}
+		else
+		{
+			writeln(args[1..$].map!(a => a.readText().tokenize())().joiner()
+				.count!(a => isLineOfCode(a.type))());
+		}
+
 		return;
 	}
 
 	if (highlight)
 	{
-		highlighter.highlight(args[1].readText().tokenize(IterationStyle.EVERYTHING));
+		if (args.length == 1)
+		{
+			string f;
+			char[] buf;
+			while (stdin.readln(buf))
+				f ~= buf;
+			highlighter.highlight(f.tokenize(IterationStyle.EVERYTHING));
+		}
+		else
+		{
+			highlighter.highlight(args[1].readText().tokenize(IterationStyle.EVERYTHING));
+		}
 		return;
 	}
 
@@ -207,7 +230,19 @@ void main(string[] args)
 
 	if (json)
 	{
-		auto tokens = tokenize(readText(args[1]));
+		Token[] tokens;
+		if (args.length == 1)
+		{
+			string f;
+			char[] buf;
+			while (stdin.readln(buf))
+				f ~= buf;
+			tokens = tokenize(f);
+		}
+		else
+		{
+			tokens = tokenize(readText(args[1]));
+		}
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
 		return;
