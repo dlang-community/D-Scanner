@@ -161,7 +161,7 @@ void main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f ~= buf;
-			f.tokenize().count!(a => isLineOfCode(a.type))();
+			writeln(f.tokenize().count!(a => isLineOfCode(a.type))());
 		}
 		else
 		{
