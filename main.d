@@ -157,11 +157,11 @@ void main(string[] args)
 	{
 		if (args.length == 1)
 		{
-			string f;
+			auto f = appender!string();
 			char[] buf;
 			while (stdin.readln(buf))
-				f ~= buf;
-			writeln(f.tokenize().count!(a => isLineOfCode(a.type))());
+				f.put(buf);
+			writeln(f.data.tokenize().count!(a => isLineOfCode(a.type))());
 		}
 		else
 		{
@@ -176,11 +176,11 @@ void main(string[] args)
 	{
 		if (args.length == 1)
 		{
-			string f;
+			auto f = appender!string();
 			char[] buf;
 			while (stdin.readln(buf))
-				f ~= buf;
-			highlighter.highlight(f.tokenize(IterationStyle.EVERYTHING));
+				f.put(buf);
+			highlighter.highlight(f.data.tokenize(IterationStyle.EVERYTHING));
 		}
 		else
 		{
@@ -199,11 +199,11 @@ void main(string[] args)
 		try
 		{
 			to!size_t(args[1]);
-			string f;
+			auto f = appender!string();
 			char[] buf;
 			while (stdin.readln(buf))
-				f ~= buf;
-			tokens = f.tokenize();
+				f.put(buf);
+			tokens = f.data.tokenize();
 		}
 		catch(ConvException e)
 		{
@@ -233,11 +233,11 @@ void main(string[] args)
 		Token[] tokens;
 		if (args.length == 1)
 		{
-			string f;
+			auto f = appender!string();
 			char[] buf;
 			while (stdin.readln(buf))
-				f ~= buf;
-			tokens = tokenize(f);
+				f.put(buf);
+			tokens = tokenize(f.data);
 		}
 		else
 		{
