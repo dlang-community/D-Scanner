@@ -2,9 +2,10 @@
 Dscanner is a tool used to analyze D source code.
 
 ### Options
-* **--dotComplete** _sourceFile_ _cursorPosition_ - Provide autocompletion for the
+* **--dotComplete** [--extended] _sourceFile_ _cursorPosition_ - Provide autocompletion for the
 insertion of the dot operator. The cursor position is the character position in
 the **file**, not the position in the line.
+When the extended option is included, display function completions with their full signature.
 * **--sloc** _sourceFiles_ - count the number of logical lines of code in the given
 source files.
 * **--json** _sourceFile_ - Generate a JSON summary of the given source file
@@ -37,6 +38,9 @@ present.
 ##### Example output:
 	foo v
 	bar f
+
+With the extended completion syntax:
+	bar f : [#void#]bar(<#int x#>, <#int y#>)
 
 ##### Supported kinds
 * c -- class names

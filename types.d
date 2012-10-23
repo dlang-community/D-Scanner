@@ -618,9 +618,10 @@ class CompletionContext
 {
 public:
 
-	this(Module mod)
+	this(Module mod, bool extendedFunctionTypes = false)
 	{
 		this.currentModule = mod;
+		this.extendedFunctionTypes = extendedFunctionTypes;
 	}
 
 	Tuple!(string, string)[string] getMembersOfType(string name)
@@ -635,7 +636,7 @@ public:
 				foreach (var; inherits.variables)
 					typeMap[var.name] = Tuple!(string, string)(var.type, "m");
 				foreach (fun; inherits.functions)
-					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, "f");
+					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, getFunctionType(fun));
 				foreach (parent; inherits.baseClasses)
 				{
 					foreach (k, v; getMembersOfType(parent))
@@ -654,7 +655,7 @@ public:
 				foreach (var; s.variables)
 					typeMap[var.name] = Tuple!(string, string)(var.type, "m");
 				foreach (fun; s.functions)
-					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, "f");
+					typeMap[fun.name] = Tuple!(string, string)(fun.returnType, getFunctionType(fun));
 				return typeMap;
 			}
 			foreach (Enum e; m.enums)
@@ -722,6 +723,7 @@ public:
 	Module currentModule;
 	Module[] modules;
 	string[] importDirectories;
+	bool extendedFunctionTypes;
 
 private:
 
@@ -738,5 +740,26 @@ private:
 			}
 		}
 		return app.data;
+	}
+
+	string getFunctionType(Function f) {
+		string result = "f";
+		if (extendedFunctionTypes) {
+			result ~= " : ";
+			result ~= "[#" ~ f.returnType ~ "#]";
+			result ~= f.name ~ "(";
+			bool first = true;
+			foreach (param; f.parameters) {
+				if (first) {
+					first = false;
+				}
+				else {
+					result ~= ",";
+				}
+				result ~= "<#" ~ param.type ~ " " ~ param.name ~ "#>";
+			}
+			result ~= ")";
+		}
+		return result;
 	}
 }
