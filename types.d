@@ -88,7 +88,7 @@ protected:
 
 	void printMembers(File f, uint indent = 0) const
 	{
-		writeJSONString(f, "name", name, indent);
+		writeJSONString(f, "name", name == null ? "<<anonymous>>" : name, indent);
 		f.writeln(",");
 		f.write(std.array.replicate("  ", indent), "\"line\" : ", line);
 		f.writeln(",");
@@ -326,6 +326,7 @@ struct EnumMember
 {
 	uint line;
 	string name;
+	string type;
 }
 
 /**
@@ -335,8 +336,9 @@ class Enum : Base
 {
 public:
 
-	/// Base type for this enum
-	string type;
+	/// True in the case of "enum a {b, c}" or
+	/// False in the case of "enum x = 5" or "enum :double {x = 12.9, y = 8.3}"
+	bool hasMembers;
 
 	/// Enum members; may be empty
 	EnumMember[] members;
@@ -345,9 +347,12 @@ public:
 	{
 		auto app = appender!(string[])();
 		app.put(format("%s\t%s\t%d;\"\tg", name, fileName, line));
-		foreach (EnumMember member; members)
+		if (hasMembers)
 		{
-			app.put(format("%s\t%s\t%d;\"\te\tenum:%s", member.name, fileName, member.line, name));
+			foreach (EnumMember member; members)
+			{
+				app.put(format("%s\t%s\t%d;\"\te\tenum:%s", member.name, fileName, member.line, name));
+			}
 		}
 		return app.data;
 	}
@@ -357,13 +362,13 @@ protected:
 	override void printMembers(File f, uint indent = 0) const
 	{
 		super.printMembers(f, indent);
-		f.writeln(",");
-		writeJSONString(f, "type", type, indent);
 		f.writeln(",\n", std.array.replicate("  ", indent), "\"members\" : [");
 		foreach(i, member; members)
 		{
 			f.writeln(std.array.replicate("  ", indent + 1), "{");
 			writeJSONString(f, "name", member.name, indent + 2);
+			f.writeln(",");
+			writeJSONString(f, "type", member.type, indent + 2);
 			f.writeln(",");
 			f.writeln(std.array.replicate("  ", indent + 2), "\"line\" : ", member.line);
 			f.write(std.array.replicate("  ", indent + 1), "}");
@@ -663,7 +668,7 @@ public:
 					continue;
 				Tuple!(string, string)[string] typeMap;
 				foreach (member; e.members)
-					typeMap[member.name] = Tuple!(string, string)(e.type, "e");
+					typeMap[member.name] = Tuple!(string, string)(member.type, "e");
 				return typeMap;
 			}
 		}

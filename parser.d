@@ -226,6 +226,10 @@ string parseTypeDeclaration(const Token[] tokens, ref size_t index)
 		case TokenType.BitAnd:
 			type ~= tokens[index++].value;
 			break;
+		case TokenType.Function:
+			type ~= " " ~ tokens[index++].value;
+			type ~= parenContent(tokens, index);
+			break;
 		default:
 			break buildingType;
 		}
@@ -510,35 +514,76 @@ body
 	++index;
 	Enum e = new Enum;
 	e.line = tokens[index].lineNumber;
-	e.name = tokens[index++].value;
+	string enumType;
+
+	if (tokens[index] == TokenType.LBrace)
+		goto enumBody;
+
+	if (isIdentifierOrType(tokens[index]))
+	{
+		if (index + 1 < tokens.length && tokens[index + 1] == TokenType.Identifier)
+		{
+			// enum long l = 4;
+			EnumMember m;
+			m.type = tokens[index++].value;
+			m.line = tokens[index].lineNumber;
+			e.name = m.name = tokens[index].value;
+			e.members ~= m;
+			skipBlockStatement(tokens, index);
+			return e;
+		}
+		else
+		{
+			// enum m = "abcd";
+			e.name = tokens[index].value;
+			EnumMember m;
+			m.name = e.name;
+			m.line = tokens[index].lineNumber;
+			m.type = getTypeFromToken(tokens[index + 2]);
+			e.members ~= m;
+			skipBlockStatement(tokens, index);
+			return e;
+		}
+	}
 
 	if (tokens[index] == TokenType.Colon)
 	{
-		++index;
-		e.type = tokens[index++].value;
+		index++;
+		if (!isIdentifierOrType(tokens[index]))
+			skipBlockStatement(tokens, index);
+		else
+			enumType = tokens[index++].value;
 	}
-	else
-		e.type = "uint";
 
-	if (tokens[index] != TokenType.LBrace)
-	{
-		tokens.skipBlockStatement(index);
-		return e;
-	}
+enumBody:
 
 	auto r = betweenBalancedBraces(tokens, index);
 	for (size_t i = 0; i < r.length;)
 	{
-		if (r[i].type == TokenType.Identifier)
+		EnumMember m;
+		if (isIdentifierOrType(r[i]) && i + 1 < r.length && isIdentifierOrType(r[i + 1]))
 		{
-			EnumMember member;
-			member.line = r[i].lineNumber;
-			member.name = r[i].value;
-			e.members ~= member;
-			r.skipPastNext(TokenType.Comma, i);
+			m.line = r[i + 1].lineNumber;
+			m.name = r[i + 1].value;
+			m.type = r[i].value;
+		}
+		else if (isIdentifierOrType(r[i]) && i + 1 < r.length && r[i + 1] == TokenType.Assign)
+		{
+			if (enumType == null && i + 2 < r.length)
+				m.type = getTypeFromToken(r[i + 2]);
+			else
+				m.type = enumType;
+			m.line = r[i].lineNumber;
+			m.name = r[i].value;
 		}
 		else
-			++i;
+		{
+			m.line = r[i].lineNumber;
+			m.name = r[i].value;
+			m.type = enumType == null ? "int" : enumType;
+		}
+		e.members ~= m;
+		skipPastNext(r, TokenType.Comma, i);
 	}
 	return e;
 }
@@ -641,6 +686,7 @@ body
 	{
 		switch(r[i].type)
 		{
+		case TokenType.Alias:
 		case TokenType.In:
 		case TokenType.Out:
 		case TokenType.Ref:

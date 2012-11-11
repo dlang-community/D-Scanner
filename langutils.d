@@ -584,6 +584,42 @@ static this()
 	];
 }
 
+pure string getTypeFromToken(ref const Token t)
+{
+	switch (t.type)
+	{
+
+	case TokenType.DoubleLiteral:
+		return "double";
+	case TokenType.FloatLiteral:
+		return "float";
+	case TokenType.IntLiteral:
+		return "int";
+	case TokenType.RealLiteral:
+		return "real";
+	case TokenType.UnsignedIntLiteral:
+		return "uint";
+	case TokenType.UnsignedLongLiteral:
+		return "ulong";
+	case TokenType.LongLiteral:
+		return "long";
+	case TokenType.DStringLiteral:
+		return "dstring";
+	case TokenType.StringLiteral:
+		return "string";
+	case TokenType.WStringLiteral:
+		return "wstring";
+	default:
+		return null;
+	}
+}
+
+pure bool isIdentifierOrType(ref const Token t)
+{
+	return t.type == TokenType.Identifier || (t.type > TokenType.TYPES_BEGIN
+		&& TokenType.TYPES_END);
+}
+
 struct Token
 {
 	TokenType type;
