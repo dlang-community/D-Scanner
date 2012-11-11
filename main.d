@@ -128,7 +128,7 @@ string[] loadConfig()
 	return dirs;
 }
 
-void main(string[] args)
+int main(string[] args)
 {
 	string[] importDirs;
 	bool sloc;
@@ -139,16 +139,23 @@ void main(string[] args)
 	bool ctags;
 	bool recursiveCtags;
 	bool format;
+	bool help;
 
 	try
 	{
 		getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
 			"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
-			"ctags", &ctags, "recursive|r|R", &recursiveCtags);
+			"ctags", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help);
 	}
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
+	}
+
+	if (help)
+	{
+		printHelp();
+		return 0;
 	}
 
 	importDirs ~= loadConfig();
@@ -168,8 +175,7 @@ void main(string[] args)
 			writeln(args[1..$].map!(a => a.readText().tokenize())().joiner()
 				.count!(a => isLineOfCode(a.type))());
 		}
-
-		return;
+		return 0;
 	}
 
 	if (highlight)
@@ -186,7 +192,7 @@ void main(string[] args)
 		{
 			highlighter.highlight(args[1].readText().tokenize(IterationStyle.EVERYTHING));
 		}
-		return;
+		return 0;
 	}
 
 	if (dotComplete || parenComplete)
@@ -225,7 +231,7 @@ void main(string[] args)
 			writeln(complete.parenComplete(to!size_t(args[1])));
 		else if (dotComplete)
 			writeln(complete.dotComplete(to!size_t(args[1])));
-		return;
+		return 0;
 	}
 
 	if (json)
@@ -233,6 +239,7 @@ void main(string[] args)
 		Token[] tokens;
 		if (args.length == 1)
 		{
+			// Read from stdin
 			auto f = appender!string();
 			char[] buf;
 			while (stdin.readln(buf))
@@ -241,11 +248,12 @@ void main(string[] args)
 		}
 		else
 		{
+			// read given file
 			tokens = tokenize(readText(args[1]));
 		}
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
-		return;
+		return 0;
 	}
 
 	if (ctags)
@@ -276,4 +284,53 @@ void main(string[] args)
 			m.writeCtagsTo(stdout, "");
 		}
 	}
+	return 0;
+}
+
+void printHelp()
+{
+	writeln(
+q{
+    Usage: dscanner options
+
+options:
+    --help | -h
+        Prints this help message
+
+    --sloc [sourceFiles]
+        count the number of logical lines of code in the given
+        source files. If no files are specified, a file is read from stdin.
+
+    --json [sourceFile]
+        Generate a JSON summary of the given source file. If no file is
+        specifed, the file is read from stdin.
+
+    --dotComplete [sourceFile] cursorPosition
+        Provide autocompletion for the insertion of the dot operator. The cursor
+        position is the character position in the *file*, not the position in
+        the line. If no file is specified, the file is read from stdin.
+
+    --parenComplete [sourceFile] cursorPosition
+        Provides a listing of function parameters or pre-defined version
+        identifiers at the cursor position. The cursor position is the character
+        position in the *file*, not the line. If no file is specified, the
+        contents are read from stdin.
+
+    --highlight [sourceFile] - Syntax-highlight the given source file. The
+        resulting HTML will be written to standard output.
+
+    -I includePath
+        Include _includePath_ in the list of paths used to search for imports.
+        By default dscanner will search in the current working directory as
+        well as any paths specified in /etc/dmd.conf. This is only used for the
+        --parenComplete and --dotComplete options.
+
+    --ctags sourceFile
+        Generates ctags information from the given source code file. Note that
+        ctags information requires a filename, so stdin cannot be used in place
+        of a filename.
+
+    --recursive | -R | -r directory
+        When used with --ctags, dscanner will produce ctags output for all .d
+        and .di files contained within directory and its sub-directories.});
 }
