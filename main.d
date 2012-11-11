@@ -155,14 +155,37 @@ void main(string[] args)
 
 	if (sloc)
 	{
-		writeln(args[1..$].map!(a => a.readText().tokenize())().joiner()
-			.count!(a => isLineOfCode(a.type))());
+		if (args.length == 1)
+		{
+			auto f = appender!string();
+			char[] buf;
+			while (stdin.readln(buf))
+				f.put(buf);
+			writeln(f.data.tokenize().count!(a => isLineOfCode(a.type))());
+		}
+		else
+		{
+			writeln(args[1..$].map!(a => a.readText().tokenize())().joiner()
+				.count!(a => isLineOfCode(a.type))());
+		}
+
 		return;
 	}
 
 	if (highlight)
 	{
-		highlighter.highlight(args[1].readText().tokenize(IterationStyle.EVERYTHING));
+		if (args.length == 1)
+		{
+			auto f = appender!string();
+			char[] buf;
+			while (stdin.readln(buf))
+				f.put(buf);
+			highlighter.highlight(f.data.tokenize(IterationStyle.EVERYTHING));
+		}
+		else
+		{
+			highlighter.highlight(args[1].readText().tokenize(IterationStyle.EVERYTHING));
+		}
 		return;
 	}
 
@@ -172,7 +195,21 @@ void main(string[] args)
 			importDirs ~= dirName(args[1]);
 		else
 			importDirs ~= getcwd();
-		auto tokens = args[1].readText().tokenize();
+		Token[] tokens;
+		try
+		{
+			to!size_t(args[1]);
+			auto f = appender!string();
+			char[] buf;
+			while (stdin.readln(buf))
+				f.put(buf);
+			tokens = f.data.tokenize();
+		}
+		catch(ConvException e)
+		{
+			tokens = args[1].readText().tokenize();
+			args.popFront();
+		}
 		auto mod = parseModule(tokens);
 		CompletionContext context = new CompletionContext(mod);
 		context.importDirectories = importDirs;
@@ -185,15 +222,27 @@ void main(string[] args)
 		}
 		auto complete = AutoComplete(tokens, context);
 		if (parenComplete)
-			writeln(complete.parenComplete(to!size_t(args[2])));
+			writeln(complete.parenComplete(to!size_t(args[1])));
 		else if (dotComplete)
-			writeln(complete.dotComplete(to!size_t(args[2])));
+			writeln(complete.dotComplete(to!size_t(args[1])));
 		return;
 	}
 
 	if (json)
 	{
-		auto tokens = tokenize(readText(args[1]));
+		Token[] tokens;
+		if (args.length == 1)
+		{
+			auto f = appender!string();
+			char[] buf;
+			while (stdin.readln(buf))
+				f.put(buf);
+			tokens = tokenize(f.data);
+		}
+		else
+		{
+			tokens = tokenize(readText(args[1]));
+		}
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
 		return;
