@@ -378,7 +378,6 @@ events.connect(events.CHAR_ADDED, function(ch)
 		local command = M.PATH_TO_DSCANNER
 			.. (character == "." and " --dotComplete " or " --parenComplete ")
 			.. fileName .. " " .. buffer.current_pos .. " -I" .. buffer.filename:match(".+[\\/]")
-			.. " -I ~/ludumdare24/src/Derelict3/import"
 		local p = io.popen(command)
 		local r = p:read("*a")
 		if r ~= "\n" then

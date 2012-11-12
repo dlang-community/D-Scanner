@@ -299,7 +299,6 @@ struct AutoComplete
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
 		size_t startIndex = findBeginningOfExpression(tokens, index);
-		stderr.writeln("Token before startIndex is ", tokens[startIndex - 1]);
 		if (startIndex - 1 < tokens.length && tokens[startIndex - 1] == TokenType.Import)
 		{
 			return importComplete(splitCallChain(tokens[startIndex .. index]));

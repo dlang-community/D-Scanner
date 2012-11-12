@@ -532,7 +532,7 @@ body
 			skipBlockStatement(tokens, index);
 			return e;
 		}
-		else
+		else if (index + 1 < tokens.length && tokens[index + 1] == TokenType.Assign)
 		{
 			// enum m = "abcd";
 			e.name = tokens[index].value;
@@ -545,6 +545,8 @@ body
 			return e;
 		}
 	}
+
+	e.name = tokens[index++].value;
 
 	if (tokens[index] == TokenType.Colon)
 	{
