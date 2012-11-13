@@ -4,6 +4,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module langutils;
+import std.array;
+
 
 /**
  * Returns: true if input is a access attribute
@@ -43,6 +45,13 @@ pure nothrow TokenType lookupTokenType(const string input)
 		return TokenType.Identifier;
 }
 
+string combineTokens(ref const Token[] tokens)
+{
+	auto app = appender!string();
+	foreach (t; tokens)
+		app.put(t.value);
+	return app.data;
+}
 
 pure nothrow TokenType lookupTokenTypeOptimized(const string input)
 {

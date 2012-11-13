@@ -602,37 +602,60 @@ public:
 }
 
 
-immutable(string[][string]) typeProperties;
-immutable(string[]) floatProperties;
-immutable(string[]) integralProperties;
-immutable(string[]) commonProperties;
-immutable(string[]) arrayProperties;
+immutable(string[string][string]) typeProperties; // Yo dawg I heard you like maps...
+immutable(string[string]) floatProperties;
+immutable(string[string]) integralProperties;
+immutable(string[string]) commonProperties;
+immutable(string[string]) arrayProperties;
 
 static this()
 {
-	floatProperties = ["alignof", "dig", "epsilon", "im", "infinity", "init",
-		"mangleof", "mant_dig", "max", "max_10_exp", ".max_­exp", "min_10_­exp",
-		"min_­exp", "min_nor­mal", "nan",	"re", "sizeof"
+	// <#> means "its own type"
+	// for example float.max is of type float
+	floatProperties = [
+		"alignof" : "int",
+		"dig" : "<#>",
+		"epsilon" : "<#>",
+		"im" : "<#>",
+		"infinity" : "<#>",
+		"init" : "<#>",
+		"mangleof" : "string",
+		"mant_dig" : "int",
+		"max" : "<#>",
+		"max_10_exp" : "int",
+		"max_­exp" : "int",
+		"min_10_­exp" : "int",
+		"min_­exp" : "int",
+		"min_nor­mal" : "<#>",
+		"nan" : "<#>",
+		"re" : "<#>",
+		"sizeof" : "size_t"
 	];
 
-	integralProperties = ["alignof", "init", "mangleof", "max",
-		"min", "sizeof", "stringof"
+	integralProperties = [
+		"alignof" : "int",
+		"init" : "<#>",
+		"mangleof" : "string",
+		"max" : "<#>",
+		"min" : "<#>",
+		"sizeof" : "size_t",
+		"stringof" : "string"
 	];
 
 	commonProperties = [
-		"alignof",
-		"init",
-		"mangleof",
-		"stringof"
+		"alignof" : "int",
+		"init" : "<#>",
+		"mangleof" : "string",
+		"stringof" : "string"
 	];
 
 	arrayProperties = [
-		"alignof",
-		"init",
-		"length",
-		"mangleof",
-		"ptr",
-		"stringof",
+		"alignof" : "int",
+		"init" : "<#>",
+		"length" : "size_t",
+		"mangleof" : "string",
+		"ptr" : "<#>*",
+		"stringof" : "string",
 	];
 
 	typeProperties = [
@@ -678,6 +701,26 @@ public:
 
 	Tuple!(string, string)[string] getMembersOfType(string name)
 	{
+		// Arrays
+		if (name.length > 2 && name[$ - 2 .. $] == "[]")
+		{
+			Tuple!(string, string)[string] typeMap;
+			foreach(k, v; arrayProperties)
+				typeMap[k] = Tuple!(string, string)(v, "m");
+			return typeMap;
+		}
+
+		// Basic types
+		auto tp = name in typeProperties;
+		if (tp !is null)
+		{
+			Tuple!(string, string)[string] typeMap;
+			foreach (k, v; *tp)
+				typeMap[k] = Tuple!(string, string)(v.replace("<#>", name), "m");
+			return typeMap;
+		}
+
+		// User-defined types
 		foreach (m; chain(modules, [currentModule]))
 		{
 			foreach (inherits; chain(m.interfaces, m.classes))
@@ -696,6 +739,7 @@ public:
 						typeMap[k] = v;
 					}
 				}
+				typeMap["classInfo"] = Tuple!(string, string)("TypeInfo_Class", "m");
 				return typeMap;
 			}
 

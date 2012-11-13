@@ -99,6 +99,8 @@ body
 		case TokenType.Delete:
 		case TokenType.LBrace:
 		case TokenType.LParen:
+		case TokenType.Equals:
+		case TokenType.Plus:
 		case TokenType.Import:
 		case TokenType.LBracket:
 		case TokenType.Comma:
@@ -156,6 +158,7 @@ struct AutoComplete
 
 	string getTypeOfExpression(const(Token)[] expression, const Token[] tokens, size_t cursor)
 	{
+		stderr.writeln("getting type of ", expression);
 		if (expression.length == 0)
 			return "void";
 		auto type = typeOfVariable(expression[0], cursor);
@@ -182,25 +185,9 @@ struct AutoComplete
 		if (symbol.value in typeProperties)
 			return symbol.value;
 
-		switch (symbol.type)
-		{
-			case TokenType.FloatLiteral:
-				return "float";
-			case TokenType.DoubleLiteral:
-				return "double";
-			case TokenType.RealLiteral:
-				return "real";
-			case TokenType.IntLiteral:
-				return "int";
-			case TokenType.UnsignedIntLiteral:
-				return "uint";
-			case TokenType.LongLiteral:
-				return "long";
-			case TokenType.UnsignedLongLiteral:
-				return "ulong";
-			default:
-				break;
-		}
+		string tokenType = getTypeFromToken(symbol);
+		if (tokenType !is null)
+			return tokenType;
 
 		if (context.getMembersOfType(symbol.value))
 			return symbol.value;
@@ -220,17 +207,27 @@ struct AutoComplete
 			{
 				// Found the symbol, now determine if it was declared here.
 				auto p = preceedingTokens[index - 1];
+
+
 				if ((p == TokenType.Auto || p == TokenType.Immutable
 					|| p == TokenType.Const)
 					&& preceedingTokens[index + 1] == TokenType.Assign)
 				{
-					return null;
+					// Try to determine the type of a variable declared as "auto"
+					return getTypeOfExpression(
+						tokens[index + 2 .. findEndOfExpression(tokens, index + 2)],
+						tokens, cursor);
 				}
 				else if (p == TokenType.Identifier
 					|| (p.type > TokenType.TYPES_BEGIN
 					&& p.type < TokenType.TYPES_END))
 				{
+					// Handle simple cases like "int a;" or "Someclass instance;"
 					return p.value;
+				}
+				else if (p == TokenType.RBracket || p == TokenType.RParen)
+				{
+					return combineTokens(tokens[findBeginningOfExpression(tokens, index) .. index]);
 				}
 			}
 			if (index == 0)
@@ -306,6 +303,8 @@ struct AutoComplete
 
 		auto expressionType = getTypeOfExpression(
 			splitCallChain(tokens[startIndex .. index]), tokens, cursor);
+
+		stderr.writeln("expression type is ", expressionType);
 
 		// Complete pointers and references the same way
 		if (expressionType[$ - 1] == '*')
