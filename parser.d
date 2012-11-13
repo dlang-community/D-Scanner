@@ -272,7 +272,10 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 			tokens.skipBlockStatement(index);
 			break;
 		case TokenType.Alias:
-			tokens.skipBlockStatement(index);
+			Alias a = parseAlias(tokens, index,
+				localProtection.empty() ? protection : localProtection,
+				attributes);
+			mod.aliases ~= a;
 			break;
 		case TokenType.Import:
 			mod.imports ~= parseImports(tokens, index);
@@ -511,9 +514,9 @@ in
 }
 body
 {
-	++index;
 	Enum e = new Enum;
 	e.line = tokens[index].lineNumber;
+	++index;
 	string enumType;
 
 	if (tokens[index] == TokenType.LBrace)
@@ -773,6 +776,7 @@ void parseStructBody(const Token[] tokens, ref size_t index, Struct st)
 	st.bodyEnd = tokens[index - 1].startIndex;
 	st.functions.insertInPlace(0, m.functions);
 	st.variables.insertInPlace(0, m.variables);
+	st.aliases.insertInPlace(0, m.aliases);
 }
 
 
@@ -876,4 +880,35 @@ in
 body
 {
 	return parseInherits(tokens, ++index, protection, attributes);
+}
+
+
+/**
+ * Parse an alias declaration.
+ * Note that the language spec mentions a "AliasInitializerList" in the grammar,
+ * but there seems to be no example of this being used, nor has the compiler
+ * accepted any of my attempts to create one. Therefore, it's not supported here
+ */
+Alias parseAlias(const Token[] tokens, ref size_t index, string protection,
+	string[] attributes)
+in
+{
+	assert(tokens[index] == TokenType.Alias);
+}
+body
+{
+	index++;
+	Alias a = new Alias;
+	a.aliasedType = parseTypeDeclaration(tokens, index);
+	a.attributes = attributes;
+	a.protection = protection;
+	if (tokens[index] == TokenType.Identifier)
+	{
+		a.name = tokens[index].value;
+		a.line = tokens[index].lineNumber;
+		skipBlockStatement(tokens, index);
+	}
+	else
+		return null;
+	return a;
 }

@@ -33,7 +33,10 @@ unittest { assert(escapeJSON("abc\"def") == "abc\\\"def"); }
  */
 void writeJSONString(File f, const string name, const string value, uint indent = 0)
 {
-	f.write(std.array.replicate("  ", indent), "\"", name, "\" : \"", escapeJSON(value), "\"");
+	if (value is null)
+		f.write(std.array.replicate("  ", indent), "\"", name, "\" : null");
+	else
+		f.write(std.array.replicate("  ", indent), "\"", name, "\" : \"", escapeJSON(value), "\"");
 }
 
 /**
@@ -98,6 +101,26 @@ protected:
 	}
 }
 
+
+/**
+ * Alias Declaration
+ */
+class Alias : Base
+{
+public:
+
+	string aliasedType;
+
+protected:
+
+	override void printMembers(File f, uint indent = 0) const
+	{
+		super.printMembers(f, indent);
+		f.writeln(",");
+		writeJSONString(f, "aliasedType", aliasedType, indent);
+	}
+}
+
 /**
  * Varible declaration
  */
@@ -155,6 +178,9 @@ public:
 
 	/// List of member variables; may be empty
 	Variable[] variables;
+
+	/// List of aliases defined
+	Alias[] aliases;
 
 	/// Source code character position of the beginning of the struct body
 	size_t bodyStart;
@@ -224,6 +250,15 @@ protected:
 		{
 			var.writeJSONTo(f, indent);
 			if (i + 1 < variables.length)
+				f.writeln(",");
+			else
+				f.writeln();
+		}
+		f.writeln(std.array.replicate("  ", indent), "],\n", std.array.replicate("  ", indent), "\"aliases\" : [");
+		foreach(i, al; aliases)
+		{
+			al.writeJSONTo(f, indent);
+			if (i + 1 < aliases.length)
 				f.writeln(",");
 			else
 				f.writeln();
@@ -405,6 +440,9 @@ public:
 
 	/// List of enums declared in this module
 	Enum[] enums;
+
+	/// List of aliases declared in this module
+	Alias[] aliases;
 }
 
 /**
@@ -506,6 +544,15 @@ public:
 			else
 				f.writeln();
 		}
+		f.writeln("  ],\n  \"aliases\" : [");
+		foreach(i, a; aliases)
+		{
+			a.writeJSONTo(f, indent + 1);
+			if (i + 1 < aliases.length)
+				f.writeln(",");
+			else
+				f.writeln();
+		}
 		f.writeln("  ]\n}");
 	}
 
@@ -553,6 +600,7 @@ public:
 		}
 	}
 }
+
 
 immutable(string[][string]) typeProperties;
 immutable(string[]) floatProperties;
