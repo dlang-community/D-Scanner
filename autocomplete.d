@@ -92,20 +92,27 @@ body
 	{
 		switch (tokens[i].type)
 		{
-		case TokenType.Return:
-		case TokenType.New:
-		case TokenType.Case:
-		case TokenType.Assign:
-		case TokenType.Delete:
-		case TokenType.LBrace:
-		case TokenType.LParen:
-		case TokenType.Equals:
-		case TokenType.Plus:
-		case TokenType.Import:
-		case TokenType.LBracket:
-		case TokenType.Comma:
-		case TokenType.Semicolon:
-		case TokenType.RBrace:
+		case TokenType.Assign: case TokenType.BitAnd: case TokenType.BitAndEquals:
+		case TokenType.BitOr: case TokenType.BitOrEquals: case TokenType.CatEquals:
+		case TokenType.Colon: case TokenType.Comma: case TokenType.Decrement:
+		case TokenType.Div: case TokenType.DivEquals: case TokenType.Dollar:
+		case TokenType.Dot: case TokenType.Equals: case TokenType.GoesTo:
+		case TokenType.Greater: case TokenType.GreaterEqual: case TokenType.Hash:
+		case TokenType.Increment: case TokenType.LBrace: case TokenType.LBracket:
+		case TokenType.Less: case TokenType.LessEqual: case TokenType.LessEqualGreater:
+		case TokenType.LessOrGreater: case TokenType.LogicAnd: case TokenType.LogicOr:
+		case TokenType.LParen: case TokenType.Minus: case TokenType.MinusEquals:
+		case TokenType.Mod: case TokenType.ModEquals: case TokenType.MulEquals:
+		case TokenType.Not: case TokenType.NotEquals: case TokenType.NotGreater:
+		case TokenType.NotGreaterEqual: case TokenType.NotLess: case TokenType.NotLessEqual:
+		case TokenType.NotLessEqualGreater: case TokenType.Plus: case TokenType.PlusEquals:
+		case TokenType.Pow: case TokenType.PowEquals: case TokenType.RBrace:
+		case TokenType.Semicolon: case TokenType.ShiftLeft: case TokenType.ShiftLeftEqual:
+		case TokenType.ShiftRight: case TokenType.ShiftRightEqual: case TokenType.Slice:
+		case TokenType.Star: case TokenType.Ternary: case TokenType.Tilde:
+		case TokenType.Unordered: case TokenType.UnsignedShiftRight: case TokenType.UnsignedShiftRightEqual:
+		case TokenType.Vararg: case TokenType.Xor: case TokenType.XorEquals:
+		case TokenType.KEYWORDS_BEGIN: .. case TokenType.KEYWORDS_END:
 			return i + 1;
 		case TokenType.RParen:
 			if (i == 0)
@@ -295,6 +302,13 @@ struct AutoComplete
 		stderr.writeln("dotComplete");
 		auto index = assumeSorted(tokens).lowerBound(cursor).length - 1;
 		Token t = tokens[index];
+
+		// If the last character entered before the cursor isn't a dot, give up.
+		// The user was probably in the middle of typing the slice or vararg
+		// operators
+		if (t != TokenType.Dot)
+			return null;
+
 		size_t startIndex = findBeginningOfExpression(tokens, index);
 		if (startIndex - 1 < tokens.length && tokens[startIndex - 1] == TokenType.Import)
 		{
