@@ -1,5 +1,7 @@
 A plugin for using dscanner with vim.
 
+Tested on Linux
+
 Installation and Configuration
 ==============================
 Put the autoload and ftplugin folders in your vim runtime path.
