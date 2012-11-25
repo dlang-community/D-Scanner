@@ -46,7 +46,7 @@ function! dcomplete#Complete(findstart,base)
 		endif
 	endif
 endfunction
-
+echo "hi"
 "Run dscanner
 function! s:runDScanner(scanCommand)
 	if exists('g:dscanner_path')
@@ -73,7 +73,7 @@ function! s:parsePairs(base,resultLines,addBefore,addAfter)
 	for resultLine in a:resultLines[1:]
 		if len(resultLine)
 			let lineParts=split(resultLine)
-			if lineParts[0]=~'^'.a:base
+			if lineParts[0]=~'^'.a:base && 2==len(lineParts) && 1==len(lineParts[1])
 				call add(result,{'word':a:addBefore.lineParts[0].a:addAfter,'kind':lineParts[1]})
 			endif
 		end
