@@ -518,6 +518,7 @@ body
 	e.line = tokens[index].lineNumber;
 	++index;
 	string enumType;
+	e.protection = protection;
 
 	if (tokens[index] == TokenType.LBrace)
 		goto enumBody;
@@ -549,7 +550,8 @@ body
 		}
 	}
 
-	e.name = tokens[index++].value;
+	if (isIdentifierOrType(tokens[index]))
+		e.name = tokens[index++].value;
 
 	if (tokens[index] == TokenType.Colon)
 	{
