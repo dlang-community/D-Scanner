@@ -34,19 +34,22 @@ function! dcomplete#Complete(findstart,base)
 			return resultLines[-1]
 		end
 
-		"Identify the type of result received
-		let b:dscanner_resultType=resultLines[0]
-		"Parse the result accoring to their type
-		if b:dscanner_resultType=='dotComplete'
-			return s:parsePairs(a:base,resultLines,'','')
-		elseif b:dscanner_resultType=='completions'
-			return s:parsePairs(a:base,resultLines,'',')')
-		elseif b:dscanner_resultType=='calltips'
-			return s:parseCalltips(a:base,resultLines)
-		endif
+		"Find the begining of the results.
+		while len(resultLines)
+			"Identify the type of result received
+			let b:dscanner_resultType=resultLines[0]
+			"Parse the result accoring to their type
+			if b:dscanner_resultType=='dotComplete'
+				return s:parsePairs(a:base,resultLines,'','')
+			elseif b:dscanner_resultType=='completions'
+				return s:parsePairs(a:base,resultLines,'',')')
+			elseif b:dscanner_resultType=='calltips'
+				return s:parseCalltips(a:base,resultLines)
+			endif
+			let resultLines=resultLines[1:]
+		endwhile
 	endif
 endfunction
-echo "hi"
 "Run dscanner
 function! s:runDScanner(scanCommand)
 	if exists('g:dscanner_path')
@@ -85,7 +88,7 @@ endfunction
 function! s:parseCalltips(base,resultLines)
 	let result=[a:base]
 	for resultLine in a:resultLines[1:]
-		if len(resultLine)
+		if 0<=match(resultLine,".*(.*)")
 			let funcArgs=[]
 			for funcArg in split(resultLine[match(resultLine,'(')+1:-2],',\\n\\t')
 				let argParts=split(funcArg)
