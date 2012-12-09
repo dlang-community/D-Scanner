@@ -59,13 +59,15 @@ function! s:runDScanner(scanCommand)
 	endif
 
 	if exists('g:dscanner_includePath')
-		let l:dscannerCommand=l:dscannerCommand.' -I'.g:dscanner_includePath
+		for l:includePath in g:dscanner_includePath
+			let l:dscannerCommand=l:dscannerCommand.' '.shellescape('-I'.l:includePath)
+		endfor
 	endif
 
 
 	let l:tmpFileName=tempname()
 	exec "write ".l:tmpFileName
-	let scanResult=system(l:dscannerCommand.' --'.a:scanCommand.' '.(line2byte('.')+col('.')-2).' <'.l:tmpFileName)
+	let scanResult=system(l:dscannerCommand.' --'.a:scanCommand.' '.(line2byte('.')+col('.')-2).' <'.shellescape(l:tmpFileName))
 	call delete(l:tmpFileName)
 	return scanResult
 endfunction
