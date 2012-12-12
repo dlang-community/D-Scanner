@@ -66,8 +66,13 @@ function! s:runDScanner(scanCommand)
 
 
 	let l:tmpFileName=tempname()
+	"Save the temp file in unix format for better reading of byte position.
+	let l:oldFileFormat=&fileformat
+	set fileformat=unix
+	let l:bytePosition=line2byte('.')+col('.')-2
 	exec "write ".l:tmpFileName
-	let scanResult=system(l:dscannerCommand.' --'.a:scanCommand.' '.(line2byte('.')+col('.')-2).' <'.shellescape(l:tmpFileName))
+	let &fileformat=l:oldFileFormat
+	let scanResult=system(l:dscannerCommand.' --'.a:scanCommand.' '.l:bytePosition.' <'.shellescape(l:tmpFileName))
 	call delete(l:tmpFileName)
 	return scanResult
 endfunction

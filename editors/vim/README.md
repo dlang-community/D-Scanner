@@ -12,13 +12,7 @@ If you need to use an include path, use the global variable g:dscanner\_includeP
 
 Using on Windows
 ================
-Under Linux, Dscanner can /etc/dmd.conf to get the default include paths. I've found no such file in the Windows distribution of dmd(it's probably in the registry), so you need to configure it manually. You need to \src\phobos and \src\druntime\import folders from where you installed dmd. For example,
+Under Linux, Dscanner reads /etc/dmd.conf to get the default include paths. The equivalent file in Windows - 'sc.ini' - does not have a fixed location, so you need to configure the import paths manually. You need the \src\phobos and \src\druntime\import folders from where you installed dmd. For example,
 ```
 let g:dscanner_includePath=['C:\Program Files\dmd2\src\phobos','C:\Program Files\dmd2\src\druntime\import']
 ```
-
-Also, the Dscanner has a problem reading files in windows format, so use
-```
-set fileformat=unix
-```
-to make you files use unix format.
