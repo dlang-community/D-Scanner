@@ -83,7 +83,7 @@ out (result)
 {
 	import std.string;
 	assert (result < tokens.length);
-	assert (result <= index, format("%d, %d", result, index));
+	assert (result <= index, format("findBeginningOfExpression %d, %d", result, index));
 }
 body
 {
@@ -96,7 +96,7 @@ body
 		case TokenType.BitOr: case TokenType.BitOrEquals: case TokenType.CatEquals:
 		case TokenType.Colon: case TokenType.Comma: case TokenType.Decrement:
 		case TokenType.Div: case TokenType.DivEquals: case TokenType.Dollar:
-		case TokenType.Dot: case TokenType.Equals: case TokenType.GoesTo:
+		case TokenType.Equals: case TokenType.GoesTo:
 		case TokenType.Greater: case TokenType.GreaterEqual: case TokenType.Hash:
 		case TokenType.Increment: case TokenType.LBrace: case TokenType.LBracket:
 		case TokenType.Less: case TokenType.LessEqual: case TokenType.LessEqualGreater:
