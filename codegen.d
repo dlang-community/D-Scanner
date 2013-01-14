@@ -1,4 +1,3 @@
-
 //          Copyright Brian Schott (Sir Alaran) 2012.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
@@ -109,29 +108,4 @@ string generateCaseTrie(string[] args ...)
 		t.add(args[i], args[i+1]);
 	}
 	return printCaseStatements(t, "");
-}
-
-/**
- * Returns: true if index points to end of inputString, false otherwise
- */
-pure nothrow bool isEoF(S)(S inputString, size_t index)
-{
-	// note: EoF is determined according to D specification
-	return index >= inputString.length
-		|| inputString[index] == Character.NUL
-		|| inputString[index] == Character.SUB;
-}
-
-private:
-
-	// Unicode character literals
-	enum Character
-	{
-		// End of file (EoF)
-		NUL = '\u0000',	// NUL character
-		SUB = '\u001A',	// Substitute character
-
-		// Line feed (EoL)
-		CR = '\u000D', // CR character
-		LF = '\u000A',	// LF character
 	}

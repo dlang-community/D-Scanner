@@ -1,1 +1,93 @@
+{
+	"description" : "JSON schema for Dscanner's output",
+	"properties" : {
+		"name" : {
+			"required" : true,
+			"type" : "string"
+		},
+		"imports" : {
+			"type" : "array",
+			"items" : {
+				"type" : "string"
+			},
+			"required" : true
+		},
+		"interfaces" : {
+			"type": "array",
+			"required": true,
+			"items": {
+
+			}
+		},
+		"functions" : {
+			"type": "array",
+			"required" : true,
+			"items" : {
+				"properties" : {
+					"name": {
+						"type" : "string",
+						"required" : true
+					},
+					"line" : {
+						"type" : "integer",
+						"required" : true,
+						"minimum" : 1
+					},
+					"protection" : {
+						"type" : "string",
+						"enum" : [
+							"private",
+							"public",
+							"protected",
+							"package",
+							"export",
+							""
+						],
+						"required" : true
+					},
+					"attributes" : {
+						"type" : "array",
+						"items" : { "type" : "string" },
+						"required" : true
+					},
+					"constraint" : {
+						"type" : "string",
+						"required" : true
+					},
+					"templateParameters" : {
+						"type" : "array",
+						"items" : { "type" : "string" },
+						"required" : true
+					},
+					"parameters" : {
+						"type" : "array",
+						"required" : true,
+						"items" : {
+							"properties" : {
+								"name": {
+									"type" : "string",
+									"required" : true
+								},
+								"line" : {
+									"type" : "integer",
+									"required" : true,
+									"minimum" : 1
+								},
+								"attributes" : {
+									"type" : "array",
+									"items" : { "type" : "string" },
+									"required" : true
+								}
+							}
+						}
+					},
+					"returnType" : {
+						"type" : "string",
+						"required" : true
+					}
+				}
+			}
+		}
+	}
+}
 

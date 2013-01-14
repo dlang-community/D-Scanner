@@ -17,54 +17,70 @@ import std.stdio;
 import langutils;
 import codegen;
 
-
-/**
- * Increments endIndex until it indexes a non-whitespace character in
- * inputString.
- * Params:
- *     inputString = the source code to examine
- *     endIndex = an index into inputString
- *     lineNumber = the line number that corresponds to endIndex
- *     style = the code iteration style
- * Returns: The whitespace, or null if style was CODE_ONLY
- */
-pure nothrow string lexWhitespace(S)(S inputString, ref size_t endIndex,
-	ref uint lineNumber)
-	if (isSomeString!S)
+pure bool isNewline(R)(R range)
 {
-	immutable startIndex = endIndex;
-	while (!isEoF(inputString, endIndex) && isWhite(inputString[endIndex]))
+	return range.front == '\n' || range.front == '\r';
+}
+
+pure bool isEoF(R)(R range)
+{
+	return range.empty || range.front == 0 || range.front == 0x1a;
+}
+
+char[] popNewline(R)(ref R range)
 	{
-		if (inputString[endIndex] == '\n')
-			lineNumber++;
-		++endIndex;
+	char[] chars;
+	if (range.front == '\r')
+	{
+		chars ~= range.front;
+		range.popFront();
 	}
-	return inputString[startIndex .. endIndex];
+	if (range.front == '\n')
+	{
+		chars ~= range.front;
+		range.popFront();
+	}
+	return chars;
+}
+
+unittest
+{
+	auto s = "\r\ntest";
+	assert (popNewline(s) == "\r\n");
+	assert (s == "test");
 }
 
 /**
- * If inputString starts with #!, increments endIndex until it indexes the next line.
- * Params:
- *     inputString = the source code to examine
- *     endIndex = an index into inputString
- *     lineNumber = the line number that corresponds to endIndex
-  * Returns: The script line, or null if this inputString doesn't start from script line
+ * Returns:
  */
-pure nothrow string lexScriptLine(S)(ref S inputString, ref size_t endIndex,
-	ref uint lineNumber) if (isSomeString!S)
+string lexWhitespace(R)(ref R range, ref uint lineNumber)
 {
-	auto startIndex = endIndex; // in current implementation endIndex is 0, but that could change (e.g., if BOM is not stripped from inputString)
-	string result = null;
-	if(inputString.length > 1 && inputString[0..2] == "#!") // safety check
+	auto app = appender!(char[])();
+	while (!isEoF(range) && isWhite(range.front))
 	{
-		endIndex = 2; // skip #!
-		while (!isEoF(inputString, endIndex) && inputString[endIndex] != '\n')
-			++endIndex;
-
-		result = inputString[startIndex..endIndex];
+		if (isNewline(range))
+		{
 		++lineNumber;
+			app.put(popNewline(range));
 	}
-	return result;
+		else
+		{
+			app.put(range.front);
+			range.popFront();
+		}
+	}
+	return to!string(app.data);
+}
+
+unittest
+{
+	import std.stdio;
+	uint lineNum = 1;
+	auto chars = " \n \r\n \tabcde";
+	auto r = lexWhitespace(chars, lineNum);
+	assert (r == " \n \r\n \t");
+	assert (chars == "abcde");
+	assert (lineNum == 3);
 }
 
 /**
@@ -76,52 +92,122 @@ pure nothrow string lexScriptLine(S)(ref S inputString, ref size_t endIndex,
  *     lineNumber = the line number that corresponds to endIndex
  * Returns: The comment
  */
-pure nothrow string lexComment(S)(ref S inputString, ref size_t endIndex,
-	ref uint lineNumber) if (isSomeString!S)
+string lexComment(R)(ref R input, ref uint lineNumber)
+in
 {
-	if (isEoF(inputString, endIndex))
-		return "";
-	auto startIndex = endIndex - 1;
-	switch(inputString[endIndex])
+	assert (input.front == '/');
+}
+body
+{
+	auto app = appender!(char[])();
+	app.put(input.front);
+	input.popFront();
+	switch(input.front)
 	{
 	case '/':
-		while (!isEoF(inputString, endIndex) && inputString[endIndex] != '\n')
+		while (!isEoF(input) && !isNewline(input))
 		{
-			if (inputString[endIndex] == '\n')
-				++lineNumber;
-			++endIndex;
+			app.put(input.front);
+			input.popFront();
 		}
 		break;
 	case '*':
-		while (!isEoF(inputString, endIndex)
-			&& !inputString[endIndex..$].startsWith("*/"))
+		while (!isEoF(input))
 		{
-			if (inputString[endIndex] == '\n')
+			if (isNewline(input))
+			{
+				app.put(popNewline(input));
 				++lineNumber;
-			++endIndex;
 		}
-		endIndex += 2;
+			else if (input.front == '*')
+			{
+				app.put(input.front);
+				input.popFront();
+				if (input.front == '/')
+				{
+					app.put(input.front);
+					input.popFront();
+					break;
+				}
+			}
+			else
+			{
+				app.put(input.front);
+				input.popFront();
+			}
+		}
 		break;
 	case '+':
-		++endIndex;
 		int depth = 1;
-		while (depth > 0 && !isEoF(inputString, endIndex))
+		while (depth > 0 && !isEoF(input))
 		{
-			if (inputString[endIndex] == '\n')
+			if (isNewline(input))
+			{
+				app.put(popNewline(input));
 				lineNumber++;
-			else if (inputString[endIndex..$].startsWith("+/"))
-				depth--;
-			else if (inputString[endIndex..$].startsWith("/+"))
-				depth++;
-			++endIndex;
 		}
-		if (!isEoF(inputString, endIndex))
-			++endIndex;
+			else if (input.front == '+')
+			{
+				app.put(input.front);
+				input.popFront();
+				if (input.front == '/')
+				{
+					app.put(input.front);
+					input.popFront();
+					--depth;
+				}
+			}
+			else if (input.front == '/')
+			{
+				app.put(input.front);
+				input.popFront();
+				if (input.front == '+')
+				{
+					app.put(input.front);
+					input.popFront();
+					++depth;
+				}
+			}
+			else
+			{
+				app.put(input.front);
+				input.popFront();
+			}
+		}
 		break;
 	default:
 		break;
 	}
-	return inputString[startIndex..endIndex];
+	return to!string(app.data);
+}
+
+unittest
+{
+	uint lineNumber = 1;
+	auto chars = "//this is a comment\r\nthis is not";
+	auto comment = lexComment(chars, lineNumber);
+	assert (chars == "\r\nthis is not");
+	assert (comment == "//this is a comment");
+}
+
+unittest
+{
+	uint lineNumber = 1;
+	auto chars = "/* this is a\n\tcomment\r\n */this is not";
+	auto comment = lexComment(chars, lineNumber);
+	assert (chars == "this is not");
+	assert (comment == "/* this is a\n\tcomment\r\n */");
+	assert (lineNumber == 3);
+}
+
+unittest
+{
+	uint lineNumber = 1;
+	auto chars = "/+this is a /+c/+omm+/ent+/ \r\nthis+/ is not";
+	auto comment = lexComment(chars, lineNumber);
+	assert (chars == " is not");
+	assert (comment == "/+this is a /+c/+omm+/ent+/ \r\nthis+/");
+	assert (lineNumber == 2);
 }
 
 
@@ -233,6 +319,9 @@ string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
 }
 
 
+/**
+ * TODO: Fix this
+ */
 string lexTokenString(S)(ref S inputString, ref size_t endIndex, ref uint lineNumber)
 {
 	/+auto r = byDToken(range, IterationStyle.EVERYTHING);
@@ -562,6 +651,23 @@ nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
 	token.value = inputString[startIndex .. endIndex];
 }
 
+unittest
+{
+  Token t;
+	size_t start, end;
+  start = 0;
+  end = 2;
+  lexHex!string("0x193abfq", start, end, t);
+  assert(t.value == "0x193abf", t.value);
+  assert(t.type == TokenType.IntLiteral);
+
+  start = 0;
+  end = 2;
+  lexHex!string("0x2130xabc", start, end, t);
+  assert(t.value == "0x2130");
+  assert(t.type == TokenType.IntLiteral);
+
+}
 
 /**
  * Returns: true if  ch marks the ending of one token and the beginning of
@@ -593,6 +699,19 @@ enum IterationStyle
 	CODE_ONLY,
 	/// Include everything
 	EVERYTHING
+}
+
+struct TokenRange(R) if (isInputRange(R))
+{
+	bool empty() const @property
+	{
+		return _empty;
+	}
+
+
+private:
+	R range;
+	bool _empty;
 }
 
 Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyle.CODE_ONLY)
@@ -638,7 +757,6 @@ Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyl
 
 		outerSwitch: switch(inputString[endIndex])
 		{
-		// TODO: Re-enable code generator when DMD bug 7900 is fixed
 		mixin(generateCaseTrie(
 			"=",    "TokenType.Assign",
 			"&",    "TokenType.BitAnd",

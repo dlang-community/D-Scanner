@@ -75,7 +75,9 @@ list. See the documentation on the --dotComplete option for details
 	success k
 
 # JSON output
-Generates a JSON summary of the input file.
+Generates a JSON summary of the input file. The JSON output produced complies
+with a JSON schema included with the project under the "schemas" directory. (Note
+that the schema is not yet complete)
 
 ### Example
 The given D code:

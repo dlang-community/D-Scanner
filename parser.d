@@ -265,7 +265,11 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 	{
 		switch(tokens[index].type)
 		{
-		case TokenType.Else:
+    case TokenType.Pragma:
+      ++index;
+      if (tokens[index] == TokenType.LParen)
+        skipParens(tokens, index);
+      break;
 		case TokenType.Mixin:
 		case TokenType.Assert:
 			++index;
