@@ -1,4 +1,3 @@
-
 //          Copyright Brian Schott (Sir Alaran) 2012.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
@@ -13,9 +12,12 @@ import std.algorithm;
 import std.conv;
 import std.uni;
 import std.stdio;
+import std.ascii;
+import std.format;
 
 import langutils;
 import codegen;
+import entities;
 
 pure bool isNewline(R)(R range)
 {
@@ -28,7 +30,7 @@ pure bool isEoF(R)(R range)
 }
 
 char[] popNewline(R)(ref R range)
-	{
+{
 	char[] chars;
 	if (range.front == '\r')
 	{
@@ -56,7 +58,7 @@ unittest
 string lexWhitespace(R)(ref R range, ref uint lineNumber)
 {
 	auto app = appender!(char[])();
-	while (!isEoF(range) && isWhite(range.front))
+	while (!isEoF(range) && std.uni.isWhite(range.front))
 	{
 		if (isNewline(range))
 		{
@@ -210,6 +212,37 @@ unittest
 	assert (lineNumber == 2);
 }
 
+/**
+ * Pops up to upTo hex chars from the input range and returns them as a string
+ */
+string popHexChars(R)(ref R input, uint upTo)
+{
+	auto app = appender!(char[])();
+	for (uint i = 0; i != upTo; ++i)
+	{
+		if (isHexDigit(input.front))
+		{
+			app.put(input.front);
+			input.popFront;
+		}
+		else
+			break;
+	}
+	return to!string(app.data);
+}
+
+unittest
+{
+	auto a = "124ac82d3fqwerty";
+	auto ra = popHexChars(a, uint.max);
+	assert (a == "qwerty");
+	assert (ra == "124ac82d3f");
+	auto b = "08a7c2e3";
+	auto rb = popHexChars(b, 4);
+	assert (rb.length == 4);
+	assert (rb == "08a7");
+	assert (b == "c2e3");
+}
 
 string interpretEscapeSequence(R)(ref R input)
 in
@@ -219,43 +252,75 @@ in
 body
 {
 	input.popFront();
-	auto app = appender!(char[])();
-	loop: while (!isEoF(input))
+	switch (input.front)
 	{
-		switch (input.front)
+	case '\'':
+	case '\"':
+	case '?':
+	case '\\':
+	case 0:
+	case 0x1a:
+		auto f = input.front;
+		input.popFront();
+		return to!string(f);
+	case 'a': input.popFront(); return "\a";
+	case 'b': input.popFront(); return "\b";
+	case 'f': input.popFront(); return "\f";
+	case 'n': input.popFront(); return "\n";
+	case 'r': input.popFront(); return "\r";
+	case 't': input.popFront(); return "\t";
+	case 'v': input.popFront(); return "\v";
+	case 'x':
+		input.popFront();
+		auto hexChars = popHexChars(input, 2);
+		return to!string(cast(dchar) parse!uint(hexChars, 16));
+	case '0': .. case '7':
+		return "";
+	case 'u':
+		input.popFront();
+		auto hexChars = popHexChars(input, 4);
+		return to!string(cast(dchar) parse!uint(hexChars, 16));
+	case 'U':
+		input.popFront();
+		auto hexChars = popHexChars(input, 8);
+		return to!string(cast(dchar) parse!uint(hexChars, 16));
+	case '&':
+		input.popFront();
+		auto entity = appender!(char[])();
+		while (!input.isEoF() && input.front != ';')
 		{
-		case '\'':
-		case '\"':
-		case '?':
-		case '\\':
-		case 0:
-		case 0x1a:
-			app.put(input.front);
+			entity.put(input.front);
 			input.popFront();
-			break loop;
-		case 'a': input.popFront(); app.put('\a'); break loop;
-		case 'b': input.popFront(); app.put('\b'); break loop;
-		case 'f': input.popFront(); app.put('\f'); break loop;
-		case 'n': input.popFront(); app.put('\n'); break loop;
-		case 'r': input.popFront(); app.put('\r'); break loop;
-		case 't': input.popFront(); app.put('\t'); break loop;
-		case 'v': input.popFront(); app.put('\v'); break loop;
-		case 'x':
-			break;
-		case '0' .. case '7':
-			break;
-		case 'u':
-			break;
-		case 'U':
-			break;
-		case '&':
-			// http://www.w3.org/TR/html5/entities.json
-		default:
-			// This is an error
-			break;
 		}
+		if (!isEoF(input))
+		{
+			auto decoded = characterEntities[to!string(entity.data)];
+			input.popFront();
+			if (decoded !is null)
+				return decoded;
+		}
+		return "";
+	default:
+		// This is an error
+		return "";
+
 	}
-	return app.data;
+}
+
+unittest
+{
+	auto a = "\\&amp;";
+	assert (interpretEscapeSequence(a) == x"0026");
+	auto b = "\\&afr;";
+	assert (interpretEscapeSequence(b) == x"D835DD1E");
+	auto c = "\\n";
+	assert (interpretEscapeSequence(c) == "\n");
+	auto d = "\\?";
+	assert (interpretEscapeSequence(d) == "?");
+	auto e = "\\u0033";
+	assert (interpretEscapeSequence(e) == "\u0033");
+	auto f = "\\U00000094";
+	assert (interpretEscapeSequence(f) == "\U00000094");
 }
 
 /**
@@ -279,8 +344,7 @@ body
 	auto app = appender!(char[])();
 	while (!isEoF(input) && (input.front != quote || escape))
 	{
-		if (canEscape && )
-		else if (isNewline(input))
+		if (isNewline(input))
 		{
 			app.put(popNewline(input));
 			lineNumber++;
