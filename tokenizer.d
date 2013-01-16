@@ -29,58 +29,68 @@ pure bool isEoF(R)(R range)
 	return range.empty || range.front == 0 || range.front == 0x1a;
 }
 
-char[] popNewline(R)(ref R range)
+char[] popNewline(R)(ref R range, ref uint index)
 {
 	char[] chars;
 	if (range.front == '\r')
 	{
 		chars ~= range.front;
 		range.popFront();
+		++index;
 	}
 	if (range.front == '\n')
 	{
 		chars ~= range.front;
 		range.popFront();
+		++index;
 	}
 	return chars;
 }
 
 unittest
 {
+	uint i;
 	auto s = "\r\ntest";
-	assert (popNewline(s) == "\r\n");
+	assert (popNewline(s, i) == "\r\n");
 	assert (s == "test");
 }
 
 /**
  * Returns:
  */
-string lexWhitespace(R)(ref R range, ref uint lineNumber)
+Token lexWhitespace(R)(ref R range, ref uint index, ref uint lineNumber)
 {
+	Token t;
+	t.type = TokenType.Whitespace;
+	t.lineNumber = lineNumber;
+	t.startIndex = index;
 	auto app = appender!(char[])();
 	while (!isEoF(range) && std.uni.isWhite(range.front))
 	{
 		if (isNewline(range))
 		{
-		++lineNumber;
-			app.put(popNewline(range));
+			++lineNumber;
+			app.put(popNewline(range, index));
 		}
 		else
 		{
 			app.put(range.front);
 			range.popFront();
+			++index;
 		}
 	}
-	return to!string(app.data);
+	t.value = to!string(app.data);
+	return t;
 }
 
 unittest
 {
 	import std.stdio;
 	uint lineNum = 1;
+	uint index;
 	auto chars = " \n \r\n \tabcde";
-	auto r = lexWhitespace(chars, lineNum);
-	assert (r == " \n \r\n \t");
+	auto r = lexWhitespace(chars, index, lineNum);
+	assert (r.value == " \n \r\n \t");
 	assert (chars == "abcde");
 	assert (lineNum == 3);
 }
@@ -94,13 +104,17 @@ unittest
  *     lineNumber = the line number that corresponds to endIndex
  * Returns: The comment
  */
-string lexComment(R)(ref R input, ref uint lineNumber)
+Token lexComment(R)(ref R input, ref uint index, ref uint lineNumber)
 in
 {
 	assert (input.front == '/');
 }
 body
 {
+	Token t;
+	t.lineNumber = lineNumber;
+	t.type = TokenType.Comment;
+	t.startIndex = index;
 	auto app = appender!(char[])();
 	app.put(input.front);
 	input.popFront();
@@ -111,6 +125,7 @@ body
 		{
 			app.put(input.front);
 			input.popFront();
+			++index;
 		}
 		break;
 	case '*':
@@ -118,17 +133,19 @@ body
 		{
 			if (isNewline(input))
 			{
-				app.put(popNewline(input));
+				app.put(popNewline(input, index));
 				++lineNumber;
-		}
+			}
 			else if (input.front == '*')
 			{
 				app.put(input.front);
 				input.popFront();
+				++index;
 				if (input.front == '/')
 				{
 					app.put(input.front);
 					input.popFront();
+					++index;
 					break;
 				}
 			}
@@ -136,6 +153,7 @@ body
 			{
 				app.put(input.front);
 				input.popFront();
+				++index;
 			}
 		}
 		break;
@@ -145,17 +163,19 @@ body
 		{
 			if (isNewline(input))
 			{
-				app.put(popNewline(input));
+				app.put(popNewline(input, index));
 				lineNumber++;
 		}
 			else if (input.front == '+')
 			{
 				app.put(input.front);
 				input.popFront();
+				++index;
 				if (input.front == '/')
 				{
 					app.put(input.front);
 					input.popFront();
+					++index;
 					--depth;
 				}
 			}
@@ -163,10 +183,12 @@ body
 			{
 				app.put(input.front);
 				input.popFront();
+				++index;
 				if (input.front == '+')
 				{
 					app.put(input.front);
 					input.popFront();
+					++index;
 					++depth;
 				}
 			}
@@ -174,56 +196,62 @@ body
 			{
 				app.put(input.front);
 				input.popFront();
+				++index;
 			}
 		}
 		break;
 	default:
 		break;
 	}
-	return to!string(app.data);
+	t.value = to!string(app.data);
+	return t;
 }
 
 unittest
 {
+	uint index;
 	uint lineNumber = 1;
 	auto chars = "//this is a comment\r\nthis is not";
-	auto comment = lexComment(chars, lineNumber);
+	auto comment = lexComment(chars, index, lineNumber);
 	assert (chars == "\r\nthis is not");
-	assert (comment == "//this is a comment");
+	assert (comment.value == "//this is a comment");
 }
 
 unittest
 {
+	uint index = 0;
 	uint lineNumber = 1;
 	auto chars = "/* this is a\n\tcomment\r\n */this is not";
-	auto comment = lexComment(chars, lineNumber);
+	auto comment = lexComment(chars, index, lineNumber);
 	assert (chars == "this is not");
-	assert (comment == "/* this is a\n\tcomment\r\n */");
+	assert (comment.value == "/* this is a\n\tcomment\r\n */");
 	assert (lineNumber == 3);
 }
 
 unittest
 {
+	uint index;
 	uint lineNumber = 1;
 	auto chars = "/+this is a /+c/+omm+/ent+/ \r\nthis+/ is not";
-	auto comment = lexComment(chars, lineNumber);
+	auto comment = lexComment(chars, index, lineNumber);
 	assert (chars == " is not");
-	assert (comment == "/+this is a /+c/+omm+/ent+/ \r\nthis+/");
+	assert (comment.value == "/+this is a /+c/+omm+/ent+/ \r\nthis+/");
 	assert (lineNumber == 2);
 }
 
 /**
  * Pops up to upTo hex chars from the input range and returns them as a string
  */
-string popHexChars(R)(ref R input, uint upTo)
+string popDigitChars(R, alias isInterestingDigit)(ref R input, ref uint index,
+	uint upTo)
 {
 	auto app = appender!(char[])();
 	for (uint i = 0; i != upTo; ++i)
 	{
-		if (isHexDigit(input.front))
+		if (isInterestingDigit(input.front))
 		{
 			app.put(input.front);
-			input.popFront;
+			input.popFront();
 		}
 		else
 			break;
@@ -231,20 +259,35 @@ string popHexChars(R)(ref R input, uint upTo)
 	return to!string(app.data);
 }
 
+string popHexChars(R)(ref R input, ref uint index, uint upTo)
+{
+	return popDigitChars!(R, isHexDigit)(input, index, upTo);
+}
+
+string popOctalChars(R)(ref R input, ref uint index, uint upTo)
+{
+	return popDigitChars!(R, isOctalDigit)(input, index, upTo);
+}
+
 unittest
 {
+	uint i;
 	auto a = "124ac82d3fqwerty";
-	auto ra = popHexChars(a, uint.max);
+	auto ra = popHexChars(a, i, uint.max);
 	assert (a == "qwerty");
 	assert (ra == "124ac82d3f");
 	auto b = "08a7c2e3";
-	auto rb = popHexChars(b, 4);
+	auto rb = popHexChars(b, i, 4);
 	assert (rb.length == 4);
 	assert (rb == "08a7");
 	assert (b == "c2e3");
+	auto c = "00123832";
+	auto rc = popOctalChars(c, i, uint.max);
+	assert (c == "832");
+	assert (rc == "00123");
 }
 
-string interpretEscapeSequence(R)(ref R input)
+string interpretEscapeSequence(R)(ref R input, ref uint index)
 in
 {
 	assert(input.front == '\\');
@@ -262,65 +305,72 @@ body
 	case 0x1a:
 		auto f = input.front;
 		input.popFront();
+		++index;
 		return to!string(f);
-	case 'a': input.popFront(); return "\a";
-	case 'b': input.popFront(); return "\b";
-	case 'f': input.popFront(); return "\f";
-	case 'n': input.popFront(); return "\n";
-	case 'r': input.popFront(); return "\r";
-	case 't': input.popFront(); return "\t";
-	case 'v': input.popFront(); return "\v";
+	case 'a': input.popFront(); ++index; return "\a";
+	case 'b': input.popFront(); ++index; return "\b";
+	case 'f': input.popFront(); ++index; return "\f";
+	case 'n': input.popFront(); ++index; return "\n";
+	case 'r': input.popFront(); ++index; return "\r";
+	case 't': input.popFront(); ++index; return "\t";
+	case 'v': input.popFront(); ++index; return "\v";
 	case 'x':
 		input.popFront();
-		auto hexChars = popHexChars(input, 2);
+		auto hexChars = popHexChars(input, index, 2);
 		return to!string(cast(dchar) parse!uint(hexChars, 16));
 	case '0': .. case '7':
-		return "";
+		auto octalChars = popOctalChars(input, index, 3);
+		return to!string(cast(dchar) parse!uint(octalChars, 8));
 	case 'u':
 		input.popFront();
-		auto hexChars = popHexChars(input, 4);
+		auto hexChars = popHexChars(input, index, 4);
 		return to!string(cast(dchar) parse!uint(hexChars, 16));
 	case 'U':
 		input.popFront();
-		auto hexChars = popHexChars(input, 8);
+		auto hexChars = popHexChars(input, index, 8);
 		return to!string(cast(dchar) parse!uint(hexChars, 16));
 	case '&':
 		input.popFront();
+		++index;
 		auto entity = appender!(char[])();
 		while (!input.isEoF() && input.front != ';')
 		{
 			entity.put(input.front);
 			input.popFront();
+			++index;
 		}
 		if (!isEoF(input))
 		{
 			auto decoded = characterEntities[to!string(entity.data)];
 			input.popFront();
+			++index;
 			if (decoded !is null)
 				return decoded;
 		}
 		return "";
 	default:
 		// This is an error
-		return "";
-
+		return "\\";
 	}
 }
 
 unittest
 {
+	uint i;
 	auto a = "\\&amp;";
-	assert (interpretEscapeSequence(a) == x"0026");
+	assert (interpretEscapeSequence(a, i) == x"0026");
 	auto b = "\\&afr;";
-	assert (interpretEscapeSequence(b) == x"D835DD1E");
+	assert (interpretEscapeSequence(b, i) == x"D835DD1E");
 	auto c = "\\n";
-	assert (interpretEscapeSequence(c) == "\n");
+	assert (interpretEscapeSequence(c, i) == "\n");
 	auto d = "\\?";
-	assert (interpretEscapeSequence(d) == "?");
+	assert (interpretEscapeSequence(d, i) == "?");
 	auto e = "\\u0033";
-	assert (interpretEscapeSequence(e) == "\u0033");
+	assert (interpretEscapeSequence(e, i) == "\u0033");
 	auto f = "\\U00000094";
-	assert (interpretEscapeSequence(f) == "\U00000094");
+	assert (interpretEscapeSequence(f, i) == "\U00000094");
+	auto g = "\\075";
+	assert (interpretEscapeSequence(g, i) == "=");
 }
 
 /**
@@ -332,487 +382,535 @@ unittest
  *         lexed
  * Returns: a string literal, including its opening and closing quote characters
  */
-string lexString(R, C)(ref R input, ref uint lineNumber,
-	C quote, bool canEscape = true) if (is (ElementType!(R) == C))
+Token lexString(R)(ref R input, ref uint lineNumber, ref uint index,
+	bool canEscape = true)
 in
 {
-	assert (input.front == quote);
-	assert (quote == '\'' || quote == '"' || quote == '`');
+	assert (input.front == '\'' || input.front == '"' || input.front == '`');
+}
+body
+{
+	Token t;
+	t.lineNumber = lineNumber;
+	t.startIndex = index;
+	auto quote = input.front;
+	input.popFront();
+	++index;
+	auto app = appender!(char[])();
+	while (!isEoF(input))
+	{
+		if (isNewline(input))
+		{
+			app.put(popNewline(input, index));
+			lineNumber++;
+		}
+		else if (input.front == '\\' && canEscape)
+			app.put(interpretEscapeSequence(input, index));
+		else if (input.front == quote)
+		{
+			input.popFront();
+			++index;
+			break;
+		}
+		else
+		{
+			app.put(input.front);
+			input.popFront();
+			++index;
+		}
+	}
+	if (!input.isEoF())
+	{
+		switch (input.front)
+		{
+		case 'w':
+			t.type = TokenType.StringLiteral;
+			input.popFront();
+			++index;
+			break;
+		case 'd':
+			t.type = TokenType.StringLiteral;
+			input.popFront();
+			++index;
+			break;
+		case 'c':
+			input.popFront();
+			++index;
+			goto default;
+		default:
+			t.type = TokenType.StringLiteral;
+			break;
+		}
+	}
+	t.value = to!string(app.data);
+	return t;
+}
+
+unittest
+{
+	uint l = 1;
+	uint i;
+	auto a = `"abcde"`;
+	assert (lexString(a, i, l) == "abcde");
+	auto b = "\"ab\\ncd\"";
+	assert (lexString(b, i, l) == "ab\ncd");
+	auto c = "`abc\\ndef`";
+	assert (lexString(c, i, l, false) == "abc\\ndef");
+}
+
+Token lexNumber(R)(ref R input, ref uint index, const uint lineNumber)
+in
+{
+	assert(isDigit(input.front));
 }
 body
 {
 	auto app = appender!(char[])();
-	while (!isEoF(input) && (input.front != quote || escape))
+	// hex and binary can start with zero, anything else is decimal
+	if (input.front != '0')
+		return lexDecimal(input, index, lineNumber, app);
+	else
 	{
-		if (isNewline(input))
+		app.put(input.front);
+		input.popFront();
+		++index;
+		switch (input.front)
 		{
-			app.put(popNewline(input));
-			lineNumber++;
+		case 'x':
+		case 'X':
+			app.put(input.front);
+			input.popFront();
+			++index;
+			return lexHex(input, index, lineNumber, app);
+		case 'b':
+		case 'B':
+			app.put(input.front);
+			input.popFront();
+			++index;
+			return lexBinary(input, index, lineNumber, app);
+		default:
+			return lexDecimal(input, index, lineNumber, app);
 		}
 	}
-	return to!string(app.data);
 }
 
-///**
-// * Lexes the various crazy D string literals such as q{}, q"WTF is this? WTF",
-// * and q"<>".
-// * Params:
-// *     inputString = the source code to examine
-// *     endIndex = an index into inputString at the opening quote
-// *     lineNumber = the line number that corresponds to endIndex
-// * Returns: a string literal, including its opening and closing quote characters
-// */
-//string lexDelimitedString(S)(ref S inputString, ref size_t endIndex,
-//	ref uint lineNumber) if (isSomeString!S)
-//{
-//	auto startIndex = endIndex;
-//	++endIndex;
-//	assert(!isEoF(inputString, endIndex)); // todo: what should happen if this is EoF?
-//	string open = inputString[endIndex .. endIndex + 1];
-//	string close;
-//	bool nesting = false;
-//	switch (open[0])
-//	{
-//	case '[': close = "]"; ++endIndex; nesting = true; break;
-//	case '<': close = ">"; ++endIndex; nesting = true; break;
-//	case '{': close = "}"; ++endIndex; nesting = true; break;
-//	case '(': close = ")"; ++endIndex; nesting = true; break;
-//	default:
-//		while(!isEoF(inputString, endIndex) && !isWhite(inputString[endIndex]))
-//			endIndex++;
-//		close = open = inputString[startIndex + 1 .. endIndex];
-//		break;
-//	}
-//	int depth = 1;
-//	while (!isEoF(inputString, endIndex) && depth > 0)
-//	{
-//		if (inputString[endIndex] == '\n')
-//		{
-//			lineNumber++;
-//			endIndex++;
-//		}
-//		else if (inputString[endIndex..$].startsWith(open))
-//		{
-//			endIndex += open.length;
-//			if (!nesting && !isEoF(inputString, endIndex))
-//			{
-//				if (inputString[endIndex] == '"')
-//					++endIndex;
-//				break;
-//			}
-//			depth++;
-//		}
-//		else if (inputString[endIndex..$].startsWith(close))
-//		{
-//			endIndex += close.length;
-//			depth--;
-//			if (depth <= 0)
-//				break;
-//		}
-//		else
-//			++endIndex;
-//	}
-//	if (!isEoF(inputString, endIndex) && inputString[endIndex] == '"')
-//		++endIndex;
-//	return inputString[startIndex .. endIndex];
-//}
-//
-//
-///**
-// * TODO: Fix this
-// */
-//string lexTokenString(S)(ref S inputString, ref size_t endIndex, ref uint lineNumber)
-//{
-//	/+auto r = byDToken(range, IterationStyle.EVERYTHING);
-//	string s = getBraceContent(r);
-//	range.popFrontN(s.length);
-//	return s;+/
-//	return "";
-//}
-//
-//pure nothrow Token lexNumber(S)(ref S inputString, ref size_t endIndex)
-//	if (isSomeString!S)
-//{
-//	Token token;
-//	token.startIndex = endIndex;
-//	size_t startIndex = endIndex;
-//	if (inputString[endIndex] == '0')
-//	{
-//		endIndex++;
-//		if (isEoF(inputString, endIndex))
-//		{
-//			token.type = TokenType.IntLiteral;
-//			token.value = inputString[startIndex .. endIndex];
-//			return token;
-//		}
-//		switch (inputString[endIndex])
-//		{
-//		case '0': .. case '9':
-//			// The current language spec doesn't cover octal literals, so this
-//			// is decimal.
-//			lexDecimal(inputString, startIndex, endIndex, token);
-//			return token;
-//		case 'b':
-//		case 'B':
-//			lexBinary(inputString, startIndex, ++endIndex, token);
-//			return token;
-//		case 'x':
-//		case 'X':
-//			lexHex(inputString, startIndex, ++endIndex, token);
-//			return token;
-//		default:
-//			token.type = TokenType.IntLiteral;
-//			token.value = inputString[startIndex .. endIndex];
-//			return token;
-//		}
-//	}
-//	else
-//	{
-//		lexDecimal(inputString, startIndex, endIndex, token);
-//		return token;
-//	}
-//}
-//
-//pure nothrow void lexBinary(S)(ref S inputString, size_t startIndex,
-//	ref size_t endIndex, ref Token token) if (isSomeString!S)
-//{
-//	bool lexingSuffix = false;
-//	bool isLong = false;
-//	bool isUnsigned = false;
-//	token.type = TokenType.IntLiteral;
-//	binaryLoop: while (!isEoF(inputString, endIndex))
-//	{
-//		switch (inputString[endIndex])
-//		{
-//		case '0':
-//		case '1':
-//		case '_':
-//			if (lexingSuffix)
-//				break binaryLoop;
-//			++endIndex;
-//			break;
-//		case 'u':
-//		case 'U':
-//			if (isUnsigned)
-//				break;
-//			++endIndex;
-//			lexingSuffix = true;
-//			if (isLong)
-//			{
-//				token.type = TokenType.UnsignedLongLiteral;
-//				break binaryLoop;
-//			}
-//			else
-//				token.type = TokenType.UnsignedIntLiteral;
-//			isUnsigned = true;
-//			break;
-//		case 'L':
-//			if (isLong)
-//				break binaryLoop;
-//			++endIndex;
-//			lexingSuffix = true;
-//			if (isUnsigned)
-//			{
-//				token.type = TokenType.UnsignedLongLiteral;
-//				break binaryLoop;
-//			}
-//			else
-//				token.type = TokenType.LongLiteral;
-//			isLong = true;
-//			break;
-//		default:
-//			break binaryLoop;
-//		}
-//	}
-//
-//	token.value = inputString[startIndex .. endIndex];
-//}
-//
-//pure nothrow void lexDecimal(S)(ref S inputString, size_t startIndex,
-//	ref size_t endIndex, ref Token token) if (isSomeString!S)
-//{
-//	bool lexingSuffix = false;
-//	bool isLong = false;
-//	bool isUnsigned = false;
-//	bool isFloat = false;
-//	bool isReal = false;
-//	bool isDouble = false;
-//	bool foundDot = false;
-//	bool foundE = false;
-//	bool foundPlusMinus = false;
-//	token.type = TokenType.IntLiteral;
-//	decimalLoop: while (!isEoF(inputString, endIndex))
-//	{
-//		switch (inputString[endIndex])
-//		{
-//		case '0': .. case '9':
-//		case '_':
-//			if (lexingSuffix)
-//				break decimalLoop;
-//			++endIndex;
-//			break;
-//		case 'e':
-//		case 'E':
-//			// For this to be a valid exponent, the next character must be a
-//			// decimal character or a sign
-//			if (foundE || isEoF(inputString, endIndex + 1))
-//				break decimalLoop;
-//			switch (inputString[endIndex + 1])
-//			{
-//			case '+':
-//			case '-':
-//				if (isEoF(inputString, endIndex + 2)
-//					|| inputString[endIndex + 2] < '0'
-//					|| inputString[endIndex + 2] > '9')
-//				{
-//					break decimalLoop;
-//				}
-//				break;
-//			case '0': .. case '9':
-//				break;
-//			default:
-//				break decimalLoop;
-//			}
-//			++endIndex;
-//			foundE = true;
-//			isDouble = true;
-//			token.type = TokenType.DoubleLiteral;
-//			break;
-//		case '+':
-//		case '-':
-//			if (foundPlusMinus || !foundE)
-//				break decimalLoop;
-//			foundPlusMinus = true;
-//			++endIndex;
-//			break;
-//		case '.':
-//			if (!isEoF(inputString, endIndex + 1) && inputString[endIndex + 1] == '.')
-//				break decimalLoop; // possibly slice expression
-//			if (foundDot)
-//				break decimalLoop; // two dots with other characters between them
-//			++endIndex;
-//			foundDot = true;
-//			token.type = TokenType.DoubleLiteral;
-//			isDouble = true;
-//			break;
-//		case 'u':
-//		case 'U':
-//			if (isUnsigned)
-//				break decimalLoop;
-//			++endIndex;
-//			lexingSuffix = true;
-//			if (isLong)
-//				token.type = TokenType.UnsignedLongLiteral;
-//			else
-//				token.type = TokenType.UnsignedIntLiteral;
-//			isUnsigned = true;
-//			break;
-//		case 'L':
-//			if (isLong)
-//				break decimalLoop;
-//			if (isReal)
-//				break decimalLoop;
-//			++endIndex;
-//			lexingSuffix = true;
-//			if (isDouble)
-//				token.type = TokenType.RealLiteral;
-//			else if (isUnsigned)
-//				token.type = TokenType.UnsignedLongLiteral;
-//			else
-//				token.type = TokenType.LongLiteral;
-//			isLong = true;
-//			break;
-//		case 'f':
-//		case 'F':
-//			lexingSuffix = true;
-//			if (isUnsigned || isLong)
-//				break decimalLoop;
-//			++endIndex;
-//			token.type = TokenType.FloatLiteral;
-//			break decimalLoop;
-//		case 'i':
-//			++endIndex;
-//			// Spec says that this is the last suffix, so all cases break the
-//			// loop.
-//			if (isDouble)
-//			{
-//				token.type = TokenType.Idouble;
-//				break decimalLoop;
-//			}
-//			else if (isFloat)
-//			{
-//				token.type = TokenType.Ifloat;
-//				break decimalLoop;
-//			}
-//			else if (isReal)
-//			{
-//				token.type = TokenType.Ireal;
-//				break decimalLoop;
-//			}
-//			else
-//			{
-//				// There is no imaginary int
-//				--endIndex;
-//				break decimalLoop;
-//			}
-//		default:
-//			break decimalLoop;
-//		}
-//	}
-//
-//	token.value = inputString[startIndex .. endIndex];
-//}
-//
-//
-//unittest {
-//	Token t;
-//	size_t start, end;
-//	lexDecimal!string("55e-4", start, end, t);
-//	assert(t.value == "55e-4");
-//	assert(t.type == TokenType.DoubleLiteral);
-//
-//	start = end = 0;
-//	lexDecimal!string("123.45f", start, end, t);
-//	assert(t.value == "123.45f");
-//	assert(t.type == TokenType.FloatLiteral);
-//
-//	start = end = 0;
-//	lexDecimal!string("3e+f", start, end, t);
-//	assert(t.value == "3");
-//	assert(t.type == TokenType.IntLiteral);
-//
-//	start = end = 0;
-//	lexDecimal!string("3e++f", start, end, t);
-//	assert(t.value == "3");
-//	assert(t.type == TokenType.IntLiteral);
-//
-//	start = end = 0;
-//	lexDecimal!string("1234..1237", start, end, t);
-//	assert(t.value == "1234");
-//	assert(t.type == TokenType.IntLiteral);
-//}
-//
-//
-//nothrow void lexHex(S)(ref S inputString, ref size_t startIndex,
-//	ref size_t endIndex, ref Token token) if (isSomeString!S)
-//{
-//	bool lexingSuffix = false;
-//	bool isLong = false;
-//	bool isUnsigned = false;
-//	bool isFloat = false;
-//	bool isReal = false;
-//	bool isDouble = false;
-//	bool foundDot = false;
-//	bool foundE = false;
-//	bool foundPlusMinus = false;
-//	token.type = TokenType.IntLiteral;
-//	hexLoop: while (!isEoF(inputString, endIndex))
-//	{
-//		switch (inputString[endIndex])
-//		{
-//		case '0': .. case '9':
-//		case 'a': .. case 'f':
-//		case 'A': .. case 'F':
-//		case '_':
-//			if (lexingSuffix)
-//				break hexLoop;
-//			++endIndex;
-//			break;
-//		case 'p':
-//		case 'P':
-//			if (foundE)
-//				break hexLoop;
-//			++endIndex;
-//			foundE = true;
-//			break;
-//		case '+':
-//		case '-':
-//			if (foundPlusMinus || !foundE)
-//				break hexLoop;
-//			foundPlusMinus = true;
-//			++endIndex;
-//			break;
-//		case '.':
-//			if (!isEoF(inputString, endIndex + 1) && inputString[endIndex + 1] == '.')
-//				break hexLoop; // possibly slice expression
-//			if (foundDot)
-//				break hexLoop; // two dots with other characters between them
-//			++endIndex;
-//			foundDot = true;
-//			token.type = TokenType.DoubleLiteral;
-//			isDouble = true;
-//			break;
-//		default:
-//			break hexLoop;
-//		}
-//	}
-//
-//	token.value = inputString[startIndex .. endIndex];
-//}
-//
-//unittest
-//{
-//  Token t;
-//	size_t start, end;
-//  start = 0;
-//  end = 2;
-//  lexHex!string("0x193abfq", start, end, t);
-//  assert(t.value == "0x193abf", t.value);
-//  assert(t.type == TokenType.IntLiteral);
-//
-//  start = 0;
-//  end = 2;
-//  lexHex!string("0x2130xabc", start, end, t);
-//  assert(t.value == "0x2130");
-//  assert(t.type == TokenType.IntLiteral);
-//
-//}
-//
-///**
-// * Returns: true if  ch marks the ending of one token and the beginning of
-// *     another, false otherwise
-// */
-//pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
-//{
-//	switch (ch)
-//	{
-//		case '!': .. case '/':
-//		case ':': .. case '@':
-//		case '[': .. case '^':
-//		case '{': .. case '~':
-//		case 0x20: // space
-//		case 0x09: // tab
-//		case 0x0a: .. case 0x0d: // newline, vertical tab, form feed, carriage return
-//			return true;
-//		default:
-//			return false;
-//	}
-//}
-//
-///**
-// * Configure the tokenize() function
-// */
-//enum IterationStyle
-//{
-//	/// Only include code, not whitespace or comments
-//	CODE_ONLY,
-//	/// Include everything
-//	EVERYTHING
-//}
-//
-//struct TokenRange(R) if (isInputRange(R))
-//{
-//	bool empty() const @property
-//	{
-//		return _empty;
-//	}
-//
-//
-//private:
-//	R range;
-//	bool _empty;
-//}
-//
+Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
+	ref typeof(appender!(char[])()) app)
+{
+	Token token;
+	token.lineNumber = lineNumber;
+	token.startIndex = index;
+	token.type = TokenType.IntLiteral;
+	bool lexingSuffix = false;
+	bool isLong = false;
+	bool isUnsigned = false;
+	binaryLoop: while (!input.isEoF())
+	{
+		switch (input.front)
+		{
+		case '0':
+		case '1':
+		case '_':
+			if (lexingSuffix)
+				break binaryLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			break;
+		case 'u':
+		case 'U':
+			if (isUnsigned)
+				break;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			if (isLong)
+			{
+				token.type = TokenType.UnsignedLongLiteral;
+				break binaryLoop;
+			}
+			else
+				token.type = TokenType.UnsignedIntLiteral;
+			isUnsigned = true;
+			break;
+		case 'L':
+			if (isLong)
+				break binaryLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			lexingSuffix = true;
+			if (isUnsigned)
+			{
+				token.type = TokenType.UnsignedLongLiteral;
+				break binaryLoop;
+			}
+			else
+				token.type = TokenType.LongLiteral;
+			isLong = true;
+			break;
+		default:
+			break binaryLoop;
+		}
+	}
+	token.value = to!string(app.data);
+	return token;
+}
+
+unittest
+{
+	uint i;
+	uint l;
+	auto a = "0b000101";
+	auto ar = lexNumber(a, i, l);
+	assert (ar.value == "0b000101");
+	assert (a == "");
+}
+
+
+Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
+	ref typeof(appender!(char[])()) app)
+{
+	bool lexingSuffix = false;
+	bool isLong = false;
+	bool isUnsigned = false;
+	bool isFloat = false;
+	bool isReal = false;
+	bool isDouble = false;
+	bool foundDot = false;
+	bool foundE = false;
+	bool foundPlusMinus = false;
+	Token token;
+	token.type = TokenType.IntLiteral;
+	token.startIndex = index;
+	token.lineNumber = lineNumber;
+	decimalLoop: while (!input.isEoF())
+	{
+		switch (input.front)
+		{
+		case '0': .. case '9':
+		case '_':
+			if (lexingSuffix)
+				break decimalLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			break;
+		case 'e':
+		case 'E':
+			// For this to be a valid exponent, the next character must be a
+			// decimal character or a sign
+			auto r = input.save();
+			r.popFront();
+			if (foundE || r.isEoF())
+				break decimalLoop;
+			switch (r.front)
+			{
+			case '+':
+			case '-':
+				r.popFront();
+				if (r.isEoF() || r.front < '0' || r.front > '9')
+				{
+					break decimalLoop;
+				}
+				break;
+			case '0': .. case '9':
+				break;
+			default:
+				break decimalLoop;
+			}
+			app.put(input.front);
+			input.popFront();
+			++index;
+			foundE = true;
+			isDouble = true;
+			token.type = TokenType.DoubleLiteral;
+			break;
+		case '+':
+		case '-':
+			if (foundPlusMinus || !foundE)
+				break decimalLoop;
+			foundPlusMinus = true;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			break;
+		case '.':
+			auto r = input.save();
+			r.popFront();
+			if (!r.isEoF() && r.front == '.')
+				break decimalLoop; // possibly slice expression
+			if (foundDot)
+				break decimalLoop; // two dots with other characters between them
+			app.put(input.front);
+			input.popFront();
+			++index;
+			foundDot = true;
+			token.type = TokenType.DoubleLiteral;
+			isDouble = true;
+			break;
+		case 'u':
+		case 'U':
+			if (isUnsigned)
+				break decimalLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			lexingSuffix = true;
+			if (isLong)
+				token.type = TokenType.UnsignedLongLiteral;
+			else
+				token.type = TokenType.UnsignedIntLiteral;
+			isUnsigned = true;
+			break;
+		case 'L':
+			if (isLong)
+				break decimalLoop;
+			if (isReal)
+				break decimalLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			lexingSuffix = true;
+			if (isDouble)
+				token.type = TokenType.RealLiteral;
+			else if (isUnsigned)
+				token.type = TokenType.UnsignedLongLiteral;
+			else
+				token.type = TokenType.LongLiteral;
+			isLong = true;
+			break;
+		case 'f':
+		case 'F':
+			lexingSuffix = true;
+			if (isUnsigned || isLong)
+				break decimalLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			token.type = TokenType.FloatLiteral;
+			break decimalLoop;
+		case 'i':
+			// Spec says that this is the last suffix, so all cases break the
+			// loop.
+			if (isDouble)
+			{
+				app.put(input.front);
+				input.popFront();
+				++index;
+				token.type = TokenType.Idouble;
+				break decimalLoop;
+			}
+			else if (isFloat)
+			{
+				app.put(input.front);
+				input.popFront();
+				++index;
+				token.type = TokenType.Ifloat;
+				break decimalLoop;
+			}
+			else if (isReal)
+			{
+				app.put(input.front);
+				input.popFront();
+				++index;
+				token.type = TokenType.Ireal;
+				break decimalLoop;
+			}
+			else
+			{
+				break decimalLoop;
+			}
+		default:
+			break decimalLoop;
+		}
+	}
+	token.value = to!string(app.data());
+	return token;
+}
+
+
+unittest {
+	uint i;
+	uint l;
+	auto a = "55e-4";
+	auto ar = lexNumber(a, i, l);
+	assert(ar.value == "55e-4");
+	assert(ar.type == TokenType.DoubleLiteral);
+
+	auto b = "123.45f";
+	auto br = lexNumber(b, i, l);
+	assert(br.value == "123.45f");
+	assert(br.type == TokenType.FloatLiteral);
+
+	auto c = "3e+f";
+	auto cr = lexNumber(c, i, l);
+	assert(cr.value == "3");
+	assert(cr.type == TokenType.IntLiteral);
+
+	auto d = "3e++f";
+	auto dr = lexNumber(d, i, l);
+	assert(dr.value == "3");
+	assert(dr.type == TokenType.IntLiteral);
+
+	auto e = "1234..1237";
+	auto er = lexNumber(e, i, l);
+	assert(er.value == "1234");
+	assert(er.type == TokenType.IntLiteral);
+}
+
+Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
+	ref typeof(appender!(char[])()) app)
+{
+	bool lexingSuffix = false;
+	bool isLong = false;
+	bool isUnsigned = false;
+	bool isFloat = false;
+	bool isReal = false;
+	bool isDouble = false;
+	bool foundDot = false;
+	bool foundE = false;
+	bool foundPlusMinus = false;
+	Token token;
+	token.lineNumber = lineNumber;
+	token.startIndex =  index;
+	token.type = TokenType.IntLiteral;
+	hexLoop: while (!input.isEoF())
+	{
+		switch (input.front)
+		{
+		case '0': .. case '9':
+		case 'a': .. case 'f':
+		case 'A': .. case 'F':
+		case '_':
+			if (lexingSuffix)
+				break hexLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			break;
+		case 'p':
+		case 'P':
+			if (foundE)
+				break hexLoop;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			foundE = true;
+			break;
+		case '+':
+		case '-':
+			if (foundPlusMinus || !foundE)
+				break hexLoop;
+			foundPlusMinus = true;
+			app.put(input.front);
+			input.popFront();
+			++index;
+			break;
+		case '.':
+			auto r = input.save();
+			r.popFront();
+			if (!r.isEoF() && r.front == '.')
+				break hexLoop; // slice expression
+			if (foundDot)
+				break hexLoop; // two dots with other characters between them
+			app.put(input.front);
+			input.popFront();
+			++index;
+			foundDot = true;
+			token.type = TokenType.DoubleLiteral;
+			isDouble = true;
+			break;
+		default:
+			break hexLoop;
+		}
+	}
+	token.value = to!string(app.data);
+	return token;
+}
+
+unittest
+{
+	uint i;
+	uint l;
+	auto a = "0x193abfq";
+	auto ar = lexNumber(a, i, l);
+	assert(ar.value == "0x193abf");
+	assert(ar.type == TokenType.IntLiteral);
+	auto b = "0x2130xabc";
+	auto br = lexNumber(b, i, l);
+	assert(br.value == "0x2130");
+	assert(br.type == TokenType.IntLiteral);
+	auto c = "0x123..0321";
+	auto cr = lexNumber(c, i, l);
+	assert (cr.value == "0x123");
+	assert (cr.type == TokenType.IntLiteral);
+}
+
+/**
+ * Returns: true if  ch marks the ending of one token and the beginning of
+ *     another, false otherwise
+ */
+pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
+{
+	switch (ch)
+	{
+		case '!': .. case '/':
+		case ':': .. case '@':
+		case '[': .. case '^':
+		case '{': .. case '~':
+		case 0x20: // space
+		case 0x09: // tab
+		case 0x0a: .. case 0x0d: // newline, vertical tab, form feed, carriage return
+			return true;
+		default:
+			return false;
+	}
+}
+
+/**
+ * Configure the tokenize() function
+ */
+enum IterationStyle
+{
+	/// Only include code, not whitespace or comments
+	CODE_ONLY,
+	/// Include everything
+	EVERYTHING
+}
+
+struct TokenRange(R) if (isInputRange(R))
+{
+	this(ref R range)
+	{
+		this.range = range;
+	}
+
+	bool empty() const @property
+	{
+		return _empty;
+	}
+
+	Token front() const @property
+	{
+		return current;
+	}
+
+	Token popFront()
+	{
+		Token c = current;
+
+		return c;
+	}
+
+private:
+	Token current;
+	uint lineNumber;
+	uint index;
+	R range;
+	bool _empty;
+}
+
 //Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyle.CODE_ONLY)
 //	if (isSomeString!S)
 //{

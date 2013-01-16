@@ -49,13 +49,15 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 		caseStatement ~= k;
 		caseStatement ~= "':\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\tcurrentToken.value ~= '";
+		caseStatement ~= "\tcurrent.value ~= '";
 		caseStatement ~= k;
 		caseStatement ~= "';\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\tcurrentToken.lineNumber = lineNumber;\n";
+		caseStatement ~= "\tcurrent.lineNumber = lineNumber;\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\t++endIndex;\n";
+		caseStatement ~= "\t++index;\n";
+		caseStatement ~= indentString;
+		caseStatement ~= "\tinput.popFront();\n";
 		if (v.children.length > 0)
 		{
 			caseStatement ~= indentString;
@@ -63,21 +65,21 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\t\tcurrentToken.type = " ~ node.children[k].value;
+			caseStatement ~= "\t\tcurrent.type = " ~ node.children[k].value;
 			caseStatement ~= ";\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t\tbreak;\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t}\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\tswitch (inputString[endIndex])\n";
+			caseStatement ~= "\tswitch (input.front)\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= printCaseStatements(v, indentString ~ "\t");
 			caseStatement ~= indentString;
 			caseStatement ~= "\tdefault:\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\t\tcurrentToken.type = ";
+			caseStatement ~= "\t\tcurrent.type = ";
 			caseStatement ~= v.value;
 			caseStatement ~= ";\n";
 			caseStatement ~= indentString;
@@ -90,7 +92,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 		else
 		{
 			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrentToken.type = ";
+			caseStatement ~= "\tcurrent.type = ";
 			caseStatement ~= v.value;
 			caseStatement ~= ";\n";
 			caseStatement ~= indentString;

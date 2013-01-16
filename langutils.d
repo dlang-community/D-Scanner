@@ -629,18 +629,46 @@ pure bool isIdentifierOrType(ref const Token t)
 		&& TokenType.TYPES_END);
 }
 
+/**
+ * Token structure
+ */
 struct Token
 {
+	/// The token type
 	TokenType type;
+
+	/// The representation of the token in the original source code
 	string value;
+
+	/// The number of the line the token is on
 	uint lineNumber;
-	size_t startIndex;
+
+	/// The character index of the start of the token in the original text
+	uint startIndex;
+
+	/**
+	 * Check to see if the token is of the same type and has the same string
+	 * representation as the given token
+	 */
 	bool opEquals(ref const(Token) other) const
 	{
 		return other.type == type && other.value == value;
 	}
+
+	/**
+	 * Checks to see if the token's string representation is equal to the given
+	 * string
+	 */
 	bool opEquals(string range) const { return range == value; }
+
+	/**
+	 * Checks to see if the token is of the given type
+	 */
 	bool opEquals(TokenType t) const { return type == t; }
+
+	/**
+	 * Comparison operator orders by start index
+	 */
 	int opCmp(size_t i) const
 	{
 		if (startIndex < i) return -1;
