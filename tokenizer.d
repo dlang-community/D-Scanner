@@ -165,7 +165,7 @@ body
 			{
 				app.put(popNewline(input, index));
 				lineNumber++;
-		}
+			}
 			else if (input.front == '+')
 			{
 				app.put(input.front);
@@ -424,12 +424,12 @@ body
 		switch (input.front)
 		{
 		case 'w':
-			t.type = TokenType.StringLiteral;
+			t.type = TokenType.WStringLiteral;
 			input.popFront();
 			++index;
 			break;
 		case 'd':
-			t.type = TokenType.StringLiteral;
+			t.type = TokenType.DStringLiteral;
 			input.popFront();
 			++index;
 			break;
@@ -456,6 +456,12 @@ unittest
 	assert (lexString(b, i, l) == "ab\ncd");
 	auto c = "`abc\\ndef`";
 	assert (lexString(c, i, l, false) == "abc\\ndef");
+	auto d = `"12345"w`;
+	assert (lexString(d, i, l).type == TokenType.WStringLiteral);
+    auto e = `"abc"c`;
+    assert (lexString(e, i, l).type == TokenType.StringLiteral);
+    auto f = `"abc"d`;
+    assert (lexString(f, i, l).type == TokenType.DStringLiteral);
 }
 
 Token lexNumber(R)(ref R input, ref uint index, const uint lineNumber)
@@ -520,7 +526,7 @@ Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
 		case 'u':
 		case 'U':
 			if (isUnsigned)
-				break;
+				break binaryLoop;
 			app.put(input.front);
 			input.popFront();
 			++index;
@@ -561,10 +567,41 @@ unittest
 {
 	uint i;
 	uint l;
+
 	auto a = "0b000101";
 	auto ar = lexNumber(a, i, l);
 	assert (ar.value == "0b000101");
 	assert (a == "");
+
+	auto b = "0b001L_";
+	auto br = lexNumber(b, i, l);
+	assert (br.value == "0b001L");
+	assert (br.type == TokenType.LongLiteral);
+
+	auto c = "0b1101uLL";
+	auto cr = lexNumber(c, i, l);
+	assert (cr.value == "0b1101uL");
+	assert (cr.type == TokenType.UnsignedLongLiteral);
+
+	auto d = "0b1q";
+	auto dr = lexNumber(d, i, l);
+	assert (dr.value == "0b1");
+	assert (dr.type == TokenType.IntLiteral);
+
+	auto e = "0b1_0_1LU";
+	auto er = lexNumber(e, i, l);
+	assert (er.value == "0b1_0_1LU");
+	assert (er.type == TokenType.UnsignedLongLiteral);
+
+	auto f = "0b1_0_1uU";
+	auto fr = lexNumber(f, i, l);
+	assert (fr.value == "0b1_0_1u");
+	assert (fr.type == TokenType.UnsignedIntLiteral);
+
+	auto g = "0b1_0_1LL";
+	auto gr = lexNumber(g, i, l);
+	assert (gr.value == "0b1_0_1L");
+	assert (gr.type == TokenType.LongLiteral);
 }
 
 

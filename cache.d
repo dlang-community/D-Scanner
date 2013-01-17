@@ -40,7 +40,7 @@ private enum Queries : string
 	deleteFile = "delete from files where path = ?",
 	getPublicImports = "select importedId from publicImports where importerId = ?",
 	getModuleId = "select id from files where path = ?",
-  getContainersByModule = "select id from containers where fileId = ?"
+	getContainersByModule = "select id from containers where fileId = ?"
 }
 
 private sqlite3* getDatabase()
@@ -173,41 +173,41 @@ private string getModuleIdFromPath(string filePath)
 public string[] getContainersImported(string modulePath)
 {
 	immutable string moduleId = getModuleIdFromPath(modulePath);
-  sqlite3* db = getDatabase();
+	sqlite3* db = getDatabase();
 	sqlite3_stmt* statement;
 	char* pzTail;
 	scope(exit) if (pzTail) free(pzTail);
-  string[] moduleIds = getImportedModules(modulePath);
-  string[] containerIds;
-  foreach (string id; moduleIds)
-  {
-    containerIds ~= getContainersByModule(id);
-  }
-  return containerIds;
+	string[] moduleIds = getImportedModules(modulePath);
+	string[] containerIds;
+	foreach (string id; moduleIds)
+	{
+		containerIds ~= getContainersByModule(id);
+	}
+	return containerIds;
 }
 
 private string[] getContainersByModule(string moduleId)
 {
-  sqlite3* db = getDatabase();
+	sqlite3* db = getDatabase();
 	sqlite3_stmt* statement;
-  scope(exit) if (statement !is null) sqlite3_finalize(statement);
+	scope(exit) if (statement !is null) sqlite3_finalize(statement);
 	char* pzTail;
-  prepareStatement(db, statement, Queries.getContainersByModule);
-  bindText(statement, 1, moduleId);
-  string[] rVal;
-  while (sqlite3_step(statement) == SQLITE_ROW)
-  {
-    rVal ~= to!string(sqlite3_column_text(statement, 1));
-  }
-  return rVal;
+	prepareStatement(db, statement, Queries.getContainersByModule);
+	bindText(statement, 1, moduleId);
+	string[] rVal;
+	while (sqlite3_step(statement) == SQLITE_ROW)
+	{
+		rVal ~= to!string(sqlite3_column_text(statement, 1));
+	}
+	return rVal;
 }
 
 private void prepareStatement(sqlite3* db, sqlite3_stmt* statement, string query)
 {
-  char* pzTail;
+	char* pzTail;
 	scope(exit) if (pzTail) free(pzTail);
-  sqlite3_prepare_v2(db, query.toStringz(), cast(int) query.length + 1,
-    &statement, &pzTail);
+	sqlite3_prepare_v2(db, query.toStringz(), cast(int) query.length + 1,
+		&statement, &pzTail);
 }
 
 private void bindText(sqlite3_stmt* statement, int argPos, string text)
