@@ -14,6 +14,7 @@ import std.uni;
 import std.stdio;
 import std.ascii;
 import std.format;
+import std.exception;
 
 import langutils;
 import codegen;
@@ -29,9 +30,9 @@ pure bool isEoF(R)(R range)
 	return range.empty || range.front == 0 || range.front == 0x1a;
 }
 
-char[] popNewline(R)(ref R range, ref uint index)
+C[] popNewline(R, C = ElementType!R)(ref R range, ref uint index) if (isSomeChar!C && isForwardRange!R)
 {
-	char[] chars;
+	C[] chars;
 	if (range.front == '\r')
 	{
 		chars ~= range.front;
@@ -58,13 +59,14 @@ unittest
 /**
  * Returns:
  */
-Token lexWhitespace(R)(ref R range, ref uint index, ref uint lineNumber)
+Token lexWhitespace(R, C = ElementType!R)(ref R range, ref uint index, ref uint lineNumber)
+	if (isForwardRange!R && isSomeChar!C)
 {
 	Token t;
 	t.type = TokenType.Whitespace;
 	t.lineNumber = lineNumber;
 	t.startIndex = index;
-	auto app = appender!(char[])();
+	auto app = appender!(C[])();
 	while (!isEoF(range) && std.uni.isWhite(range.front))
 	{
 		if (isNewline(range))
@@ -104,7 +106,8 @@ unittest
  *     lineNumber = the line number that corresponds to endIndex
  * Returns: The comment
  */
-Token lexComment(R)(ref R input, ref uint index, ref uint lineNumber)
+Token lexComment(R, C = ElementType!R)(ref R input, ref uint index, ref uint lineNumber)
+	if (isSomeChar!C && isForwardRange!R)
 in
 {
 	assert (input.front == '/');
@@ -115,7 +118,7 @@ body
 	t.lineNumber = lineNumber;
 	t.type = TokenType.Comment;
 	t.startIndex = index;
-	auto app = appender!(char[])();
+	auto app = appender!(C[])();
 	app.put(input.front);
 	input.popFront();
 	switch(input.front)
@@ -252,10 +255,10 @@ unittest
 /**
  * Pops up to upTo hex chars from the input range and returns them as a string
  */
-string popDigitChars(R, alias isInterestingDigit)(ref R input, ref uint index,
-	uint upTo)
+string popDigitChars(R, C = ElementType!R, alias isInterestingDigit)(ref R input, ref uint index,
+	uint upTo) if (isSomeChar!C && isForwardRange!R)
 {
-	auto app = appender!(char[])();
+	auto app = appender!(C[])();
 	for (uint i = 0; i != upTo; ++i)
 	{
 		if (isInterestingDigit(input.front))
@@ -271,12 +274,12 @@ string popDigitChars(R, alias isInterestingDigit)(ref R input, ref uint index,
 
 string popHexChars(R)(ref R input, ref uint index, uint upTo)
 {
-	return popDigitChars!(R, isHexDigit)(input, index, upTo);
+	return popDigitChars!(R, ElementType!R, isHexDigit)(input, index, upTo);
 }
 
 string popOctalChars(R)(ref R input, ref uint index, uint upTo)
 {
-	return popDigitChars!(R, isOctalDigit)(input, index, upTo);
+	return popDigitChars!(R, ElementType!R, isOctalDigit)(input, index, upTo);
 }
 
 unittest
@@ -297,7 +300,8 @@ unittest
 	assert (rc == "00123");
 }
 
-string interpretEscapeSequence(R)(ref R input, ref uint index)
+string interpretEscapeSequence(R, C = ElementType!R)(ref R input, ref uint index)
+	if (isSomeChar!C && isForwardRange!R)
 in
 {
 	assert(input.front == '\\');
@@ -391,17 +395,8 @@ unittest
 		assert (interpretEscapeSequence(k, i) == v);
 }
 
-/**
- * Params:
- *     inputString = the source code to examine
- *     endIndex = an index into inputString at the opening quote
- *     lineNumber = the line number that corresponds to endIndex
- *     quote = the opening (and closing) quote character for the string to be
- *         lexed
- * Returns: a string literal, including its opening and closing quote characters
- */
-Token lexString(R)(ref R input, ref uint lineNumber, ref uint index,
-	bool canEscape = true)
+Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
+	const StringStyle style = StringStyle.Escaped)
 in
 {
 	assert (input.front == '\'' || input.front == '"' || input.front == '`');
@@ -411,10 +406,13 @@ body
 	Token t;
 	t.lineNumber = lineNumber;
 	t.startIndex = index;
+	t.type = TokenType.StringLiteral;
 	auto quote = input.front;
 	input.popFront();
 	++index;
 	auto app = appender!(char[])();
+	if (style & StringStyle.IncludeQuotes)
+		app.put(quote);
 	while (!isEoF(input))
 	{
 		if (isNewline(input))
@@ -422,10 +420,12 @@ body
 			app.put(popNewline(input, index));
 			lineNumber++;
 		}
-		else if (input.front == '\\' && canEscape)
+		else if (input.front == '\\' && style & StringStyle.Escaped)
 			app.put(interpretEscapeSequence(input, index));
 		else if (input.front == quote)
 		{
+			if (style & StringStyle.IncludeQuotes)
+				app.put(quote);
 			input.popFront();
 			++index;
 			break;
@@ -443,20 +443,17 @@ body
 		{
 		case 'w':
 			t.type = TokenType.WStringLiteral;
-			input.popFront();
-			++index;
-			break;
+			goto case 'c';
 		case 'd':
 			t.type = TokenType.DStringLiteral;
+			goto case 'c';
+		case 'c':
+			if (style & StringStyle.IncludeQuotes)
+				app.put(input.front);
 			input.popFront();
 			++index;
 			break;
-		case 'c':
-			input.popFront();
-			++index;
-			goto default;
 		default:
-			t.type = TokenType.StringLiteral;
 			break;
 		}
 	}
@@ -473,7 +470,7 @@ unittest
 	auto b = "\"ab\\ncd\"";
 	assert (lexString(b, i, l) == "ab\ncd");
 	auto c = "`abc\\ndef`";
-	assert (lexString(c, i, l, false) == "abc\\ndef");
+	assert (lexString(c, i, l, StringStyle.NotEscaped) == "abc\\ndef");
 	auto d = `"12345"w`;
 	assert (lexString(d, i, l).type == TokenType.WStringLiteral);
 	auto e = `"abc"c`;
@@ -1091,32 +1088,214 @@ pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
 enum IterationStyle
 {
 	/// Only include code, not whitespace or comments
-	CODE_ONLY,
+	CodeOnly = 0,
+	/// Includes comments
+	IncludeComments = 1,
+	/// Includes whitespace
+	IncludeWhitespace = 2 << 1,
 	/// Include everything
-	EVERYTHING
+	Everything = IncludeComments | IncludeWhitespace
 }
 
-struct TokenRange(R) if (isInputRange(R))
+/**
+ * Configuration of the token lexing style
+ */
+enum StringStyle : uint
+{
+	NotEscaped = 0,
+	/// String escape sequences will be processed and enclosing quote characters
+	/// will not be preserved.
+	Escaped = 1,
+	/// Strings will be read exactly as they appeared in the source, including
+	/// their opening and closing quote characters. Useful for syntax highlighting.
+	IncludeQuotes = 2,
+}
+
+TokenRange!(R) byToken(R)(ref R range, const IterationStyle iterationStyle = IterationStyle.CodeOnly,
+	const StringStyle tokenStyle = StringStyle.Escaped) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
+{
+	auto r = TokenRange!(R)(range);
+	r.tokenStyle = tokenStyle;
+	r.iterStyle = iterationStyle;
+	r.lineNumber = 1;
+	r.popFront();
+	return r;
+}
+
+struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 {
 	this(ref R range)
 	{
 		this.range = range;
 	}
 
-	bool empty() const @property
+	bool empty() @property
 	{
 		return _empty;
 	}
 
 	Token front() const @property
 	{
+		enforce(!_empty, "Cannot call popFront() on empty token range");
 		return current;
 	}
 
 	Token popFront()
 	{
-		Token c = current;
+		if (range.isEoF())
+		{
+			_empty = true;
+			return current;
+		}
 
+		Token c = current;
+		current = Token.init;
+		current.lineNumber = lineNumber;
+		current.startIndex = index;
+
+		while (std.uni.isWhite(range.front))
+		{
+			if (iterStyle == IterationStyle.Everything)
+			{
+				current = lexWhitespace(range, index, lineNumber);
+				break;
+			}
+			else
+				lexWhitespace(range, index, lineNumber);
+		}
+		outer: switch (range.front)
+		{
+		mixin(generateCaseTrie(
+			"=",    "TokenType.Assign",
+			"&",    "TokenType.BitAnd",
+			"&=",   "TokenType.BitAndEquals",
+			"|",    "TokenType.BitOr",
+			"|=",   "TokenType.BitOrEquals",
+			"~=",   "TokenType.CatEquals",
+			":",    "TokenType.Colon",
+			",",    "TokenType.Comma",
+			"$",    "TokenType.Dollar",
+			".",    "TokenType.Dot",
+			"==",   "TokenType.Equals",
+			"=>",   "TokenType.GoesTo",
+			">",    "TokenType.Greater",
+			">=",   "TokenType.GreaterEqual",
+			"#",    "TokenType.Hash",
+			"&&",   "TokenType.LogicAnd",
+			"{",    "TokenType.LBrace",
+			"[",    "TokenType.LBracket",
+			"<",    "TokenType.Less",
+			"<=",   "TokenType.LessEqual",
+			"<>=",  "TokenType.LessEqualGreater",
+			"<>",   "TokenType.LessOrGreater",
+			"||",   "TokenType.LogicOr",
+			"(",    "TokenType.LParen",
+			"-",    "TokenType.Minus",
+			"-=",   "TokenType.MinusEquals",
+			"%",    "TokenType.Mod",
+			"%=",   "TokenType.ModEquals",
+			"*=",   "TokenType.MulEquals",
+			"!",    "TokenType.Not",
+			"!=",   "TokenType.NotEquals",
+			"!>",   "TokenType.NotGreater",
+			"!>=",  "TokenType.NotGreaterEqual",
+			"!<",   "TokenType.NotLess",
+			"!<=",  "TokenType.NotLessEqual",
+			"!<>",  "TokenType.NotLessEqualGreater",
+			"+",    "TokenType.Plus",
+			"+=",   "TokenType.PlusEquals",
+			"^^",   "TokenType.Pow",
+			"^^=",  "TokenType.PowEquals",
+			"}",    "TokenType.RBrace",
+			"]",    "TokenType.RBracket",
+			")",    "TokenType.RParen",
+			";",    "TokenType.Semicolon",
+			"<<",   "TokenType.ShiftLeft",
+			"<<=",  "TokenType.ShiftLeftEqual",
+			">>",   "TokenType.ShiftRight",
+			">>=",  "TokenType.ShiftRightEqual",
+			"..",   "TokenType.Slice",
+			"*",    "TokenType.Star",
+			"?",    "TokenType.Ternary",
+			"~",    "TokenType.Tilde",
+			"--",   "TokenType.Decrement",
+			"!<>=", "TokenType.Unordered",
+			">>>",  "TokenType.UnsignedShiftRight",
+			">>>=", "TokenType.UnsignedShiftRightEqual",
+			"++",   "TokenType.Increment",
+			"...",  "TokenType.Vararg",
+			"^",    "TokenType.Xor",
+			"^=",   "TokenType.XorEquals",
+			"@",    "TokenType.At",
+		));
+		case '0': .. case '9':
+			current = lexNumber(range, index, lineNumber);
+			break;
+		case '\'':
+		case '"':
+			current = lexString(range, index, lineNumber);
+			break;
+		case '`':
+			current = lexString(range, index, lineNumber, StringStyle.NotEscaped);
+			break;
+		case 'q':
+			auto r = range.save;
+			r.popFront();
+			if (!r.isEoF() && r.front == '{')
+				writeln("ParseTokenString");
+			else
+				goto default;
+		case '/':
+			auto r = range.save();
+			r.popFront();
+			if (r.isEoF())
+			{
+				current.type = TokenType.Div;
+				current.value = "/";
+				break;
+			}
+			switch (r.front)
+			{
+			case '/':
+			case '*':
+			case '+':
+				current = lexComment(range, index, lineNumber);
+				break outer;
+			case '=':
+				current.type = TokenType.DivEquals;
+				current.value = "/=";
+				break outer;
+			default:
+				current.type = TokenType.Div;
+				current.value = "/";
+				break;
+			}
+			break;
+		case 'r':
+			auto r = range.save();
+			r.popFront();
+			if (!r.isEoF() && r.front == '"')
+				writeln("parse wysiwyg string");
+			else
+				goto default;
+		case 'x':
+			auto r = range.save();
+			r.popFront();
+			if (!r.isEoF() && r.front == '"')
+				writeln("parse hex string");
+			else
+				goto default;
+		default:
+			auto app = appender!(ElementType!(R)[])();
+			while(!range.isEoF() && !isSeparating(range.front))
+			{
+				app.put(range.front);
+				range.popFront();
+			}
+			current.value = to!string(app.data);
+			current.type = lookupTokenTypeOptimized(current.value);
+			break;
+		}
 		return c;
 	}
 
@@ -1126,226 +1305,13 @@ private:
 	uint index;
 	R range;
 	bool _empty;
+	IterationStyle iterStyle;
+	StringStyle tokenStyle;
 }
 
-//Token[] tokenize(S)(S inputString, IterationStyle iterationStyle = IterationStyle.CODE_ONLY)
-//	if (isSomeString!S)
-//{
-//	auto tokenAppender = appender!(Token[])();
-//
-//	// This is very likely a local maximum, but it does seem to take a few
-//	// milliseconds off of the run time
-//	tokenAppender.reserve(inputString.length / 4);
-//
-//	size_t endIndex = 0;
-//	uint lineNumber = 1;
-//
-//	if (inputString.length > 1 && inputString[0..2] == "#!")
-//	{
-//		Token currentToken;
-//		currentToken.lineNumber = lineNumber; // lineNumber is always 1
-//		currentToken.value = lexScriptLine(inputString, endIndex, lineNumber);
-//		currentToken.type = TokenType.ScriptLine;
-//	}
-//
-//	while (!isEoF(inputString, endIndex))
-//	{
-//		size_t prevIndex = endIndex;
-//		Token currentToken;
-//		auto startIndex = endIndex;
-//		if (isWhite(inputString[endIndex]))
-//		{
-//			if (iterationStyle == IterationStyle.EVERYTHING)
-//			{
-//				currentToken.lineNumber = lineNumber;
-//				currentToken.value = lexWhitespace(inputString, endIndex,
-//					lineNumber);
-//				currentToken.type = TokenType.Whitespace;
-//				tokenAppender.put(currentToken);
-//			}
-//			else
-//				lexWhitespace(inputString, endIndex, lineNumber);
-//			continue;
-//		}
-//		currentToken.startIndex = endIndex;
-//
-//		outerSwitch: switch(inputString[endIndex])
-//		{
-//		mixin(generateCaseTrie(
-//			"=",    "TokenType.Assign",
-//			"&",    "TokenType.BitAnd",
-//			"&=",   "TokenType.BitAndEquals",
-//			"|",    "TokenType.BitOr",
-//			"|=",   "TokenType.BitOrEquals",
-//			"~=",   "TokenType.CatEquals",
-//			":",    "TokenType.Colon",
-//			",",    "TokenType.Comma",
-//			"$",    "TokenType.Dollar",
-//			".",    "TokenType.Dot",
-//			"==",   "TokenType.Equals",
-//			"=>",   "TokenType.GoesTo",
-//			">",    "TokenType.Greater",
-//			">=",   "TokenType.GreaterEqual",
-//			"#",    "TokenType.Hash",
-//			"&&",   "TokenType.LogicAnd",
-//			"{",    "TokenType.LBrace",
-//			"[",    "TokenType.LBracket",
-//			"<",    "TokenType.Less",
-//			"<=",   "TokenType.LessEqual",
-//			"<>=",  "TokenType.LessEqualGreater",
-//			"<>",   "TokenType.LessOrGreater",
-//			"||",   "TokenType.LogicOr",
-//			"(",    "TokenType.LParen",
-//			"-",    "TokenType.Minus",
-//			"-=",   "TokenType.MinusEquals",
-//			"%",    "TokenType.Mod",
-//			"%=",   "TokenType.ModEquals",
-//			"*=",   "TokenType.MulEquals",
-//			"!",    "TokenType.Not",
-//			"!=",   "TokenType.NotEquals",
-//			"!>",   "TokenType.NotGreater",
-//			"!>=",  "TokenType.NotGreaterEqual",
-//			"!<",   "TokenType.NotLess",
-//			"!<=",  "TokenType.NotLessEqual",
-//			"!<>",  "TokenType.NotLessEqualGreater",
-//			"+",    "TokenType.Plus",
-//			"+=",   "TokenType.PlusEquals",
-//			"^^",   "TokenType.Pow",
-//			"^^=",  "TokenType.PowEquals",
-//			"}",    "TokenType.RBrace",
-//			"]",    "TokenType.RBracket",
-//			")",    "TokenType.RParen",
-//			";",    "TokenType.Semicolon",
-//			"<<",   "TokenType.ShiftLeft",
-//			"<<=",  "TokenType.ShiftLeftEqual",
-//			">>",   "TokenType.ShiftRight",
-//			">>=",  "TokenType.ShiftRightEqual",
-//			"..",   "TokenType.Slice",
-//			"*",    "TokenType.Star",
-//			"?",    "TokenType.Ternary",
-//			"~",    "TokenType.Tilde",
-//			"--",   "TokenType.Decrement",
-//			"!<>=", "TokenType.Unordered",
-//			">>>",  "TokenType.UnsignedShiftRight",
-//			">>>=", "TokenType.UnsignedShiftRightEqual",
-//			"++",   "TokenType.Increment",
-//			"...",  "TokenType.Vararg",
-//			"^",    "TokenType.Xor",
-//			"^=",   "TokenType.XorEquals",
-//		));
-//		case '0': .. case '9':
-//			currentToken = lexNumber(inputString, endIndex);
-//			break;
-//		case '/':
-//			++endIndex;
-//			if (isEoF(inputString, endIndex))
-//			{
-//				currentToken.value = "/";
-//				currentToken.type = TokenType.Div;
-//				currentToken.lineNumber = lineNumber;
-//				break;
-//			}
-//			currentToken.lineNumber = lineNumber;
-//			switch (inputString[endIndex])
-//			{
-//			case '/':
-//			case '+':
-//			case '*':
-//				if (iterationStyle == IterationStyle.CODE_ONLY)
-//				{
-//					lexComment(inputString, endIndex, lineNumber);
-//					continue;
-//				}
-//				else
-//				{
-//					currentToken.value = lexComment(inputString, endIndex, lineNumber);
-//					currentToken.type = TokenType.Comment;
-//					break;
-//				}
-//			case '=':
-//				currentToken.value = "/=";
-//				currentToken.type = TokenType.DivEquals;
-//				++endIndex;
-//				break;
-//			default:
-//				currentToken.value = "/";
-//				currentToken.type = TokenType.Div;
-//				break;
-//			}
-//			break;
-//		case 'r':
-//			++endIndex;
-//			if (isEoF(inputString, endIndex) || inputString[endIndex] != '"')
-//				goto default;
-//			currentToken.lineNumber = lineNumber;
-//			currentToken.value = lexString(inputString, endIndex,
-//				lineNumber, inputString[endIndex], false);
-//			currentToken.type = TokenType.StringLiteral;
-//			break;
-//		case '`':
-//			currentToken.lineNumber = lineNumber;
-//			currentToken.value = lexString(inputString, endIndex, lineNumber,
-//				inputString[endIndex], false);
-//			currentToken.type = TokenType.StringLiteral;
-//			break;
-//		case 'x':
-//			++endIndex;
-//			if (isEoF(inputString, endIndex) || inputString[endIndex] != '"')
-//				goto default;
-//			else
-//				goto case '"'; // BUG: this is incorrect! according to specification, hex data should be lexed differently than "normal" strings
-//		case '\'':
-//		case '"':
-//			currentToken.lineNumber = lineNumber;
-//			currentToken.value = lexString(inputString, endIndex, lineNumber,
-//				inputString[endIndex]);
-//			currentToken.type = TokenType.StringLiteral;
-//			break;
-//		case 'q':
-//			currentToken.value = "q";
-//			++endIndex;
-//			if (!isEoF(inputString, endIndex))
-//			{
-//				switch (inputString[endIndex])
-//				{
-//					case '"':
-//						currentToken.lineNumber = lineNumber;
-//						currentToken.value ~= lexDelimitedString(inputString,
-//							endIndex, lineNumber);
-//						currentToken.type = TokenType.StringLiteral;
-//						break outerSwitch;
-//					case '{':
-//						currentToken.lineNumber = lineNumber;
-//						currentToken.value ~= lexTokenString(inputString,
-//							endIndex, lineNumber);
-//						currentToken.type = TokenType.StringLiteral;
-//						break outerSwitch;
-//					default:
-//						break;
-//				}
-//			}
-//			goto default;
-//		case '@':
-//			++endIndex;
-//			goto default;
-//		default:
-//			while(!isEoF(inputString, endIndex) && !isSeparating(inputString[endIndex]))
-//				++endIndex;
-//			currentToken.value = inputString[startIndex .. endIndex];
-//			currentToken.type = lookupTokenTypeOptimized(currentToken.value);
-//			//currentToken.type = lookupTokenType(currentToken.value);
-//			currentToken.lineNumber = lineNumber;
-//			break;
-//		}
-//		//stderr.writeln(currentToken);
-//		tokenAppender.put(currentToken);
-//
-//		// This should never happen.
-//		if (endIndex <= prevIndex)
-//		{
-//			stderr.writeln("FAIL");
-//			return [];
-//		}
-//	}
-//	return tokenAppender.data;
-//}
+unittest
+{
+	auto c = ">><==>)(*)\"TestString\"if import ifire 0,10.4f `\n`@property void//comment\ntest/* comment *//+comment/+moar comment+/+/";
+	foreach (t; byToken(c))
+		writeln(t);
+}

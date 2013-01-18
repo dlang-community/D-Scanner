@@ -53,15 +53,13 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 		caseStatement ~= k;
 		caseStatement ~= "';\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\tcurrent.lineNumber = lineNumber;\n";
-		caseStatement ~= indentString;
 		caseStatement ~= "\t++index;\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\tinput.popFront();\n";
+		caseStatement ~= "\trange.popFront();\n";
 		if (v.children.length > 0)
 		{
 			caseStatement ~= indentString;
-			caseStatement ~= "\tif (isEoF(inputString, endIndex))\n";
+			caseStatement ~= "\tif (range.isEoF())\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= indentString;
@@ -72,7 +70,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 			caseStatement ~= indentString;
 			caseStatement ~= "\t}\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\tswitch (input.front)\n";
+			caseStatement ~= "\tswitch (range.front)\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= printCaseStatements(v, indentString ~ "\t");

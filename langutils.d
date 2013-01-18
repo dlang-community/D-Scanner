@@ -110,7 +110,6 @@ pure nothrow TokenType lookupTokenTypeOptimized(const string input)
 	case 5:
 		switch (input)
 		{
-		case "@safe": return TokenType.AtSafe;
 		case "alias": return TokenType.Alias;
 		case "align": return TokenType.Align;
 		case "break": return TokenType.Break;
@@ -169,7 +168,6 @@ pure nothrow TokenType lookupTokenTypeOptimized(const string input)
 	case 7:
 		switch (input)
 		{
-		case "@system": return TokenType.AtSystem;
 		case "cdouble": return TokenType.Cdouble;
 		case "default": return TokenType.Default;
 		case "dstring": return TokenType.DString;
@@ -196,9 +194,7 @@ pure nothrow TokenType lookupTokenTypeOptimized(const string input)
 		case "__thread": return TokenType.Thread;
 		case "__traits": return TokenType.Traits;
 		case "volatile": return TokenType.Volatile;
-		case "@trusted": return TokenType.AtTrusted;
 		case "delegate": return TokenType.Delegate;
-		case "@disable": return TokenType.AtDisable;
 		case "function": return TokenType.Function;
 		case "unittest": return TokenType.Unittest;
 		case "__FILE__": return TokenType.File;
@@ -209,7 +205,6 @@ pure nothrow TokenType lookupTokenTypeOptimized(const string input)
 		switch (input)
 		{
 		case "__gshared": return TokenType.Gshared;
-		case "@property": return TokenType.AtProperty;
 		case "immutable": return TokenType.Immutable;
 		case "interface": return TokenType.Interface;
 		case "invariant": return TokenType.Invariant;
@@ -243,6 +238,7 @@ enum TokenType: uint
 // Operators
 	OPERATORS_BEGIN,
 	Assign,	/// =
+	At, /// @
 	BitAnd,	/// &
 	BitAndEquals,	/// &=
 	BitOr,	/// |
@@ -433,14 +429,6 @@ enum TokenType: uint
 	Traits, /// __traits,
 	CONSTANTS_END,
 
-// Properties
-	PROPERTIES_BEGIN,
-	AtProperty, /// @property
-	AtSafe, /// @safe
-	AtSystem, /// @system
-	AtTrusted, /// @trusted
-	PROPERTIES_END,
-
 // Misc
 	MISC_BEGIN,
 	Blank, /// unknown token type
@@ -505,7 +493,6 @@ static this()
 		"delegate" : TokenType.Delegate,
 		"delete" : TokenType.Delete,
 		"deprecated" : TokenType.Deprecated,
-		"@disable" : TokenType.AtDisable,
 		"do" : TokenType.Do,
 		"double" : TokenType.Double,
 		"dstring" : TokenType.DString,
@@ -550,14 +537,12 @@ static this()
 		"package" : TokenType.Package,
 		"pragma" : TokenType.Pragma,
 		"private" : TokenType.Private,
-		"@property" : TokenType.AtProperty,
 		"protected" : TokenType.Protected,
 		"public" : TokenType.Public,
 		"pure" : TokenType.Pure,
 		"real" : TokenType.Real,
 		"ref" : TokenType.Ref,
 		"return" : TokenType.Return,
-		"@safe" : TokenType.AtSafe,
 		"scope" : TokenType.Scope,
 		"shared" : TokenType.Shared,
 		"short" : TokenType.Short,
@@ -567,14 +552,12 @@ static this()
 		"super" : TokenType.Super,
 		"switch" : TokenType.Switch,
 		"synchronized" : TokenType.Synchronized,
-		"@system" : TokenType.AtSystem,
 		"template" : TokenType.Template,
 		"this" : TokenType.This,
 		"__thread" : TokenType.Thread,
 		"throw" : TokenType.Throw,
 		"__traits" : TokenType.Traits,
 		"true" : TokenType.True,
-		"@trusted" : TokenType.AtTrusted,
 		"try" : TokenType.Try,
 		"typedef" : TokenType.Typedef,
 		"typeid" : TokenType.Typeid,
