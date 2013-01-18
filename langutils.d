@@ -451,9 +451,12 @@ enum TokenType: uint
 	NUMBERS_BEGIN,
 	DoubleLiteral, /// 123.456
 	FloatLiteral, /// 123.456f or 0x123_45p-af
+    IDoubleLiteral, /// 123.456i
+	IFloatLiteral, /// 123.456fi
 	IntLiteral, /// 123 or 0b1101010101
 	LongLiteral, /// 123L
 	RealLiteral, /// 123.456L
+	IRealLiteral, /// 123.456Li
 	UnsignedIntLiteral, /// 123u
 	UnsignedLongLiteral, /// 123uL
 	NUMBERS_END,

@@ -201,7 +201,8 @@ body
 		}
 		break;
 	default:
-		break;
+		Token errorToken;
+		return errorToken;
 	}
 	t.value = to!string(app.data);
 	return t;
@@ -237,6 +238,15 @@ unittest
 	assert (chars == " is not");
 	assert (comment.value == "/+this is a /+c/+omm+/ent+/ \r\nthis+/");
 	assert (lineNumber == 2);
+}
+
+unittest
+{
+	uint i;
+	uint l;
+	auto chars = "/(";
+	auto comment = lexComment(chars, i, l);
+	assert (comment == "");
 }
 
 /**
@@ -341,14 +351,16 @@ body
 		}
 		if (!isEoF(input))
 		{
-			auto decoded = characterEntities[to!string(entity.data)];
+			auto decoded = to!string(entity.data) in characterEntities;
 			input.popFront();
 			++index;
 			if (decoded !is null)
-				return decoded;
+				return to!string(*decoded);
 		}
 		return "";
 	default:
+		input.popFront();
+		++index;
 		// This is an error
 		return "\\";
 	}
@@ -357,20 +369,26 @@ body
 unittest
 {
 	uint i;
-	auto a = "\\&amp;";
-	assert (interpretEscapeSequence(a, i) == x"0026");
-	auto b = "\\&afr;";
-	assert (interpretEscapeSequence(b, i) == x"D835DD1E");
-	auto c = "\\n";
-	assert (interpretEscapeSequence(c, i) == "\n");
-	auto d = "\\?";
-	assert (interpretEscapeSequence(d, i) == "?");
-	auto e = "\\u0033";
-	assert (interpretEscapeSequence(e, i) == "\u0033");
-	auto f = "\\U00000094";
-	assert (interpretEscapeSequence(f, i) == "\U00000094");
-	auto g = "\\075";
-	assert (interpretEscapeSequence(g, i) == "=");
+	auto vals = [
+		"\\&amp;": "&",
+		"\\n": "\n",
+		"\\?": "?",
+		"\\u0033": "\u0033",
+		"\\U00000076": "v",
+		"\\075": "=",
+		"\\'": "'",
+		"\\a": "\a",
+		"\\b": "\b",
+		"\\f": "\f",
+		"\\r": "\r",
+		"\\t": "\t",
+		"\\v": "\v",
+		"\\y": "\\",
+		"\\x20": " ",
+		"\\&eeeeeeror;": "",
+	];
+	foreach (k, v; vals)
+		assert (interpretEscapeSequence(k, i) == v);
 }
 
 /**
@@ -458,10 +476,12 @@ unittest
 	assert (lexString(c, i, l, false) == "abc\\ndef");
 	auto d = `"12345"w`;
 	assert (lexString(d, i, l).type == TokenType.WStringLiteral);
-    auto e = `"abc"c`;
-    assert (lexString(e, i, l).type == TokenType.StringLiteral);
-    auto f = `"abc"d`;
-    assert (lexString(f, i, l).type == TokenType.DStringLiteral);
+	auto e = `"abc"c`;
+	assert (lexString(e, i, l).type == TokenType.StringLiteral);
+	auto f = `"abc"d`;
+	assert (lexString(f, i, l).type == TokenType.DStringLiteral);
+	auto g = "\"a\nb\"";
+	assert (lexString(g, i, l) == "a\nb");
 }
 
 Token lexNumber(R)(ref R input, ref uint index, const uint lineNumber)
@@ -498,6 +518,14 @@ body
 			return lexDecimal(input, index, lineNumber, app);
 		}
 	}
+}
+
+unittest
+{
+	uint i;
+	uint l;
+	auto a = "0q1239";
+	assert (lexNumber(a, i, l) == "0");
 }
 
 Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
@@ -701,21 +729,27 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 			isUnsigned = true;
 			break;
 		case 'L':
-			if (isLong)
-				break decimalLoop;
-			if (isReal)
+			if (isLong || isReal)
 				break decimalLoop;
 			app.put(input.front);
 			input.popFront();
 			++index;
 			lexingSuffix = true;
 			if (isDouble)
+			{
 				token.type = TokenType.RealLiteral;
+				isReal = true;
+			}
 			else if (isUnsigned)
+			{
 				token.type = TokenType.UnsignedLongLiteral;
+				isLong = true;
+			}
 			else
+			{
 				token.type = TokenType.LongLiteral;
-			isLong = true;
+				isLong = true;
+			}
 			break;
 		case 'f':
 		case 'F':
@@ -726,38 +760,33 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 			input.popFront();
 			++index;
 			token.type = TokenType.FloatLiteral;
-			break decimalLoop;
+			isFloat = true;
+			break;
 		case 'i':
 			// Spec says that this is the last suffix, so all cases break the
 			// loop.
-			if (isDouble)
+			if (isReal)
 			{
 				app.put(input.front);
 				input.popFront();
 				++index;
-				token.type = TokenType.Idouble;
-				break decimalLoop;
+				token.type = TokenType.IRealLiteral;
 			}
 			else if (isFloat)
 			{
 				app.put(input.front);
 				input.popFront();
 				++index;
-				token.type = TokenType.Ifloat;
-				break decimalLoop;
+				token.type = TokenType.IFloatLiteral;
 			}
-			else if (isReal)
+			else if (isDouble)
 			{
 				app.put(input.front);
 				input.popFront();
 				++index;
-				token.type = TokenType.Ireal;
-				break decimalLoop;
+				token.type = TokenType.IDoubleLiteral;
 			}
-			else
-			{
-				break decimalLoop;
-			}
+			break decimalLoop;
 		default:
 			break decimalLoop;
 		}
@@ -772,42 +801,117 @@ unittest {
 	uint l;
 	auto a = "55e-4";
 	auto ar = lexNumber(a, i, l);
-	assert(ar.value == "55e-4");
-	assert(ar.type == TokenType.DoubleLiteral);
+	assert (ar.value == "55e-4");
+	assert (ar.type == TokenType.DoubleLiteral);
 
 	auto b = "123.45f";
 	auto br = lexNumber(b, i, l);
-	assert(br.value == "123.45f");
-	assert(br.type == TokenType.FloatLiteral);
+	assert (br.value == "123.45f");
+	assert (br.type == TokenType.FloatLiteral);
 
 	auto c = "3e+f";
 	auto cr = lexNumber(c, i, l);
-	assert(cr.value == "3");
-	assert(cr.type == TokenType.IntLiteral);
+	assert (cr.value == "3");
+	assert (cr.type == TokenType.IntLiteral);
 
 	auto d = "3e++f";
 	auto dr = lexNumber(d, i, l);
-	assert(dr.value == "3");
-	assert(dr.type == TokenType.IntLiteral);
+	assert (dr.value == "3");
+	assert (dr.type == TokenType.IntLiteral);
 
 	auto e = "1234..1237";
 	auto er = lexNumber(e, i, l);
-	assert(er.value == "1234");
-	assert(er.type == TokenType.IntLiteral);
+	assert (er.value == "1234");
+	assert (er.type == TokenType.IntLiteral);
+
+	auto f = "12L_";
+	auto fr = lexNumber(f, i, l);
+	assert (fr == "12L");
+
+	auto g = "12e-12e";
+	auto gr = lexNumber(g, i, l);
+	assert (gr == "12e-12");
+
+	auto h = "12e10";
+	auto hr = lexNumber(h, i, l);
+	assert (hr == "12e10");
+
+	auto j = "12er";
+	auto jr = lexNumber(j, i, l);
+	assert (jr == "12");
+
+	auto k = "12e+12-";
+	auto kr = lexNumber(k, i, l);
+	assert (kr == "12e+12");
+
+	auto m = "1.1.";
+	auto mr = lexNumber(m, i, l);
+	assert (mr == "1.1");
+
+	auto n = "12uu";
+	auto nr = lexNumber(n, i, l);
+	assert (nr == "12u");
+	assert (nr.type == TokenType.UnsignedIntLiteral);
+
+	auto o = "12LU";
+	auto or = lexNumber(o, i, l);
+	assert (or == "12LU");
+
+	auto p = "3LL";
+	auto pr = lexNumber(p, i, l);
+	assert (pr == "3L");
+
+	auto q = "3.0LL";
+	auto qr = lexNumber(q, i, l);
+	assert (qr == "3.0L");
+
+	auto r = "5uL";
+	auto rr = lexNumber(r, i, l);
+	assert (rr == "5uL");
+
+	auto s = "5Lf";
+	auto sr = lexNumber(s, i, l);
+	assert (sr == "5L");
+	assert (sr == TokenType.LongLiteral);
+
+	auto t = "5i";
+	auto tr = lexNumber(t, i, l);
+	assert (tr == "5");
+	assert (tr == TokenType.IntLiteral);
+
+	auto u = "894.3i";
+	auto ur = lexNumber(u, i, l);
+	assert (ur == "894.3i");
+	assert (ur == TokenType.IDoubleLiteral);
+
+	auto v = "894.3Li";
+	auto vr = lexNumber(v, i, l);
+	assert (vr == "894.3Li");
+	assert (vr == TokenType.IRealLiteral);
+
+	auto w = "894.3fi";
+	auto wr = lexNumber(w, i, l);
+	assert (wr == "894.3fi");
+	assert (wr == TokenType.IFloatLiteral);
+
+	auto x = "4892.4ee";
+	auto xr = lexNumber(x, i, l);
+	assert (xr == "4892.4");
+	assert (xr == TokenType.DoubleLiteral);
 }
 
 Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
 	ref typeof(appender!(char[])()) app)
 {
-	bool lexingSuffix = false;
 	bool isLong = false;
 	bool isUnsigned = false;
 	bool isFloat = false;
 	bool isReal = false;
 	bool isDouble = false;
 	bool foundDot = false;
-	bool foundE = false;
+	bool foundExp = false;
 	bool foundPlusMinus = false;
+	string backup;
 	Token token;
 	token.lineNumber = lineNumber;
 	token.startIndex =  index;
@@ -816,28 +920,47 @@ Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
 	{
 		switch (input.front)
 		{
-		case '0': .. case '9':
 		case 'a': .. case 'f':
 		case 'A': .. case 'F':
-		case '_':
-			if (lexingSuffix)
+			if (foundExp)
 				break hexLoop;
+			else
+				goto case;
+		case '0': .. case '9':
+		case '_':
 			app.put(input.front);
 			input.popFront();
 			++index;
 			break;
 		case 'p':
 		case 'P':
-			if (foundE)
+			if (foundExp)
 				break hexLoop;
+			auto r = input.save();
+			r.popFront();
+			switch (r.front)
+			{
+			case '-':
+			case '+':
+				r.popFront();
+				if (r.isEoF() || !isDigit(r.front))
+					break hexLoop;
+				break;
+			case '0': .. case '9':
+				break;
+			default:
+				break hexLoop;
+			}
 			app.put(input.front);
 			input.popFront();
 			++index;
-			foundE = true;
+			foundExp = true;
+			isDouble = true;
+			token.type = TokenType.DoubleLiteral;
 			break;
 		case '+':
 		case '-':
-			if (foundPlusMinus || !foundE)
+			if (foundPlusMinus || !foundExp)
 				break hexLoop;
 			foundPlusMinus = true;
 			app.put(input.front);
@@ -856,7 +979,6 @@ Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
 			++index;
 			foundDot = true;
 			token.type = TokenType.DoubleLiteral;
-			isDouble = true;
 			break;
 		default:
 			break hexLoop;
@@ -870,18 +992,76 @@ unittest
 {
 	uint i;
 	uint l;
+
 	auto a = "0x193abfq";
 	auto ar = lexNumber(a, i, l);
 	assert(ar.value == "0x193abf");
 	assert(ar.type == TokenType.IntLiteral);
+
 	auto b = "0x2130xabc";
 	auto br = lexNumber(b, i, l);
 	assert(br.value == "0x2130");
 	assert(br.type == TokenType.IntLiteral);
+
 	auto c = "0x123..0321";
 	auto cr = lexNumber(c, i, l);
 	assert (cr.value == "0x123");
 	assert (cr.type == TokenType.IntLiteral);
+
+	auto d = "0xabp5";
+	auto dr = lexNumber(d, i, l);
+	assert (dr == "0xabp5");
+	assert (dr == TokenType.DoubleLiteral);
+
+	auto e = "0x93p+5";
+	auto er = lexNumber(e, i, l);
+	assert (er == "0x93p+5");
+	assert (er == TokenType.DoubleLiteral);
+
+	auto f = "0x93pp";
+	auto fr = lexNumber(f, i, l);
+	assert (fr == "0x93");
+	assert (fr == TokenType.IntLiteral);
+
+	auto g = "0XF..7";
+	auto gr = lexNumber(g, i, l);
+	assert (gr == "0XF");
+	assert (gr == TokenType.IntLiteral);
+
+	auto h = "0x8.4p100";
+	auto hr = lexNumber(h, i, l);
+	assert (hr == "0x8.4p100");
+	assert (hr == TokenType.DoubleLiteral);
+
+	auto j = "0x8.4.100";
+	auto jr = lexNumber(j, i, l);
+	assert (jr == "0x8.4");
+	assert (jr == TokenType.DoubleLiteral);
+
+	auto k = "0x1p-t";
+	auto kr = lexNumber(k, i, l);
+	assert (kr == "0x1");
+	assert (kr == TokenType.IntLiteral);
+
+	auto m = "0x1p-5p";
+	auto mr = lexNumber(m, i, l);
+	assert (mr == "0x1p-5");
+	assert (mr == TokenType.DoubleLiteral);
+
+	auto n = "0x1p-c_";
+	auto nr = lexNumber(n, i, l);
+	assert (nr == "0x1");
+	assert (nr == TokenType.IntLiteral);
+
+	auto o = "0x1p-1a";
+	auto or = lexNumber(o, i, l);
+	assert (or == "0x1p-1");
+	assert (or == TokenType.DoubleLiteral);
+
+	auto p = "0x1p-1+";
+	auto pr = lexNumber(p, i, l);
+	assert (pr == "0x1p-1");
+	assert (pr == TokenType.DoubleLiteral);
 }
 
 /**
