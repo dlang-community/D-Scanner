@@ -506,7 +506,7 @@ Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
 	const StringStyle style = StringStyle.Escaped)
 in
 {
-	assert (input.front == '\'' || input.front == '"' || input.front == '`');
+	assert (input.front == '\'' || input.front == '"' || input.front == '`' || input.front == 'r');
 }
 body
 {
@@ -514,10 +514,17 @@ body
 	t.lineNumber = lineNumber;
 	t.startIndex = index;
 	t.type = TokenType.StringLiteral;
+	auto app = appender!(char[])();
+	if (input.front == 'r')
+	{
+		if (style & StringStyle.IncludeQuotes)
+			app.put('r');
+		input.popFront();
+	}
 	auto quote = input.front;
 	input.popFront();
 	++index;
-	auto app = appender!(char[])();
+
 	if (style & StringStyle.IncludeQuotes)
 		app.put(quote);
 	while (!isEoF(input))
@@ -1180,6 +1187,7 @@ pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
 		case ':': .. case '@':
 		case '[': .. case '^':
 		case '{': .. case '~':
+		case '`':
 		case 0x20: // space
 		case 0x09: // tab
 		case 0x0a: .. case 0x0d: // newline, vertical tab, form feed, carriage return
@@ -1197,9 +1205,9 @@ enum IterationStyle
 	/// Only include code, not whitespace or comments
 	CodeOnly = 0,
 	/// Includes comments
-	IncludeComments = 1,
+	IncludeComments = 0b01,
 	/// Includes whitespace
-	IncludeWhitespace = 2 << 1,
+	IncludeWhitespace = 0b10,
 	/// Include everything
 	Everything = IncludeComments | IncludeWhitespace
 }
@@ -1382,14 +1390,20 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			auto r = range.save();
 			r.popFront();
 			if (!r.isEoF() && r.front == '"')
-				writeln("parse wysiwyg string");
+			{
+				current = lexString(range, index, lineNumber, StringStyle.NotEscaped);
+				break;
+			}
 			else
 				goto default;
 		case 'x':
 			auto r = range.save();
 			r.popFront();
 			if (!r.isEoF() && r.front == '"')
-				writeln("parse hex string");
+			{
+				current = lexHexString(range, index, lineNumber);
+				break;
+			}
 			else
 				goto default;
 		default:
@@ -1418,7 +1432,7 @@ private:
 
 unittest
 {
-	auto c = ">><==>)(*)\"TestString\"if import ifire 0,10.4f `\n`@property void//comment\ntest/* comment *//+comment/+moar comment+/+/";
+	auto c = "rust r\"\\ntest\" r`eh?`";
 	foreach (t; byToken(c))
 		writeln(t);
 }
