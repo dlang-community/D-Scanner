@@ -395,6 +395,113 @@ unittest
 		assert (interpretEscapeSequence(k, i) == v);
 }
 
+Token lexHexString(R, C = ElementType!R)(ref R input, ref uint index, ref uint lineNumber,
+	const StringStyle style = StringStyle.Escaped)
+in
+{
+    assert (input.front == 'x');
+}
+body
+{
+    Token t;
+    t.lineNumber = lineNumber;
+    t.startIndex = index;
+    t.type = TokenType.StringLiteral;
+    auto app = appender!(C[])();
+    if (style & StringStyle.IncludeQuotes)
+        app.put("x\"");
+    input.popFront();
+    input.popFront();
+    index += 2;
+    while (!input.isEoF())
+    {
+        if (isNewline(input))
+        {
+            app.put(popNewline(input, index));
+            ++lineNumber;
+        }
+        else if (isHexDigit(input.front))
+        {
+            app.put(input.front);
+            input.popFront();
+            ++index;
+        }
+        else if (std.uni.isWhite(input.front) && !(style & StringStyle.Escaped))
+        {
+            app.put(input.front);
+            input.popFront();
+            ++index;
+        }
+        else if (input.front == '"')
+        {
+            if (style & StringStyle.IncludeQuotes)
+                app.put('"');
+            input.popFront();
+            ++index;
+            break;
+        }
+        else
+        {
+            // This is an error
+        }
+    }
+    if (!input.isEoF())
+	{
+		switch (input.front)
+		{
+		case 'w':
+			t.type = TokenType.WStringLiteral;
+			goto case 'c';
+		case 'd':
+			t.type = TokenType.DStringLiteral;
+			goto case 'c';
+		case 'c':
+			if (style & StringStyle.IncludeQuotes)
+				app.put(input.front);
+			input.popFront();
+			++index;
+			break;
+		default:
+			break;
+		}
+	}
+    if (style & StringStyle.Escaped)
+    {
+        auto a = appender!(char[])();
+        foreach (b; std.range.chunks(app.data, 2))
+            a.put(to!string(cast(dchar) parse!uint(b, 16)));
+        t.value = to!string(a.data);
+    }
+    else
+        t.value = to!string(app.data);
+    return t;
+}
+
+unittest
+{
+    uint i;
+    uint l;
+
+    auto a = `x"204041"`;
+    auto ar = lexHexString(a, i, l);
+    assert (ar == " @A");
+    assert (ar == TokenType.StringLiteral);
+
+    auto b = `x"20"w`;
+    auto br = lexHexString(b, i, l);
+    assert (br == " ");
+    assert (br == TokenType.WStringLiteral);
+
+    auto c = `x"6d"`;
+    auto cr = lexHexString(c, i, l, StringStyle.NotEscaped);
+    assert (cr == "6d");
+
+    auto d = `x"5e5f"d`;
+    auto dr = lexHexString(d, i, l, StringStyle.NotEscaped | StringStyle.IncludeQuotes);
+    assert (dr == `x"5e5f"d`);
+    assert (dr == TokenType.DStringLiteral);
+}
+
 Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
 	const StringStyle style = StringStyle.Escaped)
 in

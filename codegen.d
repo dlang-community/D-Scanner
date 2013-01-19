@@ -108,4 +108,4 @@ string generateCaseTrie(string[] args ...)
 		t.add(args[i], args[i+1]);
 	}
 	return printCaseStatements(t, "");
-	}
+}
