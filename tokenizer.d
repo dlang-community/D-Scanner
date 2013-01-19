@@ -396,7 +396,7 @@ unittest
 }
 
 Token lexHexString(R, C = ElementType!R)(ref R input, ref uint index, ref uint lineNumber,
-	const StringStyle style = StringStyle.Escaped)
+	const StringStyle style = StringStyle.Default)
 in
 {
     assert (input.front == 'x');
@@ -426,7 +426,7 @@ body
             input.popFront();
             ++index;
         }
-        else if (std.uni.isWhite(input.front) && !(style & StringStyle.Escaped))
+        else if (std.uni.isWhite(input.front) && (style & StringStyle.NotEscaped))
         {
             app.put(input.front);
             input.popFront();
@@ -465,15 +465,17 @@ body
 			break;
 		}
 	}
-    if (style & StringStyle.Escaped)
+    if (style & StringStyle.NotEscaped)
+		t.value = to!string(app.data);
+	else
     {
         auto a = appender!(char[])();
         foreach (b; std.range.chunks(app.data, 2))
             a.put(to!string(cast(dchar) parse!uint(b, 16)));
         t.value = to!string(a.data);
     }
-    else
-        t.value = to!string(app.data);
+
+
     return t;
 }
 
@@ -503,7 +505,7 @@ unittest
 }
 
 Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
-	const StringStyle style = StringStyle.Escaped)
+	const StringStyle style = StringStyle.Default)
 in
 {
 	assert (input.front == '\'' || input.front == '"' || input.front == '`' || input.front == 'r');
@@ -534,8 +536,38 @@ body
 			app.put(popNewline(input, index));
 			lineNumber++;
 		}
-		else if (input.front == '\\' && style & StringStyle.Escaped)
-			app.put(interpretEscapeSequence(input, index));
+		else if (input.front == '\\')
+		{
+			if (style & StringStyle.NotEscaped)
+			{
+				auto r = input.save();
+				r.popFront();
+				if (r.front == quote)
+				{
+					app.put('\\');
+					app.put(quote);
+					input.popFront();
+					input.popFront();
+					index += 2;
+				}
+				else if (r.front == '\\')
+				{
+					app.put('\\');
+					app.put('\\');
+					input.popFront();
+					input.popFront();
+					index += 2;
+				}
+				else
+				{
+					app.put('\\');
+					input.popFront();
+					++index;
+				}
+			}
+			else
+				app.put(interpretEscapeSequence(input, index));
+		}
 		else if (input.front == quote)
 		{
 			if (style & StringStyle.IncludeQuotes)
@@ -1217,20 +1249,28 @@ enum IterationStyle
  */
 enum StringStyle : uint
 {
-	NotEscaped = 0,
-	/// String escape sequences will be processed and enclosing quote characters
-	/// will not be preserved.
-	Escaped = 1,
+	/// Escape sequences will be replaced with their equivalent characters.
+	/// Quote characters will not be included
+	Default = 0b0000,
+
+	/// Escape sequences will not be processed
+	NotEscaped = 0b0001,
+
+	/// Strings will include their opening and closing quote characters as well
+	/// as any prefixes or suffixes (e.g.: "abcde"w will include the 'w'
+	/// character)
+	IncludeQuotes = 0x0010,
+
 	/// Strings will be read exactly as they appeared in the source, including
 	/// their opening and closing quote characters. Useful for syntax highlighting.
-	IncludeQuotes = 2,
+	Source = NotEscaped | IncludeQuotes,
 }
 
-TokenRange!(R) byToken(R)(ref R range, const IterationStyle iterationStyle = IterationStyle.CodeOnly,
-	const StringStyle tokenStyle = StringStyle.Escaped) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
+TokenRange!(R) byToken(R)(R range, const IterationStyle iterationStyle = IterationStyle.CodeOnly,
+	const StringStyle stringStyle = StringStyle.Default) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 {
 	auto r = TokenRange!(R)(range);
-	r.tokenStyle = tokenStyle;
+	r.stringStyle = stringStyle;
 	r.iterStyle = iterationStyle;
 	r.lineNumber = 1;
 	r.popFront();
@@ -1273,7 +1313,7 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			if (iterStyle == IterationStyle.Everything)
 			{
 				current = lexWhitespace(range, index, lineNumber);
-				break;
+				return c;
 			}
 			else
 				lexWhitespace(range, index, lineNumber);
@@ -1348,16 +1388,19 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			break;
 		case '\'':
 		case '"':
-			current = lexString(range, index, lineNumber);
+			current = lexString(range, index, lineNumber, stringStyle);
 			break;
 		case '`':
-			current = lexString(range, index, lineNumber, StringStyle.NotEscaped);
+			current = lexString(range, index, lineNumber, stringStyle);
 			break;
 		case 'q':
 			auto r = range.save;
 			r.popFront();
 			if (!r.isEoF() && r.front == '{')
+			{
 				writeln("ParseTokenString");
+				break;
+			}
 			else
 				goto default;
 		case '/':
@@ -1427,7 +1470,7 @@ private:
 	R range;
 	bool _empty;
 	IterationStyle iterStyle;
-	StringStyle tokenStyle;
+	StringStyle stringStyle;
 }
 
 unittest

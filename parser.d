@@ -302,10 +302,6 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 		case TokenType.Nothrow:
 		case TokenType.Override:
 		case TokenType.Synchronized:
-		case TokenType.AtDisable:
-		case TokenType.AtProperty:
-		case TokenType.AtSafe:
-		case TokenType.AtSystem:
 		case TokenType.Abstract:
 		case TokenType.Final:
 		case TokenType.Gshared:
@@ -635,8 +631,6 @@ body
 		case TokenType.Immutable:
 		case TokenType.Const:
 		case TokenType.Pure:
-		case TokenType.AtTrusted:
-		case TokenType.AtProperty:
 		case TokenType.Nothrow:
 		case TokenType.Final:
 		case TokenType.Override:

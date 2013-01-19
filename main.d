@@ -137,11 +137,11 @@ int main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f.put(buf);
-			writeln(f.data.tokenize().count!(a => isLineOfCode(a.type))());
+			writeln(f.data.byToken().count!(a => isLineOfCode(a.type))());
 		}
 		else
 		{
-			writeln(args[1..$].map!(a => a.readText().tokenize())().joiner()
+			writeln(args[1..$].map!(a => a.readText().byToken())().joiner()
 				.count!(a => isLineOfCode(a.type))());
 		}
 		return 0;
@@ -155,11 +155,13 @@ int main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f.put(buf);
-			highlighter.highlight(f.data.tokenize(IterationStyle.EVERYTHING));
+			highlighter.highlight(f.data.byToken(IterationStyle.Everything,
+				StringStyle.Source));
 		}
 		else
 		{
-			highlighter.highlight(args[1].readText().tokenize(IterationStyle.EVERYTHING));
+			highlighter.highlight(args[1].readText().byToken(
+				IterationStyle.Everything, StringStyle.Source));
 		}
 		return 0;
 	}
@@ -178,11 +180,11 @@ int main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f.put(buf);
-			tokens = f.data.tokenize();
+			tokens = f.data.byToken().array();
 		}
 		catch(ConvException e)
 		{
-			tokens = args[1].readText().tokenize();
+			tokens = args[1].readText().byToken().array();
 			args.popFront();
 		}
 		auto mod = parseModule(tokens);
@@ -193,7 +195,7 @@ int main(string[] args)
 			auto p = findAbsPath(importDirs, im);
 			if (p is null || !p.exists())
 				continue;
-			context.addModule(p.readText().tokenize().parseModule());
+			context.addModule(p.readText().byToken().array().parseModule());
 		}
 		auto complete = AutoComplete(tokens, context);
 		if (parenComplete)
@@ -213,12 +215,12 @@ int main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f.put(buf);
-			tokens = tokenize(f.data);
+			tokens = byToken(f.data).array();
 		}
 		else
 		{
 			// read given file
-			tokens = tokenize(readText(args[1]));
+			tokens = byToken(readText(args[1])).array();
 		}
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
@@ -229,8 +231,8 @@ int main(string[] args)
 	{
 		if (!recursiveCtags)
 		{
-			auto tokens = tokenize(readText(args[1]));
-			auto mod = parseModule(tokens);
+			auto tokens = byToken(readText(args[1]));
+			auto mod = parseModule(tokens.array());
 			mod.writeCtagsTo(stdout, args[1]);
 		}
 		else
@@ -241,12 +243,12 @@ int main(string[] args)
 				if (!dirEntry.name.endsWith(".d", ".di"))
 					continue;
 				stderr.writeln("Generating tags for ", dirEntry.name);
-				auto tokens = tokenize(readText(dirEntry.name));
+				auto tokens = byToken(readText(dirEntry.name));
 				if (m is null)
-					m = parseModule(tokens);
+					m = parseModule(tokens.array());
 				else
 				{
-					auto mod = parseModule(tokens);
+					auto mod = parseModule(tokens.array());
 					m.merge(mod);
 				}
 			}

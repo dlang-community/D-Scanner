@@ -12,10 +12,10 @@ import std.array;
 
 void writeSpan(string cssClass, string value)
 {
-	stdout.write(`<span class="`, cssClass, `">`, value.replace("<", "&lt;"), `</span>`);
+	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
 }
 
-void highlight(Token[] tokens)
+void highlight(R)(R tokens)
 {
 	stdout.writeln(q"[<!DOCTYPE html>
 <html>
@@ -55,9 +55,6 @@ html { background-color: #111; color: #ccc; }
 			break;
 		case TokenType.OPERATORS_BEGIN: .. case TokenType.OPERATORS_END:
 			writeSpan("operator", t.value);
-			break;
-		case TokenType.PROPERTIES_BEGIN: .. case TokenType.PROPERTIES_END:
-			writeSpan("property", t.value);
 			break;
 		default:
 			stdout.write(t.value.replace("<", "&lt;"));

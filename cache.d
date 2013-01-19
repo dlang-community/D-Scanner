@@ -105,7 +105,7 @@ void updateCache(string dirs[], string moduleNames[])
 			continue;
 
 		// re-parse the module
-		Module m = parseModule(tokenize(readText(filePath)));
+		Module m = parseModule(byToken(readText(filePath)).array());
 
 		updateCache(m);
 
