@@ -24,12 +24,11 @@ void highlight(R)(R tokens)
 <body>
 <style type="text/css">
 html { background-color: #111; color: #ccc; }
-.keyword { font-weight: bold; color: DeepSkyBlue; }
-.comment { color: lightgreen; font-style: italic;}
-.number { color: red; font-weigth: bold; }
-.string { color: Tomato; font-style: italic; }
-.property { color: HotPink; font-weight: bold;}
-.operator { color: tan; font-weight: bold; }
+.kwrd { font-weight: bold; color: DeepSkyBlue; }
+.com { color: lightgreen; font-style: italic;}
+.num { color: red; font-weigth: bold; }
+.str { color: Tomato; font-style: italic; }
+.op { color: tan; font-weight: bold; }
 .type { color: cyan; font-weight: bold; }
 </style>
 <pre>]");
@@ -39,22 +38,22 @@ html { background-color: #111; color: #ccc; }
 		switch (t.type)
 		{
 		case TokenType.KEYWORDS_BEGIN: .. case TokenType.KEYWORDS_END:
-			writeSpan("keyword", t.value);
+			writeSpan("kwrd", t.value);
 			break;
 		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
 			writeSpan("type", t.value);
 			break;
 		case TokenType.Comment:
-			writeSpan("comment", t.value);
+			writeSpan("com", t.value);
 			break;
 		case TokenType.STRINGS_BEGIN: .. case TokenType.STRINGS_END:
-			writeSpan("string", t.value);
+			writeSpan("str", t.value);
 			break;
 		case TokenType.NUMBERS_BEGIN: .. case TokenType.NUMBERS_END:
-			writeSpan("number", t.value);
+			writeSpan("num", t.value);
 			break;
 		case TokenType.OPERATORS_BEGIN: .. case TokenType.OPERATORS_END:
-			writeSpan("operator", t.value);
+			writeSpan("op", t.value);
 			break;
 		default:
 			stdout.write(t.value.replace("<", "&lt;"));

@@ -517,6 +517,7 @@ body
 	t.startIndex = index;
 	t.type = TokenType.StringLiteral;
 	auto app = appender!(char[])();
+	bool isWysiwyg = input.front == 'r' || input.front == '`';
 	if (input.front == 'r')
 	{
 		if (style & StringStyle.IncludeQuotes)
@@ -542,7 +543,7 @@ body
 			{
 				auto r = input.save();
 				r.popFront();
-				if (r.front == quote)
+				if (r.front == quote && !isWysiwyg)
 				{
 					app.put('\\');
 					app.put(quote);
@@ -550,7 +551,7 @@ body
 					input.popFront();
 					index += 2;
 				}
-				else if (r.front == '\\')
+				else if (r.front == '\\' && !isWysiwyg)
 				{
 					app.put('\\');
 					app.put('\\');
@@ -1394,14 +1395,14 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			current = lexString(range, index, lineNumber, stringStyle);
 			break;
 		case 'q':
-			auto r = range.save;
+			/+auto r = range.save;
 			r.popFront();
 			if (!r.isEoF() && r.front == '{')
 			{
 				writeln("ParseTokenString");
 				break;
 			}
-			else
+			else+/
 				goto default;
 		case '/':
 			auto r = range.save();
@@ -1410,6 +1411,8 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			{
 				current.type = TokenType.Div;
 				current.value = "/";
+				range.popFront();
+				++index;
 				break;
 			}
 			switch (r.front)
@@ -1422,19 +1425,23 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			case '=':
 				current.type = TokenType.DivEquals;
 				current.value = "/=";
+				range.popFront();
+				range.popFront();
+				index += 2;
 				break outer;
 			default:
 				current.type = TokenType.Div;
 				current.value = "/";
-				break;
+				++index;
+				range.popFront();
+				break outer;
 			}
-			break;
 		case 'r':
 			auto r = range.save();
 			r.popFront();
 			if (!r.isEoF() && r.front == '"')
 			{
-				current = lexString(range, index, lineNumber, StringStyle.NotEscaped);
+				current = lexString(range, index, lineNumber, stringStyle);
 				break;
 			}
 			else
@@ -1455,6 +1462,7 @@ struct TokenRange(R) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 			{
 				app.put(range.front);
 				range.popFront();
+				++index;
 			}
 			current.value = to!string(app.data);
 			current.type = lookupTokenTypeOptimized(current.value);
@@ -1475,7 +1483,7 @@ private:
 
 unittest
 {
-	auto c = "rust r\"\\ntest\" r`eh?`";
-	foreach (t; byToken(c))
-		writeln(t);
+	auto c = `r"d:\path\foo.bat"`;
+	foreach (t; byToken(c, IterationStyle.CodeOnly, StringStyle.Source))
+		writeln(t.type, ": {", t.value, "}");
 }
