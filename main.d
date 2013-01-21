@@ -15,13 +15,18 @@ import std.parallelism;
 import std.path;
 import std.regex;
 import std.stdio;
+import std.d.lexer;
+
 import autocomplete;
 import highlighter;
 import langutils;
 import location;
 import parser;
-import tokenizer;
+
 import types;
+import circularbuffer;
+
+immutable size_t CIRC_BUFF_SIZE = 4;
 
 pure bool isLineOfCode(TokenType t)
 {
@@ -100,9 +105,9 @@ int main(string[] args)
 {
 	string[] importDirs;
 	bool sloc;
-	bool dotComplete;
+	/+bool dotComplete;+/
 	bool json;
-	bool parenComplete;
+	/+bool parenComplete;+/
 	bool highlight;
 	bool ctags;
 	bool recursiveCtags;
@@ -111,8 +116,8 @@ int main(string[] args)
 
 	try
 	{
-		getopt(args, "I", &importDirs, "dotComplete", &dotComplete, "sloc", &sloc,
-			"json", &json, "parenComplete", &parenComplete, "highlight", &highlight,
+		getopt(args, "I", &importDirs,/+ "dotComplete", &dotComplete,+/ "sloc", &sloc,
+			"json", &json, /+"parenComplete", &parenComplete,+/ "highlight", &highlight,
 			"ctags", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help);
 	}
 	catch (Exception e)
@@ -120,7 +125,7 @@ int main(string[] args)
 		stderr.writeln(e.msg);
 	}
 
-	if (help || (!sloc && !dotComplete && !json && !parenComplete && !highlight
+	if (help || (!sloc && /+!dotComplete &&+/ !json /+&& !parenComplete+/ && !highlight
 		&& !ctags && !format))
 	{
 		printHelp();
@@ -166,7 +171,7 @@ int main(string[] args)
 		return 0;
 	}
 
-	if (dotComplete || parenComplete)
+	/+if (dotComplete || parenComplete)
 	{
 		if (isAbsolute(args[1]))
 			importDirs ~= dirName(args[1]);
@@ -203,11 +208,11 @@ int main(string[] args)
 		else if (dotComplete)
 			writeln(complete.dotComplete(to!size_t(args[1])));
 		return 0;
-	}
+	}+/
 
 	if (json)
 	{
-		Token[] tokens;
+		CircularBuffer!(Token) tokens;
 		if (args.length == 1)
 		{
 			// Read from stdin
@@ -215,46 +220,46 @@ int main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f.put(buf);
-			tokens = byToken(f.data).array();
+			tokens = new CircularBuffer!(Token)(CIRC_BUFF_SIZE, byToken!string(f.data));
 		}
 		else
 		{
 			// read given file
-			tokens = byToken(readText(args[1])).array();
+			tokens = new CircularBuffer!(Token)(CIRC_BUFF_SIZE, byToken!string(readText(args[1])));
 		}
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
 		return 0;
 	}
 
-	if (ctags)
-	{
-		if (!recursiveCtags)
-		{
-			auto tokens = byToken(readText(args[1]));
-			auto mod = parseModule(tokens.array());
-			mod.writeCtagsTo(stdout, args[1]);
-		}
-		else
-		{
-			Module m;
-			foreach (dirEntry; dirEntries(args[1], SpanMode.breadth))
-			{
-				if (!dirEntry.name.endsWith(".d", ".di"))
-					continue;
-				stderr.writeln("Generating tags for ", dirEntry.name);
-				auto tokens = byToken(readText(dirEntry.name));
-				if (m is null)
-					m = parseModule(tokens.array());
-				else
-				{
-					auto mod = parseModule(tokens.array());
-					m.merge(mod);
-				}
-			}
-			m.writeCtagsTo(stdout, "");
-		}
-	}
+//	if (ctags)
+//	{
+//		if (!recursiveCtags)
+//		{
+//			auto tokens = byToken(readText(args[1]));
+//			auto mod = parseModule(tokens.array());
+//			mod.writeCtagsTo(stdout, args[1]);
+//		}
+//		else
+//		{
+//			Module m;
+//			foreach (dirEntry; dirEntries(args[1], SpanMode.breadth))
+//			{
+//				if (!dirEntry.name.endsWith(".d", ".di"))
+//					continue;
+//				stderr.writeln("Generating tags for ", dirEntry.name);
+//				auto tokens = byToken(readText(dirEntry.name));
+//				if (m is null)
+//					m = parseModule(tokens.array());
+//				else
+//				{
+//					auto mod = parseModule(tokens.array());
+//					m.merge(mod);
+//				}
+//			}
+//			m.writeCtagsTo(stdout, "");
+//		}
+//	}
 	return 0;
 }
 

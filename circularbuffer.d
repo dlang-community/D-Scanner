@@ -9,11 +9,12 @@ import std.math;
 import std.array;
 import std.range;
 
-struct CircularBuffer(T, R) if (isInputRange!(R) && is (ElementType!(R) == T))
+class CircularBuffer(T) : InputRange!(T)
+
 {
 public:
 
-    this (size_t size, R range)
+    this (size_t size, InputRange!(T) range)
     {
         this.range = range;
         this.margin = size;
@@ -31,41 +32,33 @@ public:
         }
     }
 
-    T opIndex(size_t index) const
-	in
-	{
-		assert (index <= sourceIndex + margin);
-		assert (index >= sourceIndex - margin);
-	}
-	body
-    {
-        return data[index % data.length];
-    }
-
-    T front() const @property
+    override T front() const @property
     {
         return data[index];
     }
 
-	T peek(int offset)
+	T peek(int offset = 1)
 	in
 	{
-		assert(abs(offset) <= margin);
-		assert(sourceIndex + offset >= 0);
+		assert(canPeek(offset));
 	}
 	body
 	{
 		return data[(index + offset) % data.length];
 	}
 
-    T popFront()
+	bool canPeek(int offset = 1)
+	{
+		return abs(offset) <= margin && sourceIndex + offset >= 0;
+	}
+
+    override void popFront()
 	in
 	{
 		assert (!_empty);
 	}
 	body
     {
-		T v = data[index];
 		index = (index + 1) % data.length;
 		++sourceIndex;
         if (range.empty())
@@ -79,7 +72,6 @@ public:
 			end = (end + 1) % data.length;
 			range.popFront();
         }
-        return v;
     }
 
     bool empty() const @property
@@ -87,8 +79,40 @@ public:
         return _empty;
     }
 
+	override T moveFront()
+	{
+		auto r = front();
+		popFront();
+		return r;
+	}
+
+	override int opApply(int delegate(T) dg)
+	{
+		int result = 0;
+		while (!empty)
+		{
+			result = dg(front);
+			if (result)
+				break;
+		}
+		return result;
+	}
+
+	override int opApply(int delegate(size_t, T) dg)
+	{
+		int result = 0;
+		int i = 0;
+		while (!empty)
+		{
+			result = dg(i, front);
+			if (result)
+				break;
+		}
+		return result;
+	}
+
 private:
-    R range;
+    InputRange!(T) range;
     immutable size_t margin;
     T[] data;
 	size_t sourceIndex;
@@ -123,8 +147,6 @@ unittest
 	buf.popFront();
 	buf.popFront();
 	assert (buf.front == 4);
-	assert (buf[2] == 2);
-	assert (buf[6] == 6);
 }
 
 unittest

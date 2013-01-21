@@ -10,137 +10,163 @@ import std.stream;
 import std.array;
 import std.stdio;
 import std.algorithm;
+import std.range;
+import std.d.lexer;
 
-import types, tokenizer;
+import types;
 import langutils;
+import circularbuffer;
 
+alias CircularBuffer!Token TokenBuffer;
+
+class Balanced : TokenBuffer
+{
+public:
+
+	this(InputRange!Token tokens, TokenType open, TokenType close)
+	{
+		super(0, tokens);
+		this.open = open;
+		this.close = close;
+	}
+
+	override bool empty() @property
+	{
+		return _empty;
+	}
+
+	override Token front() const @property
+	{
+		return range.front;
+	}
+
+	override void popFront()
+	{
+		range.popFront();
+		if (range.front == open)
+			++depth;
+		else if (range.front == close)
+			--depth;
+		_empty = depth == 0;
+	}
+
+private:
+	int depth;
+	TokenType open;
+	TokenType close;
+	TokenBuffer range;
+	bool _empty;
+}
 
 /**
  * Params:
  *     tokens = the array of tokens
- *     index = an index into tokens such that tokens[index].type == open
+ *     index = an index into tokens such that tokens.front.type == open
  *     open = the opening delimiter
  *     close = the closing delimiter
  * Returns: all tokens that are between the balanced delimiters that start at
- *     tokens[index], not including the delimiters. If the delimiters in tokens
+ *     tokens.front, not including the delimiters. If the delimiters in tokens
  *     are not balanced, this function will return tokens[index + 1 .. $];
  */
-const(Token)[] betweenBalanced(const Token[] tokens, ref size_t index, TokenType open,
-	TokenType close)
+Balanced betweenBalanced(TokenBuffer tokens,
+	TokenType open, TokenType close)
 in
 {
-	assert (tokens[index] == open);
+	assert (tokens.front == open);
 }
 body
 {
-	++index;
-	size_t start = index;
+	return new Balanced(tokens, open, close);
+}
+
+
+/**
+ * See_also: betweenBalanced
+ */
+Balanced betweenBalancedBraces(TokenBuffer tokens)
+{
+	return betweenBalanced(tokens, TokenType.LBrace, TokenType.RBrace);
+}
+
+
+/**
+ * See_also: betweenBalanced
+ */
+Balanced betweenBalancedParens(TokenBuffer tokens)
+{
+	return betweenBalanced(tokens, TokenType.LParen, TokenType.RParen);
+}
+
+
+/**
+ * See_also: betweenBalanced
+ */
+Balanced betweenBalancedBrackets(TokenBuffer tokens)
+{
+	return betweenBalanced(tokens, TokenType.LBracket, TokenType.RBracket);
+}
+
+void skipBalanced(alias openToken, alias closeToken)(TokenBuffer tokens)
+in
+{
+	assert (tokens.front == openToken);
+}
+body
+{
 	int depth = 1;
-	while (depth > 0 && index < tokens.length)
+	tokens.popFront();
+	while (!tokens.empty && depth != 0)
 	{
-		if (tokens[index] == open) ++depth;
-		else if (tokens[index] == close) --depth;
-		++index;
-	}
-	return tokens[start .. index - 1];
-}
-
-
-/**
- * See_also: betweenBalanced
- */
-const(Token)[] betweenBalancedBraces(const Token[] tokens, ref size_t index)
-{
-	return betweenBalanced(tokens, index, TokenType.LBrace, TokenType.RBrace);
-}
-
-
-/**
- * See_also: betweenBalanced
- */
-const(Token)[] betweenBalancedParens(const Token[] tokens, ref size_t index)
-{
-	return betweenBalanced(tokens, index, TokenType.LParen, TokenType.RParen);
-}
-
-
-/**
- * See_also: betweenBalanced
- */
-const(Token)[] betweenBalancedBrackets(const Token[] tokens, ref size_t index)
-{
-	return betweenBalanced(tokens, index, TokenType.LBracket, TokenType.RBracket);
-}
-
-
-/**
- * If tokens[index] is currently openToken, advances index until it refers to a
- * location in tokens directly after the balanced occurance of closeToken. If
- * tokens[index] is closeToken, decrements index
- *
- */
-void skipBalanced(alias openToken, alias closeToken)(const Token[] tokens, ref size_t index)
-{
-	int depth = tokens[index] == openToken ? 1 : -1;
-	int deltaIndex = depth;
-	index += deltaIndex;
-	for (; index < tokens.length && index > 0 && depth != 0; index += deltaIndex)
-	{
-		switch (tokens[index].type)
+		switch (tokens.front.type)
 		{
 		case openToken: ++depth; break;
 		case closeToken: --depth; break;
 		default: break;
 		}
+		tokens.popFront();
 	}
 }
 
-void skipParens(const Token[] tokens, ref size_t index)
+void skipParens(TokenBuffer tokens)
 {
-	skipBalanced!(TokenType.LParen, TokenType.RParen)(tokens, index);
+	skipBalanced!(TokenType.LParen, TokenType.RParen)(tokens);
 }
 
-void skipBrackets(const Token[] tokens, ref size_t index)
+void skipBrackets(TokenBuffer tokens)
 {
-	skipBalanced!(TokenType.LBracket, TokenType.RBracket)(tokens, index);
+	skipBalanced!(TokenType.LBracket, TokenType.RBracket)(tokens);
 }
 
-void skipBraces(const Token[] tokens, ref size_t index)
+void skipBraces(TokenBuffer tokens)
 {
-	skipBalanced!(TokenType.LBrace, TokenType.RBrace)(tokens, index);
+	skipBalanced!(TokenType.LBrace, TokenType.RBrace)(tokens);
 }
 
 /**
  * Params:
  *     tokens = the token array to examine
- *     index = an indext into tokens such that tokens[index].type == open
+ *     index = an indext into tokens such that tokens.front.type == open
  *     open = the opening delimiter
  *     close = the closing delimiter
  * Returns: a string representing the contents of the two delimiters. This will
  *     not preserve whitespace, but it will place a single space character after
  *     a comma and between identifiers.
  */
-string content(const Token[] tokens, ref size_t index, TokenType open, TokenType close)
+string content(TokenBuffer tokens, TokenType open, TokenType close)
 in
 {
-	assert (tokens[index] == open);
+	assert (tokens.front == open);
 }
 body
 {
-	index++;
 	auto app = appender!string();
 	int depth = 1;
-	while (depth > 0 && index < tokens.length)
+	foreach (t; betweenBalanced(tokens, open, close))
 	{
-		if (tokens[index] == open) ++depth;
-		else if (tokens[index] == close) --depth;
-		else if (tokens[index] == TokenType.Comma)
-		{
+		if (t == TokenType.Comma)
 			app.put(", ");
-		}
 		else
-			app.put(tokens[index].value);
-		++index;
+			app.put(t.value);
 	}
 	return app.data;
 }
@@ -149,18 +175,18 @@ body
 /**
  * See_also: content
  */
-string parenContent(const Token[]tokens, ref size_t index)
+string parenContent(TokenBuffer tokens)
 {
-	return "(" ~ content(tokens, index, TokenType.LParen, TokenType.RParen) ~ ")";
+	return "(" ~ content(tokens, TokenType.LParen, TokenType.RParen) ~ ")";
 }
 
 
 /**
  * See_also: content
  */
-string bracketContent(const Token[]tokens, ref size_t index)
+string bracketContent(TokenBuffer tokens)
 {
-	return "[" ~ content(tokens, index, TokenType.LBracket, TokenType.RBracket) ~ "]";
+	return "[" ~ content(tokens, TokenType.LBracket, TokenType.RBracket) ~ "]";
 }
 
 
@@ -169,14 +195,12 @@ string bracketContent(const Token[]tokens, ref size_t index)
  * index initially indexed a right brace, or advances index until it indexes a
  * character after a simicolon otherwise.
  */
-void skipBlockStatement(const Token[] tokens, ref size_t index)
+void skipBlockStatement(TokenBuffer tokens)
 {
-	if (tokens[index] == TokenType.LBrace)
-		betweenBalancedBraces(tokens, index);
+	if (tokens.front == TokenType.LBrace)
+		skipBraces(tokens);
 	else
-	{
-		skipPastNext(tokens, TokenType.Semicolon, index);
-	}
+		skipPastNext(tokens, TokenType.Semicolon);
 }
 
 
@@ -185,50 +209,57 @@ void skipBlockStatement(const Token[] tokens, ref size_t index)
  * of type type. This function handles nesting of braces, brackets, and
  * parenthesis
  */
-void skipPastNext(const Token[] tokens, TokenType type, ref size_t index)
+void skipPastNext(TokenBuffer tokens, TokenType type)
 {
-	while (index < tokens.length)
+	while (!tokens.empty)
 	{
-		if (tokens[index].type == TokenType.LBrace)
-			betweenBalancedBraces(tokens, index);
-		else if (tokens[index].type == TokenType.LParen)
-			betweenBalancedParens(tokens, index);
-		else if (tokens[index].type == TokenType.LBracket)
-			betweenBalancedBrackets(tokens, index);
-		else if (tokens[index].type == type)
+		if (tokens.front.type == TokenType.LBrace)
+			skipBraces(tokens);
+		else if (tokens.front.type == TokenType.LParen)
+			skipParens(tokens);
+		else if (tokens.front.type == TokenType.LBracket)
+			skipBrackets(tokens);
+		else if (tokens.front.type == type)
 		{
-			++index;
+			tokens.popFront();
 			return;
 		}
 		else
-			++index;
+			tokens.popFront();
 	}
 }
 
-string parseTypeDeclaration(const Token[] tokens, ref size_t index)
+string parseTypeDeclaration(TokenBuffer tokens)
 {
-	auto type = tokens[index++].value.idup;
-	buildingType: while (index < tokens.length)
+	auto type = tokens.front.value;
+	tokens.popFront();
+	buildingType: while (!tokens.empty)
 	{
-		switch (tokens[index].type)
+		switch (tokens.front.type)
 		{
 		case TokenType.LBracket:
-			type ~= bracketContent(tokens, index);
+			type ~= bracketContent(tokens);
 			break;
 		case TokenType.Not:
-			type ~= tokens[index++].value;
-			if (tokens[index] == TokenType.LParen)
-				type ~= parenContent(tokens, index);
+			type ~= tokens.front.value;
+			tokens.popFront();
+			if (tokens.front == TokenType.LParen)
+				type ~= parenContent(tokens);
 			else
-				type ~= tokens[index++].value;
+			{
+				type ~= tokens.front.value;
+				tokens.popFront();
+			}
 			break;
 		case TokenType.Star:
 		case TokenType.BitAnd:
-			type ~= tokens[index++].value;
+			type ~= tokens.front.value;
+			tokens.popFront();
 			break;
 		case TokenType.Function:
-			type ~= " " ~ tokens[index++].value;
-			type ~= parenContent(tokens, index);
+			type ~= " " ~ tokens.front.value;
+			tokens.popFront();
+			type ~= parenContent(tokens);
 			break;
 		default:
 			break buildingType;
@@ -244,7 +275,7 @@ string parseTypeDeclaration(const Token[] tokens, ref size_t index)
  *     attributes = the default attributes for a block statement
  * Returns: the parsed module
  */
-Module parseModule(const Token[] tokens, string protection = "public", string[] attributes = [])
+Module parseModule(TokenBuffer tokens, string protection = "public", string[] attributes = [])
 {
 	string type;
 	string name;
@@ -261,42 +292,45 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 
 	Module mod = new Module;
 	size_t index = 0;
-	while(index < tokens.length)
+	while(!tokens.empty)
 	{
-		switch(tokens[index].type)
+		switch(tokens.front.type)
 		{
-    case TokenType.Pragma:
-      ++index;
-      if (tokens[index] == TokenType.LParen)
-        skipParens(tokens, index);
-      break;
+		case TokenType.Pragma:
+			tokens.popFront();
+			if (tokens.front == TokenType.LParen)
+			skipParens(tokens);
+			break;
 		case TokenType.Mixin:
 		case TokenType.Assert:
-			++index;
-			tokens.skipBlockStatement(index);
+			tokens.popFront();
+			tokens.skipBlockStatement();
 			break;
 		case TokenType.Alias:
-			Alias a = parseAlias(tokens, index,
+			Alias a = parseAlias(tokens,
 				localProtection.empty() ? protection : localProtection,
 				attributes);
 			mod.aliases ~= a;
 			break;
 		case TokenType.Import:
-			mod.imports ~= parseImports(tokens, index);
+			mod.imports ~= parseImports(tokens);
 			resetLocals();
 			break;
 		case TokenType.Version:
-			++index;
-			if (tokens[index] == TokenType.LParen)
+			tokens.popFront();
+			if (tokens.front == TokenType.LParen)
 			{
-				tokens.betweenBalancedParens(index);
-				if (tokens[index] == TokenType.LBrace)
-					mod.merge(parseModule(betweenBalancedBraces(tokens, index),
+				tokens.betweenBalancedParens();
+				if (tokens.front == TokenType.LBrace)
+				{
+					auto braceContent = tokens.betweenBalancedBraces();
+					mod.merge(parseModule(braceContent,
 						localProtection.empty() ? protection : localProtection,
 						attributes));
+				}
 			}
-			else if (tokens[index] == TokenType.Assign)
-				tokens.skipBlockStatement(index);
+			else if (tokens.front == TokenType.Assign)
+				tokens.skipBlockStatement();
 			break;
 		case TokenType.Deprecated:
 		case TokenType.Nothrow:
@@ -306,7 +340,8 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 		case TokenType.Final:
 		case TokenType.Gshared:
 		case TokenType.Static:
-			localAttributes ~= tokens[index++].value;
+			localAttributes ~= tokens.front.value;
+			tokens.popFront();
 			break;
 		case TokenType.Const:
 		case TokenType.Immutable:
@@ -314,10 +349,11 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 		case TokenType.Pure:
 		case TokenType.Scope:
 		case TokenType.Shared:
-			auto tmp = tokens[index++].value;
-			if (tokens[index] == TokenType.LParen)
-				type = tmp ~ parenContent(tokens, index);
-			else if (tokens[index] == TokenType.Colon)
+			auto tmp = tokens.front.value;
+			tokens.popFront();
+			if (tokens.front == TokenType.LParen)
+				type = tmp ~ tokens.parenContent();
+			else if (tokens.front == TokenType.Colon)
 			{
 				index++;
 				attributes ~= tmp;
@@ -326,78 +362,83 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 			break;
 		case TokenType.Align:
 		case TokenType.Extern:
-			string attribute = tokens[index++].value;
-			if (tokens[index] == TokenType.LParen)
-				attribute ~= parenContent(tokens, index);
-			if (tokens[index] == TokenType.LBrace)
-				mod.merge(parseModule(betweenBalancedBraces(tokens, index),
+			string attribute = tokens.front.value;
+			tokens.popFront();
+			if (tokens.front == TokenType.LParen)
+				attribute ~= parenContent(tokens);
+			if (tokens.front == TokenType.LBrace)
+				mod.merge(parseModule(tokens.betweenBalancedBraces(),
 					localProtection.empty() ? protection : localProtection,
 					attributes ~ attribute));
-			else if (tokens[index] == TokenType.Colon)
+			else if (tokens.front == TokenType.Colon)
 			{
-				++index;
+				tokens.popFront();
 				attributes ~= attribute;
 			}
 			else
 				localAttributes ~= attribute;
 			break;
 		case TokenType.PROTECTION_BEGIN: .. case TokenType.PROTECTION_END:
-			string p = tokens[index++].value;
-			if (tokens[index] == TokenType.Colon)
+			string p = tokens.front.value;
+			tokens.popFront();
+			if (tokens.front == TokenType.Colon)
 			{
 				protection = p;
-				++index;
+				tokens.popFront();
 			}
-			else if (tokens[index] == TokenType.LBrace)
-				mod.merge(parseModule(betweenBalancedBraces(tokens, index),
+			else if (tokens.front == TokenType.LBrace)
+				mod.merge(parseModule(tokens.betweenBalancedBraces(),
 					p, attributes ~ localAttributes));
 			else
 				localProtection = p;
 			break;
 		case TokenType.Module:
-			++index;
-			while (index < tokens.length && tokens[index] != TokenType.Semicolon)
-				mod.name ~= tokens[index++].value;
-			++index;
+			tokens.popFront();
+			while (!tokens.empty && tokens.front != TokenType.Semicolon)
+			{
+				mod.name ~= tokens.front.value;
+				tokens.popFront();
+			}
+			tokens.popFront();
 			resetLocals();
 			break;
 		case TokenType.Union:
-			mod.unions ~= parseUnion(tokens, index,
+			mod.unions ~= parseUnion(tokens,
 				localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			resetLocals();
 			break;
 		case TokenType.Class:
-			mod.classes ~= parseClass(tokens, index,
+			mod.classes ~= parseClass(tokens,
 				localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			resetLocals();
 			break;
 		case TokenType.Interface:
-			mod.interfaces ~= parseInterface(tokens, index,
+			mod.interfaces ~= parseInterface(tokens,
 				localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			resetLocals();
 			break;
 		case TokenType.Struct:
-			mod.structs ~= parseStruct(tokens, index,
+			mod.structs ~= parseStruct(tokens,
 				localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			resetLocals();
 			break;
 		case TokenType.Enum:
-			mod.enums ~= parseEnum(tokens, index,
+			mod.enums ~= parseEnum(tokens,
 				localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			resetLocals();
 			break;
 		case TokenType.Template:
-			++index; // template
-			++index; // name
-			if (tokens[index] == TokenType.LParen)
-				tokens.betweenBalancedParens(index); // params
-			if (tokens[index] == TokenType.LBrace)
-				tokens.betweenBalancedBraces(index); // body
+			tokens.popFront(); // template
+			tokens.popFront(); // name
+			if (tokens.front == TokenType.LParen)
+				tokens.betweenBalancedParens(); // params
+			if (tokens.front == TokenType.LBrace)
+				tokens.betweenBalancedBraces(); // body
 			resetLocals();
 			break;
 		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
@@ -405,16 +446,17 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 		case TokenType.Identifier:
 			if (type.empty())
 			{
-				type = tokens.parseTypeDeclaration(index);
+				type = tokens.parseTypeDeclaration();
 			}
 			else
 			{
-				name = tokens[index++].value;
-				if (index >= tokens.length) break;
-				if (tokens[index] == TokenType.LParen)
+				name = tokens.front.value;
+				tokens.popFront();
+				if (tokens.empty) break;
+				if (tokens.front == TokenType.LParen)
 				{
-					mod.functions ~= parseFunction(tokens, index, type, name,
-						tokens[index].lineNumber,
+					mod.functions ~= parseFunction(tokens, type, name,
+						tokens.front.lineNumber,
 						localProtection.empty() ? protection : localProtection,
 						attributes ~ localAttributes);
 				}
@@ -425,39 +467,40 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
 					v.type = type;
 					v.attributes = localAttributes ~ attributes;
 					v.protection = localProtection.empty() ? protection : localProtection;
-					v.line = tokens[index].lineNumber;
+					v.line = tokens.front.lineNumber;
 					mod.variables ~= v;
 				}
 				resetLocals();
 			}
 			break;
 		case TokenType.Unittest:
-			++index;
-			if (!tokens.empty() && tokens[index] == TokenType.LBrace)
-				tokens.skipBlockStatement(index);
+			tokens.popFront();
+			if (!tokens.empty() && tokens.front == TokenType.LBrace)
+				tokens.skipBlockStatement();
 			resetLocals();
 			break;
 		case TokenType.Tilde:
-			++index;
-			if (tokens[index] == TokenType.This)
+			tokens.popFront();
+			if (tokens.front == TokenType.This)
 			{
 				name = "~";
 				goto case;
 			}
 			break;
 		case TokenType.This:
-			name ~= tokens[index++].value;
-			if (index < tokens.length && tokens[index] == TokenType.LParen)
+			name ~= tokens.front.value;
+			tokens.popFront();
+			if (!tokens.empty && tokens.front == TokenType.LParen)
 			{
-				mod.functions ~= parseFunction(tokens, index, "", name,
-					tokens[index - 1].lineNumber,
+				mod.functions ~= parseFunction(tokens, "", name,
+					tokens.peek(-1).lineNumber,
 					localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			}
 			resetLocals();
 			break;
 		default:
-			++index;
+			tokens.popFront();
 			break;
 		}
 	}
@@ -470,32 +513,33 @@ Module parseModule(const Token[] tokens, string protection = "public", string[] 
  * Returns: only the module names that were imported, not which symbols were
  * selectively improted.
  */
-string[] parseImports(const Token[] tokens, ref size_t index)
+string[] parseImports(TokenBuffer tokens)
 {
-	assert(tokens[index] == TokenType.Import);
-	++index;
+	assert(tokens.front == TokenType.Import);
+	tokens.popFront();
 	auto app = appender!(string[])();
 	string im;
-	while (index < tokens.length)
+	while (!tokens.empty)
 	{
-		switch(tokens[index].type)
+		switch(tokens.front.type)
 		{
 		case TokenType.Comma:
-			++index;
+			tokens.popFront();
 			app.put(im);
 			im = "";
 			break;
 		case TokenType.Assign:
 		case TokenType.Semicolon:
 			app.put(im);
-			++index;
+			tokens.popFront();
 			return app.data;
 		case TokenType.Colon:
 			app.put(im);
-			tokens.skipBlockStatement(index);
+			tokens.skipBlockStatement();
 			return app.data;
 		default:
-			im ~= tokens[index++].value;
+			im ~= tokens.front.value;
+			tokens.popFront();
 			break;
 		}
 	}
@@ -506,92 +550,98 @@ string[] parseImports(const Token[] tokens, ref size_t index)
 /**
  * Parses an enum declaration
  */
-Enum parseEnum(const Token[] tokens, ref size_t index, string protection,
-	string[] attributes)
+Enum parseEnum(TokenBuffer tokens, string protection, string[] attributes)
 in
 {
-	assert (tokens[index] == TokenType.Enum);
+	assert (tokens.front == TokenType.Enum);
 }
 body
 {
 	Enum e = new Enum;
-	e.line = tokens[index].lineNumber;
-	++index;
+	e.line = tokens.front.lineNumber;
+	tokens.popFront();
 	string enumType;
 	e.protection = protection;
 
-	if (tokens[index] == TokenType.LBrace)
+	if (tokens.front == TokenType.LBrace)
 		goto enumBody;
 
-	if (isIdentifierOrType(tokens[index]))
+	if (isIdentifierOrType(tokens.front))
 	{
-		if (index + 1 < tokens.length && tokens[index + 1] == TokenType.Identifier)
+		if (tokens.canPeek() && tokens.peek() == TokenType.Identifier)
 		{
 			// enum long l = 4;
 			EnumMember m;
-			m.type = tokens[index++].value;
-			m.line = tokens[index].lineNumber;
-			e.name = m.name = tokens[index].value;
+			m.type = tokens.front.value;
+			tokens.popFront();
+			m.line = tokens.front.lineNumber;
+			e.name = m.name = tokens.front.value;
 			e.members ~= m;
-			skipBlockStatement(tokens, index);
+			tokens.skipBlockStatement();
 			return e;
 		}
-		else if (index + 1 < tokens.length && tokens[index + 1] == TokenType.Assign)
+		else if (tokens.canPeek() && tokens.peek() == TokenType.Assign)
 		{
 			// enum m = "abcd";
-			e.name = tokens[index].value;
+			e.name = tokens.front.value;
 			EnumMember m;
 			m.name = e.name;
-			m.line = tokens[index].lineNumber;
-			m.type = getTypeFromToken(tokens[index + 2]);
+			m.line = tokens.front.lineNumber;
+			m.type = getTypeFromToken(tokens.peek(2));
 			e.members ~= m;
-			skipBlockStatement(tokens, index);
+			tokens.skipBlockStatement();
 			return e;
 		}
 	}
 
-	if (isIdentifierOrType(tokens[index]))
-		e.name = tokens[index++].value;
-
-	if (tokens[index] == TokenType.Colon)
+	if (isIdentifierOrType(tokens.front))
 	{
-		index++;
-		if (!isIdentifierOrType(tokens[index]))
-			skipBlockStatement(tokens, index);
+		e.name = tokens.front.value;
+		tokens.popFront();
+	}
+
+	if (tokens.front == TokenType.Colon)
+	{
+		tokens.popFront();
+		if (!isIdentifierOrType(tokens.front))
+			tokens.skipBlockStatement();
 		else
-			enumType = tokens[index++].value;
+		{
+			enumType = tokens.front.value;
+			tokens.popFront();
+		}
 	}
 
 enumBody:
-
-	auto r = betweenBalancedBraces(tokens, index);
-	for (size_t i = 0; i < r.length;)
-	{
-		EnumMember m;
-		if (isIdentifierOrType(r[i]) && i + 1 < r.length && isIdentifierOrType(r[i + 1]))
-		{
-			m.line = r[i + 1].lineNumber;
-			m.name = r[i + 1].value;
-			m.type = r[i].value;
-		}
-		else if (isIdentifierOrType(r[i]) && i + 1 < r.length && r[i + 1] == TokenType.Assign)
-		{
-			if (enumType == null && i + 2 < r.length)
-				m.type = getTypeFromToken(r[i + 2]);
-			else
-				m.type = enumType;
-			m.line = r[i].lineNumber;
-			m.name = r[i].value;
-		}
-		else
-		{
-			m.line = r[i].lineNumber;
-			m.name = r[i].value;
-			m.type = enumType == null ? "int" : enumType;
-		}
-		e.members ~= m;
-		skipPastNext(r, TokenType.Comma, i);
-	}
+//
+//	auto r = tokens.betweenBalancedBraces();
+//	while (!r.empty)
+//	{
+//		EnumMember m;
+//		if (isIdentifierOrType(r.front) && i + 1 < r.length && isIdentifierOrType(r[i + 1]))
+//		{
+//			m.line = r[i + 1].lineNumber;
+//			m.name = r[i + 1].value;
+//			m.type = r.front.value;
+//		}
+//		else if (isIdentifierOrType(r.front) && i + 1 < r.length && r[i + 1] == TokenType.Assign)
+//		{
+//			if (enumType == null && i + 2 < r.length)
+//				m.type = getTypeFromToken(r[i + 2]);
+//			else
+//				m.type = enumType;
+//			m.line = r.front.lineNumber;
+//			m.name = r.front.value;
+//		}
+//		else
+//		{
+//			m.line = r.front.lineNumber;
+//			m.name = r.front.value;
+//			m.type = enumType == null ? "int" : enumType;
+//		}
+//		e.members ~= m;
+//		skipPastNext(r, TokenType.Comma, i);
+//	}
 	return e;
 }
 
@@ -599,11 +649,11 @@ enumBody:
 /**
  * Parses a function declaration
  */
-Function parseFunction(const Token[] tokens, ref size_t index, string type,
+Function parseFunction(TokenBuffer tokens, string type,
 	string name, uint line, string protection, string[] attributes)
 in
 {
-	assert (tokens[index] == TokenType.LParen);
+	assert (tokens.front == TokenType.LParen);
 }
 body
 {
@@ -613,20 +663,20 @@ body
 	f.line = line;
 	f.attributes.insertInPlace(f.attributes.length, attributes);
 
-	Variable[] vars1 = parseParameters(tokens, index);
-	if (index < tokens.length && tokens[index] == TokenType.LParen)
+	Variable[] vars1 = parseParameters(tokens);
+	if (!tokens.empty && tokens.front == TokenType.LParen)
 	{
 		f.templateParameters.insertInPlace(f.templateParameters.length,
 			map!("a.type")(vars1));
 		f.parameters.insertInPlace(f.parameters.length,
-			parseParameters(tokens, index));
+			parseParameters(tokens));
 	}
 	else
 		f.parameters.insertInPlace(f.parameters.length, vars1);
 
-	attributeLoop: while(index < tokens.length)
+	attributeLoop: while(!tokens.empty)
 	{
-		switch (tokens[index].type)
+		switch (tokens.front.type)
 		{
 		case TokenType.Immutable:
 		case TokenType.Const:
@@ -634,62 +684,64 @@ body
 		case TokenType.Nothrow:
 		case TokenType.Final:
 		case TokenType.Override:
-			f.attributes ~= tokens[index++].value;
+			f.attributes ~= tokens.front.value;
+			tokens.popFront();
 			break;
 		default:
 			break attributeLoop;
 		}
 	}
 
-	if (index < tokens.length && tokens[index] == TokenType.If)
-		f.constraint = parseConstraint(tokens, index);
+	if (!tokens.empty && tokens.front == TokenType.If)
+		f.constraint = parseConstraint(tokens);
 
-	while (index < tokens.length &&
-		(tokens[index] == TokenType.In || tokens[index] == TokenType.Out
-		|| tokens[index] == TokenType.Body))
+	while (!tokens.empty &&
+		(tokens.front == TokenType.In || tokens.front == TokenType.Out
+		|| tokens.front == TokenType.Body))
 	{
-		++index;
-		if (index < tokens.length && tokens[index] == TokenType.LParen
-			&& tokens[index - 1] == TokenType.Out)
+		tokens.popFront();
+		if (!tokens.empty && tokens.front == TokenType.LParen
+			&& tokens.peek(-1) == TokenType.Out)
 		{
-			tokens.skipParens(index);
+			tokens.skipParens();
 		}
 
-		if (index < tokens.length && tokens[index] == TokenType.LBrace)
-			tokens.skipBlockStatement(index);
+		if (!tokens.empty && tokens.front == TokenType.LBrace)
+			tokens.skipBlockStatement();
 	}
-	if (index >= tokens.length)
+	if (!tokens.empty)
 		return f;
-	if (tokens[index] == TokenType.LBrace)
-		tokens.skipBlockStatement(index);
-	else if (tokens[index] == TokenType.Semicolon)
-		++index;
+	if (tokens.front == TokenType.LBrace)
+		tokens.skipBlockStatement();
+	else if (tokens.front == TokenType.Semicolon)
+		tokens.popFront();
 	return f;
 }
 
-string parseConstraint(const Token[] tokens, ref size_t index)
+string parseConstraint(TokenBuffer tokens)
 {
 	auto appender = appender!(string)();
-	assert(tokens[index] == TokenType.If);
-	appender.put(tokens[index++].value);
-	assert(tokens[index] == TokenType.LParen);
-	return "if " ~ parenContent(tokens, index);
+	assert(tokens.front == TokenType.If);
+	appender.put(tokens.front.value);
+	tokens.popFront();
+	assert(tokens.front == TokenType.LParen);
+	return "if " ~ tokens.parenContent();
 }
 
-Variable[] parseParameters(const Token[] tokens, ref size_t index)
+Variable[] parseParameters(TokenBuffer tokens)
 in
 {
-	assert (tokens[index] == TokenType.LParen);
+	assert (tokens.front == TokenType.LParen);
 }
 body
 {
 	auto appender = appender!(Variable[])();
 	Variable v = new Variable;
-	auto r = betweenBalancedParens(tokens, index);
+	auto r = betweenBalancedParens(tokens);
 	size_t i = 0;
-	while (i < r.length)
+	while (!r.empty)
 	{
-		switch(r[i].type)
+		switch(r.front.type)
 		{
 		case TokenType.Alias:
 		case TokenType.In:
@@ -701,15 +753,16 @@ body
 		case TokenType.Immutable:
 		case TokenType.Shared:
 		case TokenType.Inout:
-			auto tmp = r[i++].value;
-			if (r[i] == TokenType.LParen)
-				v.type ~= tmp ~ parenContent(r, i);
+			auto tmp = r.front.value;
+			r.popFront();
+			if (r.front == TokenType.LParen)
+				v.type ~= tmp ~ parenContent(r);
 			else
 				v.attributes ~= tmp;
 			break;
 		case TokenType.Colon:
 			i++;
-			r.skipPastNext(TokenType.Comma, i);
+			r.skipPastNext(TokenType.Comma);
 			appender.put(v);
 			v = new Variable;
 			break;
@@ -721,21 +774,22 @@ body
 		default:
 			if (v.type.empty())
 			{
-				v.type = r.parseTypeDeclaration(i);
-				if (i >= r.length)
+				v.type = r.parseTypeDeclaration();
+				if (!r.empty)
 					appender.put(v);
 			}
 			else
 			{
-				v.line = r[i].lineNumber;
-				v.name = r[i++].value;
+				v.line = r.front.lineNumber;
+				v.name = r.front.value;
+				r.popFront();
 				appender.put(v);
-				if (i < r.length && r[i] == TokenType.Vararg)
+				if (!r.empty && r.front == TokenType.Vararg)
 				{
 					v.type ~= " ...";
 				}
 				v = new Variable;
-				r.skipPastNext(TokenType.Comma, i);
+				r.skipPastNext(TokenType.Comma);
 			}
 			break;
 		}
@@ -743,23 +797,23 @@ body
 	return appender.data;
 }
 
-string[] parseBaseClassList(const Token[] tokens, ref size_t index)
+string[] parseBaseClassList(TokenBuffer tokens)
 in
 {
-	assert(tokens[index] == TokenType.Colon);
+	assert(tokens.front == TokenType.Colon);
 }
 body
 {
 	auto appender = appender!(string[])();
-	++index;
-	while (index < tokens.length)
+	tokens.popFront();
+	while (!tokens.empty)
 	{
-		if (tokens[index] == TokenType.Identifier)
+		if (tokens.front == TokenType.Identifier)
 		{
-			string base = parseTypeDeclaration(tokens, index);
+			string base = parseTypeDeclaration(tokens);
 			appender.put(base);
-			if (tokens[index] == TokenType.Comma)
-				++index;
+			if (tokens.front == TokenType.Comma)
+				tokens.popFront();
 			else
 				break;
 		}
@@ -769,117 +823,118 @@ body
 	return appender.data;
 }
 
-void parseStructBody(const Token[] tokens, ref size_t index, Struct st)
+void parseStructBody(TokenBuffer tokens, Struct st)
 {
-	st.bodyStart = tokens[index].startIndex;
-	Module m = parseModule(betweenBalancedBraces(tokens, index));
-	st.bodyEnd = tokens[index - 1].startIndex;
+	st.bodyStart = tokens.front.startIndex;
+	Module m = parseModule(tokens.betweenBalancedBraces());
+	st.bodyEnd = tokens.peek(-1).startIndex;
 	st.functions.insertInPlace(0, m.functions);
 	st.variables.insertInPlace(0, m.variables);
 	st.aliases.insertInPlace(0, m.aliases);
 }
 
 
-Struct parseStructOrUnion(const Token[] tokens, ref size_t index, string protection,
+Struct parseStructOrUnion(TokenBuffer tokens, string protection,
 	string[] attributes)
 {
 	Struct s = new Struct;
-	s.line = tokens[index].lineNumber;
+	s.line = tokens.front.lineNumber;
 	s.attributes = attributes;
 	s.protection = protection;
-	s.name = tokens[index++].value;
-	if (tokens[index] == TokenType.LParen)
+	s.name = tokens.front.value;
+	tokens.popFront();
+	if (tokens.front == TokenType.LParen)
 		s.templateParameters.insertInPlace(s.templateParameters.length,
-			map!("a.type")(parseParameters(tokens, index)));
+			map!("a.type")(parseParameters(tokens)));
 
-	if (index >= tokens.length) return s;
+	if (tokens.empty) return s;
 
-	if (tokens[index] == TokenType.If)
-		s.constraint = parseConstraint(tokens, index);
+	if (tokens.front == TokenType.If)
+		s.constraint = parseConstraint(tokens);
 
-	if (index >= tokens.length) return s;
+	if (tokens.empty) return s;
 
-	if (tokens[index] == TokenType.LBrace)
-		parseStructBody(tokens, index, s);
+	if (tokens.front == TokenType.LBrace)
+		parseStructBody(tokens, s);
 	else
-		tokens.skipBlockStatement(index);
+		tokens.skipBlockStatement();
 	return s;
 }
 
-Struct parseStruct(const Token[] tokens, ref size_t index, string protection,
+Struct parseStruct(TokenBuffer tokens, string protection,
 	string[] attributes)
 in
 {
-	assert(tokens[index] == TokenType.Struct);
+	assert(tokens.front == TokenType.Struct);
 }
 body
 {
-	return parseStructOrUnion(tokens, ++index, protection, attributes);
+	return parseStructOrUnion(tokens, protection, attributes);
 }
 
-Struct parseUnion(const Token[] tokens, ref size_t index, string protection,
-	string[] attributes)
+Struct parseUnion(TokenBuffer tokens, string protection, string[] attributes)
 in
 {
-	assert(tokens[index] == TokenType.Union);
+	assert(tokens.front == TokenType.Union);
 }
 body
 {
-	return parseStructOrUnion(tokens, ++index, protection, attributes);
+	tokens.popFront();
+	return parseStructOrUnion(tokens, protection, attributes);
 }
 
-Inherits parseInherits(const Token[] tokens, ref size_t index, string protection,
-	string[] attributes)
+Inherits parseInherits(TokenBuffer tokens, string protection, string[] attributes)
 {
 	auto i = new Inherits;
-	i.line = tokens[index].lineNumber;
-	i.name = tokens[index++].value;
+	i.line = tokens.front.lineNumber;
+	i.name = tokens.front.value;
+	tokens.popFront();
 	i.protection = protection;
 	i.attributes.insertInPlace(i.attributes.length, attributes);
-	if (tokens[index] == TokenType.LParen)
+	if (tokens.front == TokenType.LParen)
 		i.templateParameters.insertInPlace(i.templateParameters.length,
-			map!("a.type")(parseParameters(tokens, index)));
+			map!("a.type")(parseParameters(tokens)));
 
-	if (index >= tokens.length) return i;
+	if (tokens.empty) return i;
 
-	if (tokens[index] == TokenType.If)
-		i.constraint = parseConstraint(tokens, index);
+	if (tokens.front == TokenType.If)
+		i.constraint = parseConstraint(tokens);
 
-	if (index >= tokens.length) return i;
+	if (tokens.empty) return i;
 
-	if (tokens[index] == TokenType.Colon)
-		i.baseClasses = parseBaseClassList(tokens, index);
+	if (tokens.front == TokenType.Colon)
+		i.baseClasses = parseBaseClassList(tokens);
 
-	if (index >= tokens.length) return i;
+	if (tokens.empty) return i;
 
-	if (tokens[index] == TokenType.LBrace)
-		parseStructBody(tokens, index, i);
+	if (tokens.front == TokenType.LBrace)
+		parseStructBody(tokens, i);
 	else
-		tokens.skipBlockStatement(index);
+		tokens.skipBlockStatement();
 	return i;
 }
 
-Inherits parseInterface(const Token[] tokens, ref size_t index, string protection,
-	string[] attributes)
+Inherits parseInterface(TokenBuffer tokens, string protection, string[] attributes)
 in
 {
-	assert (tokens[index] == TokenType.Interface);
+	assert (tokens.front == TokenType.Interface);
 }
 body
 {
-	return parseInherits(tokens, ++index, protection, attributes);
+	tokens.popFront();
+	return parseInherits(tokens, protection, attributes);
 }
 
 
-Inherits parseClass(const Token[] tokens, ref size_t index, string protection,
-	string[] attributes)
+Inherits parseClass(TokenBuffer tokens, string protection, string[] attributes)
 in
 {
-	assert(tokens[index] == TokenType.Class);
+	assert(tokens.front == TokenType.Class);
 }
 body
 {
-	return parseInherits(tokens, ++index, protection, attributes);
+	tokens.popFront();
+	return parseInherits(tokens, protection, attributes);
 }
 
 
@@ -889,24 +944,23 @@ body
  * but there seems to be no example of this being used, nor has the compiler
  * accepted any of my attempts to create one. Therefore, it's not supported here
  */
-Alias parseAlias(const Token[] tokens, ref size_t index, string protection,
-	string[] attributes)
+Alias parseAlias(TokenBuffer tokens, string protection, string[] attributes)
 in
 {
-	assert(tokens[index] == TokenType.Alias);
+	assert(tokens.front == TokenType.Alias);
 }
 body
 {
-	index++;
+	tokens.popFront();
 	Alias a = new Alias;
-	a.aliasedType = parseTypeDeclaration(tokens, index);
+	a.aliasedType = parseTypeDeclaration(tokens);
 	a.attributes = attributes;
 	a.protection = protection;
-	if (tokens[index] == TokenType.Identifier)
+	if (tokens.front == TokenType.Identifier)
 	{
-		a.name = tokens[index].value;
-		a.line = tokens[index].lineNumber;
-		skipBlockStatement(tokens, index);
+		a.name = tokens.front.value;
+		a.line = tokens.front.lineNumber;
+		skipBlockStatement(tokens);
 	}
 	else
 		return null;

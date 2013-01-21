@@ -7,8 +7,10 @@
 module highlighter;
 
 import std.stdio;
-import langutils;
 import std.array;
+import std.d.lexer;
+
+import langutils;
 
 void writeSpan(string cssClass, string value)
 {
@@ -23,13 +25,13 @@ void highlight(R)(R tokens)
 <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
 <body>
 <style type="text/css">
-html { background-color: #111; color: #ccc; }
-.kwrd { font-weight: bold; color: DeepSkyBlue; }
-.com { color: lightgreen; font-style: italic;}
-.num { color: red; font-weigth: bold; }
-.str { color: Tomato; font-style: italic; }
-.op { color: tan; font-weight: bold; }
-.type { color: cyan; font-weight: bold; }
+html { background-color: #fff; color: #222; }
+.kwrd { font-weight: bold; color: blue; }
+.com { color: green; font-style: italic;}
+.num { color: orangered; font-weigth: bold; }
+.str { color: red; font-style: italic; }
+.op { color: 333; font-weight: bold; }
+.type { color: magenta; font-weight: bold; }
 </style>
 <pre>]");
 

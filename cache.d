@@ -13,11 +13,11 @@ import std.uuid;
 import std.array;
 import std.string;
 import std.conv;
+import std.d.lexer;
 
 import location;
 import parser;
 import types;
-import tokenizer;
 
 private sqlite3* database;
 
@@ -104,10 +104,10 @@ void updateCache(string dirs[], string moduleNames[])
 		if (timeLastModified.stdTime == mtime)
 			continue;
 
-		// re-parse the module
-		Module m = parseModule(byToken(readText(filePath)).array());
-
-		updateCache(m);
+//		// re-parse the module
+//		Module m = parseModule(byToken(readText(filePath)).array());
+//
+//		updateCache(m);
 
 		sqlite3_reset(statement);
 	}

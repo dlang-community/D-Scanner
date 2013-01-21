@@ -1,7 +1,15 @@
-//          Copyright Brian Schott (Sir Alaran) 2012.
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)module entities;
+// Written in the D programming language
+
+/**
+ * Contains listing of named entities for the D lexer.
+ *
+ * Copyright: Brian Schott 2013
+ * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Authors: Brian Schott
+ * Source: $(PHOBOSSRC std/d/_lexer.d)
+ */
+
+module std.d.entities;
 
 /**
  * Generated from $(LINK http://www.w3.org/TR/html5/entities.json)
