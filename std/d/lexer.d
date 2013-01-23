@@ -206,10 +206,39 @@ class TokenRange(R) : InputRange!(Token)
 		return result;
 	}
 
+    override void popFront()
+    {
+        // Filter out tokens we don't care about
+        loop: do
+        {
+            advance();
+            switch (current.type)
+            {
+            case TokenType.Comment:
+                if (iterStyle & IterationStyle.IncludeComments)
+                    break loop;
+                break;
+            case TokenType.Whitespace:
+                if (iterStyle & IterationStyle.IncludeWhitespace)
+                    break loop;
+                break;
+            case TokenType.SpecialTokenSequence:
+                if (iterStyle & IterationStyle.IncludeSpecialTokens)
+                    break loop;
+                break;
+            default:
+                break loop;
+            }
+        }
+        while (!empty());
+    }
+
+private:
+
 	/**
-	 * Removes the current token from the range
-	 */
-	override void popFront()
+     * Advances the range to the next token
+     */
+	void advance()
 	{
 		if (range.empty)
 		{
@@ -221,15 +250,10 @@ class TokenRange(R) : InputRange!(Token)
 		current.lineNumber = lineNumber;
 		current.startIndex = index;
 
-		while (std.uni.isWhite(range.front))
+		if (std.uni.isWhite(range.front))
 		{
-			if (iterStyle == IterationStyle.Everything)
-			{
-				current = lexWhitespace(range, index, lineNumber);
-				return;
-			}
-			else
-				lexWhitespace(range, index, lineNumber);
+            current = lexWhitespace(range, index, lineNumber);
+            return;
 		}
 		outer: switch (range.front)
 		{
@@ -338,15 +362,6 @@ class TokenRange(R) : InputRange!(Token)
 			case '*':
 			case '+':
 				current = lexComment(range, index, lineNumber);
-                if (!(iterStyle & IterationStyle.IncludeComments))
-                {
-                    if (range.empty)
-                    {
-                        _empty = true;
-                        return;
-                    }
-                    popFront();
-                }
 				break outer;
 			case '=':
 				current.type = TokenType.DivEquals;
@@ -388,15 +403,6 @@ class TokenRange(R) : InputRange!(Token)
             {
                 current.type = TokenType.SpecialTokenSequence;
                 current.value = special;
-                if (!(iterStyle & IterationStyle.IncludeSpecialTokens))
-                {
-                    if (range.empty)
-                    {
-                        _empty = true;
-                        return;
-                    }
-                    popFront();
-                }
             }
             else
             {
@@ -421,7 +427,6 @@ class TokenRange(R) : InputRange!(Token)
 		}
 	}
 
-private:
 	Token current;
 	uint lineNumber;
 	uint index;
@@ -1520,6 +1525,7 @@ body
 
 unittest
 {
+    import std.stdio;
 	uint i;
 	uint l;
 	auto a = "q{import std.stdio;} abcd";
@@ -2510,5 +2516,3 @@ string generateCaseTrie(string[] args ...)
 	}
 	return printCaseStatements(t, "");
 }
-
-void main() {}
