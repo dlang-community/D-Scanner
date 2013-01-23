@@ -4,7 +4,7 @@
  * This module contains a range-based lexer for the D programming language.
  *
  * Copyright: Brian Schott 2013
- * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
  * Authors: Brian Schott
  * Source: $(PHOBOSSRC std/d/_lexer.d)
  */
@@ -78,9 +78,11 @@ enum IterationStyle
 	/// Only include code, not whitespace or comments
 	CodeOnly = 0,
 	/// Includes comments
-	IncludeComments = 0b01,
+	IncludeComments = 0b0001,
 	/// Includes whitespace
-	IncludeWhitespace = 0b10,
+	IncludeWhitespace = 0b0010,
+    /// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
+    IncludeSpecialTokens = 0b0100,
 	/// Include everything
 	Everything = IncludeComments | IncludeWhitespace
 }
@@ -246,7 +248,6 @@ class TokenRange(R) : InputRange!(Token)
 			"=>",   "TokenType.GoesTo",
 			">",    "TokenType.Greater",
 			">=",   "TokenType.GreaterEqual",
-			"#",    "TokenType.Hash",
 			"&&",   "TokenType.LogicAnd",
 			"{",    "TokenType.LBrace",
 			"[",    "TokenType.LBracket",
@@ -337,6 +338,15 @@ class TokenRange(R) : InputRange!(Token)
 			case '*':
 			case '+':
 				current = lexComment(range, index, lineNumber);
+                if (!(iterStyle & IterationStyle.IncludeComments))
+                {
+                    if (range.empty)
+                    {
+                        _empty = true;
+                        return;
+                    }
+                    popFront();
+                }
 				break outer;
 			case '=':
 				current.type = TokenType.DivEquals;
@@ -372,6 +382,31 @@ class TokenRange(R) : InputRange!(Token)
 			}
 			else
 				goto default;
+        case '#':
+            string special = lexSpecialTokenSequence(range, index, lineNumber);
+            if (special)
+            {
+                current.type = TokenType.SpecialTokenSequence;
+                current.value = special;
+                if (!(iterStyle & IterationStyle.IncludeSpecialTokens))
+                {
+                    if (range.empty)
+                    {
+                        _empty = true;
+                        return;
+                    }
+                    popFront();
+                }
+            }
+            else
+            {
+                current.type = TokenType.Hash;
+                current.value = "#";
+                range.popFront();
+				++index;
+				break;
+            }
+            break;
 		default:
 			auto app = appender!(ElementType!(R)[])();
 			while(!range.isEoF() && !isSeparating(range.front))
@@ -394,6 +429,14 @@ private:
 	bool _empty;
 	IterationStyle iterStyle;
 	StringStyle stringStyle;
+}
+
+unittest
+{
+    import std.stdio;
+    auto a = "/**comment*/\n#lin #line 10 \"test.d\"\nint a;//test\n";
+    foreach (t; byToken(a))
+        writeln(t);
 }
 
 /**
@@ -493,130 +536,129 @@ enum TokenType: uint
 
 	// Types
 	TYPES_BEGIN, ///
-	Bool, /// bool,
-	Byte, /// byte,
-	Cdouble, /// cdouble,
-	Cent, /// cent,
-	Cfloat, /// cfloat,
-	Char, /// char,
-	Creal, /// creal,
-	Dchar, /// dchar,
-	Double, /// double,
+	Bool, /// bool
+	Byte, /// byte
+	Cdouble, /// cdouble
+	Cent, /// cent
+	Cfloat, /// cfloat
+	Char, /// char
+	Creal, /// creal
+	Dchar, /// dchar
+	Double, /// double
 	DString, /// dstring
-	Float, /// float,
-	Function, /// function,
-	Idouble, /// idouble,
-	Ifloat, /// ifloat,
-	Int, /// int,
-	Ireal, /// ireal,
-	Long, /// long,
-	Real, /// real,
-	Short, /// short,
+	Float, /// float
+	Function, /// function
+	Idouble, /// idouble
+	Ifloat, /// ifloat
+	Int, /// int
+	Ireal, /// ireal
+	Long, /// long
+	Real, /// real
+	Short, /// short
 	String, /// string
-	Ubyte, /// ubyte,
-	Ucent, /// ucent,
-	Uint, /// uint,
-	Ulong, /// ulong,
-	Ushort, /// ushort,
-	Void, /// void,
-	Wchar, /// wchar,
+	Ubyte, /// ubyte
+	Ucent, /// ucent
+	Uint, /// uint
+	Ulong, /// ulong
+	Ushort, /// ushort
+	Void, /// void
+	Wchar, /// wchar
 	WString, /// wstring
 	TYPES_END, ///
 
-	Template, /// template,
+	Template, /// template
 
 	// Keywords
 	KEYWORDS_BEGIN, ///
 		ATTRIBUTES_BEGIN, ///
-		Align, /// align,
-		Deprecated, /// deprecated,
-		Extern, /// extern,
-		Pragma, /// pragma,
+		Align, /// align
+		Deprecated, /// deprecated
+		Extern, /// extern
+		Pragma, /// pragma
 			PROTECTION_BEGIN, ///
-			Export, /// export,
-			Package, /// package,
-			Private, /// private,
-			Protected, /// protected,
-			Public, /// public,
+			Export, /// export
+			Package, /// package
+			Private, /// private
+			Protected, /// protected
+			Public, /// public
 			PROTECTION_END, ///
-		Abstract, /// abstract,
-		AtDisable, /// @disable
-		Auto, /// auto,
-		Const, /// const,
+		Abstract, /// abstract
+		Auto, /// auto
+		Const, /// const
 		Final, /// final
-		Gshared, /// __gshared,
-		Immutable, // immutable,
-		Inout, // inout,
-		Scope, /// scope,
-		Shared, // shared,
-		Static, /// static,
-		Synchronized, /// synchronized,
+		Gshared, /// __gshared
+		Immutable, // immutable
+		Inout, // inout
+		Scope, /// scope
+		Shared, // shared
+		Static, /// static
+		Synchronized, /// synchronized
 		ATTRIBUTES_END, ///
-	Alias, /// alias,
-	Asm, /// asm,
-	Assert, /// assert,
-	Body, /// body,
-	Break, /// break,
-	Case, /// case,
-	Cast, /// cast,
-	Catch, /// catch,
-	Class, /// class,
-	Continue, /// continue,
-	Debug, /// debug,
-	Default, /// default,
-	Delegate, /// delegate,
-	Delete, /// delete,
-	Do, /// do,
-	Else, /// else,
-	Enum, /// enum,
-	False, /// false,
-	Finally, /// finally,
-	Foreach, /// foreach,
-	Foreach_reverse, /// foreach_reverse,
-	For, /// for,
-	Goto, /// goto,
-	If, /// if ,
-	Import, /// import,
-	In, /// in,
-	Interface, /// interface,
-	Invariant, /// invariant,
-	Is, /// is,
-	Lazy, /// lazy,
-	Macro, /// macro,
-	Mixin, /// mixin,
-	Module, /// module,
-	New, /// new,
-	Nothrow, /// nothrow,
-	Null, /// null,
-	Out, /// out,
-	Override, /// override,
-	Pure, /// pure,
-	Ref, /// ref,
-	Return, /// return,
-	Struct, /// struct,
-	Super, /// super,
-	Switch, /// switch ,
-	This, /// this,
-	Throw, /// throw,
-	True, /// true,
-	Try, /// try,
-	Typedef, /// typedef,
-	Typeid, /// typeid,
-	Typeof, /// typeof,
-	Union, /// union,
-	Unittest, /// unittest,
-	Version, /// version,
-	Volatile, /// volatile,
-	While, /// while ,
-	With, /// with,
+	Alias, /// alias
+	Asm, /// asm
+	Assert, /// assert
+	Body, /// body
+	Break, /// break
+	Case, /// case
+	Cast, /// cast
+	Catch, /// catch
+	Class, /// class
+	Continue, /// continue
+	Debug, /// debug
+	Default, /// default
+	Delegate, /// delegate
+	Delete, /// delete
+	Do, /// do
+	Else, /// else
+	Enum, /// enum
+	False, /// false
+	Finally, /// finally
+	Foreach, /// foreach
+	Foreach_reverse, /// foreach_reverse
+	For, /// for
+	Goto, /// goto
+	If, /// if
+	Import, /// import
+	In, /// in
+	Interface, /// interface
+	Invariant, /// invariant
+	Is, /// is
+	Lazy, /// lazy
+	Macro, /// macro
+	Mixin, /// mixin
+	Module, /// module
+	New, /// new
+	Nothrow, /// nothrow
+	Null, /// null
+	Out, /// out
+	Override, /// override
+	Pure, /// pure
+	Ref, /// ref
+	Return, /// return
+	Struct, /// struct
+	Super, /// super
+	Switch, /// switch
+	This, /// this
+	Throw, /// throw
+	True, /// true
+	Try, /// try
+	Typedef, /// typedef
+	Typeid, /// typeid
+	Typeof, /// typeof
+	Union, /// union
+	Unittest, /// unittest
+	Version, /// version
+	Volatile, /// volatile
+	While, /// while
+	With, /// with
 	KEYWORDS_END, ///
 
 	// Constants
-	CONSTANTS_BEGIN,
-	File, /// __FILE__,
-	Line, /// __LINE__,
-	Thread, /// __thread,
-	Traits, /// __traits,
+	CONSTANTS_BEGIN, ///
+	File, /// __FILE__
+	Line, /// __LINE__
+	Thread, /// __thread
+	Traits, /// __traits
 	CONSTANTS_END, ///
 
 	// Misc
@@ -625,6 +667,7 @@ enum TokenType: uint
 	Identifier, /// anything else
 	ScriptLine, // Line at the beginning of source file that starts from #!
 	Whitespace, /// whitespace
+    SpecialTokenSequence, /// #line 10 "file.d"
 	MISC_END, ///
 
 	// Literals
@@ -1429,11 +1472,11 @@ body
 	int depth = 1;
 	while (!r.empty)
 	{
-		if (r.front == TokenType.LBrace)
+		if (r.front.type == TokenType.LBrace)
 		{
 			++depth;
 		}
-		else if (r.front == TokenType.RBrace)
+		else if (r.front.type == TokenType.RBrace)
 		{
 			--depth;
 			if (depth <= 0)
@@ -1479,7 +1522,7 @@ unittest
 {
 	uint i;
 	uint l;
-	auto a = "q{import std.stdio;}";
+	auto a = "q{import std.stdio;} abcd";
 	auto ar = lexTokenString(a, i, l);
 	assert (ar == TokenType.StringLiteral);
 	assert (ar == "import std.stdio;");
@@ -2071,6 +2114,109 @@ unittest
 	assert (pr == TokenType.DoubleLiteral);
 }
 
+string lexSpecialTokenSequence(R)(ref R input, ref uint index,
+    ref uint lineNumber)
+in
+{
+    assert (input.front == '#');
+}
+body
+{
+    auto i = index;
+    auto r = input.save;
+    auto l = lineNumber;
+    r.popFront();
+    ++i;
+    auto app = appender!(ElementType!(R)[])();
+    app.put('#');
+
+    auto specialType = appender!(ElementType!(R)[])();
+
+    while (!r.empty && !isSeparating(r.front))
+    {
+        specialType.put(r.front);
+        ++i;
+        r.popFront();
+    }
+
+    if (to!string(specialType.data) != "line")
+        return null;
+    app.put(specialType.data);
+
+    if (std.uni.isWhite(r.front))
+        app.put(lexWhitespace(r, i, l).value);
+
+
+    if (!isDigit(r.front))
+        return null;
+
+    auto t = lexNumber(r, i, l);
+    if (t != TokenType.IntLiteral)
+        return null;
+
+    app.put(t.value);
+    l = to!uint(t.value);
+
+    if (!isNewline(r))
+    {
+        if (!r.empty && std.uni.isWhite(r.front))
+            app.put(lexWhitespace(r, i, l).value);
+
+        if (!r.empty && r.front == '"')
+        {
+            auto fSpecApp = appender!(ElementType!(R)[])();
+            fSpecApp.put(r.front);
+            r.popFront();
+            ++i;
+            while (!r.empty)
+            {
+                if (r.front == '"')
+                {
+                    fSpecApp.put('"');
+                    ++i;
+                    r.popFront();
+                    break;
+                }
+                ++i;
+                fSpecApp.put(r.front);
+                r.popFront();
+            }
+            app.put(fSpecApp.data);
+        }
+        else
+            return null;
+    }
+
+    app.put(popNewline(r, i));
+    input.popFrontN(i - index);
+    index = i;
+    lineNumber = l;
+    return to!string(app.data);
+}
+
+unittest
+{
+    uint i;
+    uint l;
+    auto a = "#line 10\n";
+    auto ar = lexSpecialTokenSequence(a, i, l);
+    assert (ar == "#line 10\n");
+    assert (a == "");
+    assert (l == 10);
+
+    auto b = "#line 9201 \"test.d\"\n";
+    auto br = lexSpecialTokenSequence(b, i, l);
+    assert (l == 9201);
+    assert (br == "#line 9201 \"test.d\"\n");
+    assert (b == "");
+
+    auto c = `#lin`;
+    auto cr = lexSpecialTokenSequence(c, i, l);
+    assert (l == 9201);
+    assert (cr is null);
+    assert (c == `#lin`);
+}
+
 pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
 {
 	switch (ch)
@@ -2364,3 +2510,5 @@ string generateCaseTrie(string[] args ...)
 	}
 	return printCaseStatements(t, "");
 }
+
+void main() {}
