@@ -37,30 +37,20 @@ html { background-color: #fff; color: #222; }
 
 	foreach (Token t; tokens)
 	{
-		switch (t.type)
-		{
-		case TokenType.KEYWORDS_BEGIN: .. case TokenType.KEYWORDS_END:
-			writeSpan("kwrd", t.value);
-			break;
-		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
+		if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
 			writeSpan("type", t.value);
-			break;
-		case TokenType.Comment:
+		else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
+			writeSpan("kwrd", t.value);
+		else if (t.type == TokenType.Comment)
 			writeSpan("com", t.value);
-			break;
-		case TokenType.STRINGS_BEGIN: .. case TokenType.STRINGS_END:
+		else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
 			writeSpan("str", t.value);
-			break;
-		case TokenType.NUMBERS_BEGIN: .. case TokenType.NUMBERS_END:
+		else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
 			writeSpan("num", t.value);
-			break;
-		case TokenType.OPERATORS_BEGIN: .. case TokenType.OPERATORS_END:
+		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
 			writeSpan("op", t.value);
-			break;
-		default:
+		else
 			stdout.write(t.value.replace("<", "&lt;"));
-			break;
-		}
 	}
 	stdout.writeln("</pre>\n</body></html>");
 }

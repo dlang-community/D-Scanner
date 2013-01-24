@@ -539,42 +539,39 @@ enum TokenType: uint
 	XorEquals,	/// ^=
 	OPERATORS_END, ///
 
-	// Types
-	TYPES_BEGIN, ///
-	Bool, /// bool
-	Byte, /// byte
-	Cdouble, /// cdouble
-	Cent, /// cent
-	Cfloat, /// cfloat
-	Char, /// char
-	Creal, /// creal
-	Dchar, /// dchar
-	Double, /// double
-	DString, /// dstring
-	Float, /// float
-	Function, /// function
-	Idouble, /// idouble
-	Ifloat, /// ifloat
-	Int, /// int
-	Ireal, /// ireal
-	Long, /// long
-	Real, /// real
-	Short, /// short
-	String, /// string
-	Ubyte, /// ubyte
-	Ucent, /// ucent
-	Uint, /// uint
-	Ulong, /// ulong
-	Ushort, /// ushort
-	Void, /// void
-	Wchar, /// wchar
-	WString, /// wstring
-	TYPES_END, ///
 
-	Template, /// template
-
-	// Keywords
+    // Keywords
 	KEYWORDS_BEGIN, ///
+        TYPES_BEGIN, ///
+        Bool, /// bool
+        Byte, /// byte
+        Cdouble, /// cdouble
+        Cent, /// cent
+        Cfloat, /// cfloat
+        Char, /// char
+        Creal, /// creal
+        Dchar, /// dchar
+        Double, /// double
+        DString, /// dstring
+        Float, /// float
+        Function, /// function
+        Idouble, /// idouble
+        Ifloat, /// ifloat
+        Int, /// int
+        Ireal, /// ireal
+        Long, /// long
+        Real, /// real
+        Short, /// short
+        String, /// string
+        Ubyte, /// ubyte
+        Ucent, /// ucent
+        Uint, /// uint
+        Ulong, /// ulong
+        Ushort, /// ushort
+        Void, /// void
+        Wchar, /// wchar
+        WString, /// wstring
+        TYPES_END, ///
 		ATTRIBUTES_BEGIN, ///
 		Align, /// align
 		Deprecated, /// deprecated
@@ -643,6 +640,7 @@ enum TokenType: uint
 	Struct, /// struct
 	Super, /// super
 	Switch, /// switch
+    Template, /// template
 	This, /// this
 	Throw, /// throw
 	True, /// true
