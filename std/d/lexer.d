@@ -3,6 +3,64 @@
 /**
  * This module contains a range-based lexer for the D programming language.
  *
+ * Examples:
+ *
+ * Generate HTML markup of D code.
+ * ---
+ * import std.stdio;
+ * import std.array;
+ * import std.file;
+ * import std.d.lexer;
+ *
+ * void writeSpan(string cssClass, string value)
+ * {
+ * 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
+ * }
+ *
+ * void highlight(R)(R tokens)
+ * {
+ * 	stdout.writeln(q"[<!DOCTYPE html>
+ * <html>
+ * <head>
+ * <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+ * <body>
+ * <style type="text/css">
+ * html { background-color: #fff; color: #222; }
+ * .kwrd { font-weight: bold; color: blue; }
+ * .com { color: green; font-style: italic;}
+ * .num { color: orangered; font-weigth: bold; }
+ * .str { color: red; font-style: italic; }
+ * .op { color: 333; font-weight: bold; }
+ * .type { color: magenta; font-weight: bold; }
+ * </style>
+ * <pre>]");
+ *
+ * 	foreach (Token t; tokens)
+ * 	{
+ * 		if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
+ * 			writeSpan("type", t.value);
+ * 		else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
+ * 			writeSpan("kwrd", t.value);
+ * 		else if (t.type == TokenType.Comment)
+ * 			writeSpan("com", t.value);
+ * 		else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
+ * 			writeSpan("str", t.value);
+ * 		else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
+ * 			writeSpan("num", t.value);
+ * 		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
+ * 			writeSpan("op", t.value);
+ * 		else
+ * 			stdout.write(t.value.replace("<", "&lt;"));
+ * 	}
+ * 	stdout.writeln("</pre>\n</body></html>");
+ * }
+ *
+ * void main(string[] args)
+ * {
+ *     args[1].readText().byToken(IterationStyle.Everything, StringStyle.Source).highlight();
+ * }
+ * ---
+ *
  * Copyright: Brian Schott 2013
  * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
  * Authors: Brian Schott
@@ -143,7 +201,8 @@ TokenRange!(R) byToken(R)(R range, const IterationStyle iterationStyle = Iterati
 }
 
 /**
- * Range of tokens
+ * Range of tokens. Avoid creating instances of this manually. Use
+ * $(DDOC_PSYMBOL byToken$(LPAREN)$(RPAREN)) instead, as it does some initialization work.
  */
 class TokenRange(R) : InputRange!(Token)
 {
@@ -235,7 +294,7 @@ class TokenRange(R) : InputRange!(Token)
 
 private:
 
-	/**
+	/*
      * Advances the range to the next token
      */
 	void advance()
@@ -474,199 +533,199 @@ enum TokenType: uint
 {
 	// Operators
 	OPERATORS_BEGIN, ///
-	Assign,	/// =
-	At, /// @
-	BitAnd,	/// &
-	BitAndEquals,	/// &=
-	BitOr,	/// |
-	BitOrEquals,	/// |=
-	CatEquals,	/// ~=
-	Colon,	/// :
-	Comma,	/// ,
-	Decrement,	/// --
-	Div,	/// /
-	DivEquals,	/// /=
-	Dollar,	/// $
-	Dot,	/// .
-	Equals,	/// ==
+	Assign,	/// $(D_KEYWORD =)
+	At, /// $(D_KEYWORD @)
+	BitAnd,	/// $(D_KEYWORD &)
+	BitAndEquals,	/// $(D_KEYWORD &=)
+	BitOr,	/// $(D_KEYWORD |)
+	BitOrEquals,	/// $(D_KEYWORD |=)
+	CatEquals,	/// $(D_KEYWORD ~=)
+	Colon,	/// $(D_KEYWORD :)
+	Comma,	/// $(D_KEYWORD ,)
+	Decrement,	/// $(D_KEYWORD --)
+	Div,	/// $(D_KEYWORD /)
+	DivEquals,	/// $(D_KEYWORD /=)
+	Dollar,	/// $(D_KEYWORD $)
+	Dot,	/// $(D_KEYWORD .)
+	Equals,	/// $(D_KEYWORD ==)
 	GoesTo, // =>
-	Greater,	/// >
-	GreaterEqual,	/// >=
-	Hash, // #
-	Increment,	/// ++
-	LBrace,	/// {
-	LBracket,	/// [
-	Less,	/// <
-	LessEqual,	/// <=
-	LessEqualGreater, // <>=
-	LessOrGreater,	/// <>
-	LogicAnd,	/// &&
-	LogicOr,	/// ||
-	LParen,	/// $(LPAREN)
-	Minus,	/// -
-	MinusEquals,	/// -=
-	Mod,	/// %
-	ModEquals,	/// %=
-	MulEquals,	/// *=
-	Not,	/// !
-	NotEquals,	/// !=
-	NotGreater,	/// !>
-	NotGreaterEqual,	/// !>=
-	NotLess,	/// !<
-	NotLessEqual,	/// !<=
-	NotLessEqualGreater,	/// !<>
-	Plus,	/// +
-	PlusEquals,	/// +=
-	Pow,	/// ^^
-	PowEquals,	/// ^^=
-	RBrace,	/// }
-	RBracket,	/// ]
-	RParen,	/// $(RPAREN)
-	Semicolon,	/// ;
-	ShiftLeft,	/// <<
-	ShiftLeftEqual,	/// <<=
-	ShiftRight,	/// >>
-	ShiftRightEqual,	/// >>=
+	Greater,	/// $(D_KEYWORD >)
+	GreaterEqual,	/// $(D_KEYWORD >=)
+	Hash, // $(D_KEYWORD #)
+	Increment,	/// $(D_KEYWORD ++)
+	LBrace,	/// $(D_KEYWORD {)
+	LBracket,	/// $(D_KEYWORD [)
+	Less,	/// $(D_KEYWORD <)
+	LessEqual,	/// $(D_KEYWORD <=)
+	LessEqualGreater, // $(D_KEYWORD <>=)
+	LessOrGreater,	/// $(D_KEYWORD <>)
+	LogicAnd,	/// $(D_KEYWORD &&)
+	LogicOr,	/// $(D_KEYWORD ||)
+	LParen,	/// $(D_KEYWORD $(LPAREN))
+	Minus,	/// $(D_KEYWORD -)
+	MinusEquals,	/// $(D_KEYWORD -=)
+	Mod,	/// $(D_KEYWORD %)
+	ModEquals,	/// $(D_KEYWORD %=)
+	MulEquals,	/// $(D_KEYWORD *=)
+	Not,	/// $(D_KEYWORD !)
+	NotEquals,	/// $(D_KEYWORD !=)
+	NotGreater,	/// $(D_KEYWORD !>)
+	NotGreaterEqual,	/// $(D_KEYWORD !>=)
+	NotLess,	/// $(D_KEYWORD !<)
+	NotLessEqual,	/// $(D_KEYWORD !<=)
+	NotLessEqualGreater,	/// $(D_KEYWORD !<>)
+	Plus,	/// $(D_KEYWORD +)
+	PlusEquals,	/// $(D_KEYWORD +=)
+	Pow,	/// $(D_KEYWORD ^^)
+	PowEquals,	/// $(D_KEYWORD ^^=)
+	RBrace,	/// $(D_KEYWORD })
+	RBracket,	/// $(D_KEYWORD ])
+	RParen,	/// $(D_KEYWORD $(RPAREN))
+	Semicolon,	/// $(D_KEYWORD ;)
+	ShiftLeft,	/// $(D_KEYWORD <<)
+	ShiftLeftEqual,	/// $(D_KEYWORD <<=)
+	ShiftRight,	/// $(D_KEYWORD >>)
+	ShiftRightEqual,	/// $(D_KEYWORD >>=)
 	Slice, // ..
-	Star,	/// *
-	Ternary,	/// ?
-	Tilde,	/// ~
-	Unordered,	/// !<>=
-	UnsignedShiftRight,	/// >>>
-	UnsignedShiftRightEqual,	/// >>>=
-	Vararg,	/// ...
-	Xor,	/// ^
-	XorEquals,	/// ^=
+	Star,	/// $(D_KEYWORD *)
+	Ternary,	/// $(D_KEYWORD ?)
+	Tilde,	/// $(D_KEYWORD ~)
+	Unordered,	/// $(D_KEYWORD !<>=)
+	UnsignedShiftRight,	/// $(D_KEYWORD >>>)
+	UnsignedShiftRightEqual,	/// $(D_KEYWORD >>>=)
+	Vararg,	/// $(D_KEYWORD ...)
+	Xor,	/// $(D_KEYWORD ^)
+	XorEquals,	/// $(D_KEYWORD ^=)
 	OPERATORS_END, ///
 
 
     // Keywords
 	KEYWORDS_BEGIN, ///
         TYPES_BEGIN, ///
-        Bool, /// bool
-        Byte, /// byte
-        Cdouble, /// cdouble
-        Cent, /// cent
-        Cfloat, /// cfloat
-        Char, /// char
-        Creal, /// creal
-        Dchar, /// dchar
-        Double, /// double
-        DString, /// dstring
-        Float, /// float
-        Function, /// function
-        Idouble, /// idouble
-        Ifloat, /// ifloat
-        Int, /// int
-        Ireal, /// ireal
-        Long, /// long
-        Real, /// real
-        Short, /// short
-        String, /// string
-        Ubyte, /// ubyte
-        Ucent, /// ucent
-        Uint, /// uint
-        Ulong, /// ulong
-        Ushort, /// ushort
-        Void, /// void
-        Wchar, /// wchar
-        WString, /// wstring
+        Bool, /// $(D_KEYWORD bool)
+        Byte, /// $(D_KEYWORD byte)
+        Cdouble, /// $(D_KEYWORD cdouble)
+        Cent, /// $(D_KEYWORD cent)
+        Cfloat, /// $(D_KEYWORD cfloat)
+        Char, /// $(D_KEYWORD char)
+        Creal, /// $(D_KEYWORD creal)
+        Dchar, /// $(D_KEYWORD dchar)
+        Double, /// $(D_KEYWORD double)
+        DString, /// $(D_KEYWORD dstring)
+        Float, /// $(D_KEYWORD float)
+        Function, /// $(D_KEYWORD function)
+        Idouble, /// $(D_KEYWORD idouble)
+        Ifloat, /// $(D_KEYWORD ifloat)
+        Int, /// $(D_KEYWORD int)
+        Ireal, /// $(D_KEYWORD ireal)
+        Long, /// $(D_KEYWORD long)
+        Real, /// $(D_KEYWORD real)
+        Short, /// $(D_KEYWORD short)
+        String, /// $(D_KEYWORD string)
+        Ubyte, /// $(D_KEYWORD ubyte)
+        Ucent, /// $(D_KEYWORD ucent)
+        Uint, /// $(D_KEYWORD uint)
+        Ulong, /// $(D_KEYWORD ulong)
+        Ushort, /// $(D_KEYWORD ushort)
+        Void, /// $(D_KEYWORD void)
+        Wchar, /// $(D_KEYWORD wchar)
+        WString, /// $(D_KEYWORD wstring)
         TYPES_END, ///
 		ATTRIBUTES_BEGIN, ///
-		Align, /// align
-		Deprecated, /// deprecated
-		Extern, /// extern
-		Pragma, /// pragma
+		Align, /// $(D_KEYWORD align)
+		Deprecated, /// $(D_KEYWORD deprecated)
+		Extern, /// $(D_KEYWORD extern)
+		Pragma, /// $(D_KEYWORD pragma)
 			PROTECTION_BEGIN, ///
-			Export, /// export
-			Package, /// package
-			Private, /// private
-			Protected, /// protected
-			Public, /// public
+			Export, /// $(D_KEYWORD export)
+			Package, /// $(D_KEYWORD package)
+			Private, /// $(D_KEYWORD private)
+			Protected, /// $(D_KEYWORD protected)
+			Public, /// $(D_KEYWORD public)
 			PROTECTION_END, ///
-		Abstract, /// abstract
-		Auto, /// auto
-		Const, /// const
-		Final, /// final
-		Gshared, /// __gshared
+		Abstract, /// $(D_KEYWORD abstract)
+		Auto, /// $(D_KEYWORD auto)
+		Const, /// $(D_KEYWORD const)
+		Final, /// $(D_KEYWORD final)
+		Gshared, /// $(D_KEYWORD __gshared)
 		Immutable, // immutable
 		Inout, // inout
-		Scope, /// scope
+		Scope, /// $(D_KEYWORD scope)
 		Shared, // shared
-		Static, /// static
-		Synchronized, /// synchronized
+		Static, /// $(D_KEYWORD static)
+		Synchronized, /// $(D_KEYWORD synchronized)
 		ATTRIBUTES_END, ///
-	Alias, /// alias
-	Asm, /// asm
-	Assert, /// assert
-	Body, /// body
-	Break, /// break
-	Case, /// case
-	Cast, /// cast
-	Catch, /// catch
-	Class, /// class
-	Continue, /// continue
-	Debug, /// debug
-	Default, /// default
-	Delegate, /// delegate
-	Delete, /// delete
-	Do, /// do
-	Else, /// else
-	Enum, /// enum
-	False, /// false
-	Finally, /// finally
-	Foreach, /// foreach
-	Foreach_reverse, /// foreach_reverse
-	For, /// for
-	Goto, /// goto
-	If, /// if
-	Import, /// import
-	In, /// in
-	Interface, /// interface
-	Invariant, /// invariant
-	Is, /// is
-	Lazy, /// lazy
-	Macro, /// macro
-	Mixin, /// mixin
-	Module, /// module
-	New, /// new
-	Nothrow, /// nothrow
-	Null, /// null
-	Out, /// out
-	Override, /// override
-	Pure, /// pure
-	Ref, /// ref
-	Return, /// return
-	Struct, /// struct
-	Super, /// super
-	Switch, /// switch
-    Template, /// template
-	This, /// this
-	Throw, /// throw
-	True, /// true
-	Try, /// try
-	Typedef, /// typedef
-	Typeid, /// typeid
-	Typeof, /// typeof
-	Union, /// union
-	Unittest, /// unittest
-	Version, /// version
-	Volatile, /// volatile
-	While, /// while
-	With, /// with
+	Alias, /// $(D_KEYWORD alias)
+	Asm, /// $(D_KEYWORD asm)
+	Assert, /// $(D_KEYWORD assert)
+	Body, /// $(D_KEYWORD body)
+	Break, /// $(D_KEYWORD break)
+	Case, /// $(D_KEYWORD case)
+	Cast, /// $(D_KEYWORD cast)
+	Catch, /// $(D_KEYWORD catch)
+	Class, /// $(D_KEYWORD class)
+	Continue, /// $(D_KEYWORD continue)
+	Debug, /// $(D_KEYWORD debug)
+	Default, /// $(D_KEYWORD default)
+	Delegate, /// $(D_KEYWORD delegate)
+	Delete, /// $(D_KEYWORD delete)
+	Do, /// $(D_KEYWORD do)
+	Else, /// $(D_KEYWORD else)
+	Enum, /// $(D_KEYWORD enum)
+	False, /// $(D_KEYWORD false)
+	Finally, /// $(D_KEYWORD finally)
+	Foreach, /// $(D_KEYWORD foreach)
+	Foreach_reverse, /// $(D_KEYWORD foreach_reverse)
+	For, /// $(D_KEYWORD for)
+	Goto, /// $(D_KEYWORD goto)
+	If, /// $(D_KEYWORD if)
+	Import, /// $(D_KEYWORD import)
+	In, /// $(D_KEYWORD in)
+	Interface, /// $(D_KEYWORD interface)
+	Invariant, /// $(D_KEYWORD invariant)
+	Is, /// $(D_KEYWORD is)
+	Lazy, /// $(D_KEYWORD lazy)
+	Macro, /// $(D_KEYWORD macro)
+	Mixin, /// $(D_KEYWORD mixin)
+	Module, /// $(D_KEYWORD module)
+	New, /// $(D_KEYWORD new)
+	Nothrow, /// $(D_KEYWORD nothrow)
+	Null, /// $(D_KEYWORD null)
+	Out, /// $(D_KEYWORD out)
+	Override, /// $(D_KEYWORD override)
+	Pure, /// $(D_KEYWORD pure)
+	Ref, /// $(D_KEYWORD ref)
+	Return, /// $(D_KEYWORD return)
+	Struct, /// $(D_KEYWORD struct)
+	Super, /// $(D_KEYWORD super)
+	Switch, /// $(D_KEYWORD switch)
+    Template, /// $(D_KEYWORD template)
+	This, /// $(D_KEYWORD this)
+	Throw, /// $(D_KEYWORD throw)
+	True, /// $(D_KEYWORD true)
+	Try, /// $(D_KEYWORD try)
+	Typedef, /// $(D_KEYWORD typedef)
+	Typeid, /// $(D_KEYWORD typeid)
+	Typeof, /// $(D_KEYWORD typeof)
+	Union, /// $(D_KEYWORD union)
+	Unittest, /// $(D_KEYWORD unittest)
+	Version, /// $(D_KEYWORD version)
+	Volatile, /// $(D_KEYWORD volatile)
+	While, /// $(D_KEYWORD while)
+	With, /// $(D_KEYWORD with)
 	KEYWORDS_END, ///
 
 	// Constants
 	CONSTANTS_BEGIN, ///
-	File, /// __FILE__
-	Line, /// __LINE__
-	Thread, /// __thread
-	Traits, /// __traits
+	File, /// $(D_KEYWORD __FILE__)
+	Line, /// $(D_KEYWORD __LINE__)
+	Thread, /// $(D_KEYWORD __thread)
+	Traits, /// $(D_KEYWORD __traits)
 	CONSTANTS_END, ///
 
 	// Misc
 	MISC_BEGIN, ///
-	Comment, /// /** comment */ or // comment or ///comment
+	Comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
 	Identifier, /// anything else
 	ScriptLine, // Line at the beginning of source file that starts from #!
 	Whitespace, /// whitespace
@@ -677,7 +736,7 @@ enum TokenType: uint
 	LITERALS_BEGIN, ///
 		NUMBERS_BEGIN, ///
 		DoubleLiteral, /// 123.456
-		FloatLiteral, /// 123.456f or 0x123_45p-af
+		FloatLiteral, /// 123.456f or 0x123_45p-3
 		IDoubleLiteral, /// 123.456i
 		IFloatLiteral, /// 123.456fi
 		IntLiteral, /// 123 or 0b1101010101
@@ -688,9 +747,9 @@ enum TokenType: uint
 		UnsignedLongLiteral, /// 123uL
 		NUMBERS_END, ///
 		STRINGS_BEGIN, ///
-		DStringLiteral, /// "32-bit character string"d
-		StringLiteral, /// "a string"
-		WStringLiteral, /// "16-bit character string"w
+		DStringLiteral, /// $(D_STRING "32-bit character string"d)
+		StringLiteral, /// $(D_STRING "an 8-bit string")
+		WStringLiteral, /// $(D_STRING "16-bit character string"w)
 		STRINGS_END, ///
 	LITERALS_END, ///
 }
