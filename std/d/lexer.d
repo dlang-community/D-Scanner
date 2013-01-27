@@ -1,71 +1,71 @@
 // Written in the D programming language
 
 /**
- * This module contains a range-based lexer for the D programming language.
- *
- * Examples:
- *
- * Generate HTML markup of D code.
- * ---
- * import std.stdio;
- * import std.array;
- * import std.file;
- * import std.d.lexer;
- *
- * void writeSpan(string cssClass, string value)
- * {
- * 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
- * }
- *
- * void highlight(R)(R tokens)
- * {
- * 	stdout.writeln(q"[<!DOCTYPE html>
- * <html>
- * <head>
- * <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
- * <body>
- * <style type="text/css">
- * html { background-color: #fff; color: #222; }
- * .kwrd { font-weight: bold; color: blue; }
- * .com { color: green; font-style: italic;}
- * .num { color: orangered; font-weigth: bold; }
- * .str { color: red; font-style: italic; }
- * .op { color: 333; font-weight: bold; }
- * .type { color: magenta; font-weight: bold; }
- * </style>
- * <pre>]");
- *
- * 	foreach (Token t; tokens)
- * 	{
- * 		if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
- * 			writeSpan("type", t.value);
- * 		else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
- * 			writeSpan("kwrd", t.value);
- * 		else if (t.type == TokenType.Comment)
- * 			writeSpan("com", t.value);
- * 		else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
- * 			writeSpan("str", t.value);
- * 		else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
- * 			writeSpan("num", t.value);
- * 		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
- * 			writeSpan("op", t.value);
- * 		else
- * 			stdout.write(t.value.replace("<", "&lt;"));
- * 	}
- * 	stdout.writeln("</pre>\n</body></html>");
- * }
- *
- * void main(string[] args)
- * {
- *     args[1].readText().byToken(IterationStyle.Everything, StringStyle.Source).highlight();
- * }
- * ---
- *
- * Copyright: Brian Schott 2013
- * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
- * Authors: Brian Schott
- * Source: $(PHOBOSSRC std/d/_lexer.d)
- */
+* This module contains a range-based lexer for the D programming language.
+*
+* Examples:
+*
+* Generate HTML markup of D code.
+* ---
+* import std.stdio;
+* import std.array;
+* import std.file;
+* import std.d.lexer;
+*
+* void writeSpan(string cssClass, string value)
+* {
+* 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
+* }
+*
+* void highlight(R)(R tokens)
+* {
+* 	stdout.writeln(q"[<!DOCTYPE html>
+* <html>
+* <head>
+* <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+* <body>
+* <style type="text/css">
+* html { background-color: #fff; color: #222; }
+* .kwrd { font-weight: bold; color: blue; }
+* .com { color: green; font-style: italic;}
+* .num { color: orangered; font-weigth: bold; }
+* .str { color: red; font-style: italic; }
+* .op { color: 333; font-weight: bold; }
+* .type { color: magenta; font-weight: bold; }
+* </style>
+* <pre>]");
+*
+* 	foreach (Token t; tokens)
+* 	{
+* 		if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
+* 			writeSpan("type", t.value);
+* 		else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
+* 			writeSpan("kwrd", t.value);
+* 		else if (t.type == TokenType.Comment)
+* 			writeSpan("com", t.value);
+* 		else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
+* 			writeSpan("str", t.value);
+* 		else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
+* 			writeSpan("num", t.value);
+* 		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
+* 			writeSpan("op", t.value);
+* 		else
+* 			stdout.write(t.value.replace("<", "&lt;"));
+* 	}
+* 	stdout.writeln("</pre>\n</body></html>");
+* }
+*
+* void main(string[] args)
+* {
+*     args[1].readText().byToken(IterationStyle.Everything, StringStyle.Source).highlight();
+* }
+* ---
+*
+* Copyright: Brian Schott 2013
+* License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
+* Authors: Brian Schott
+* Source: $(PHOBOSSRC std/d/_lexer.d)
+*/
 
 module std.d.lexer;
 
@@ -81,8 +81,8 @@ import std.d.entities;
 public:
 
 /**
- * Represents a D token
- */
+* Represents a D token
+*/
 struct Token
 {
 	/// The token type.
@@ -98,28 +98,28 @@ struct Token
 	uint startIndex;
 
 	/**
-	 * Check to see if the token is of the same type and has the same string
-	 * representation as the given token.
-	 */
+	* Check to see if the token is of the same type and has the same string
+	* representation as the given token.
+	*/
 	bool opEquals(ref const(Token) other) const
 	{
 		return other.type == type && other.value == value;
 	}
 
 	/**
-	 * Checks to see if the token's string representation is equal to the given
-	 * string.
-	 */
+	* Checks to see if the token's string representation is equal to the given
+	* string.
+	*/
 	bool opEquals(string value) const { return this.value == value; }
 
 	/**
-	 * Checks to see if the token is of the given type.
-	 */
+	* Checks to see if the token is of the given type.
+	*/
 	bool opEquals(TokenType type) const { return type == type; }
 
 	/**
-	 * Comparison operator orders tokens by start index.
-	 */
+	* Comparison operator orders tokens by start index.
+	*/
 	int opCmp(size_t i) const
 	{
 		if (startIndex < i) return -1;
@@ -129,8 +129,8 @@ struct Token
 }
 
 /**
- * Configure the behavior of the byToken() function
- */
+* Configure the behavior of the byToken() function
+*/
 enum IterationStyle
 {
 	/// Only include code, not whitespace or comments
@@ -139,58 +139,59 @@ enum IterationStyle
 	IncludeComments = 0b0001,
 	/// Includes whitespace
 	IncludeWhitespace = 0b0010,
-    /// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
-    IncludeSpecialTokens = 0b0100,
+	/// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
+	IncludeSpecialTokens = 0b0100,
 	/// Include everything
 	Everything = IncludeComments | IncludeWhitespace
 }
 
 /**
- * Configuration of the string lexing style
- */
+* Configuration of the string lexing style
+*/
 enum StringStyle : uint
 {
 	/**
-	 * Escape sequences will be replaced with their equivalent characters,
-	 * enclosing quote characters will not be included. Useful for creating a
-	 * compiler or interpreter.
-	 */
+	* Escape sequences will be replaced with their equivalent characters,
+	* enclosing quote characters will not be included. Useful for creating a
+	* compiler or interpreter.
+	*/
 	Default = 0b0000,
 
 	/**
-	 * Escape sequences will not be processed. An escaped quote character will
-	 * not terminate string lexing, but it will not be replaced with the quote
-	 * character in the token.
-	 */
+	* Escape sequences will not be processed. An escaped quote character will
+	* not terminate string lexing, but it will not be replaced with the quote
+	* character in the token.
+	*/
 	NotEscaped = 0b0001,
 
 	/**
-	 * Strings will include their opening and closing quote characters as well
-	 * as any prefixes or suffixes $(LPAREN)e.g.: $(D_STRING "abcde"w) will
-	 * include the $(D_STRING 'w') character as well as the opening and closing
-	 * quotes$(RPAREN)
-	 */
+	* Strings will include their opening and closing quote characters as well
+	* as any prefixes or suffixes $(LPAREN)e.g.: $(D_STRING "abcde"w) will
+	* include the $(D_STRING 'w') character as well as the opening and closing
+	* quotes$(RPAREN)
+	*/
 	IncludeQuotes = 0x0010,
 
 	/**
-	 * Strings will be read exactly as they appeared in the source, including
-	 * their opening and closing quote characters. Useful for syntax
-	 * highlighting.
-	 */
+	* Strings will be read exactly as they appeared in the source, including
+	* their opening and closing quote characters. Useful for syntax
+	* highlighting.
+	*/
 	Source = NotEscaped | IncludeQuotes,
 }
 
 /**
- * Iterate over the given range of characters by D tokens.
- * Params:
- *     range = the range of characters
- *     iterationStyle = See IterationStyle
- *     stringStyle = see StringStyle
- * Returns:
- *     an input range of tokens
- */
+* Iterate over the given range of characters by D tokens.
+* Params:
+*     range = the range of characters
+*     iterationStyle = See IterationStyle
+*     stringStyle = see StringStyle
+* Returns:
+*     an input range of tokens
+*/
 TokenRange!(R) byToken(R)(R range, const IterationStyle iterationStyle = IterationStyle.CodeOnly,
-	const StringStyle stringStyle = StringStyle.Default) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
+	const StringStyle stringStyle = StringStyle.Default)
+	if (isForwardRange!(R) && (isSomeChar!(ElementType!(R)) || is (ElementType!(R) == ubyte)))
 {
 	auto r = new TokenRange!(R)(range);
 	r.stringStyle = stringStyle;
@@ -201,9 +202,9 @@ TokenRange!(R) byToken(R)(R range, const IterationStyle iterationStyle = Iterati
 }
 
 /**
- * Range of tokens. Avoid creating instances of this manually. Use
- * $(DDOC_PSYMBOL byToken$(LPAREN)$(RPAREN)) instead, as it does some initialization work.
- */
+* Range of tokens. Avoid creating instances of this manually. Use
+* $(DDOC_PSYMBOL byToken$(LPAREN)$(RPAREN)) instead, as it does some initialization work.
+*/
 class TokenRange(R) : InputRange!(Token)
 {
 	this(ref R range)
@@ -212,16 +213,16 @@ class TokenRange(R) : InputRange!(Token)
 	}
 
 	/**
-	 * Returns: true if the range is empty
-	 */
+	* Returns: true if the range is empty
+	*/
 	override bool empty() const @property
 	{
 		return _empty;
 	}
 
 	/**
-	 * Returns: the current token
-	 */
+	* Returns: the current token
+	*/
 	override Token front() const @property
 	{
 		enforce(!_empty, "Cannot call front() on empty token range");
@@ -229,8 +230,8 @@ class TokenRange(R) : InputRange!(Token)
 	}
 
 	/**
-	 * Returns the current token and then removes it from the range
-	 */
+	* Returns the current token and then removes it from the range
+	*/
 	override Token moveFront()
 	{
 		auto r = front();
@@ -265,38 +266,38 @@ class TokenRange(R) : InputRange!(Token)
 		return result;
 	}
 
-    override void popFront()
-    {
-        // Filter out tokens we don't care about
-        loop: do
-        {
-            advance();
-            switch (current.type)
-            {
-            case TokenType.Comment:
-                if (iterStyle & IterationStyle.IncludeComments)
-                    break loop;
-                break;
-            case TokenType.Whitespace:
-                if (iterStyle & IterationStyle.IncludeWhitespace)
-                    break loop;
-                break;
-            case TokenType.SpecialTokenSequence:
-                if (iterStyle & IterationStyle.IncludeSpecialTokens)
-                    break loop;
-                break;
-            default:
-                break loop;
-            }
-        }
-        while (!empty());
-    }
+	override void popFront()
+	{
+		// Filter out tokens we don't care about
+		loop: do
+		{
+			advance();
+			switch (current.type)
+			{
+			case TokenType.Comment:
+				if (iterStyle & IterationStyle.IncludeComments)
+					break loop;
+				break;
+			case TokenType.Whitespace:
+				if (iterStyle & IterationStyle.IncludeWhitespace)
+					break loop;
+				break;
+			case TokenType.SpecialTokenSequence:
+				if (iterStyle & IterationStyle.IncludeSpecialTokens)
+					break loop;
+				break;
+			default:
+				break loop;
+			}
+		}
+		while (!empty());
+	}
 
 private:
 
 	/*
-     * Advances the range to the next token
-     */
+	* Advances the range to the next token
+	*/
 	void advance()
 	{
 		if (range.empty)
@@ -311,8 +312,8 @@ private:
 
 		if (std.uni.isWhite(range.front))
 		{
-            current = lexWhitespace(range, index, lineNumber);
-            return;
+			current = lexWhitespace(range, index, lineNumber);
+			return;
 		}
 		outer: switch (range.front)
 		{
@@ -456,22 +457,22 @@ private:
 			}
 			else
 				goto default;
-        case '#':
-            string special = lexSpecialTokenSequence(range, index, lineNumber);
-            if (special)
-            {
-                current.type = TokenType.SpecialTokenSequence;
-                current.value = special;
-            }
-            else
-            {
-                current.type = TokenType.Hash;
-                current.value = "#";
-                range.popFront();
+		case '#':
+			string special = lexSpecialTokenSequence(range, index, lineNumber);
+			if (special)
+			{
+				current.type = TokenType.SpecialTokenSequence;
+				current.value = special;
+			}
+			else
+			{
+				current.type = TokenType.Hash;
+				current.value = "#";
+				range.popFront();
 				++index;
 				break;
-            }
-            break;
+			}
+			break;
 		default:
 			auto app = appender!(ElementType!(R)[])();
 			while(!range.isEoF() && !isSeparating(range.front))
@@ -497,38 +498,38 @@ private:
 
 unittest
 {
-    import std.stdio;
-    auto a = "/**comment*/\n#lin #line 10 \"test.d\"\nint a;//test\n";
-    foreach (t; byToken(a))
-        writeln(t);
+	import std.stdio;
+	auto a = "/**comment*/\n#lin #line 10 \"test.d\"\nint a;//test\n";
+	foreach (t; byToken(a))
+		writeln(t);
 }
 
 /**
- * Listing of all the tokens in the D language.
- *
- * Token types are arranged so that it is easy to group tokens while iterating
- * over them. For example:
- * ---
- * assert(TokenType.Increment < TokenType.OPERATORS_END);
- * assert(TokenType.Increment > TokenType.OPERATORS_BEGIN);
- * ---
- * The non-token values are documented below:
- *
- * $(BOOKTABLE ,
- *     $(TR $(TH Begin) $(TH End) $(TH Content) $(TH Examples))
- *     $(TR $(TD OPERATORS_BEGIN) $(TD OPERATORS_END) $(TD operatiors) $(TD +, -, <<=))
- *     $(TR $(TD TYPES_BEGIN) $(TD TYPES_END) $(TD types) $(TD bool, char, double))
- *     $(TR $(TD KEYWORDS_BEGIN) $(TD KEYWORDS) $(TD keywords) $(TD class, if, assert))
- *     $(TR $(TD ATTRIBUTES_BEGIN) $(TD ATTRIBUTES_END) $(TD attributes) $(TD override synchronized, __gshared))
- *     $(TR $(TD ATTRIBUTES_BEGIN) $(TD ATTRIBUTES_END) $(TD protection) $(TD public, protected))
- *     $(TR $(TD CONSTANTS_BEGIN) $(TD CONSTANTS_END) $(TD compile-time constants) $(TD __FILE__, __TIME__))
- *     $(TR $(TD LITERALS_BEGIN) $(TD LITERALS_END) $(TD string and numeric literals) $(TD "str", 123))
- *     $(TR $(TD NUMBERS_BEGIN) $(TD NUMBERS_END) $(TD numeric literals) $(TD 0x123p+9, 0b0110))
- *     $(TR $(TD STRINGS_BEGIN) $(TD STRINGS_END) $(TD string literals) $(TD `123`c, q{tokens;}, "abcde"))
- *     $(TR $(TD MISC_BEGIN) $(TD MISC_END) $(TD anything else) $(TD whitespace, comments, identifiers))
- * )
- * Note that several of the above ranges overlap.
- */
+* Listing of all the tokens in the D language.
+*
+* Token types are arranged so that it is easy to group tokens while iterating
+* over them. For example:
+* ---
+* assert(TokenType.Increment < TokenType.OPERATORS_END);
+* assert(TokenType.Increment > TokenType.OPERATORS_BEGIN);
+* ---
+* The non-token values are documented below:
+*
+* $(BOOKTABLE ,
+*     $(TR $(TH Begin) $(TH End) $(TH Content) $(TH Examples))
+*     $(TR $(TD OPERATORS_BEGIN) $(TD OPERATORS_END) $(TD operatiors) $(TD +, -, <<=))
+*     $(TR $(TD TYPES_BEGIN) $(TD TYPES_END) $(TD types) $(TD bool, char, double))
+*     $(TR $(TD KEYWORDS_BEGIN) $(TD KEYWORDS) $(TD keywords) $(TD class, if, assert))
+*     $(TR $(TD ATTRIBUTES_BEGIN) $(TD ATTRIBUTES_END) $(TD attributes) $(TD override synchronized, __gshared))
+*     $(TR $(TD ATTRIBUTES_BEGIN) $(TD ATTRIBUTES_END) $(TD protection) $(TD public, protected))
+*     $(TR $(TD CONSTANTS_BEGIN) $(TD CONSTANTS_END) $(TD compile-time constants) $(TD __FILE__, __TIME__))
+*     $(TR $(TD LITERALS_BEGIN) $(TD LITERALS_END) $(TD string and numeric literals) $(TD "str", 123))
+*     $(TR $(TD NUMBERS_BEGIN) $(TD NUMBERS_END) $(TD numeric literals) $(TD 0x123p+9, 0b0110))
+*     $(TR $(TD STRINGS_BEGIN) $(TD STRINGS_END) $(TD string literals) $(TD `123`c, q{tokens;}, "abcde"))
+*     $(TR $(TD MISC_BEGIN) $(TD MISC_END) $(TD anything else) $(TD whitespace, comments, identifiers))
+* )
+* Note that several of the above ranges overlap.
+*/
 enum TokenType: uint
 {
 	// Operators
@@ -599,38 +600,38 @@ enum TokenType: uint
 	OPERATORS_END, ///
 
 
-    // Keywords
+	// Keywords
 	KEYWORDS_BEGIN, ///
-        TYPES_BEGIN, ///
-        Bool, /// $(D_KEYWORD bool)
-        Byte, /// $(D_KEYWORD byte)
-        Cdouble, /// $(D_KEYWORD cdouble)
-        Cent, /// $(D_KEYWORD cent)
-        Cfloat, /// $(D_KEYWORD cfloat)
-        Char, /// $(D_KEYWORD char)
-        Creal, /// $(D_KEYWORD creal)
-        Dchar, /// $(D_KEYWORD dchar)
-        Double, /// $(D_KEYWORD double)
-        DString, /// $(D_KEYWORD dstring)
-        Float, /// $(D_KEYWORD float)
-        Function, /// $(D_KEYWORD function)
-        Idouble, /// $(D_KEYWORD idouble)
-        Ifloat, /// $(D_KEYWORD ifloat)
-        Int, /// $(D_KEYWORD int)
-        Ireal, /// $(D_KEYWORD ireal)
-        Long, /// $(D_KEYWORD long)
-        Real, /// $(D_KEYWORD real)
-        Short, /// $(D_KEYWORD short)
-        String, /// $(D_KEYWORD string)
-        Ubyte, /// $(D_KEYWORD ubyte)
-        Ucent, /// $(D_KEYWORD ucent)
-        Uint, /// $(D_KEYWORD uint)
-        Ulong, /// $(D_KEYWORD ulong)
-        Ushort, /// $(D_KEYWORD ushort)
-        Void, /// $(D_KEYWORD void)
-        Wchar, /// $(D_KEYWORD wchar)
-        WString, /// $(D_KEYWORD wstring)
-        TYPES_END, ///
+		TYPES_BEGIN, ///
+		Bool, /// $(D_KEYWORD bool)
+		Byte, /// $(D_KEYWORD byte)
+		Cdouble, /// $(D_KEYWORD cdouble)
+		Cent, /// $(D_KEYWORD cent)
+		Cfloat, /// $(D_KEYWORD cfloat)
+		Char, /// $(D_KEYWORD char)
+		Creal, /// $(D_KEYWORD creal)
+		Dchar, /// $(D_KEYWORD dchar)
+		Double, /// $(D_KEYWORD double)
+		DString, /// $(D_KEYWORD dstring)
+		Float, /// $(D_KEYWORD float)
+		Function, /// $(D_KEYWORD function)
+		Idouble, /// $(D_KEYWORD idouble)
+		Ifloat, /// $(D_KEYWORD ifloat)
+		Int, /// $(D_KEYWORD int)
+		Ireal, /// $(D_KEYWORD ireal)
+		Long, /// $(D_KEYWORD long)
+		Real, /// $(D_KEYWORD real)
+		Short, /// $(D_KEYWORD short)
+		String, /// $(D_KEYWORD string)
+		Ubyte, /// $(D_KEYWORD ubyte)
+		Ucent, /// $(D_KEYWORD ucent)
+		Uint, /// $(D_KEYWORD uint)
+		Ulong, /// $(D_KEYWORD ulong)
+		Ushort, /// $(D_KEYWORD ushort)
+		Void, /// $(D_KEYWORD void)
+		Wchar, /// $(D_KEYWORD wchar)
+		WString, /// $(D_KEYWORD wstring)
+		TYPES_END, ///
 		ATTRIBUTES_BEGIN, ///
 		Align, /// $(D_KEYWORD align)
 		Deprecated, /// $(D_KEYWORD deprecated)
@@ -699,7 +700,7 @@ enum TokenType: uint
 	Struct, /// $(D_KEYWORD struct)
 	Super, /// $(D_KEYWORD super)
 	Switch, /// $(D_KEYWORD switch)
-    Template, /// $(D_KEYWORD template)
+	Template, /// $(D_KEYWORD template)
 	This, /// $(D_KEYWORD this)
 	Throw, /// $(D_KEYWORD throw)
 	True, /// $(D_KEYWORD true)
@@ -729,7 +730,7 @@ enum TokenType: uint
 	Identifier, /// anything else
 	ScriptLine, // Line at the beginning of source file that starts from #!
 	Whitespace, /// whitespace
-    SpecialTokenSequence, /// #line 10 "file.d"
+	SpecialTokenSequence, /// #line 10 "file.d"
 	MISC_END, ///
 
 	// Literals
@@ -1122,53 +1123,53 @@ Token lexHexString(R, C = ElementType!R)(ref R input, ref uint index, ref uint l
 	const StringStyle style = StringStyle.Default)
 in
 {
-    assert (input.front == 'x');
+	assert (input.front == 'x');
 }
 body
 {
-    Token t;
-    t.lineNumber = lineNumber;
-    t.startIndex = index;
-    t.type = TokenType.StringLiteral;
-    auto app = appender!(C[])();
-    if (style & StringStyle.IncludeQuotes)
-        app.put("x\"");
-    input.popFront();
-    input.popFront();
-    index += 2;
-    while (!input.isEoF())
-    {
-        if (isNewline(input))
-        {
-            app.put(popNewline(input, index));
-            ++lineNumber;
-        }
-        else if (isHexDigit(input.front))
-        {
-            app.put(input.front);
-            input.popFront();
-            ++index;
-        }
-        else if (std.uni.isWhite(input.front) && (style & StringStyle.NotEscaped))
-        {
-            app.put(input.front);
-            input.popFront();
-            ++index;
-        }
-        else if (input.front == '"')
-        {
-            if (style & StringStyle.IncludeQuotes)
-                app.put('"');
-            input.popFront();
-            ++index;
-            break;
-        }
-        else
-        {
-            // This is an error
-        }
-    }
-    if (!input.isEoF())
+	Token t;
+	t.lineNumber = lineNumber;
+	t.startIndex = index;
+	t.type = TokenType.StringLiteral;
+	auto app = appender!(C[])();
+	if (style & StringStyle.IncludeQuotes)
+		app.put("x\"");
+	input.popFront();
+	input.popFront();
+	index += 2;
+	while (!input.isEoF())
+	{
+		if (isNewline(input))
+		{
+			app.put(popNewline(input, index));
+			++lineNumber;
+		}
+		else if (isHexDigit(input.front))
+		{
+			app.put(input.front);
+			input.popFront();
+			++index;
+		}
+		else if (std.uni.isWhite(input.front) && (style & StringStyle.NotEscaped))
+		{
+			app.put(input.front);
+			input.popFront();
+			++index;
+		}
+		else if (input.front == '"')
+		{
+			if (style & StringStyle.IncludeQuotes)
+				app.put('"');
+			input.popFront();
+			++index;
+			break;
+		}
+		else
+		{
+			// This is an error
+		}
+	}
+	if (!input.isEoF())
 	{
 		switch (input.front)
 		{
@@ -1188,43 +1189,43 @@ body
 			break;
 		}
 	}
-    if (style & StringStyle.NotEscaped)
+	if (style & StringStyle.NotEscaped)
 		t.value = to!string(app.data);
 	else
-    {
-        auto a = appender!(char[])();
-        foreach (b; std.range.chunks(app.data, 2))
-            a.put(to!string(cast(dchar) parse!uint(b, 16)));
-        t.value = to!string(a.data);
-    }
+	{
+		auto a = appender!(char[])();
+		foreach (b; std.range.chunks(app.data, 2))
+			a.put(to!string(cast(dchar) parse!uint(b, 16)));
+		t.value = to!string(a.data);
+	}
 
 
-    return t;
+	return t;
 }
 
 unittest
 {
-    uint i;
-    uint l;
+	uint i;
+	uint l;
 
-    auto a = `x"204041"`;
-    auto ar = lexHexString(a, i, l);
-    assert (ar == " @A");
-    assert (ar == TokenType.StringLiteral);
+	auto a = `x"204041"`;
+	auto ar = lexHexString(a, i, l);
+	assert (ar == " @A");
+	assert (ar == TokenType.StringLiteral);
 
-    auto b = `x"20"w`;
-    auto br = lexHexString(b, i, l);
-    assert (br == " ");
-    assert (br == TokenType.WStringLiteral);
+	auto b = `x"20"w`;
+	auto br = lexHexString(b, i, l);
+	assert (br == " ");
+	assert (br == TokenType.WStringLiteral);
 
-    auto c = `x"6d"`;
-    auto cr = lexHexString(c, i, l, StringStyle.NotEscaped);
-    assert (cr == "6d");
+	auto c = `x"6d"`;
+	auto cr = lexHexString(c, i, l, StringStyle.NotEscaped);
+	assert (cr == "6d");
 
-    auto d = `x"5e5f"d`;
-    auto dr = lexHexString(d, i, l, StringStyle.NotEscaped | StringStyle.IncludeQuotes);
-    assert (dr == `x"5e5f"d`);
-    assert (dr == TokenType.DStringLiteral);
+	auto d = `x"5e5f"d`;
+	auto dr = lexHexString(d, i, l, StringStyle.NotEscaped | StringStyle.IncludeQuotes);
+	assert (dr == `x"5e5f"d`);
+	assert (dr == TokenType.DStringLiteral);
 }
 
 Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
@@ -1582,7 +1583,7 @@ body
 
 unittest
 {
-    import std.stdio;
+	import std.stdio;
 	uint i;
 	uint l;
 	auto a = "q{import std.stdio;} abcd";
@@ -2178,106 +2179,106 @@ unittest
 }
 
 string lexSpecialTokenSequence(R)(ref R input, ref uint index,
-    ref uint lineNumber)
+	ref uint lineNumber)
 in
 {
-    assert (input.front == '#');
+	assert (input.front == '#');
 }
 body
 {
-    auto i = index;
-    auto r = input.save;
-    auto l = lineNumber;
-    r.popFront();
-    ++i;
-    auto app = appender!(ElementType!(R)[])();
-    app.put('#');
+	auto i = index;
+	auto r = input.save;
+	auto l = lineNumber;
+	r.popFront();
+	++i;
+	auto app = appender!(ElementType!(R)[])();
+	app.put('#');
 
-    auto specialType = appender!(ElementType!(R)[])();
+	auto specialType = appender!(ElementType!(R)[])();
 
-    while (!r.empty && !isSeparating(r.front))
-    {
-        specialType.put(r.front);
-        ++i;
-        r.popFront();
-    }
+	while (!r.empty && !isSeparating(r.front))
+	{
+		specialType.put(r.front);
+		++i;
+		r.popFront();
+	}
 
-    if (to!string(specialType.data) != "line")
-        return null;
-    app.put(specialType.data);
+	if (to!string(specialType.data) != "line")
+		return null;
+	app.put(specialType.data);
 
-    if (std.uni.isWhite(r.front))
-        app.put(lexWhitespace(r, i, l).value);
+	if (std.uni.isWhite(r.front))
+		app.put(lexWhitespace(r, i, l).value);
 
 
-    if (!isDigit(r.front))
-        return null;
+	if (!isDigit(r.front))
+		return null;
 
-    auto t = lexNumber(r, i, l);
-    if (t != TokenType.IntLiteral)
-        return null;
+	auto t = lexNumber(r, i, l);
+	if (t != TokenType.IntLiteral)
+		return null;
 
-    app.put(t.value);
-    l = to!uint(t.value);
+	app.put(t.value);
+	l = to!uint(t.value);
 
-    if (!isNewline(r))
-    {
-        if (!r.empty && std.uni.isWhite(r.front))
-            app.put(lexWhitespace(r, i, l).value);
+	if (!isNewline(r))
+	{
+		if (!r.empty && std.uni.isWhite(r.front))
+			app.put(lexWhitespace(r, i, l).value);
 
-        if (!r.empty && r.front == '"')
-        {
-            auto fSpecApp = appender!(ElementType!(R)[])();
-            fSpecApp.put(r.front);
-            r.popFront();
-            ++i;
-            while (!r.empty)
-            {
-                if (r.front == '"')
-                {
-                    fSpecApp.put('"');
-                    ++i;
-                    r.popFront();
-                    break;
-                }
-                ++i;
-                fSpecApp.put(r.front);
-                r.popFront();
-            }
-            app.put(fSpecApp.data);
-        }
-        else
-            return null;
-    }
+		if (!r.empty && r.front == '"')
+		{
+			auto fSpecApp = appender!(ElementType!(R)[])();
+			fSpecApp.put(r.front);
+			r.popFront();
+			++i;
+			while (!r.empty)
+			{
+				if (r.front == '"')
+				{
+					fSpecApp.put('"');
+					++i;
+					r.popFront();
+					break;
+				}
+				++i;
+				fSpecApp.put(r.front);
+				r.popFront();
+			}
+			app.put(fSpecApp.data);
+		}
+		else
+			return null;
+	}
 
-    app.put(popNewline(r, i));
-    input.popFrontN(i - index);
-    index = i;
-    lineNumber = l;
-    return to!string(app.data);
+	app.put(popNewline(r, i));
+	input.popFrontN(i - index);
+	index = i;
+	lineNumber = l;
+	return to!string(app.data);
 }
 
 unittest
 {
-    uint i;
-    uint l;
-    auto a = "#line 10\n";
-    auto ar = lexSpecialTokenSequence(a, i, l);
-    assert (ar == "#line 10\n");
-    assert (a == "");
-    assert (l == 10);
+	uint i;
+	uint l;
+	auto a = "#line 10\n";
+	auto ar = lexSpecialTokenSequence(a, i, l);
+	assert (ar == "#line 10\n");
+	assert (a == "");
+	assert (l == 10);
 
-    auto b = "#line 9201 \"test.d\"\n";
-    auto br = lexSpecialTokenSequence(b, i, l);
-    assert (l == 9201);
-    assert (br == "#line 9201 \"test.d\"\n");
-    assert (b == "");
+	auto b = "#line 9201 \"test.d\"\n";
+	auto br = lexSpecialTokenSequence(b, i, l);
+	assert (l == 9201);
+	assert (br == "#line 9201 \"test.d\"\n");
+	assert (b == "");
 
-    auto c = `#lin`;
-    auto cr = lexSpecialTokenSequence(c, i, l);
-    assert (l == 9201);
-    assert (cr is null);
-    assert (c == `#lin`);
+	auto c = `#lin`;
+	auto cr = lexSpecialTokenSequence(c, i, l);
+	assert (l == 9201);
+	assert (cr is null);
+	assert (c == `#lin`);
 }
 
 pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
@@ -2477,8 +2478,8 @@ pure nothrow TokenType lookupTokenType(const string input)
 class Trie(K, V) if (isInputRange!K): TrieNode!(K, V)
 {
 	/**
-	 * Adds the given value to the trie with the given key
-	 */
+	* Adds the given value to the trie with the given key
+	*/
 	void add(K key, V value) pure
 	{
 		TrieNode!(K,V) current = this;

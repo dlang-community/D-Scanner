@@ -14,28 +14,28 @@ class CircularBuffer(T) : InputRange!(T)
 {
 public:
 
-    this (size_t size, InputRange!(T) range)
-    {
-        this.range = range;
-        this.margin = size;
-        data = new T[(margin * 2) + 1];
-        if (range.empty())
-        {
-            _empty = true;
-            return;
-        }
-        for (size_t i = 0; i <= margin && !this.range.empty(); ++i)
-        {
-            data[i] = this.range.front();
-            this.range.popFront();
+	this (size_t size, InputRange!(T) range)
+	{
+		this.range = range;
+		this.margin = size;
+		data = new T[(margin * 2) + 1];
+		if (range.empty())
+		{
+			_empty = true;
+			return;
+		}
+		for (size_t i = 0; i <= margin && !this.range.empty(); ++i)
+		{
+			data[i] = this.range.front();
+			this.range.popFront();
 			end++;
-        }
-    }
+		}
+	}
 
-    override T front() const @property
-    {
-        return data[index];
-    }
+	override T front() @property
+	{
+		return data[index];
+	}
 
 	T peek(int offset = 1)
 	in
@@ -52,32 +52,32 @@ public:
 		return abs(offset) <= margin && sourceIndex + offset >= 0;
 	}
 
-    override void popFront()
+	override void popFront()
 	in
 	{
 		assert (!_empty);
 	}
 	body
-    {
+	{
 		index = (index + 1) % data.length;
 		++sourceIndex;
-        if (range.empty())
+		if (range.empty())
 		{
 			if (index == end)
 				_empty = true;
 		}
-        else
-        {
+		else
+		{
 			data[end] = range.front();
 			end = (end + 1) % data.length;
 			range.popFront();
-        }
-    }
+		}
+	}
 
-    bool empty() const @property
-    {
-        return _empty;
-    }
+	bool empty() const @property
+	{
+		return _empty;
+	}
 
 	override T moveFront()
 	{
@@ -94,6 +94,7 @@ public:
 			result = dg(front);
 			if (result)
 				break;
+            popFront();
 		}
 		return result;
 	}
@@ -107,18 +108,19 @@ public:
 			result = dg(i, front);
 			if (result)
 				break;
+            popFront();
 		}
 		return result;
 	}
 
 private:
-    InputRange!(T) range;
-    immutable size_t margin;
-    T[] data;
+	InputRange!(T) range;
+	immutable size_t margin;
+	T[] data;
 	size_t sourceIndex;
 	size_t end;
-    size_t index;
-    bool _empty;
+	size_t index;
+	bool _empty;
 }
 
 unittest
@@ -131,10 +133,10 @@ unittest
 
 unittest
 {
-    int[] arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    auto buf = CircularBuffer!(int, int[])(2, arr);
-    assert (buf.data.length == 5);
-    auto iterated = array(buf);
+	int[] arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+	auto buf = CircularBuffer!(int, int[])(2, arr);
+	assert (buf.data.length == 5);
+	auto iterated = array(buf);
 	assert (iterated == arr);
 }
 

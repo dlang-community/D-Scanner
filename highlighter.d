@@ -10,8 +10,6 @@ import std.stdio;
 import std.array;
 import std.d.lexer;
 
-import langutils;
-
 void writeSpan(string cssClass, string value)
 {
 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);

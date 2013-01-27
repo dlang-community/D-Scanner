@@ -15,6 +15,7 @@ import std.parallelism;
 import std.path;
 import std.regex;
 import std.stdio;
+import std.range;
 import std.d.lexer;
 
 import autocomplete;
@@ -28,7 +29,7 @@ import circularbuffer;
 
 immutable size_t CIRC_BUFF_SIZE = 4;
 
-pure bool isLineOfCode(TokenType t)
+pure nothrow bool isLineOfCode(TokenType t)
 {
 	switch(t)
 	{
@@ -138,36 +139,21 @@ int main(string[] args)
 	{
 		if (args.length == 1)
 		{
-			auto f = appender!string();
-			char[] buf;
-			while (stdin.readln(buf))
-				f.put(buf);
-			writeln(f.data.byToken().count!(a => isLineOfCode(a.type))());
+			writeln(stdin.byLine(KeepTerminator.yes).join().byToken().count!(a => isLineOfCode(a.type))());
 		}
 		else
 		{
-			writeln(args[1..$].map!(a => a.readText().byToken())().joiner()
-				.count!(a => isLineOfCode(a.type))());
+			writeln(args[1..$].map!(a => File(a).byLine(KeepTerminator.yes).join().byToken())()
+                .joiner().count!(a => isLineOfCode(a.type))());
 		}
 		return 0;
 	}
 
 	if (highlight)
 	{
-		if (args.length == 1)
-		{
-			auto f = appender!string();
-			char[] buf;
-			while (stdin.readln(buf))
-				f.put(buf);
-			highlighter.highlight(f.data.byToken(IterationStyle.Everything,
-				StringStyle.Source));
-		}
-		else
-		{
-			highlighter.highlight(args[1].readText().byToken(
-				IterationStyle.Everything, StringStyle.Source));
-		}
+        File f = args.length == 1 ? stdin : File(args[1]);
+        highlighter.highlight(f.byLine(KeepTerminator.yes).join().byToken(
+            IterationStyle.Everything, StringStyle.Source));
 		return 0;
 	}
 
@@ -213,20 +199,9 @@ int main(string[] args)
 	if (json)
 	{
 		CircularBuffer!(Token) tokens;
-		if (args.length == 1)
-		{
-			// Read from stdin
-			auto f = appender!string();
-			char[] buf;
-			while (stdin.readln(buf))
-				f.put(buf);
-			tokens = new CircularBuffer!(Token)(CIRC_BUFF_SIZE, byToken!string(f.data));
-		}
-		else
-		{
-			// read given file
-			tokens = new CircularBuffer!(Token)(CIRC_BUFF_SIZE, byToken!string(readText(args[1])));
-		}
+        File f = args.length == 1 ? stdin : File(args[1]);
+        tokens = new CircularBuffer!(Token)(CIRC_BUFF_SIZE,
+            f.byLine(KeepTerminator.yes).join().byToken!(char[])());
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
 		return 0;

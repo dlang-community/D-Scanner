@@ -6,6 +6,7 @@
 module langutils;
 
 import std.array;
+import std.algorithm;
 import std.d.lexer;
 
 
@@ -43,7 +44,7 @@ string combineTokens(ref const Token[] tokens)
 	return app.data;
 }
 
-pure string getTypeFromToken(const Token t)
+pure nothrow string getTypeFromToken(const Token t)
 {
 	switch (t.type)
 	{
@@ -73,8 +74,14 @@ pure string getTypeFromToken(const Token t)
 	}
 }
 
-pure bool isIdentifierOrType(inout Token t)
+pure bool isIdentifierOrType(const Token t)
 {
 	return t.type == TokenType.Identifier || (t.type > TokenType.TYPES_BEGIN
 		&& TokenType.TYPES_END);
+}
+
+pure bool isDocComment(ref const Token t)
+{
+    return t.value.startsWith("///") || t.value.startsWith("/**")
+        || t.value.startsWith("/++");
 }

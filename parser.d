@@ -26,6 +26,7 @@ public:
 	this(InputRange!Token tokens, TokenType open, TokenType close)
 	{
 		super(0, tokens);
+        this.range = tokens;
 		this.open = open;
 		this.close = close;
 	}
@@ -35,7 +36,7 @@ public:
 		return _empty;
 	}
 
-	override Token front() const @property
+	override Token front() @property
 	{
 		return range.front;
 	}
@@ -47,14 +48,20 @@ public:
 			++depth;
 		else if (range.front == close)
 			--depth;
-		_empty = depth == 0;
+		_empty = depth == 0 || range.empty;
 	}
+
+    invariant()
+    {
+        assert (range);
+        assert (depth >= 0);
+    }
 
 private:
 	int depth;
 	TokenType open;
 	TokenType close;
-	TokenBuffer range;
+	InputRange!(Token) range;
 	bool _empty;
 }
 
