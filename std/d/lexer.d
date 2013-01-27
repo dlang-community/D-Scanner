@@ -235,9 +235,9 @@ immutable string VENDOR = "std.d.lexer";
 TokenRange!(R) byToken(R)(R range, string fileName = "",
 	const IterationStyle iterationStyle = IterationStyle.CodeOnly,
 	const TokenStyle stringStyle = TokenStyle.Default, string vendor = VENDOR,
-	string ver = VERSION) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
+	string ver = VERSION) if (isForwardRange!(R) && is(ElementType!(R) == char))
 {
-	auto r = new TokenRange!(R)(range);
+	auto r = TokenRange!(R)(range);
 	r.stringStyle = stringStyle;
 	r.iterStyle = iterationStyle;
 	r.lineNumber = 1;
@@ -248,7 +248,7 @@ TokenRange!(R) byToken(R)(R range, string fileName = "",
 /**
  * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
  */
-class TokenRange(R) : InputRange!(Token)
+struct TokenRange(R) if (isForwardRange!(R) && is(ElementType!(R) == char))
 {
 	/**
 	 * Returns: true if the range is empty
