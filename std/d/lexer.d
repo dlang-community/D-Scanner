@@ -1,7 +1,7 @@
 // Written in the D programming language
 
 /**
- * This module contains a range-based lexer for the D programming language.
+ * This module contains a range-based _lexer for the D programming language.
  *
  * Examples:
  *
@@ -17,6 +17,7 @@
  * 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
  * }
  *
+ * // http://ethanschoonover.com/solarized
  * void highlight(R)(R tokens)
  * {
  * 	stdout.writeln(q"[<!DOCTYPE html>
@@ -25,40 +26,61 @@
  * <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
  * <body>
  * <style type="text/css">
- * html { background-color: #fff; color: #222; }
- * .kwrd { font-weight: bold; color: blue; }
- * .com { color: green; font-style: italic;}
- * .num { color: orangered; font-weigth: bold; }
- * .str { color: red; font-style: italic; }
- * .op { color: 333; font-weight: bold; }
- * .type { color: magenta; font-weight: bold; }
+ * html  { background-color: #fdf6e3; color: #002b36; }
+ * .kwrd { color: #b58900; font-weight: bold;  }
+ * .com  { color: #93a1a1; font-style: italic; }
+ * .num  { color: #dc322f; font-weigth: bold;  }
+ * .str  { color: #2aa198; font-style: italic; }
+ * .op   { color: #586e75; font-weight: bold;  }
+ * .type { color: #268bd2; font-weight: bold;  }
+ * .cons { color: #859900; font-weight: bold;  }
  * </style>
  * <pre>]");
  *
- * 	foreach (Token t; tokens)
- * 	{
- * 		if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
- * 			writeSpan("type", t.value);
- * 		else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
- * 			writeSpan("kwrd", t.value);
- * 		else if (t.type == TokenType.Comment)
- * 			writeSpan("com", t.value);
- * 		else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
- * 			writeSpan("str", t.value);
- * 		else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
- * 			writeSpan("num", t.value);
- * 		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
- * 			writeSpan("op", t.value);
- * 		else
- * 			stdout.write(t.value.replace("<", "&lt;"));
- * 	}
- * 	stdout.writeln("</pre>\n</body></html>");
+ *     foreach (Token t; tokens)
+ *     {
+ *         if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
+ *             writeSpan("type", t.value);
+ *         else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
+ *             writeSpan("kwrd", t.value);
+ *         else if (t.type == TokenType.Comment)
+ *             writeSpan("com", t.value);
+ *         else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
+ *             writeSpan("str", t.value);
+ *         else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
+ *             writeSpan("num", t.value);
+ *         else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
+ *             writeSpan("op", t.value);
+ *         else
+ *             stdout.write(t.value.replace("<", "&lt;"));
+ *     }
+ *     stdout.writeln("</pre>\n</body></html>");
  * }
  *
  * void main(string[] args)
  * {
- *     args[1].readText().byToken(IterationStyle.Everything, StringStyle.Source).highlight();
+ *     args[1].readText().byToken(args[1], IterationStyle.Everything, TokenStyle.Source).highlight();
  * }
+ * ---
+ * Iterate by tokens that would be significant to a parser
+ * ---
+ * import std.range;
+ * import std.d.lexer;
+ *
+ * // ...
+ *
+ * string s = "import std.stdio; // comment";
+ * auto tokens = byToken(s);
+ * // The comment and whitespace are not included
+ * assert (walkLength(tokens) == 5);
+ * ---
+ * Replace special tokens
+ * ---
+ * string s = "#line 5\n__VERSION__";
+ * auto tokens = byToken(s, "example.d", IterationStyle.CodeOnly, TokenStyle.Default, "foo", "1.0");
+ * assert (tokens.front.type == TokenType.IntLiteral);
+ * assert (tokens.front.value == "1.0")
+ * assert (tokens.front.lineNumber == 5);
  * ---
  *
  * Copyright: Brian Schott 2013
@@ -76,6 +98,8 @@ import std.conv;
 import std.uni;
 import std.ascii;
 import std.exception;
+import std.datetime;
+import std.string;
 import std.d.entities;
 
 public:
@@ -129,7 +153,8 @@ struct Token
 }
 
 /**
- * Configure the behavior of the byToken() function
+ * Configure the behavior of the byToken() function. These flags may be
+ * combined using a bitwise or.
  */
 enum IterationStyle
 {
@@ -139,21 +164,25 @@ enum IterationStyle
 	IncludeComments = 0b0001,
 	/// Includes whitespace
 	IncludeWhitespace = 0b0010,
-    /// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
-    IncludeSpecialTokens = 0b0100,
-	/// Include everything
-	Everything = IncludeComments | IncludeWhitespace
+	/// Include $(LINK2 http://dlang.org/lex.html#Special%20Tokens%20Sequence, special token sequences)
+	IncludeSpecialTokens = 0b0100,
+	/// Do not terminate iteration upon reaching the ___EOF__ token
+	IgnoreEOF = 0b1000,
+	/// Include everything, including the __EOF__ token.
+	Everything = IncludeComments | IncludeWhitespace | IgnoreEOF
 }
 
 /**
- * Configuration of the string lexing style
+ * Configuration of the string lexing style. These flags may be combined with a
+ * bitwise or.
  */
-enum StringStyle : uint
+enum TokenStyle : uint
 {
 	/**
 	 * Escape sequences will be replaced with their equivalent characters,
-	 * enclosing quote characters will not be included. Useful for creating a
-	 * compiler or interpreter.
+	 * enclosing quote characters will not be included. Special tokens such as
+	 * __VENDOR__ will be replaced with their equivalent strings. Useful for
+	 * creating a compiler or interpreter.
 	 */
 	Default = 0b0000,
 
@@ -170,27 +199,43 @@ enum StringStyle : uint
 	 * include the $(D_STRING 'w') character as well as the opening and closing
 	 * quotes$(RPAREN)
 	 */
-	IncludeQuotes = 0x0010,
+	IncludeQuotes = 0b0010,
+
+	/**
+	 * Do not replace the value field of the special tokens such as ___DATE__
+	 * with their string equivalents.
+	 */
+	DoNotReplaceSpecial = 0b0100,
 
 	/**
 	 * Strings will be read exactly as they appeared in the source, including
 	 * their opening and closing quote characters. Useful for syntax
 	 * highlighting.
 	 */
-	Source = NotEscaped | IncludeQuotes,
+	Source = NotEscaped | IncludeQuotes | DoNotReplaceSpecial,
 }
+
+/// Default replacement for the ___VERSION__ special token
+immutable string VERSION = "1.0";
+
+/// Default replacement for the ___VENDOR__ special token
+immutable string VENDOR = "std.d.lexer";
 
 /**
  * Iterate over the given range of characters by D tokens.
  * Params:
  *     range = the range of characters
  *     iterationStyle = See IterationStyle
- *     stringStyle = see StringStyle
+ *     stringStyle = see TokenStyle
+ *     vendor = the string literal that should replace the ___VENDOR__ special token
+ *     ver = the string literal that should replace the ___VERSION__ special token
  * Returns:
  *     an input range of tokens
  */
-TokenRange!(R) byToken(R)(R range, const IterationStyle iterationStyle = IterationStyle.CodeOnly,
-	const StringStyle stringStyle = StringStyle.Default) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
+TokenRange!(R) byToken(R)(R range, string fileName = "",
+	const IterationStyle iterationStyle = IterationStyle.CodeOnly,
+	const TokenStyle stringStyle = TokenStyle.Default, string vendor = VENDOR,
+	string ver = VERSION) if (isForwardRange!(R) && isSomeChar!(ElementType!(R)))
 {
 	auto r = new TokenRange!(R)(range);
 	r.stringStyle = stringStyle;
@@ -201,16 +246,10 @@ TokenRange!(R) byToken(R)(R range, const IterationStyle iterationStyle = Iterati
 }
 
 /**
- * Range of tokens. Avoid creating instances of this manually. Use
- * $(DDOC_PSYMBOL byToken$(LPAREN)$(RPAREN)) instead, as it does some initialization work.
+ * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
  */
 class TokenRange(R) : InputRange!(Token)
 {
-	this(ref R range)
-	{
-		this.range = range;
-	}
-
 	/**
 	 * Returns: true if the range is empty
 	 */
@@ -265,38 +304,43 @@ class TokenRange(R) : InputRange!(Token)
 		return result;
 	}
 
-    override void popFront()
-    {
-        // Filter out tokens we don't care about
-        loop: do
-        {
-            advance();
-            switch (current.type)
-            {
-            case TokenType.Comment:
-                if (iterStyle & IterationStyle.IncludeComments)
-                    break loop;
-                break;
-            case TokenType.Whitespace:
-                if (iterStyle & IterationStyle.IncludeWhitespace)
-                    break loop;
-                break;
-            case TokenType.SpecialTokenSequence:
-                if (iterStyle & IterationStyle.IncludeSpecialTokens)
-                    break loop;
-                break;
-            default:
-                break loop;
-            }
-        }
-        while (!empty());
-    }
+	override void popFront()
+	{
+		// Filter out tokens we don't care about
+		loop: do
+		{
+			advance();
+			switch (current.type)
+			{
+			case TokenType.Comment:
+				if (iterStyle & IterationStyle.IncludeComments)
+					break loop;
+				break;
+			case TokenType.Whitespace:
+				if (iterStyle & IterationStyle.IncludeWhitespace)
+					break loop;
+				break;
+			case TokenType.SpecialTokenSequence:
+				if (iterStyle & IterationStyle.IncludeSpecialTokens)
+					break loop;
+				break;
+			default:
+				break loop;
+			}
+		}
+		while (!empty());
+	}
 
 private:
 
+	this(ref R range)
+	{
+		this.range = range;
+	}
+
 	/*
-     * Advances the range to the next token
-     */
+	 * Advances the range to the next token
+	 */
 	void advance()
 	{
 		if (range.empty)
@@ -311,8 +355,8 @@ private:
 
 		if (std.uni.isWhite(range.front))
 		{
-            current = lexWhitespace(range, index, lineNumber);
-            return;
+			current = lexWhitespace(range, index, lineNumber);
+			return;
 		}
 		outer: switch (range.front)
 		{
@@ -456,22 +500,22 @@ private:
 			}
 			else
 				goto default;
-        case '#':
-            string special = lexSpecialTokenSequence(range, index, lineNumber);
-            if (special)
-            {
-                current.type = TokenType.SpecialTokenSequence;
-                current.value = special;
-            }
-            else
-            {
-                current.type = TokenType.Hash;
-                current.value = "#";
-                range.popFront();
+		case '#':
+			string special = lexSpecialTokenSequence(range, index, lineNumber);
+			if (special)
+			{
+				current.type = TokenType.SpecialTokenSequence;
+				current.value = special;
+			}
+			else
+			{
+				current.type = TokenType.Hash;
+				current.value = "#";
+				range.popFront();
 				++index;
 				break;
-            }
-            break;
+			}
+			break;
 		default:
 			auto app = appender!(ElementType!(R)[])();
 			while(!range.isEoF() && !isSeparating(range.front))
@@ -482,6 +526,55 @@ private:
 			}
 			current.value = to!string(app.data);
 			current.type = lookupTokenType(current.value);
+
+			if (!(iterStyle & IterationStyle.IgnoreEOF) && current.type == TokenType.EOF)
+			{
+				_empty = true;
+				return;
+			}
+
+			if (!(iterStyle & TokenStyle.DoNotReplaceSpecial))
+				break;
+
+			switch (current.type)
+			{
+			case TokenType.Date:
+				current.type = TokenType.StringLiteral;
+				auto time = Clock.currTime();
+				current.value = format("%s %02d %04d", time.month, time.day, time.year);
+				break;
+			case TokenType.Time:
+				auto time = Clock.currTime();
+				current.type = TokenType.StringLiteral;
+				current.value = (cast(TimeOfDay)(time)).toISOExtString();
+				break;
+			case TokenType.Timestamp:
+				auto time = Clock.currTime();
+				auto dt = cast(DateTime) time;
+				current.type = TokenType.StringLiteral;
+				current.value = format("%s %s %02d %02d:%02d:%02d %04d",
+					dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
+					dt.second, dt.year);
+				break;
+			case TokenType.Vendor:
+				current.type = TokenType.StringLiteral;
+				current.value = vendor;
+				break;
+			case TokenType.CompilerVersion:
+				current.type = TokenType.StringLiteral;
+				current.value = ver;
+				break;
+			case TokenType.Line:
+				current.type = TokenType.IntLiteral;
+				current.value = format("%d", current.lineNumber);
+				break;
+			case TokenType.File:
+				current.type = TokenType.StringLiteral;
+				current.value = fileName;
+				break;
+			default:
+				break;
+			}
 			break;
 		}
 	}
@@ -492,15 +585,18 @@ private:
 	R range;
 	bool _empty;
 	IterationStyle iterStyle;
-	StringStyle stringStyle;
+	TokenStyle stringStyle;
+	string ver;
+	string vendor;
+	string fileName;
 }
 
 unittest
 {
-    import std.stdio;
-    auto a = "/**comment*/\n#lin #line 10 \"test.d\"\nint a;//test\n";
-    foreach (t; byToken(a))
-        writeln(t);
+	import std.stdio;
+	auto a = "/**comment*/\n#lin #line 10 \"test.d\"\nint a;//test\n";
+	foreach (t; byToken(a))
+		writeln(t);
 }
 
 /**
@@ -521,7 +617,7 @@ unittest
  *     $(TR $(TD KEYWORDS_BEGIN) $(TD KEYWORDS) $(TD keywords) $(TD class, if, assert))
  *     $(TR $(TD ATTRIBUTES_BEGIN) $(TD ATTRIBUTES_END) $(TD attributes) $(TD override synchronized, __gshared))
  *     $(TR $(TD ATTRIBUTES_BEGIN) $(TD ATTRIBUTES_END) $(TD protection) $(TD public, protected))
- *     $(TR $(TD CONSTANTS_BEGIN) $(TD CONSTANTS_END) $(TD compile-time constants) $(TD __FILE__, __TIME__))
+ *     $(TR $(TD CONSTANTS_BEGIN) $(TD CONSTANTS_END) $(TD compile-time constants) $(TD ___FILE__, ___TIME__))
  *     $(TR $(TD LITERALS_BEGIN) $(TD LITERALS_END) $(TD string and numeric literals) $(TD "str", 123))
  *     $(TR $(TD NUMBERS_BEGIN) $(TD NUMBERS_END) $(TD numeric literals) $(TD 0x123p+9, 0b0110))
  *     $(TR $(TD STRINGS_BEGIN) $(TD STRINGS_END) $(TD string literals) $(TD `123`c, q{tokens;}, "abcde"))
@@ -533,104 +629,104 @@ enum TokenType: uint
 {
 	// Operators
 	OPERATORS_BEGIN, ///
-	Assign,	/// $(D_KEYWORD =)
-	At, /// $(D_KEYWORD @)
-	BitAnd,	/// $(D_KEYWORD &)
-	BitAndEquals,	/// $(D_KEYWORD &=)
-	BitOr,	/// $(D_KEYWORD |)
-	BitOrEquals,	/// $(D_KEYWORD |=)
-	CatEquals,	/// $(D_KEYWORD ~=)
-	Colon,	/// $(D_KEYWORD :)
-	Comma,	/// $(D_KEYWORD ,)
-	Decrement,	/// $(D_KEYWORD --)
-	Div,	/// $(D_KEYWORD /)
-	DivEquals,	/// $(D_KEYWORD /=)
-	Dollar,	/// $(D_KEYWORD $)
-	Dot,	/// $(D_KEYWORD .)
-	Equals,	/// $(D_KEYWORD ==)
+	Assign,	/// =
+	At, /// @
+	BitAnd,	/// &
+	BitAndEquals,	/// &=
+	BitOr,	///     |
+	BitOrEquals,	/// |=
+	CatEquals,	/// ~=
+	Colon,	/// :
+	Comma,	/// ,
+	Decrement,	/// --
+	Div,	/// /
+	DivEquals,	/// /=
+	Dollar,	/// $
+	Dot,	/// .
+	Equals,	/// ==
 	GoesTo, // =>
-	Greater,	/// $(D_KEYWORD >)
-	GreaterEqual,	/// $(D_KEYWORD >=)
-	Hash, // $(D_KEYWORD #)
-	Increment,	/// $(D_KEYWORD ++)
-	LBrace,	/// $(D_KEYWORD {)
-	LBracket,	/// $(D_KEYWORD [)
-	Less,	/// $(D_KEYWORD <)
-	LessEqual,	/// $(D_KEYWORD <=)
-	LessEqualGreater, // $(D_KEYWORD <>=)
-	LessOrGreater,	/// $(D_KEYWORD <>)
-	LogicAnd,	/// $(D_KEYWORD &&)
-	LogicOr,	/// $(D_KEYWORD ||)
-	LParen,	/// $(D_KEYWORD $(LPAREN))
-	Minus,	/// $(D_KEYWORD -)
-	MinusEquals,	/// $(D_KEYWORD -=)
-	Mod,	/// $(D_KEYWORD %)
-	ModEquals,	/// $(D_KEYWORD %=)
-	MulEquals,	/// $(D_KEYWORD *=)
-	Not,	/// $(D_KEYWORD !)
-	NotEquals,	/// $(D_KEYWORD !=)
-	NotGreater,	/// $(D_KEYWORD !>)
-	NotGreaterEqual,	/// $(D_KEYWORD !>=)
-	NotLess,	/// $(D_KEYWORD !<)
-	NotLessEqual,	/// $(D_KEYWORD !<=)
-	NotLessEqualGreater,	/// $(D_KEYWORD !<>)
-	Plus,	/// $(D_KEYWORD +)
-	PlusEquals,	/// $(D_KEYWORD +=)
-	Pow,	/// $(D_KEYWORD ^^)
-	PowEquals,	/// $(D_KEYWORD ^^=)
-	RBrace,	/// $(D_KEYWORD })
-	RBracket,	/// $(D_KEYWORD ])
-	RParen,	/// $(D_KEYWORD $(RPAREN))
-	Semicolon,	/// $(D_KEYWORD ;)
-	ShiftLeft,	/// $(D_KEYWORD <<)
-	ShiftLeftEqual,	/// $(D_KEYWORD <<=)
-	ShiftRight,	/// $(D_KEYWORD >>)
-	ShiftRightEqual,	/// $(D_KEYWORD >>=)
+	Greater,	/// >
+	GreaterEqual,	/// >=
+	Hash, // #
+	Increment,	/// ++
+	LBrace,	/// {
+	LBracket,	/// [
+	Less,	/// <
+	LessEqual,	/// <=
+	LessEqualGreater, // <>=
+	LessOrGreater,	/// <>
+	LogicAnd,	/// &&
+	LogicOr,	/// ||
+	LParen,	/// $(LPAREN)
+	Minus,	/// -
+	MinusEquals,	/// -=
+	Mod,	/// %
+	ModEquals,	/// %=
+	MulEquals,	/// *=
+	Not,	/// !
+	NotEquals,	/// !=
+	NotGreater,	/// !>
+	NotGreaterEqual,	/// !>=
+	NotLess,	/// !<
+	NotLessEqual,	/// !<=
+	NotLessEqualGreater,	/// !<>
+	Plus,	/// +
+	PlusEquals,	/// +=
+	Pow,	/// ^^
+	PowEquals,	/// ^^=
+	RBrace,	/// }
+	RBracket,	/// ]
+	RParen,	/// $(RPAREN)
+	Semicolon,	/// ;
+	ShiftLeft,	/// <<
+	ShiftLeftEqual,	/// <<=
+	ShiftRight,	/// >>
+	ShiftRightEqual,	/// >>=
 	Slice, // ..
-	Star,	/// $(D_KEYWORD *)
-	Ternary,	/// $(D_KEYWORD ?)
-	Tilde,	/// $(D_KEYWORD ~)
-	Unordered,	/// $(D_KEYWORD !<>=)
-	UnsignedShiftRight,	/// $(D_KEYWORD >>>)
-	UnsignedShiftRightEqual,	/// $(D_KEYWORD >>>=)
-	Vararg,	/// $(D_KEYWORD ...)
-	Xor,	/// $(D_KEYWORD ^)
-	XorEquals,	/// $(D_KEYWORD ^=)
+	Star,	/// *
+	Ternary,	/// ?
+	Tilde,	/// ~
+	Unordered,	/// !<>=
+	UnsignedShiftRight,	/// >>>
+	UnsignedShiftRightEqual,	/// >>>=
+	Vararg,	/// ...
+	Xor,	/// ^
+	XorEquals,	/// ^=
 	OPERATORS_END, ///
 
 
-    // Keywords
+	// Keywords
 	KEYWORDS_BEGIN, ///
-        TYPES_BEGIN, ///
-        Bool, /// $(D_KEYWORD bool)
-        Byte, /// $(D_KEYWORD byte)
-        Cdouble, /// $(D_KEYWORD cdouble)
-        Cent, /// $(D_KEYWORD cent)
-        Cfloat, /// $(D_KEYWORD cfloat)
-        Char, /// $(D_KEYWORD char)
-        Creal, /// $(D_KEYWORD creal)
-        Dchar, /// $(D_KEYWORD dchar)
-        Double, /// $(D_KEYWORD double)
-        DString, /// $(D_KEYWORD dstring)
-        Float, /// $(D_KEYWORD float)
-        Function, /// $(D_KEYWORD function)
-        Idouble, /// $(D_KEYWORD idouble)
-        Ifloat, /// $(D_KEYWORD ifloat)
-        Int, /// $(D_KEYWORD int)
-        Ireal, /// $(D_KEYWORD ireal)
-        Long, /// $(D_KEYWORD long)
-        Real, /// $(D_KEYWORD real)
-        Short, /// $(D_KEYWORD short)
-        String, /// $(D_KEYWORD string)
-        Ubyte, /// $(D_KEYWORD ubyte)
-        Ucent, /// $(D_KEYWORD ucent)
-        Uint, /// $(D_KEYWORD uint)
-        Ulong, /// $(D_KEYWORD ulong)
-        Ushort, /// $(D_KEYWORD ushort)
-        Void, /// $(D_KEYWORD void)
-        Wchar, /// $(D_KEYWORD wchar)
-        WString, /// $(D_KEYWORD wstring)
-        TYPES_END, ///
+		TYPES_BEGIN, ///
+		Bool, /// $(D_KEYWORD bool)
+		Byte, /// $(D_KEYWORD byte)
+		Cdouble, /// $(D_KEYWORD cdouble)
+		Cent, /// $(D_KEYWORD cent)
+		Cfloat, /// $(D_KEYWORD cfloat)
+		Char, /// $(D_KEYWORD char)
+		Creal, /// $(D_KEYWORD creal)
+		Dchar, /// $(D_KEYWORD dchar)
+		Double, /// $(D_KEYWORD double)
+		DString, /// $(D_KEYWORD dstring)
+		Float, /// $(D_KEYWORD float)
+		Function, /// $(D_KEYWORD function)
+		Idouble, /// $(D_KEYWORD idouble)
+		Ifloat, /// $(D_KEYWORD ifloat)
+		Int, /// $(D_KEYWORD int)
+		Ireal, /// $(D_KEYWORD ireal)
+		Long, /// $(D_KEYWORD long)
+		Real, /// $(D_KEYWORD real)
+		Short, /// $(D_KEYWORD short)
+		String, /// $(D_KEYWORD string)
+		Ubyte, /// $(D_KEYWORD ubyte)
+		Ucent, /// $(D_KEYWORD ucent)
+		Uint, /// $(D_KEYWORD uint)
+		Ulong, /// $(D_KEYWORD ulong)
+		Ushort, /// $(D_KEYWORD ushort)
+		Void, /// $(D_KEYWORD void)
+		Wchar, /// $(D_KEYWORD wchar)
+		WString, /// $(D_KEYWORD wstring)
+		TYPES_END, ///
 		ATTRIBUTES_BEGIN, ///
 		Align, /// $(D_KEYWORD align)
 		Deprecated, /// $(D_KEYWORD deprecated)
@@ -699,7 +795,7 @@ enum TokenType: uint
 	Struct, /// $(D_KEYWORD struct)
 	Super, /// $(D_KEYWORD super)
 	Switch, /// $(D_KEYWORD switch)
-    Template, /// $(D_KEYWORD template)
+	Template, /// $(D_KEYWORD template)
 	This, /// $(D_KEYWORD this)
 	Throw, /// $(D_KEYWORD throw)
 	True, /// $(D_KEYWORD true)
@@ -717,10 +813,16 @@ enum TokenType: uint
 
 	// Constants
 	CONSTANTS_BEGIN, ///
-	File, /// $(D_KEYWORD __FILE__)
-	Line, /// $(D_KEYWORD __LINE__)
-	Thread, /// $(D_KEYWORD __thread)
-	Traits, /// $(D_KEYWORD __traits)
+	Date, /// ___DATE__
+	EOF, /// ___EOF__
+	Time, /// ___TIME__
+	Timestamp, /// ___TIMESTAMP__
+	Vendor, /// ___VENDOR__
+	CompilerVersion, /// ___VERSION__
+	File, /// ___FILE__
+	Line, /// ___LINE__
+	Thread, /// ___thread
+	Traits, /// ___traits
 	CONSTANTS_END, ///
 
 	// Misc
@@ -729,7 +831,7 @@ enum TokenType: uint
 	Identifier, /// anything else
 	ScriptLine, // Line at the beginning of source file that starts from #!
 	Whitespace, /// whitespace
-    SpecialTokenSequence, /// #line 10 "file.d"
+	SpecialTokenSequence, /// #line 10 "file.d"
 	MISC_END, ///
 
 	// Literals
@@ -1119,56 +1221,56 @@ unittest
 }
 
 Token lexHexString(R, C = ElementType!R)(ref R input, ref uint index, ref uint lineNumber,
-	const StringStyle style = StringStyle.Default)
+	const TokenStyle style = TokenStyle.Default)
 in
 {
-    assert (input.front == 'x');
+	assert (input.front == 'x');
 }
 body
 {
-    Token t;
-    t.lineNumber = lineNumber;
-    t.startIndex = index;
-    t.type = TokenType.StringLiteral;
-    auto app = appender!(C[])();
-    if (style & StringStyle.IncludeQuotes)
-        app.put("x\"");
-    input.popFront();
-    input.popFront();
-    index += 2;
-    while (!input.isEoF())
-    {
-        if (isNewline(input))
-        {
-            app.put(popNewline(input, index));
-            ++lineNumber;
-        }
-        else if (isHexDigit(input.front))
-        {
-            app.put(input.front);
-            input.popFront();
-            ++index;
-        }
-        else if (std.uni.isWhite(input.front) && (style & StringStyle.NotEscaped))
-        {
-            app.put(input.front);
-            input.popFront();
-            ++index;
-        }
-        else if (input.front == '"')
-        {
-            if (style & StringStyle.IncludeQuotes)
-                app.put('"');
-            input.popFront();
-            ++index;
-            break;
-        }
-        else
-        {
-            // This is an error
-        }
-    }
-    if (!input.isEoF())
+	Token t;
+	t.lineNumber = lineNumber;
+	t.startIndex = index;
+	t.type = TokenType.StringLiteral;
+	auto app = appender!(C[])();
+	if (style & TokenStyle.IncludeQuotes)
+		app.put("x\"");
+	input.popFront();
+	input.popFront();
+	index += 2;
+	while (!input.isEoF())
+	{
+		if (isNewline(input))
+		{
+			app.put(popNewline(input, index));
+			++lineNumber;
+		}
+		else if (isHexDigit(input.front))
+		{
+			app.put(input.front);
+			input.popFront();
+			++index;
+		}
+		else if (std.uni.isWhite(input.front) && (style & TokenStyle.NotEscaped))
+		{
+			app.put(input.front);
+			input.popFront();
+			++index;
+		}
+		else if (input.front == '"')
+		{
+			if (style & TokenStyle.IncludeQuotes)
+				app.put('"');
+			input.popFront();
+			++index;
+			break;
+		}
+		else
+		{
+			// This is an error
+		}
+	}
+	if (!input.isEoF())
 	{
 		switch (input.front)
 		{
@@ -1179,7 +1281,7 @@ body
 			t.type = TokenType.DStringLiteral;
 			goto case 'c';
 		case 'c':
-			if (style & StringStyle.IncludeQuotes)
+			if (style & TokenStyle.IncludeQuotes)
 				app.put(input.front);
 			input.popFront();
 			++index;
@@ -1188,47 +1290,47 @@ body
 			break;
 		}
 	}
-    if (style & StringStyle.NotEscaped)
+	if (style & TokenStyle.NotEscaped)
 		t.value = to!string(app.data);
 	else
-    {
-        auto a = appender!(char[])();
-        foreach (b; std.range.chunks(app.data, 2))
-            a.put(to!string(cast(dchar) parse!uint(b, 16)));
-        t.value = to!string(a.data);
-    }
+	{
+		auto a = appender!(char[])();
+		foreach (b; std.range.chunks(app.data, 2))
+			a.put(to!string(cast(dchar) parse!uint(b, 16)));
+		t.value = to!string(a.data);
+	}
 
 
-    return t;
+	return t;
 }
 
 unittest
 {
-    uint i;
-    uint l;
+	uint i;
+	uint l;
 
-    auto a = `x"204041"`;
-    auto ar = lexHexString(a, i, l);
-    assert (ar == " @A");
-    assert (ar == TokenType.StringLiteral);
+	auto a = `x"204041"`;
+	auto ar = lexHexString(a, i, l);
+	assert (ar == " @A");
+	assert (ar == TokenType.StringLiteral);
 
-    auto b = `x"20"w`;
-    auto br = lexHexString(b, i, l);
-    assert (br == " ");
-    assert (br == TokenType.WStringLiteral);
+	auto b = `x"20"w`;
+	auto br = lexHexString(b, i, l);
+	assert (br == " ");
+	assert (br == TokenType.WStringLiteral);
 
-    auto c = `x"6d"`;
-    auto cr = lexHexString(c, i, l, StringStyle.NotEscaped);
-    assert (cr == "6d");
+	auto c = `x"6d"`;
+	auto cr = lexHexString(c, i, l, TokenStyle.NotEscaped);
+	assert (cr == "6d");
 
-    auto d = `x"5e5f"d`;
-    auto dr = lexHexString(d, i, l, StringStyle.NotEscaped | StringStyle.IncludeQuotes);
-    assert (dr == `x"5e5f"d`);
-    assert (dr == TokenType.DStringLiteral);
+	auto d = `x"5e5f"d`;
+	auto dr = lexHexString(d, i, l, TokenStyle.NotEscaped | TokenStyle.IncludeQuotes);
+	assert (dr == `x"5e5f"d`);
+	assert (dr == TokenType.DStringLiteral);
 }
 
 Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
-	const StringStyle style = StringStyle.Default)
+	const TokenStyle style = TokenStyle.Default)
 in
 {
 	assert (input.front == '\'' || input.front == '"' || input.front == '`' || input.front == 'r');
@@ -1243,7 +1345,7 @@ body
 	bool isWysiwyg = input.front == 'r' || input.front == '`';
 	if (input.front == 'r')
 	{
-		if (style & StringStyle.IncludeQuotes)
+		if (style & TokenStyle.IncludeQuotes)
 			app.put('r');
 		input.popFront();
 	}
@@ -1251,7 +1353,7 @@ body
 	input.popFront();
 	++index;
 
-	if (style & StringStyle.IncludeQuotes)
+	if (style & TokenStyle.IncludeQuotes)
 		app.put(quote);
 	while (!isEoF(input))
 	{
@@ -1262,7 +1364,7 @@ body
 		}
 		else if (input.front == '\\')
 		{
-			if (style & StringStyle.NotEscaped)
+			if (style & TokenStyle.NotEscaped)
 			{
 				auto r = input.save();
 				r.popFront();
@@ -1294,7 +1396,7 @@ body
 		}
 		else if (input.front == quote)
 		{
-			if (style & StringStyle.IncludeQuotes)
+			if (style & TokenStyle.IncludeQuotes)
 				app.put(quote);
 			input.popFront();
 			++index;
@@ -1318,7 +1420,7 @@ body
 			t.type = TokenType.DStringLiteral;
 			goto case 'c';
 		case 'c':
-			if (style & StringStyle.IncludeQuotes)
+			if (style & TokenStyle.IncludeQuotes)
 				app.put(input.front);
 			input.popFront();
 			++index;
@@ -1340,7 +1442,7 @@ unittest
 	auto b = "\"ab\\ncd\"";
 	assert (lexString(b, i, l) == "ab\ncd");
 	auto c = "`abc\\ndef`";
-	assert (lexString(c, i, l, StringStyle.NotEscaped) == "abc\\ndef");
+	assert (lexString(c, i, l, TokenStyle.NotEscaped) == "abc\\ndef");
 	auto d = `"12345"w`;
 	assert (lexString(d, i, l).type == TokenType.WStringLiteral);
 	auto e = `"abc"c`;
@@ -1352,7 +1454,7 @@ unittest
 }
 
 Token lexDelimitedString(R)(ref R input, ref uint index,
-	ref uint lineNumber, const StringStyle stringStyle = StringStyle.Default)
+	ref uint lineNumber, const TokenStyle stringStyle = TokenStyle.Default)
 in
 {
 	assert(input.front == 'q');
@@ -1368,7 +1470,7 @@ body
 	input.popFront(); // q
 	input.popFront(); // "
 	index += 2;
-	if (stringStyle & StringStyle.IncludeQuotes)
+	if (stringStyle & TokenStyle.IncludeQuotes)
 	{
 		app.put('q');
 		app.put('"');
@@ -1414,7 +1516,7 @@ body
 				app.put('"');
 				++index;
 				input.popFront();
-				if (stringStyle & StringStyle.IncludeQuotes)
+				if (stringStyle & TokenStyle.IncludeQuotes)
 					t.value = to!string(app.data);
 				else
 					t.value = to!string(app.data[0 .. app.data.length - hereOpen.data.length - 1]);
@@ -1430,7 +1532,7 @@ body
 	}
 	else
 	{
-		if (stringStyle & StringStyle.IncludeQuotes)
+		if (stringStyle & TokenStyle.IncludeQuotes)
 			app.put(input.front);
 		input.popFront();
 		int depth = 1;
@@ -1445,7 +1547,7 @@ body
 					--depth;
 					if (depth == 0)
 					{
-						if (stringStyle & StringStyle.IncludeQuotes)
+						if (stringStyle & TokenStyle.IncludeQuotes)
 						{
 							app.put(close);
 							app.put('"');
@@ -1474,7 +1576,7 @@ body
 			t.type = TokenType.DStringLiteral;
 			goto case 'c';
 		case 'c':
-			if (stringStyle & StringStyle.IncludeQuotes)
+			if (stringStyle & TokenStyle.IncludeQuotes)
 				app.put(input.front);
 			input.popFront();
 			++index;
@@ -1503,13 +1605,13 @@ unittest
 	assert (br == TokenType.WStringLiteral);
 
 	auto c = `q"[<xml></xml>]");`;
-	auto cr = lexDelimitedString(c, i, l, StringStyle.Source);
+	auto cr = lexDelimitedString(c, i, l, TokenStyle.Source);
 	assert (cr == `q"[<xml></xml>]"`);
 	assert (cr == TokenType.StringLiteral);
 }
 
 Token lexTokenString(R)(ref R input, ref uint index, ref uint lineNumber,
-	const StringStyle stringStyle = StringStyle.Default)
+	const TokenStyle stringStyle = TokenStyle.Default)
 in
 {
 	assert (input.front == 'q');
@@ -1524,12 +1626,12 @@ body
 	input.popFront(); // q
 	input.popFront(); // {
 	index += 2;
-	if (stringStyle & StringStyle.IncludeQuotes)
+	if (stringStyle & TokenStyle.IncludeQuotes)
 	{
 		app.put('q');
 		app.put('{');
 	}
-	auto r = byToken(input, IterationStyle.Everything, StringStyle.Source);
+	auto r = byToken(input, "", IterationStyle.Everything, TokenStyle.Source);
 	r.index = index;
 	int depth = 1;
 	while (!r.empty)
@@ -1543,7 +1645,7 @@ body
 			--depth;
 			if (depth <= 0)
 			{
-				if (stringStyle & StringStyle.IncludeQuotes)
+				if (stringStyle & TokenStyle.IncludeQuotes)
 					app.put('}');
 				r.popFront();
 				break;
@@ -1553,7 +1655,7 @@ body
 		r.popFront();
 	}
 
-	auto n = app.data.length - (stringStyle & StringStyle.IncludeQuotes ? 2 : 0);
+	auto n = app.data.length - (stringStyle & TokenStyle.IncludeQuotes ? 2 : 0);
 	input.popFrontN(n);
 	if (!input.isEoF())
 	{
@@ -1566,7 +1668,7 @@ body
 			t.type = TokenType.DStringLiteral;
 			goto case 'c';
 		case 'c':
-			if (stringStyle & StringStyle.IncludeQuotes)
+			if (stringStyle & TokenStyle.IncludeQuotes)
 				app.put(input.front);
 			input.popFront();
 			++index;
@@ -1582,7 +1684,7 @@ body
 
 unittest
 {
-    import std.stdio;
+	import std.stdio;
 	uint i;
 	uint l;
 	auto a = "q{import std.stdio;} abcd";
@@ -1591,7 +1693,7 @@ unittest
 	assert (ar == "import std.stdio;");
 
 	auto b = `q{writeln("hello world");}`;
-	auto br = lexTokenString(b, i, l, StringStyle.Source);
+	auto br = lexTokenString(b, i, l, TokenStyle.Source);
 	assert (br == TokenType.StringLiteral);
 	assert (br == `q{writeln("hello world");}`);
 }
@@ -2178,106 +2280,106 @@ unittest
 }
 
 string lexSpecialTokenSequence(R)(ref R input, ref uint index,
-    ref uint lineNumber)
+	ref uint lineNumber)
 in
 {
-    assert (input.front == '#');
+	assert (input.front == '#');
 }
 body
 {
-    auto i = index;
-    auto r = input.save;
-    auto l = lineNumber;
-    r.popFront();
-    ++i;
-    auto app = appender!(ElementType!(R)[])();
-    app.put('#');
+	auto i = index;
+	auto r = input.save;
+	auto l = lineNumber;
+	r.popFront();
+	++i;
+	auto app = appender!(ElementType!(R)[])();
+	app.put('#');
 
-    auto specialType = appender!(ElementType!(R)[])();
+	auto specialType = appender!(ElementType!(R)[])();
 
-    while (!r.empty && !isSeparating(r.front))
-    {
-        specialType.put(r.front);
-        ++i;
-        r.popFront();
-    }
+	while (!r.empty && !isSeparating(r.front))
+	{
+		specialType.put(r.front);
+		++i;
+		r.popFront();
+	}
 
-    if (to!string(specialType.data) != "line")
-        return null;
-    app.put(specialType.data);
+	if (to!string(specialType.data) != "line")
+		return null;
+	app.put(specialType.data);
 
-    if (std.uni.isWhite(r.front))
-        app.put(lexWhitespace(r, i, l).value);
+	if (std.uni.isWhite(r.front))
+		app.put(lexWhitespace(r, i, l).value);
 
 
-    if (!isDigit(r.front))
-        return null;
+	if (!isDigit(r.front))
+		return null;
 
-    auto t = lexNumber(r, i, l);
-    if (t != TokenType.IntLiteral)
-        return null;
+	auto t = lexNumber(r, i, l);
+	if (t != TokenType.IntLiteral)
+		return null;
 
-    app.put(t.value);
-    l = to!uint(t.value);
+	app.put(t.value);
+	l = to!uint(t.value);
 
-    if (!isNewline(r))
-    {
-        if (!r.empty && std.uni.isWhite(r.front))
-            app.put(lexWhitespace(r, i, l).value);
+	if (!isNewline(r))
+	{
+		if (!r.empty && std.uni.isWhite(r.front))
+			app.put(lexWhitespace(r, i, l).value);
 
-        if (!r.empty && r.front == '"')
-        {
-            auto fSpecApp = appender!(ElementType!(R)[])();
-            fSpecApp.put(r.front);
-            r.popFront();
-            ++i;
-            while (!r.empty)
-            {
-                if (r.front == '"')
-                {
-                    fSpecApp.put('"');
-                    ++i;
-                    r.popFront();
-                    break;
-                }
-                ++i;
-                fSpecApp.put(r.front);
-                r.popFront();
-            }
-            app.put(fSpecApp.data);
-        }
-        else
-            return null;
-    }
+		if (!r.empty && r.front == '"')
+		{
+			auto fSpecApp = appender!(ElementType!(R)[])();
+			fSpecApp.put(r.front);
+			r.popFront();
+			++i;
+			while (!r.empty)
+			{
+				if (r.front == '"')
+				{
+					fSpecApp.put('"');
+					++i;
+					r.popFront();
+					break;
+				}
+				++i;
+				fSpecApp.put(r.front);
+				r.popFront();
+			}
+			app.put(fSpecApp.data);
+		}
+		else
+			return null;
+	}
 
-    app.put(popNewline(r, i));
-    input.popFrontN(i - index);
-    index = i;
-    lineNumber = l;
-    return to!string(app.data);
+	app.put(popNewline(r, i));
+	input.popFrontN(i - index);
+	index = i;
+	lineNumber = l;
+	return to!string(app.data);
 }
 
 unittest
 {
-    uint i;
-    uint l;
-    auto a = "#line 10\n";
-    auto ar = lexSpecialTokenSequence(a, i, l);
-    assert (ar == "#line 10\n");
-    assert (a == "");
-    assert (l == 10);
+	uint i;
+	uint l;
+	auto a = "#line 10\n";
+	auto ar = lexSpecialTokenSequence(a, i, l);
+	assert (ar == "#line 10\n");
+	assert (a == "");
+	assert (l == 10);
 
-    auto b = "#line 9201 \"test.d\"\n";
-    auto br = lexSpecialTokenSequence(b, i, l);
-    assert (l == 9201);
-    assert (br == "#line 9201 \"test.d\"\n");
-    assert (b == "");
+	auto b = "#line 9201 \"test.d\"\n";
+	auto br = lexSpecialTokenSequence(b, i, l);
+	assert (l == 9201);
+	assert (br == "#line 9201 \"test.d\"\n");
+	assert (b == "");
 
-    auto c = `#lin`;
-    auto cr = lexSpecialTokenSequence(c, i, l);
-    assert (l == 9201);
-    assert (cr is null);
-    assert (c == `#lin`);
+	auto c = `#lin`;
+	auto cr = lexSpecialTokenSequence(c, i, l);
+	assert (l == 9201);
+	assert (cr is null);
+	assert (c == `#lin`);
 }
 
 pure nothrow bool isSeparating(C)(C ch) if (isSomeChar!C)
@@ -2384,6 +2486,7 @@ pure nothrow TokenType lookupTokenType(const string input)
 		default: break;
 		}
 		break;
+
 	case 6:
 		switch (input)
 		{
@@ -2413,6 +2516,7 @@ pure nothrow TokenType lookupTokenType(const string input)
 	case 7:
 		switch (input)
 		{
+		case "__EOF__": return TokenType.EOF;
 		case "cdouble": return TokenType.Cdouble;
 		case "default": return TokenType.Default;
 		case "dstring": return TokenType.DString;
@@ -2443,6 +2547,8 @@ pure nothrow TokenType lookupTokenType(const string input)
 		case "function": return TokenType.Function;
 		case "unittest": return TokenType.Unittest;
 		case "__FILE__": return TokenType.File;
+		case "__DATE__": return TokenType.Date;
+		case "__TIME__": return TokenType.Date;
 		default: break;
 		}
 		break;
@@ -2458,14 +2564,26 @@ pure nothrow TokenType lookupTokenType(const string input)
 		}
 		break;
 	case 10:
-		if (input == "deprecated")
-			return TokenType.Deprecated;
+		switch (input)
+		{
+		case "deprecated": return TokenType.Deprecated;
+		case "__VENDOR__": return TokenType.Vendor;
+		default: break;
+		}
 		break;
 	case 11:
+		if (input == "__VERSION__")
+			return TokenType.CompilerVersion;
+		break;
+	case 12:
 		if (input == "synchronized")
 			return TokenType.Synchronized;
 		break;
 	case 13:
+		if (input == "__TIMESTAMP__")
+			return TokenType.Timestamp;
+		break;
+	case 15:
 		if (input == "foreach_reverse")
 			return TokenType.Foreach_reverse;
 		break;
@@ -2573,3 +2691,5 @@ string generateCaseTrie(string[] args ...)
 	}
 	return printCaseStatements(t, "");
 }
+
+//void main(string[] args) {}

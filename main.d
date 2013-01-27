@@ -160,13 +160,13 @@ int main(string[] args)
 			char[] buf;
 			while (stdin.readln(buf))
 				f.put(buf);
-			highlighter.highlight(f.data.byToken(IterationStyle.Everything,
-				StringStyle.Source));
+			highlighter.highlight(f.data.byToken("stdin", IterationStyle.Everything,
+				TokenStyle.Source));
 		}
 		else
 		{
-			highlighter.highlight(args[1].readText().byToken(
-				IterationStyle.Everything, StringStyle.Source));
+			highlighter.highlight(args[1].readText().byToken(args[1],
+				IterationStyle.Everything, TokenStyle.Source));
 		}
 		return 0;
 	}
