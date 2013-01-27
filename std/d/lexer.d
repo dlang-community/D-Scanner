@@ -105,8 +105,8 @@ import std.d.entities;
 public:
 
 /**
- * Represents a D token
- */
+* Represents a D token
+*/
 struct Token
 {
 	/// The token type.
@@ -122,28 +122,28 @@ struct Token
 	uint startIndex;
 
 	/**
-	 * Check to see if the token is of the same type and has the same string
-	 * representation as the given token.
-	 */
+	* Check to see if the token is of the same type and has the same string
+	* representation as the given token.
+	*/
 	bool opEquals(ref const(Token) other) const
 	{
 		return other.type == type && other.value == value;
 	}
 
 	/**
-	 * Checks to see if the token's string representation is equal to the given
-	 * string.
-	 */
+	* Checks to see if the token's string representation is equal to the given
+	* string.
+	*/
 	bool opEquals(string value) const { return this.value == value; }
 
 	/**
-	 * Checks to see if the token is of the given type.
-	 */
+	* Checks to see if the token is of the given type.
+	*/
 	bool opEquals(TokenType type) const { return type == type; }
 
 	/**
-	 * Comparison operator orders tokens by start index.
-	 */
+	* Comparison operator orders tokens by start index.
+	*/
 	int opCmp(size_t i) const
 	{
 		if (startIndex < i) return -1;
@@ -164,16 +164,16 @@ enum IterationStyle
 	IncludeComments = 0b0001,
 	/// Includes whitespace
 	IncludeWhitespace = 0b0010,
-	/// Include $(LINK2 http://dlang.org/lex.html#Special%20Tokens%20Sequence, special token sequences)
+	/// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
 	IncludeSpecialTokens = 0b0100,
-	/// Do not terminate iteration upon reaching the ___EOF__ token
+	/// Do not stop iteration on reaching the ___EOF__ token
 	IgnoreEOF = 0b1000,
-	/// Include everything, including the __EOF__ token.
+	/// Include everything
 	Everything = IncludeComments | IncludeWhitespace | IgnoreEOF
 }
 
 /**
- * Configuration of the string lexing style. These flags may be combined with a
+ * Configuration of the token lexing style. These flags may be combined with a
  * bitwise or.
  */
 enum TokenStyle : uint
@@ -187,10 +187,10 @@ enum TokenStyle : uint
 	Default = 0b0000,
 
 	/**
-	 * Escape sequences will not be processed. An escaped quote character will
-	 * not terminate string lexing, but it will not be replaced with the quote
-	 * character in the token.
-	 */
+	* Escape sequences will not be processed. An escaped quote character will
+	* not terminate string lexing, but it will not be replaced with the quote
+	* character in the token.
+	*/
 	NotEscaped = 0b0001,
 
 	/**
@@ -259,8 +259,8 @@ struct TokenRange(R) if (isForwardRange!(R) && is(ElementType!(R) == char))
 	}
 
 	/**
-	 * Returns: the current token
-	 */
+	* Returns: the current token
+	*/
 	override Token front() const @property
 	{
 		enforce(!_empty, "Cannot call front() on empty token range");
@@ -268,8 +268,8 @@ struct TokenRange(R) if (isForwardRange!(R) && is(ElementType!(R) == char))
 	}
 
 	/**
-	 * Returns the current token and then removes it from the range
-	 */
+	* Returns the current token and then removes it from the range
+	*/
 	override Token moveFront()
 	{
 		auto r = front();
@@ -2486,7 +2486,6 @@ pure nothrow TokenType lookupTokenType(const string input)
 		default: break;
 		}
 		break;
-
 	case 6:
 		switch (input)
 		{
@@ -2595,8 +2594,8 @@ pure nothrow TokenType lookupTokenType(const string input)
 class Trie(K, V) if (isInputRange!K): TrieNode!(K, V)
 {
 	/**
-	 * Adds the given value to the trie with the given key
-	 */
+	* Adds the given value to the trie with the given key
+	*/
 	void add(K key, V value) pure
 	{
 		TrieNode!(K,V) current = this;
