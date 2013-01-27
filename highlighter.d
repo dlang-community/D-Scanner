@@ -15,6 +15,8 @@ void writeSpan(string cssClass, string value)
 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
 }
 
+
+// http://ethanschoonover.com/solarized
 void highlight(R)(R tokens)
 {
 	stdout.writeln(q"[<!DOCTYPE html>
@@ -23,13 +25,14 @@ void highlight(R)(R tokens)
 <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
 <body>
 <style type="text/css">
-html { background-color: #fff; color: #222; }
-.kwrd { font-weight: bold; color: blue; }
-.com { color: green; font-style: italic;}
-.num { color: orangered; font-weigth: bold; }
-.str { color: red; font-style: italic; }
-.op { color: 333; font-weight: bold; }
-.type { color: magenta; font-weight: bold; }
+html  { background-color: #fdf6e3; color: #002b36; }
+.kwrd { color: #b58900; font-weight: bold;  }
+.com  { color: #93a1a1; font-style: italic; }
+.num  { color: #dc322f; font-weigth: bold;  }
+.str  { color: #2aa198; font-style: italic; }
+.op   { color: #586e75; font-weight: bold;  }
+.type { color: #268bd2; font-weight: bold;  }
+.cons { color: #859900; font-weight: bold;  }
 </style>
 <pre>]");
 
@@ -47,6 +50,8 @@ html { background-color: #fff; color: #222; }
 			writeSpan("num", t.value);
 		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
 			writeSpan("op", t.value);
+		else if (t.type > TokenType.CONSTANTS_BEGIN && t.type < TokenType.CONSTANTS_END)
+			writeSpan("cons", t.value);
 		else
 			stdout.write(t.value.replace("<", "&lt;"));
 	}

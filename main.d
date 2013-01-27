@@ -143,7 +143,7 @@ int main(string[] args)
 		}
 		else
 		{
-			writeln(args[1..$].map!(a => File(a).byLine(KeepTerminator.yes).join().byToken())()
+			writeln(args[1..$].map!(a => File(a).byLine(KeepTerminator.yes).join().byToken(a))()
                 .joiner().count!(a => isLineOfCode(a.type))());
 		}
 		return 0;
@@ -153,7 +153,7 @@ int main(string[] args)
 	{
         File f = args.length == 1 ? stdin : File(args[1]);
         highlighter.highlight(f.byLine(KeepTerminator.yes).join().byToken(
-            IterationStyle.Everything, StringStyle.Source));
+            "", IterationStyle.Everything, TokenStyle.Source));
 		return 0;
 	}
 
