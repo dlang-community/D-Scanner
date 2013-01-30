@@ -385,7 +385,7 @@ Module parseModule(TokenBuffer tokens, string protection = "public", string[] at
 			else
 				localAttributes ~= attribute;
 			break;
-		case TokenType.PROTECTION_BEGIN: .. case TokenType.PROTECTION_END:
+		case TokenType.Export: .. case TokenType.Public:
 			string p = tokens.front.value;
 			tokens.popFront();
 			if (tokens.front == TokenType.Colon)
@@ -448,7 +448,7 @@ Module parseModule(TokenBuffer tokens, string protection = "public", string[] at
 				tokens.betweenBalancedBraces(); // body
 			resetLocals();
 			break;
-		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
+		case TokenType.Bool: .. case TokenType.WString:
 		case TokenType.Auto:
 		case TokenType.Identifier:
 			if (type.empty())
@@ -573,7 +573,7 @@ body
 	if (tokens.front == TokenType.LBrace)
 		goto enumBody;
 
-	if (isIdentifierOrType(tokens.front))
+	if (isIdentifierOrType(tokens.front.type))
 	{
 		if (tokens.canPeek() && tokens.peek() == TokenType.Identifier)
 		{
@@ -601,7 +601,7 @@ body
 		}
 	}
 
-	if (isIdentifierOrType(tokens.front))
+	if (isIdentifierOrType(tokens.front.type))
 	{
 		e.name = tokens.front.value;
 		tokens.popFront();
@@ -610,7 +610,7 @@ body
 	if (tokens.front == TokenType.Colon)
 	{
 		tokens.popFront();
-		if (!isIdentifierOrType(tokens.front))
+		if (!isIdentifierOrType(tokens.front.type))
 			tokens.skipBlockStatement();
 		else
 		{

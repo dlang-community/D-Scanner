@@ -107,27 +107,29 @@ int main(string[] args)
 	string[] importDirs;
 	bool sloc;
 	/+bool dotComplete;+/
-	bool json;
+	/+bool json;+/
 	/+bool parenComplete;+/
 	bool highlight;
 	bool ctags;
 	bool recursiveCtags;
 	bool format;
 	bool help;
+	bool tokenCount;
 
 	try
 	{
 		getopt(args, "I", &importDirs,/+ "dotComplete", &dotComplete,+/ "sloc", &sloc,
-			"json", &json, /+"parenComplete", &parenComplete,+/ "highlight", &highlight,
-			"ctags", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help);
+			/+"json", &json,+/ /+"parenComplete", &parenComplete,+/ "highlight", &highlight,
+			"ctags", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help,
+			"tokenCount", &tokenCount);
 	}
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
 	}
 
-	if (help || (!sloc && /+!dotComplete &&+/ !json /+&& !parenComplete+/ && !highlight
-		&& !ctags && !format))
+	if (help || (!sloc && /+!dotComplete &&+/ /+!json &&+/ /+!parenComplete &&+/ !highlight
+		&& !ctags && !format && !tokenCount))
 	{
 		printHelp();
 		return 0;
@@ -135,7 +137,19 @@ int main(string[] args)
 
 	importDirs ~= loadConfig();
 
-	if (sloc)
+	if (tokenCount)
+	{
+		/+if (args.length == 1)
+		{
+			writeln((cast (ubyte[]) stdin.byLine(KeepTerminator.yes).join()).byToken().walkLength());
+		}
+		else
+		{+/
+			writeln(args[1..$].map!(a => byToken(cast(ubyte[]) File(a).byLine(KeepTerminator.yes).join(), a).walkLength())());
+		/+}+/
+	}
+
+	/+if (sloc)
 	{
 		if (args.length == 1)
 		{
@@ -147,12 +161,12 @@ int main(string[] args)
                 .joiner().count!(a => isLineOfCode(a.type))());
 		}
 		return 0;
-	}
+	}+/
 
 	if (highlight)
 	{
         File f = args.length == 1 ? stdin : File(args[1]);
-        highlighter.highlight(f.byLine(KeepTerminator.yes).join().byToken(
+        highlighter.highlight((cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(
             "", IterationStyle.Everything, TokenStyle.Source));
 		return 0;
 	}
@@ -196,7 +210,7 @@ int main(string[] args)
 		return 0;
 	}+/
 
-	if (json)
+	/+if (json)
 	{
 		CircularBuffer!(Token) tokens;
         File f = args.length == 1 ? stdin : File(args[1]);
@@ -205,7 +219,7 @@ int main(string[] args)
 		auto mod = parseModule(tokens);
 		mod.writeJSONTo(stdout);
 		return 0;
-	}
+	}+/
 
 //	if (ctags)
 //	{

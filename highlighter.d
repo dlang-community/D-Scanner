@@ -38,20 +38,18 @@ html  { background-color: #fdf6e3; color: #002b36; }
 
 	foreach (Token t; tokens)
 	{
-		if (t.type > TokenType.TYPES_BEGIN && t.type < TokenType.TYPES_END)
+		if (isType(t.type))
 			writeSpan("type", t.value);
-		else if (t.type > TokenType.KEYWORDS_BEGIN && t.type < TokenType.KEYWORDS_END)
+		else if (isKeyword(t.type))
 			writeSpan("kwrd", t.value);
 		else if (t.type == TokenType.Comment)
 			writeSpan("com", t.value);
-		else if (t.type > TokenType.STRINGS_BEGIN && t.type < TokenType.STRINGS_END)
+		else if (isStringLiteral(t.type))
 			writeSpan("str", t.value);
-		else if (t.type > TokenType.NUMBERS_BEGIN && t.type < TokenType.NUMBERS_END)
+		else if (isNumberLiteral(t.type))
 			writeSpan("num", t.value);
-		else if (t.type > TokenType.OPERATORS_BEGIN && t.type < TokenType.OPERATORS_END)
+		else if (isOperator(t.type))
 			writeSpan("op", t.value);
-		else if (t.type > TokenType.CONSTANTS_BEGIN && t.type < TokenType.CONSTANTS_END)
-			writeSpan("cons", t.value);
 		else
 			stdout.write(t.value.replace("<", "&lt;"));
 	}

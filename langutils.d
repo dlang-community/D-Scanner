@@ -9,33 +9,6 @@ import std.array;
 import std.algorithm;
 import std.d.lexer;
 
-
-/**
- * Returns: true if input is a access attribute
- */
-pure nothrow bool isAccessAttribute(TokenType input)
-{
-	return input > TokenType.PROTECTION_BEGIN && input < TokenType.PROTECTION_END;
-}
-
-/**
- * See_also: isAttribute(TokenType)
- */
-pure nothrow bool isAttribute(ref const Token token)
-{
-	return isAttribute(token.type);
-}
-
-/**
- * Returns: true if the given token type is an attribute, false otherwise
- */
-pure nothrow bool isAttribute(TokenType input)
-{
-	if (isAccessAttribute(input))
-		return true;
-	return input > TokenType.ATTRIBUTES_BEGIN && input < TokenType.ATTRIBUTES_END;
-}
-
 string combineTokens(ref const Token[] tokens)
 {
 	auto app = appender!string();
@@ -74,14 +47,13 @@ pure nothrow string getTypeFromToken(const Token t)
 	}
 }
 
-pure bool isIdentifierOrType(const Token t)
-{
-	return t.type == TokenType.Identifier || (t.type > TokenType.TYPES_BEGIN
-		&& TokenType.TYPES_END);
-}
-
 pure bool isDocComment(ref const Token t)
 {
     return t.value.startsWith("///") || t.value.startsWith("/**")
         || t.value.startsWith("/++");
+}
+
+pure nothrow bool isIdentifierOrType(const TokenType t)
+{
+	return isType(t) || t == TokenType.Identifier;
 }
