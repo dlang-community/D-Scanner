@@ -115,13 +115,14 @@ int main(string[] args)
 	bool format;
 	bool help;
 	bool tokenCount;
+    bool frequencyCount;
 
 	try
 	{
 		getopt(args, "I", &importDirs,/+ "dotComplete", &dotComplete,+/ "sloc", &sloc,
 			/+"json", &json,+/ /+"parenComplete", &parenComplete,+/ "highlight", &highlight,
 			"ctags", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help,
-			"tokenCount", &tokenCount);
+			"tokenCount", &tokenCount, "frequencyCount", &frequencyCount);
 	}
 	catch (Exception e)
 	{
@@ -129,7 +130,7 @@ int main(string[] args)
 	}
 
 	if (help || (!sloc && /+!dotComplete &&+/ /+!json &&+/ /+!parenComplete &&+/ !highlight
-		&& !ctags && !format && !tokenCount))
+		&& !ctags && !format && !tokenCount && !frequencyCount))
 	{
 		printHelp();
 		return 0;
@@ -148,6 +149,18 @@ int main(string[] args)
 			writeln(args[1..$].map!(a => byToken(cast(ubyte[]) File(a).byLine(KeepTerminator.yes).join(), a).walkLength())());
 		/+}+/
 	}
+    else if (frequencyCount)
+    {
+        uint[TokenType] frequency;
+        foreach (t; byToken(cast(ubyte[]) File(args[1]).byLine(KeepTerminator.yes).join()))
+        {
+            frequency[t.type]++;
+        }
+        foreach (k, v; frequency)
+        {
+            writeln(v, ":", cast(TokenType) k);
+        }
+    }
 
 	/+if (sloc)
 	{

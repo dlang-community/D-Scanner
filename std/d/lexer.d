@@ -313,12 +313,12 @@ struct TokenRange(R) if (isForwardRange!(R))
 			advance();
 			switch (current.type)
 			{
-			case TokenType.Comment:
-				if (iterStyle & IterationStyle.IncludeComments)
+            case TokenType.Whitespace:
+				if (iterStyle & IterationStyle.IncludeWhitespace)
 					break loop;
 				break;
-			case TokenType.Whitespace:
-				if (iterStyle & IterationStyle.IncludeWhitespace)
+			case TokenType.Comment:
+				if (iterStyle & IterationStyle.IncludeComments)
 					break loop;
 				break;
 			case TokenType.SpecialTokenSequence:
@@ -365,34 +365,37 @@ private:
 		{
 		mixin(generateCaseTrie(
 			"=",    "TokenType.Assign",
+			"@",    "TokenType.At",
 			"&",    "TokenType.BitAnd",
 			"&=",   "TokenType.BitAndEquals",
 			"|",    "TokenType.BitOr",
 			"|=",   "TokenType.BitOrEquals",
 			"~=",   "TokenType.CatEquals",
 			":",    "TokenType.Colon",
-			",",    "TokenType.Comma",
+            ",",    "TokenType.Comma",
+			"--",   "TokenType.Decrement",
 			"$",    "TokenType.Dollar",
-			".",    "TokenType.Dot",
-			"==",   "TokenType.Equals",
+            ".",    "TokenType.Dot",
+            "==",   "TokenType.Equals",
 			"=>",   "TokenType.GoesTo",
 			">",    "TokenType.Greater",
 			">=",   "TokenType.GreaterEqual",
-			"&&",   "TokenType.LogicAnd",
-			"{",    "TokenType.LBrace",
-			"[",    "TokenType.LBracket",
-			"<",    "TokenType.Less",
+			"++",   "TokenType.Increment",
+            "{",    "TokenType.LBrace",
+            "[",    "TokenType.LBracket",
+            "<",    "TokenType.Less",
 			"<=",   "TokenType.LessEqual",
-			"<>=",  "TokenType.LessEqualGreater",
+            "<>=",  "TokenType.LessEqualGreater",
 			"<>",   "TokenType.LessOrGreater",
-			"||",   "TokenType.LogicOr",
-			"(",    "TokenType.LParen",
+			"&&",   "TokenType.LogicAnd",
+            "||",   "TokenType.LogicOr",
+            "(",    "TokenType.LParen",
 			"-",    "TokenType.Minus",
 			"-=",   "TokenType.MinusEquals",
 			"%",    "TokenType.Mod",
 			"%=",   "TokenType.ModEquals",
 			"*=",   "TokenType.MulEquals",
-			"!",    "TokenType.Not",
+            "!",    "TokenType.Not",
 			"!=",   "TokenType.NotEquals",
 			"!>",   "TokenType.NotGreater",
 			"!>=",  "TokenType.NotGreaterEqual",
@@ -403,10 +406,10 @@ private:
 			"+=",   "TokenType.PlusEquals",
 			"^^",   "TokenType.Pow",
 			"^^=",  "TokenType.PowEquals",
-			"}",    "TokenType.RBrace",
-			"]",    "TokenType.RBracket",
-			")",    "TokenType.RParen",
-			";",    "TokenType.Semicolon",
+            "}",    "TokenType.RBrace",
+            "]",    "TokenType.RBracket",
+            ")",    "TokenType.RParen",
+            ";",    "TokenType.Semicolon",
 			"<<",   "TokenType.ShiftLeft",
 			"<<=",  "TokenType.ShiftLeftEqual",
 			">>",   "TokenType.ShiftRight",
@@ -415,43 +418,14 @@ private:
 			"*",    "TokenType.Star",
 			"?",    "TokenType.Ternary",
 			"~",    "TokenType.Tilde",
-			"--",   "TokenType.Decrement",
 			"!<>=", "TokenType.Unordered",
 			">>>",  "TokenType.UnsignedShiftRight",
 			">>>=", "TokenType.UnsignedShiftRightEqual",
-			"++",   "TokenType.Increment",
 			"...",  "TokenType.Vararg",
 			"^",    "TokenType.Xor",
 			"^=",   "TokenType.XorEquals",
-			"@",    "TokenType.At",
 		));
-		case '0': .. case '9':
-			current = lexNumber(range, index, lineNumber, buffer);
-			break;
-		case '\'':
-		case '"':
-			current = lexString(range, index, lineNumber, buffer, stringStyle);
-			break;
-		case '`':
-			current = lexString(range, index, lineNumber, buffer, stringStyle);
-			break;
-		case 'q':
-			auto r = range.save;
-			r.popFront();
-			if (!r.isEoF() && r.front == '{')
-			{
-				current = lexTokenString(range, index, lineNumber, buffer, stringStyle);
-				break;
-			}
-			else if (!r.isEoF() && r.front == '"')
-			{
-				current = lexDelimitedString(range, index, lineNumber,
-					buffer, stringStyle);
-				break;
-			}
-			else
-				goto default;
-		case '/':
+        case '/':
 			auto r = range.save();
 			r.popFront();
 			if (r.isEoF())
@@ -484,6 +458,32 @@ private:
 				range.popFront();
 				break outer;
 			}
+		case '0': .. case '9':
+			current = lexNumber(range, index, lineNumber, buffer);
+			break;
+		case '\'':
+		case '"':
+			current = lexString(range, index, lineNumber, buffer, stringStyle);
+			break;
+		case '`':
+			current = lexString(range, index, lineNumber, buffer, stringStyle);
+			break;
+		case 'q':
+			auto r = range.save;
+			r.popFront();
+			if (!r.isEoF() && r.front == '{')
+			{
+				current = lexTokenString(range, index, lineNumber, buffer, stringStyle);
+				break;
+			}
+			else if (!r.isEoF() && r.front == '"')
+			{
+				current = lexDelimitedString(range, index, lineNumber,
+					buffer, stringStyle);
+				break;
+			}
+			else
+				goto default;
 		case 'r':
 			auto r = range.save();
 			r.popFront();
@@ -515,8 +515,11 @@ private:
 				range.popFront();
 				++index;
 			}
-			current.value = (cast(char[]) buffer[0 .. i]).idup;
-			current.type = lookupTokenType(current.value);
+
+            current.type = lookupTokenType(cast(char[]) buffer[0 .. i]);
+            current.value = getTokenValue(current.type);
+            if (current.value is null)
+                current.value = (cast(char[]) buffer[0 .. i]).idup;
 
 			if (!(iterStyle & IterationStyle.IgnoreEOF) && current.type == TokenType.EOF)
 			{
@@ -681,7 +684,7 @@ enum TokenType: ushort
 	At, /// @
 	BitAnd,	/// &
 	BitAndEquals,	/// &=
-	BitOr,	///     |
+	BitOr,	/// |
 	BitOrEquals,	/// |=
 	CatEquals,	/// ~=
 	Colon,	/// :
@@ -692,16 +695,16 @@ enum TokenType: ushort
 	Dollar,	/// $
 	Dot,	/// .
 	Equals,	/// ==
-	GoesTo, // =>
+	GoesTo, /// =>
 	Greater,	/// >
 	GreaterEqual,	/// >=
-	Hash, // #
+	Hash, /// #
 	Increment,	/// ++
 	LBrace,	/// {
 	LBracket,	/// [
 	Less,	/// <
 	LessEqual,	/// <=
-	LessEqualGreater, // <>=
+	LessEqualGreater, /// <>=
 	LessOrGreater,	/// <>
 	LogicAnd,	/// &&
 	LogicOr,	/// ||
@@ -730,7 +733,7 @@ enum TokenType: ushort
 	ShiftLeftEqual,	/// <<=
 	ShiftRight,	/// >>
 	ShiftRightEqual,	/// >>=
-	Slice, // ..
+	Slice, /// ..
 	Star,	/// *
 	Ternary,	/// ?
 	Tilde,	/// ~
@@ -858,11 +861,12 @@ enum TokenType: ushort
 	CompilerVersion, /// ___VERSION__
 	File, /// ___FILE__
 	Line, /// ___LINE__
-	Thread, /// ___thread
-	Traits, /// ___traits
 	Comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
 	Identifier, /// anything else
 	ScriptLine, // Line at the beginning of source file that starts from #!
+    Traits, /// $(D_KEYWORD ___traits)
+    Parameters, /// $(D_KEYWORD ___parameters)
+    Vector, /// $(D_KEYWORD ___vector)
 	Whitespace, /// whitespace
 	SpecialTokenSequence, /// #line 10 "file.d"
 	DoubleLiteral, /// 123.456
@@ -882,6 +886,233 @@ enum TokenType: ushort
 
 // Implementation details follow
 private:
+
+
+/*
+ * To avoid memory allocations Token.value is set to a slice of this string
+ * for operators and keywords.
+ */
+immutable string opKwdValues =
+      "#/=*=+=++-=--^^=~=<<=%==>>>=||=&&=,;:!<=!<>=!=!>=?...()[]{}@$"
+    ~ "boolcdoublecentcfloatcrealdchardstringfunctionidoubleifloatirealubyte"
+    ~ "ucentuintulongushortvoidwcharwstringaligndeprecatedexternpragmaexport"
+    ~ "packageprivateprotectedpublicabstractautoconstfinal__gsharedimmutable"
+    ~ "inoutscopesharedstaticsynchronizedaliasasmassertbodybreakcasecastcatch"
+    ~ "classcontinuedebugdefaultdelegatedeleteelseenumfalsefinally"
+    ~ "foreach_reversegotoimportinterfaceinvariantlazymacromixinmodule"
+    ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
+    ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
+    ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
+    ~ "FILE__LINE__";
+
+/*
+ * Slices of the above string. This array is automatically generated.
+ */
+immutable(string[TokenType.max + 1]) tokenValues = [
+	opKwdValues[2 .. 3], // =
+	opKwdValues[59 .. 60], // @
+	opKwdValues[31 .. 32], // &
+	opKwdValues[32 .. 34], // &=
+	opKwdValues[28 .. 29], // |
+	opKwdValues[29 .. 31], // |=
+	opKwdValues[16 .. 18], // ~=
+	opKwdValues[36 .. 37], // :
+	opKwdValues[34 .. 35], // ,
+	opKwdValues[11 .. 13], // --
+	opKwdValues[1 .. 2], // /
+	opKwdValues[1 .. 3], // /=
+	opKwdValues[60 .. 61], // $
+	opKwdValues[50 .. 51], // .
+	opKwdValues[22 .. 24], // ==
+	opKwdValues[23 .. 25], // =>
+	opKwdValues[24 .. 25], // >
+	opKwdValues[26 .. 28], // >=
+	opKwdValues[0 .. 1], // #
+	opKwdValues[7 .. 9], // ++
+	opKwdValues[57 .. 58], // {
+	opKwdValues[55 .. 56], // [
+	opKwdValues[18 .. 19], // <
+	opKwdValues[19 .. 21], // <=
+	opKwdValues[41 .. 44], // <>=
+	opKwdValues[41 .. 43], // <>
+	opKwdValues[31 .. 33], // &&
+	opKwdValues[28 .. 30], // ||
+	opKwdValues[53 .. 54], // (
+	opKwdValues[9 .. 10], // -
+	opKwdValues[9 .. 11], // -=
+	opKwdValues[21 .. 22], // %
+	opKwdValues[21 .. 23], // %=
+	opKwdValues[3 .. 5], // *=
+	opKwdValues[37 .. 38], // !
+	opKwdValues[44 .. 46], // !=
+	opKwdValues[46 .. 48], // !>
+	opKwdValues[46 .. 49], // !>=
+	opKwdValues[37 .. 39], // !<
+	opKwdValues[37 .. 40], // !<=
+	opKwdValues[40 .. 43], // !<>
+	opKwdValues[5 .. 6], // +
+	opKwdValues[5 .. 7], // +=
+	opKwdValues[13 .. 15], // ^^
+	opKwdValues[13 .. 16], // ^^=
+	opKwdValues[58 .. 59], // }
+	opKwdValues[56 .. 57], // ]
+	opKwdValues[54 .. 55], // )
+	opKwdValues[35 .. 36], // ;
+	opKwdValues[18 .. 20], // <<
+	opKwdValues[18 .. 21], // <<=
+	opKwdValues[24 .. 26], // >>
+	opKwdValues[25 .. 28], // >>=
+	opKwdValues[50 .. 52], // ..
+	opKwdValues[3 .. 4], // *
+	opKwdValues[49 .. 50], // ?
+	opKwdValues[16 .. 17], // ~
+	opKwdValues[40 .. 44], // !<>=
+	opKwdValues[24 .. 27], // >>>
+	opKwdValues[24 .. 28], // >>>=
+	opKwdValues[50 .. 53], // ...
+	opKwdValues[13 .. 14], // ^
+	opKwdValues[14 .. 16], // ^=
+	opKwdValues[61 .. 65], // bool
+	opKwdValues[126 .. 130], // byte
+	opKwdValues[65 .. 72], // cdouble
+	opKwdValues[72 .. 76], // cent
+	opKwdValues[76 .. 82], // cfloat
+	opKwdValues[88 .. 92], // char
+	opKwdValues[82 .. 87], // creal
+	opKwdValues[87 .. 92], // dchar
+	opKwdValues[66 .. 72], // double
+	opKwdValues[92 .. 99], // dstring
+	opKwdValues[77 .. 82], // float
+	opKwdValues[99 .. 107], // function
+	opKwdValues[107 .. 114], // idouble
+	opKwdValues[114 .. 120], // ifloat
+	opKwdValues[136 .. 139], // int
+	opKwdValues[120 .. 125], // ireal
+	opKwdValues[140 .. 144], // long
+	opKwdValues[83 .. 87], // real
+	opKwdValues[145 .. 150], // short
+	opKwdValues[93 .. 99], // string
+	opKwdValues[125 .. 130], // ubyte
+	opKwdValues[130 .. 135], // ucent
+	opKwdValues[135 .. 139], // uint
+	opKwdValues[139 .. 144], // ulong
+	opKwdValues[144 .. 150], // ushort
+	opKwdValues[150 .. 154], // void
+	opKwdValues[154 .. 159], // wchar
+	opKwdValues[159 .. 166], // wstring
+	opKwdValues[166 .. 171], // align
+	opKwdValues[171 .. 181], // deprecated
+	opKwdValues[181 .. 187], // extern
+	opKwdValues[187 .. 193], // pragma
+	opKwdValues[193 .. 199], // export
+	opKwdValues[199 .. 206], // package
+	opKwdValues[206 .. 213], // private
+	opKwdValues[213 .. 222], // protected
+	opKwdValues[222 .. 228], // public
+	opKwdValues[228 .. 236], // abstract
+	opKwdValues[236 .. 240], // auto
+	opKwdValues[240 .. 245], // const
+	opKwdValues[245 .. 250], // final
+	opKwdValues[250 .. 259], // __gshared
+	opKwdValues[259 .. 268], // immutable
+	opKwdValues[268 .. 273], // inout
+	opKwdValues[273 .. 278], // scope
+	opKwdValues[253 .. 259], // shared
+	opKwdValues[284 .. 290], // static
+	opKwdValues[290 .. 302], // synchronized
+	opKwdValues[302 .. 307], // alias
+	opKwdValues[307 .. 310], // asm
+	opKwdValues[310 .. 316], // assert
+	opKwdValues[316 .. 320], // body
+	opKwdValues[320 .. 325], // break
+	opKwdValues[325 .. 329], // case
+	opKwdValues[329 .. 333], // cast
+	opKwdValues[333 .. 338], // catch
+	opKwdValues[338 .. 343], // class
+	opKwdValues[343 .. 351], // continue
+	opKwdValues[351 .. 356], // debug
+	opKwdValues[356 .. 363], // default
+	opKwdValues[363 .. 371], // delegate
+	opKwdValues[371 .. 377], // delete
+	opKwdValues[66 .. 68], // do
+	opKwdValues[377 .. 381], // else
+	opKwdValues[381 .. 385], // enum
+	opKwdValues[385 .. 390], // false
+	opKwdValues[390 .. 397], // finally
+	opKwdValues[397 .. 404], // foreach
+	opKwdValues[397 .. 412], // foreach_reverse
+	opKwdValues[397 .. 400], // for
+	opKwdValues[412 .. 416], // goto
+	opKwdValues[114 .. 116], // if
+	opKwdValues[416 .. 422], // import
+	opKwdValues[96 .. 98], // in
+	opKwdValues[422 .. 431], // interface
+	opKwdValues[431 .. 440], // invariant
+	opKwdValues[522 .. 524], // is
+	opKwdValues[440 .. 444], // lazy
+	opKwdValues[444 .. 449], // macro
+	opKwdValues[449 .. 454], // mixin
+	opKwdValues[454 .. 460], // module
+	opKwdValues[460 .. 463], // new
+	opKwdValues[463 .. 470], // nothrow
+	opKwdValues[470 .. 474], // null
+	opKwdValues[270 .. 273], // out
+	opKwdValues[474 .. 482], // override
+	opKwdValues[482 .. 486], // pure
+	opKwdValues[486 .. 489], // ref
+	opKwdValues[489 .. 495], // return
+	opKwdValues[495 .. 501], // struct
+	opKwdValues[501 .. 506], // super
+	opKwdValues[506 .. 512], // switch
+	opKwdValues[512 .. 520], // template
+	opKwdValues[520 .. 524], // this
+	opKwdValues[465 .. 470], // throw
+	opKwdValues[524 .. 528], // true
+	opKwdValues[528 .. 531], // try
+	opKwdValues[531 .. 538], // typedef
+	opKwdValues[538 .. 544], // typeid
+	opKwdValues[544 .. 550], // typeof
+	opKwdValues[550 .. 555], // union
+	opKwdValues[555 .. 563], // unittest
+	opKwdValues[563 .. 570], // version
+	opKwdValues[570 .. 578], // volatile
+	opKwdValues[578 .. 583], // while
+	opKwdValues[583 .. 587], // with
+	opKwdValues[615 .. 623], // __DATE__
+	opKwdValues[621 .. 628], // __EOF__
+	opKwdValues[626 .. 634], // __TIME__
+	opKwdValues[632 .. 645], // __TIMESTAMP__
+	opKwdValues[643 .. 653], // __VENDOR__
+	opKwdValues[651 .. 662], // __VERSION__
+	opKwdValues[660 .. 668], // __FILE__
+	opKwdValues[666 .. 674], // __LINE__
+	null,
+	null,
+	null,
+	opKwdValues[587 .. 595], // __traits
+	opKwdValues[603 .. 615], // __parameters
+	opKwdValues[595 .. 603], // __vector
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+];
+
+pure string getTokenValue(const TokenType type)
+{
+    return tokenValues[type];
+}
 
 private pure bool isNewline(R)(R range)
 {
@@ -2366,20 +2597,6 @@ unittest
 
 pure nothrow bool isSeparating(ubyte ch)
 {
-	/+switch (ch)
-	{
-		case '!': .. case '/':
-		case ':': .. case '@':
-		case '[': .. case '^':
-		case '{': .. case '~':
-		case '`':
-		case 0x20: // space
-		case 0x09: // tab
-		case 0x0a: .. case 0x0d: // newline, vertical tab, form feed, carriage return
-			return true;
-		default:
-			return false;
-	}+/
 	return (ch >= '!' && ch <= '/')
 		|| (ch >= ':' && ch <= '@')
 		|| (ch >= '[' && ch <= '^')
@@ -2390,7 +2607,7 @@ pure nothrow bool isSeparating(ubyte ch)
 		|| ch == 0x0a;
 }
 
-pure nothrow TokenType lookupTokenType(const string input)
+pure nothrow TokenType lookupTokenType(const const(char)[] input)
 {
 	switch(input.length)
 	{
@@ -2529,7 +2746,6 @@ pure nothrow TokenType lookupTokenType(const string input)
 		case "__LINE__": return TokenType.Line;
 		case "template": return TokenType.Template;
 		case "abstract": return TokenType.Abstract;
-		case "__thread": return TokenType.Thread;
 		case "__traits": return TokenType.Traits;
 		case "volatile": return TokenType.Volatile;
 		case "delegate": return TokenType.Delegate;
@@ -2639,7 +2855,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.value = (cast(char[]) buffer[0 .. i]).idup;\n";
+			caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t\tcurrent.type = " ~ node.children[k].value;
 			caseStatement ~= ";\n";
@@ -2659,7 +2875,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 			caseStatement ~= v.value;
 			caseStatement ~= ";\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.value = (cast(char[]) buffer[0 .. i]).idup;\n";
+			caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t\tbreak;\n";
 			caseStatement ~= indentString;
@@ -2674,7 +2890,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 			caseStatement ~= v.value;
 			caseStatement ~= ";\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.value = (cast(char[]) buffer[0 .. i]).idup;\n";
+			caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\tbreak;\n";
 		}
