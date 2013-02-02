@@ -146,10 +146,21 @@ int main(string[] args)
 		}
 		else
 		{+/
-			writeln(args[1..$].map!(a => byToken(cast(ubyte[]) File(a).byLine(KeepTerminator.yes).join(), a).walkLength())());
+			LexerConfig config;
+			foreach (arg; args[1..$])
+			{
+				config.fileName = arg;
+				uint count;
+				foreach(t; byToken(cast(ubyte[]) File(arg).byLine(KeepTerminator.yes).join(), config))
+				{
+					writeln(t);
+					++count;
+				}
+				writefln("%s: %d", arg, count);
+			}
 		/+}+/
 	}
-    else if (frequencyCount)
+    /+else if (frequencyCount)
     {
         uint[TokenType] frequency;
         foreach (t; byToken(cast(ubyte[]) File(args[1]).byLine(KeepTerminator.yes).join()))
@@ -160,7 +171,7 @@ int main(string[] args)
         {
             writeln(v, ":", cast(TokenType) k);
         }
-    }
+    }+/
 
 	/+if (sloc)
 	{
@@ -178,9 +189,11 @@ int main(string[] args)
 
 	if (highlight)
 	{
+		LexerConfig config;
+		config.iterStyle = IterationStyle.everything;
+		config.tokenStyle = TokenStyle.source;
         File f = args.length == 1 ? stdin : File(args[1]);
-        highlighter.highlight((cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(
-            "", IterationStyle.everything, TokenStyle.source));
+        highlighter.highlight((cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config));
 		return 0;
 	}
 

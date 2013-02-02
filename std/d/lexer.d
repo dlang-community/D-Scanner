@@ -3,24 +3,55 @@
 /**
  * This module contains a range-based _lexer for the D programming language.
  *
+ * For performance reasons the _lexer contained in this module operates only on
+ * ASCII and UTF-8 encoded source code. If the use of other encodings is
+ * desired, the source code must be converted to UTF-8 before passing it to this
+ * _lexer.
+ *
+ * To use the _lexer, create a LexerConfig struct
+ * ---
+ * LexerConfig config;
+ * config.iterStyle = IterationStyle.everything;
+ * config.tokenStyle = IterationStyle.source;
+ * config.versionNumber = 2061;
+ * config.vendorString = "Lexer Example";
+ * ---
+ * Once you have configured the _lexer, call byToken$(LPAREN)$(RPAREN) on your
+ * source code, passing in the configuration.
+ * ---
+ * auto source = "import std.stdio;"c;
+ * auto tokens = byToken(source, config);
+ * ---
+ * The result of byToken$(LPAREN)$(RPAREN) is a forward range of tokens that can
+ * be used easily with the algorithms from std.algorithm or iterated over with
+ * $(D_KEYWORD foreach)
+ * ---
+ * assert (tokens.front.type == TokenType.import_);
+ * assert (tokens.front.value == "import");
+ * assert (tokens.front.line == 1);
+ * assert (tokens.front.startIndex == 0);
+ * ---
+ *
  * Examples:
  *
  * Generate HTML markup of D code.
  * ---
+ * module highlighter;
+ *
  * import std.stdio;
  * import std.array;
- * import std.file;
  * import std.d.lexer;
  *
  * void writeSpan(string cssClass, string value)
  * {
- * 	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
+ *     stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
  * }
+ *
  *
  * // http://ethanschoonover.com/solarized
  * void highlight(R)(R tokens)
  * {
- * 	stdout.writeln(q"[<!DOCTYPE html>
+ *     stdout.writeln(q"[<!DOCTYPE html>
  * <html>
  * <head>
  * <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
@@ -43,7 +74,7 @@
  *             writeSpan("type", t.value);
  *         else if (isKeyword(t.type))
  *             writeSpan("kwrd", t.value);
- *         else if (t.type == TokenType.Comment)
+ *         else if (t.type == TokenType.comment)
  *             writeSpan("com", t.value);
  *         else if (isStringLiteral(t.type))
  *             writeSpan("str", t.value);
@@ -59,28 +90,13 @@
  *
  * void main(string[] args)
  * {
- *     args[1].readText().byToken(args[1], IterationStyle.eEverything, TokenStyle.source).highlight();
+ *     LexerConfig config;
+ *     config.tokenStyle = TokenStyle.source;
+ *     config.iterStyle = IterationStyle.everything;
+ *     config.fileName = args[1];
+ *     auto f = File(args[1]);
+ *     (cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
  * }
- * ---
- * Iterate by tokens that would be significant to a parser
- * ---
- * import std.range;
- * import std.d.lexer;
- *
- * // ...
- *
- * string s = "import std.stdio; // comment";
- * auto tokens = byToken(s);
- * // The comment and whitespace are not included
- * assert (walkLength(tokens) == 5);
- * ---
- * Replace special tokens
- * ---
- * string s = "#line 5\n__VERSION__";
- * auto tokens = byToken(s, "example.d", IterationStyle.codeOnly, TokenStyle.default_, "foo", "1.0");
- * assert (tokens.front.type == TokenType.intLiteral);
- * assert (tokens.front.value == "1.0")
- * assert (tokens.front.lineNumber == 5);
  * ---
  *
  * Copyright: Brian Schott 2013
@@ -102,55 +118,73 @@ import std.string;
 import std.traits;
 import std.uni;
 import std.utf;
+import std.regex;
+
+import std.stdio;
 
 public:
 
 /**
-* Represents a D token
-*/
+ * Represents a D token
+ */
 struct Token
 {
-	/// The token type.
-	TokenType type;
+    /**
+     * The token type.
+     */
+    TokenType type;
 
-	/// The representation of the token in the original source code.
-	string value;
+    /**
+     * The representation of the token in the original source code.
+     */
+    string value;
 
-	/// The number of the line the token is on.
-	uint lineNumber;
+    /**
+     * The number of the line the token is on.
+     */
+    uint line;
 
-	/// The character index of the start of the token in the original text.
-	uint startIndex;
+    /**
+     * The column number of the start of the token in the original source.
+     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+     */
+    uint column;
 
-	/**
-	* Check to see if the token is of the same type and has the same string
-	* representation as the given token.
-	*/
-	bool opEquals(ref const(Token) other) const
-	{
-		return other.type == type && other.value == value;
-	}
+    /**
+     * The index of the start of the token in the original source.
+     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+     */
+    uint startIndex;
 
-	/**
-	* Checks to see if the token's string representation is equal to the given
-	* string.
-	*/
-	bool opEquals(string value) const { return this.value == value; }
+    /**
+     * Check to see if the token is of the same type and has the same string
+     * representation as the given token.
+     */
+    bool opEquals(ref const(Token) other) const
+    {
+        return other.type == type && other.value == value;
+    }
 
-	/**
-	* Checks to see if the token is of the given type.
-	*/
-	bool opEquals(TokenType type) const { return type == type; }
+    /**
+     * Checks to see if the token's string representation is equal to the given
+     * string.
+     */
+    bool opEquals(string value) const { return this.value == value; }
 
-	/**
-	* Comparison operator orders tokens by start index.
-	*/
-	int opCmp(size_t i) const
-	{
-		if (startIndex < i) return -1;
-		if (startIndex > i) return 1;
-		return 0;
-	}
+    /**
+     * Checks to see if the token is of the given type.
+     */
+    bool opEquals(TokenType type) const { return type == type; }
+
+    /**
+     * Comparison operator orders tokens by start index.
+     */
+    int opCmp(size_t i) const
+    {
+        if (startIndex < i) return -1;
+        if (startIndex > i) return 1;
+        return 0;
+    }
 }
 
 /**
@@ -159,18 +193,18 @@ struct Token
  */
 enum IterationStyle
 {
-	/// Only include code, not whitespace or comments
-	CodeOnly = 0,
-	/// Includes comments
-	includeComments = 0b0001,
-	/// Includes whitespace
-	includeWhitespace = 0b0010,
-	/// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
-	includeSpecialTokens = 0b0100,
-	/// Do not stop iteration on reaching the ___EOF__ token
-	ignoreEOF = 0b1000,
-	/// Include everything
-	everything = includeComments | includeWhitespace | ignoreEOF
+    /// Only include code, not whitespace or comments
+    codeOnly = 0,
+    /// Includes comments
+    includeComments = 0b0001,
+    /// Includes whitespace
+    includeWhitespace = 0b0010,
+    /// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
+    includeSpecialTokens = 0b0100,
+    /// Do not stop iteration on reaching the ___EOF__ token
+    ignoreEOF = 0b1000,
+    /// Include everything
+    everything = includeComments | includeWhitespace | ignoreEOF
 }
 
 /**
@@ -179,71 +213,105 @@ enum IterationStyle
  */
 enum TokenStyle : uint
 {
-	/**
-	 * Escape sequences will be replaced with their equivalent characters,
-	 * enclosing quote characters will not be included. Special tokens such as
-	 * __VENDOR__ will be replaced with their equivalent strings. Useful for
-	 * creating a compiler or interpreter.
-	 */
-	default_ = 0b0000,
+    /**
+     * Escape sequences will be replaced with their equivalent characters,
+     * enclosing quote characters will not be included. Special tokens such as
+     * __VENDOR__ will be replaced with their equivalent strings. Useful for
+     * creating a compiler or interpreter.
+     */
+    default_ = 0b0000,
 
-	/**
-	* Escape sequences will not be processed. An escaped quote character will
-	* not terminate string lexing, but it will not be replaced with the quote
-	* character in the token.
-	*/
-	notEscaped = 0b0001,
+    /**
+     * Escape sequences will not be processed. An escaped quote character will
+     * not terminate string lexing, but it will not be replaced with the quote
+     * character in the token.
+     */
+    notEscaped = 0b0001,
 
-	/**
-	 * Strings will include their opening and closing quote characters as well
-	 * as any prefixes or suffixes $(LPAREN)e.g.: $(D_STRING "abcde"w) will
-	 * include the $(D_STRING 'w') character as well as the opening and closing
-	 * quotes$(RPAREN)
-	 */
-	includeQuotes = 0b0010,
+    /**
+     * Strings will include their opening and closing quote characters as well
+     * as any prefixes or suffixes $(LPAREN)e.g.: $(D_STRING "abcde"w) will
+     * include the $(D_STRING 'w') character as well as the opening and closing
+     * quotes$(RPAREN)
+     */
+    includeQuotes = 0b0010,
 
-	/**
-	 * Do not replace the value field of the special tokens such as ___DATE__
-	 * with their string equivalents.
-	 */
-	doNotReplaceSpecial = 0b0100,
+    /**
+     * Do not replace the value field of the special tokens such as ___DATE__
+     * with their string equivalents.
+     */
+    doNotReplaceSpecial = 0b0100,
 
-	/**
-	 * Strings will be read exactly as they appeared in the source, including
-	 * their opening and closing quote characters. Useful for syntax
-	 * highlighting.
-	 */
-	source = notEscaped | includeQuotes | doNotReplaceSpecial
+    /**
+     * Strings will be read exactly as they appeared in the source, including
+     * their opening and closing quote characters. Useful for syntax
+     * highlighting.
+     */
+    source = notEscaped | includeQuotes | doNotReplaceSpecial
 }
 
-/// Default replacement for the ___VERSION__ special token
-immutable string VERSION = "1.0";
+/**
+ * Lexer configuration
+ */
+struct LexerConfig
+{
+    /**
+     * Iteration style
+     */
+    IterationStyle iterStyle = IterationStyle.codeOnly;
 
-/// Default replacement for the ___VENDOR__ special token
-immutable string VENDOR = "std.d.lexer";
+    /**
+     * Token style
+     */
+    TokenStyle tokenStyle = tokenStyle.default_;
+
+    /**
+     * Replacement for the ___VERSION__ token. Defaults to 1.
+     */
+    uint versionNumber = 1;
+
+    /**
+     * Replacement for the ___VENDOR__ token. Defaults to $(D_STRING "std.d.lexer")
+     */
+    string vendorString = "std.d.lexer";
+
+    /**
+     * Name used when creating error messages that are sent to errorFunc. This
+     * is needed because the lexer operates on any forwarad range of ASCII
+     * characters or UTF-8 code units and does not know what to call its input
+     * source. Defaults to the empty string.
+     */
+    string fileName = "";
+
+    /**
+     * This function is called when an error is encountered during lexing.
+     * Parameters are file name, code uint index, line number, column,
+     * and error messsage.
+     */
+    void delegate(string, uint, uint, uint, string) errorFunc;
+
+    /**
+     * Initial size of the lexer's internal token buffer in bytes. The lexer
+     * will grow this buffer if necessary.
+     */
+    size_t bufferSize = 1024 * 4;
+}
 
 /**
  * Iterate over the given range of characters by D tokens.
  * Params:
  *     range = the range of characters
- *     iterationStyle = See IterationStyle
- *     stringStyle = see TokenStyle
- *     vendor = the string literal that should replace the ___VENDOR__ special token
- *     ver = the string literal that should replace the ___VERSION__ special token
+ *     config = the lexer configuration
  * Returns:
  *     an input range of tokens
  */
-TokenRange!(R) byToken(R)(R range, string fileName = "",
-	const IterationStyle iterationStyle = IterationStyle.codeOnly,
-	const TokenStyle stringStyle = TokenStyle.default_, string vendor = VENDOR,
-	string ver = VERSION) if (isForwardRange!(R))
+TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
 {
-	auto r = TokenRange!(R)(range);
-	r.stringStyle = stringStyle;
-	r.iterStyle = iterationStyle;
-	r.lineNumber = 1;
-	r.popFront();
-	return r;
+    auto r = TokenRange!(R)(range);
+    r.config = config;
+    r.lineNumber = 1;
+    r.popFront();
+    return r;
 }
 
 /**
@@ -251,347 +319,1210 @@ TokenRange!(R) byToken(R)(R range, string fileName = "",
  */
 struct TokenRange(R) if (isForwardRange!(R))
 {
-	/**
-	 * Returns: true if the range is empty
-	 */
-	bool empty() const @property
-	{
-		return _empty;
-	}
+    /**
+     * Returns: true if the range is empty
+     */
+    bool empty() const @property
+    {
+        return _empty;
+    }
 
-	/**
-	* Returns: the current token
-	*/
-	Token front() const @property
-	{
-		enforce(!_empty, "Cannot call front() on empty token range");
-		return current;
-	}
+    /**
+     * Returns: the current token
+     */
+    Token front() const @property
+    {
+        enforce(!_empty, "Cannot call front() on empty token range");
+        return current;
+    }
 
-	/**
-	* Returns the current token and then removes it from the range
-	*/
-	Token moveFront()
-	{
-		auto r = front();
-		popFront();
-		return r;
-	}
+    /**
+     * Returns the current token and then removes it from the range
+     */
+    Token moveFront()
+    {
+        auto r = front();
+        popFront();
+        return r;
+    }
 
-	int opApply(int delegate(Token) dg)
-	{
-		int result = 0;
-		while (!empty)
-		{
-			result = dg(front);
-			if (result)
-				break;
-			popFront();
-		}
-		return result;
-	}
+    /**
+     * Range operation
+     */
+    int opApply(int delegate(Token) dg)
+    {
+        int result = 0;
+        while (!empty)
+        {
+            result = dg(front);
+            if (result)
+                break;
+            popFront();
+        }
+        return result;
+    }
 
-	int opApply(int delegate(size_t, Token) dg)
-	{
-		int result = 0;
-		int i = 0;
-		while (!empty)
-		{
-			result = dg(i, front);
-			if (result)
-				break;
-			popFront();
-		}
-		return result;
-	}
+    /**
+     * Range operation
+     */
+    int opApply(int delegate(size_t, Token) dg)
+    {
+        int result = 0;
+        int i = 0;
+        while (!empty)
+        {
+            result = dg(i, front);
+            if (result)
+                break;
+            popFront();
+        }
+        return result;
+    }
 
-	void popFront()
-	{
-		// Filter out tokens we don't care about
-		loop: do
-		{
-			advance();
-			switch (current.type)
-			{
+    /**
+     * Removes the current token from the range
+     */
+    void popFront()
+    {
+        // Filter out tokens we don't care about
+        loop: do
+        {
+            advance();
+            switch (current.type)
+            {
             case TokenType.whitespace:
-				if (iterStyle & IterationStyle.includeWhitespace)
-					break loop;
-				break;
-			case TokenType.comment:
-				if (iterStyle & IterationStyle.includeComments)
-					break loop;
-				break;
-			case TokenType.specialTokenSequence:
-				if (iterStyle & IterationStyle.includeSpecialTokens)
-					break loop;
-				break;
-			default:
-				break loop;
-			}
-		}
-		while (!empty());
-	}
+                if (config.iterStyle & IterationStyle.includeWhitespace)
+                    break loop;
+                break;
+            case TokenType.comment:
+                if (config.iterStyle & IterationStyle.includeComments)
+                    break loop;
+                break;
+            case TokenType.specialTokenSequence:
+                if (config.iterStyle & IterationStyle.includeSpecialTokens)
+                    break loop;
+                break;
+            default:
+                break loop;
+            }
+        }
+        while (!empty());
+    }
 
 private:
 
-	this(ref R range)
-	{
-		this.range = range;
-		buffer = new ubyte[1024 * 4];
-	}
+    this(ref R range)
+    {
+        this.range = range;
+        buffer = new ubyte[config.bufferSize];
+    }
 
-	/*
-	 * Advances the range to the next token
-	 */
-	void advance()
-	{
-		if (range.empty)
-		{
-			_empty = true;
-			return;
-		}
+    /*
+     * Advances the range to the next token
+     */
+    void advance()
+    {
+        if (range.empty)
+        {
+            _empty = true;
+            return;
+        }
 
-		current.lineNumber = lineNumber;
-		current.startIndex = index;
-		current.value = [];
+        bufferIndex = 0;
+        current.line = lineNumber;
+        current.startIndex = index;
+        current.column = column;
+        current.value = null;
 
-		if (std.uni.isWhite(range.front))
-		{
-			current = lexWhitespace(range, index, lineNumber, buffer,
-				(iterStyle & IterationStyle.includeWhitespace) > 0);
-			return;
-		}
-		outer: switch (range.front)
-		{
-		mixin(generateCaseTrie(
-			"=",    "TokenType.assign",
-			"@",    "TokenType.at",
-			"&",    "TokenType.bitAnd",
-			"&=",   "TokenType.bitAndEquals",
-			"|",    "TokenType.bitOr",
-			"|=",   "TokenType.bitOrEquals",
-			"~=",   "TokenType.catEquals",
-			":",    "TokenType.colon",
+        if (std.ascii.isWhite(range.front))
+        {
+            lexWhitespace();
+            return;
+        }
+        outer: switch (range.front)
+        {
+        mixin(generateCaseTrie(
+            "=",    "TokenType.assign",
+            "@",    "TokenType.at",
+            "&",    "TokenType.bitAnd",
+            "&=",   "TokenType.bitAndEquals",
+            "|",    "TokenType.bitOr",
+            "|=",   "TokenType.bitOrEquals",
+            "~=",   "TokenType.catEquals",
+            ":",    "TokenType.colon",
             ",",    "TokenType.comma",
-			"--",   "TokenType.decrement",
-			"$",    "TokenType.dollar",
-            ".",    "TokenType.dot",
+            "--",   "TokenType.decrement",
+            "$",    "TokenType.dollar",
             "==",   "TokenType.equals",
-			"=>",   "TokenType.goesTo",
-			">",    "TokenType.greater",
-			">=",   "TokenType.greaterEqual",
-			"++",   "TokenType.increment",
+            "=>",   "TokenType.goesTo",
+            ">",    "TokenType.greater",
+            ">=",   "TokenType.greaterEqual",
+            "++",   "TokenType.increment",
             "{",    "TokenType.lBrace",
             "[",    "TokenType.lBracket",
             "<",    "TokenType.less",
-			"<=",   "TokenType.lessEqual",
+            "<=",   "TokenType.lessEqual",
             "<>=",  "TokenType.lessEqualGreater",
-			"<>",   "TokenType.lessOrGreater",
-			"&&",   "TokenType.logicAnd",
+            "<>",   "TokenType.lessOrGreater",
+            "&&",   "TokenType.logicAnd",
             "||",   "TokenType.logicOr",
             "(",    "TokenType.lParen",
-			"-",    "TokenType.minus",
-			"-=",   "TokenType.minusEquals",
-			"%",    "TokenType.mod",
-			"%=",   "TokenType.modEquals",
-			"*=",   "TokenType.mulEquals",
+            "-",    "TokenType.minus",
+            "-=",   "TokenType.minusEquals",
+            "%",    "TokenType.mod",
+            "%=",   "TokenType.modEquals",
+            "*=",   "TokenType.mulEquals",
             "!",    "TokenType.not",
-			"!=",   "TokenType.notEquals",
-			"!>",   "TokenType.notGreater",
-			"!>=",  "TokenType.notGreaterEqual",
-			"!<",   "TokenType.notLess",
-			"!<=",  "TokenType.notLessEqual",
-			"!<>",  "TokenType.notLessEqualGreater",
-			"+",    "TokenType.plus",
-			"+=",   "TokenType.plusEquals",
-			"^^",   "TokenType.pow",
-			"^^=",  "TokenType.powEquals",
+            "!=",   "TokenType.notEquals",
+            "!>",   "TokenType.notGreater",
+            "!>=",  "TokenType.notGreaterEqual",
+            "!<",   "TokenType.notLess",
+            "!<=",  "TokenType.notLessEqual",
+            "!<>",  "TokenType.notLessEqualGreater",
+            "+",    "TokenType.plus",
+            "+=",   "TokenType.plusEquals",
+            "^^",   "TokenType.pow",
+            "^^=",  "TokenType.powEquals",
             "}",    "TokenType.rBrace",
             "]",    "TokenType.rBracket",
             ")",    "TokenType.rParen",
             ";",    "TokenType.semicolon",
-			"<<",   "TokenType.shiftLeft",
-			"<<=",  "TokenType.shiftLeftEqual",
-			">>",   "TokenType.shiftRight",
-			">>=",  "TokenType.shiftRightEqual",
-			"..",   "TokenType.slice",
-			"*",    "TokenType.star",
-			"?",    "TokenType.ternary",
-			"~",    "TokenType.tilde",
-			"!<>=", "TokenType.unordered",
-			">>>",  "TokenType.unsignedShiftRight",
-			">>>=", "TokenType.unsignedShiftRightEqual",
-			"...",  "TokenType.vararg",
-			"^",    "TokenType.xor",
-			"^=",   "TokenType.xorEquals",
-		));
+            "<<",   "TokenType.shiftLeft",
+            "<<=",  "TokenType.shiftLeftEqual",
+            ">>",   "TokenType.shiftRight",
+            ">>=",  "TokenType.shiftRightEqual",
+            "*",    "TokenType.star",
+            "?",    "TokenType.ternary",
+            "~",    "TokenType.tilde",
+            "!<>=", "TokenType.unordered",
+            ">>>",  "TokenType.unsignedShiftRight",
+            ">>>=", "TokenType.unsignedShiftRightEqual",
+            "^",    "TokenType.xor",
+            "^=",   "TokenType.xorEquals",
+        ));
         case '/':
-			auto r = range.save();
-			r.popFront();
-			if (r.isEoF())
-			{
-				current.type = TokenType.div;
-				current.value = "/";
-				range.popFront();
-				++index;
-				break;
-			}
-			switch (r.front)
-			{
-			case '/':
-			case '*':
-			case '+':
-				current = lexComment(range, index, lineNumber, buffer,
-					(iterStyle & IterationStyle.includeComments) > 0);
-				break outer;
-			case '=':
-				current.type = TokenType.divEquals;
-				current.value = "/=";
-				range.popFront();
-				range.popFront();
-				index += 2;
-				break outer;
-			default:
-				current.type = TokenType.div;
-				current.value = "/";
-				++index;
-				range.popFront();
-				break outer;
-			}
-		case '0': .. case '9':
-			current = lexNumber(range, index, lineNumber, buffer);
-			break;
-		case '\'':
-		case '"':
-			current = lexString(range, index, lineNumber, buffer, stringStyle);
-			break;
-		case '`':
-			current = lexString(range, index, lineNumber, buffer, stringStyle);
-			break;
-		case 'q':
-			auto r = range.save;
-			r.popFront();
-			if (!r.isEoF() && r.front == '{')
-			{
-				current = lexTokenString(range, index, lineNumber, buffer, stringStyle);
-				break;
-			}
-			else if (!r.isEoF() && r.front == '"')
-			{
-				current = lexDelimitedString(range, index, lineNumber,
-					buffer, stringStyle);
-				break;
-			}
-			else
-				goto default;
-		case 'r':
-			auto r = range.save();
-			r.popFront();
-			if (!r.isEoF() && r.front == '"')
-			{
-				current = lexString(range, index, lineNumber, buffer, stringStyle);
-				break;
-			}
-			else
-				goto default;
-		case 'x':
-			auto r = range.save();
-			r.popFront();
-			if (!r.isEoF() && r.front == '"')
-			{
-				current = lexHexString(range, index, lineNumber, buffer);
-				break;
-			}
-			else
-				goto default;
-		case '#':
-			current = lexSpecialTokenSequence(range, index, lineNumber, buffer);
-			break;
-		default:
-			size_t i;
-			while(!range.isEoF() && !isSeparating(range.front))
-			{
-				buffer[i++] = range.front;
-				range.popFront();
-				++index;
-			}
+            auto r = range.save();
+            r.popFront();
+            if (r.isEoF())
+            {
+                current.type = TokenType.div;
+                current.value = "/";
+                range.popFront();
+                ++index;
+                break;
+            }
+            switch (r.front)
+            {
+            case '/':
+            case '*':
+            case '+':
+                lexComment();
+                break outer;
+            case '=':
+                current.type = TokenType.divEquals;
+                current.value = "/=";
+                range.popFront();
+                range.popFront();
+                index += 2;
+                break outer;
+            default:
+                current.type = TokenType.div;
+                current.value = "/";
+                ++index;
+                range.popFront();
+                break outer;
+            }
+        case '.':
+            auto r = range.save();
+            r.popFront();
+            if (r.isEoF())
+            {
+                current.type = TokenType.dot;
+                current.value = getTokenValue(TokenType.dot);
+                range.popFront();
+                ++index;
+                break outer;
+            }
+            else if (r.front >= '0' && r.front <= '9')
+            {
+                lexNumber();
+                break outer;
+            }
+            else if (r.front == '.')
+            {
+                current.type = TokenType.slice;
+                r.popFront();
+                if (r.front == '.')
+                {
+                    current.type = TokenType.vararg;
+                    range.popFront();
+                    range.popFront();
+                    range.popFront();
+                    index += 3;
+                }
+                else
+                {
 
-            current.type = lookupTokenType(cast(char[]) buffer[0 .. i]);
+                    range.popFront();
+                    range.popFront();
+                    index += 2;
+                }
+                current.value = getTokenValue(current.type);
+            }
+            else
+            {
+                range.popFront();
+                current.type = TokenType.dot;
+                current.value = getTokenValue(TokenType.dot);
+            }
+            break;
+        case '0': .. case '9':
+            lexNumber();
+            break;
+        case '\'':
+        case '"':
+        case '`':
+            lexString();
+            break;
+        case 'q':
+            auto r = range.save;
+            r.popFront();
+            if (!r.isEoF() && r.front == '{')
+            {
+                lexTokenString();
+                break;
+            }
+            else if (!r.isEoF() && r.front == '"')
+            {
+                lexDelimitedString();
+                break;
+            }
+            else
+                goto default;
+        case 'r':
+            auto r = range.save();
+            r.popFront();
+            if (!r.isEoF() && r.front == '"')
+            {
+                lexString();
+                break;
+            }
+            else
+                goto default;
+        case 'x':
+            auto r = range.save();
+            r.popFront();
+            if (!r.isEoF() && r.front == '"')
+            {
+                lexHexString();
+                break;
+            }
+            else
+                goto default;
+        case '#':
+            lexSpecialTokenSequence();
+            break;
+        default:
+            while(!range.isEoF() && !isSeparating(range.front))
+            {
+                keepChar();
+            }
+
+            current.type = lookupTokenType(cast(char[]) buffer[0 .. bufferIndex]);
             current.value = getTokenValue(current.type);
             if (current.value is null)
-                current.value = (cast(char[]) buffer[0 .. i]).idup;
+                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
 
-			if (!(iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.EOF)
-			{
-				_empty = true;
-				return;
-			}
+            if (!(config.iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.eof)
+            {
+                _empty = true;
+                return;
+            }
 
-			if (!(iterStyle & TokenStyle.DoNotReplaceSpecial))
-				break;
+            if (!(config.iterStyle & TokenStyle.doNotReplaceSpecial))
+                break;
 
-			switch (current.type)
-			{
-			case TokenType.Date:
-				current.type = TokenType.stringLiteral;
-				auto time = Clock.currTime();
-				current.value = format("%s %02d %04d", time.month, time.day, time.year);
-				break;
-			case TokenType.Time:
-				auto time = Clock.currTime();
-				current.type = TokenType.stringLiteral;
-				current.value = (cast(TimeOfDay)(time)).toISOExtString();
-				break;
-			case TokenType.Timestamp:
-				auto time = Clock.currTime();
-				auto dt = cast(DateTime) time;
-				current.type = TokenType.stringLiteral;
-				current.value = format("%s %s %02d %02d:%02d:%02d %04d",
-					dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
-					dt.second, dt.year);
-				break;
-			case TokenType.Vendor:
-				current.type = TokenType.stringLiteral;
-				current.value = vendor;
-				break;
-			case TokenType.CompilerVersion:
-				current.type = TokenType.stringLiteral;
-				current.value = ver;
-				break;
-			case TokenType.Line:
-				current.type = TokenType.intLiteral;
-				current.value = format("%d", current.lineNumber);
-				break;
-			case TokenType.File:
-				current.type = TokenType.stringLiteral;
-				current.value = fileName;
-				break;
-			default:
-				break;
-			}
-			break;
-		}
-	}
+            switch (current.type)
+            {
+            case TokenType.date:
+                current.type = TokenType.stringLiteral;
+                auto time = Clock.currTime();
+                current.value = format("%s %02d %04d", time.month, time.day, time.year);
+                break;
+            case TokenType.time:
+                auto time = Clock.currTime();
+                current.type = TokenType.stringLiteral;
+                current.value = (cast(TimeOfDay)(time)).toISOExtString();
+                break;
+            case TokenType.timestamp:
+                auto time = Clock.currTime();
+                auto dt = cast(DateTime) time;
+                current.type = TokenType.stringLiteral;
+                current.value = format("%s %s %02d %02d:%02d:%02d %04d",
+                    dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
+                    dt.second, dt.year);
+                break;
+            case TokenType.vendor:
+                current.type = TokenType.stringLiteral;
+                current.value = config.vendorString;
+                break;
+            case TokenType.compilerVersion:
+                current.type = TokenType.stringLiteral;
+                current.value = format("%d", config.versionNumber);
+                break;
+            case TokenType.line:
+                current.type = TokenType.intLiteral;
+                current.value = format("%d", current.line);
+                break;
+            case TokenType.file:
+                current.type = TokenType.stringLiteral;
+                current.value = config.fileName;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+    }
 
-	Token current;
-	uint lineNumber;
-	uint index;
-	R range;
-	bool _empty;
-	IterationStyle iterStyle;
-	TokenStyle stringStyle;
-	string ver;
-	string vendor;
-	string fileName;
-	ubyte[] buffer;
-}
+    void lexWhitespace()
+    {
+        current.type = TokenType.whitespace;
+        while (!isEoF(range) && std.ascii.isWhite(range.front))
+        {
+            keepChar();
+        }
+        if (config.iterStyle & IterationStyle.includeWhitespace)
+            current.value = (cast(char[]) buffer[0..bufferIndex]).idup;
+    }
 
-unittest
-{
-	import std.stdio;
-	auto a = "/**comment*/\n#lin #line 10 \"test.d\"\nint a;//test\n";
-	foreach (t; byToken(a))
-		writeln(t);
+    void lexComment()
+    in
+    {
+        assert (range.front == '/');
+    }
+    body
+    {
+        current.type = TokenType.comment;
+        keepChar();
+        switch(range.front)
+        {
+        case '/':
+            while (!isEoF(range) && !isNewline(range))
+            {
+                keepChar();
+            }
+            break;
+        case '*':
+            while (!isEoF(range))
+            {
+                if (range.front == '*')
+                {
+                    keepChar();
+                    if (range.front == '/')
+                    {
+                        keepChar();
+                        break;
+                    }
+                }
+                else
+                    keepChar();
+            }
+            break;
+        case '+':
+            int depth = 1;
+            while (depth > 0 && !isEoF(range))
+            {
+                if (range.front == '+')
+                {
+                    keepChar();
+                    if (range.front == '/')
+                    {
+                        keepChar();
+                        --depth;
+                    }
+                }
+                else if (range.front == '/')
+                {
+                    keepChar();
+                    if (range.front == '+')
+                    {
+                        keepChar();
+                        ++depth;
+                    }
+                }
+                else
+                    keepChar();
+            }
+            break;
+        default:
+            assert(false);
+        }
+        if (config.iterStyle & IterationStyle.includeComments)
+            current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+    }
+
+    void lexHexString()
+    in
+    {
+        assert (range.front == 'x');
+    }
+    body
+    {
+        current.type = TokenType.stringLiteral;
+        size_t i;
+        if (config.tokenStyle & TokenStyle.includeQuotes)
+        {
+            buffer[i++] = 'x';
+            buffer[i++] = '"';
+        }
+        range.popFront();
+        range.popFront();
+        index += 2;
+        while (!range.isEoF())
+        {
+            if (i >= buffer.length)
+            {
+                errorMessage("Hex string constant exceeded buffer size");
+                return;
+            }
+            else if (isHexDigit(range.front))
+            {
+                keepChar();
+            }
+            else if (std.ascii.isWhite(range.front) && (config.tokenStyle & TokenStyle.notEscaped))
+            {
+                keepChar();
+            }
+            else if (range.front == '"')
+            {
+                if (config.tokenStyle & TokenStyle.includeQuotes)
+                    buffer[i++] = '"';
+                range.popFront();
+                ++index;
+                break;
+            }
+            else
+            {
+                errorMessage(format("Invalid character '%s' in hex string literal",
+                    cast(char) range.front));
+            }
+        }
+        if (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case 'w':
+                current.type = TokenType.wstringLiteral;
+                goto case 'c';
+            case 'd':
+                current.type = TokenType.dstringLiteral;
+                goto case 'c';
+            case 'c':
+                if (config.tokenStyle & TokenStyle.includeQuotes)
+                    buffer[i++] = range.front;
+                range.popFront();
+                ++index;
+                break;
+            default:
+                break;
+            }
+        }
+        if (config.tokenStyle & TokenStyle.notEscaped)
+            current.value = (cast(char[]) buffer[0 .. i]).idup;
+        else
+        {
+            auto a = appender!(ubyte[])();
+            foreach (b; std.range.chunks(buffer[0 .. i], 2))
+            {
+                string s = to!string(cast(char[]) b);
+                a.put(cast(ubyte[]) to!string(cast(dchar) parse!uint(s, 16)));
+            }
+            current.value = to!string(cast(char[]) a.data);
+        }
+    }
+
+    void lexNumber()
+    in
+    {
+        assert(isDigit(cast(char) range.front) || range.front == '.');
+    }
+    body
+    {
+        // hex and binary can start with zero, anything else is decimal
+        if (range.front != '0')
+            lexDecimal();
+        else
+        {
+            auto r = range.save();
+            r.popFront();
+            switch (r.front)
+            {
+            case 'x':
+            case 'X':
+                keepChar();
+                keepChar();
+                lexHex();
+                break;
+            case 'b':
+            case 'B':
+                keepChar();
+                keepChar();
+                lexBinary();
+                break;
+            default:
+                lexDecimal();
+                return;
+            }
+        }
+    }
+
+    void lexFloatSuffix()
+    {
+        switch (range.front)
+        {
+        case 'L':
+            keepChar();
+            current.type = TokenType.doubleLiteral;
+            break;
+        case 'f':
+        case 'F':
+            keepChar();
+            current.type = TokenType.floatLiteral;
+            break;
+        default:
+            break;
+        }
+        if (!range.isEoF() && range.front == 'i')
+        {
+            keepChar();
+            if (current.type == TokenType.floatLiteral)
+                current.type = TokenType.ifloatLiteral;
+            else
+                current.type = TokenType.idoubleLiteral;
+        }
+    }
+
+    void lexIntSuffix()
+    {
+        bool foundU;
+        bool foundL;
+        while (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case 'u':
+            case 'U':
+                if (foundU)
+                    return;
+                switch (current.type)
+                {
+                case TokenType.intLiteral:
+                    current.type = TokenType.uintLiteral;
+                    keepChar();
+                    break;
+                case TokenType.longLiteral:
+                    current.type = TokenType.ulongLiteral;
+                    keepChar();
+                    break;
+                default:
+                    return;
+                }
+                foundU = true;
+                break;
+            case 'L':
+                if (foundL)
+                    return;
+                switch (current.type)
+                {
+                case TokenType.intLiteral:
+                    current.type = TokenType.longLiteral;
+                    keepChar();
+                    break;
+                case TokenType.uintLiteral:
+                    current.type = TokenType.ulongLiteral;
+                    keepChar();
+                    break;
+                default:
+                    return;
+                }
+                foundL = true;
+                break;
+            default:
+                return;
+            }
+        }
+    }
+
+    void lexExponent()
+    in
+    {
+        assert (range.front == 'e' || range.front == 'E' || range.front == 'p'
+            || range.front == 'P');
+    }
+    body
+    {
+        keepChar();
+        bool foundSign = false;
+        while (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case '-':
+            case '+':
+                if (foundSign)
+                    return;
+                foundSign = true;
+                keepChar();
+            case '0': .. case '9':
+            case '_':
+                keepChar();
+                break;
+            case 'L':
+            case 'f':
+            case 'F':
+            case 'i':
+                lexFloatSuffix();
+                return;
+            default:
+                return;
+            }
+        }
+    }
+
+    void lexDecimal()
+    in
+    {
+        assert ((range.front >= '0' && range.front <= '9') || range.front == '.');
+    }
+    body
+    {
+        bool foundDot = false;
+        current.type = TokenType.intLiteral;
+        scope(exit) current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+        decimalLoop: while (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case '0': .. case '9':
+            case '_':
+                keepChar();
+                break;
+            case 'i':
+            case 'L':
+                if (foundDot)
+                {
+                    lexFloatSuffix();
+                    return;
+                }
+                else
+                {
+                    lexIntSuffix();
+                    return;
+                }
+            case 'f':
+            case 'F':
+                lexFloatSuffix();
+                return;
+            case 'e':
+            case 'E':
+                lexExponent();
+                return;
+            case '.':
+                auto r = range.save();
+                r.popFront();
+                if (!r.isEoF() && r.front == '.')
+                    break decimalLoop; // possibly slice expression
+                if (foundDot)
+                    break decimalLoop; // two dots with other characters between them
+                keepChar();
+                foundDot = true;
+                current.type = TokenType.doubleLiteral;
+                break;
+            default:
+                break decimalLoop;
+            }
+        }
+
+    }
+
+    void lexBinary()
+    {
+        current.type = TokenType.intLiteral;
+        scope(exit) current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+        binaryLoop: while (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case '0':
+            case '1':
+            case '_':
+                keepChar();
+                break;
+            case 'u':
+            case 'U':
+            case 'L':
+                lexIntSuffix();
+                return;
+            default:
+                break binaryLoop;
+            }
+        }
+    }
+
+    void lexHex()
+    {
+        current.type = TokenType.intLiteral;
+        scope(exit) current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+        bool foundDot;
+        hexLoop: while (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case 'a': .. case 'f':
+            case 'A': .. case 'F':
+            case '0': .. case '9':
+            case '_':
+                keepChar();
+                break;
+            case 'i':
+            case 'L':
+                if (foundDot)
+                {
+                    lexFloatSuffix();
+                    return;
+                }
+                else
+                {
+                    lexIntSuffix();
+                    return;
+                }
+            case 'p':
+            case 'P':
+                lexExponent();
+                return;
+            case '.':
+                auto r = range.save();
+                r.popFront();
+                if (!r.isEoF() && r.front == '.')
+                    break hexLoop; // slice expression
+                if (foundDot)
+                    break hexLoop; // two dots with other characters between them
+                keepChar();
+                foundDot = true;
+                current.type = TokenType.doubleLiteral;
+                break;
+            default:
+                break hexLoop;
+            }
+        }
+    }
+
+    void lexStringSuffix()
+    {
+        current.type = TokenType.stringLiteral;
+        if (!range.isEoF())
+        {
+            switch (range.front)
+            {
+            case 'w':
+                current.type = TokenType.wstringLiteral;
+                goto case 'c';
+            case 'd':
+                current.type = TokenType.dstringLiteral;
+                goto case 'c';
+            case 'c':
+                keepChar();
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    void lexString()
+    in
+    {
+        assert (range.front == '\'' || range.front == '"' || range.front == '`' || range.front == 'r');
+    }
+    body
+    {
+        current.type = TokenType.stringLiteral;
+        bool isWysiwyg = range.front == 'r' || range.front == '`';
+        if (range.front == 'r')
+            keepChar();
+
+        scope (exit)
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                current.value = (cast(char[]) buffer[0..bufferIndex]).idup;
+            else
+            {
+                if (buffer[0] == 'r')
+                    current.value = (cast(char[]) buffer[2..bufferIndex - 1]).idup;
+                else
+                    current.value = (cast(char[]) buffer[1..bufferIndex - 1]).idup;
+            }
+        }
+
+        auto quote = range.front;
+        keepChar();
+        while (true)
+        {
+            if (range.isEoF())
+            {
+                errorMessage("Unterminated string literal");
+                return;
+            }
+            else if (range.front == '\\' && !isWysiwyg)
+            {
+                if (config.tokenStyle & TokenStyle.notEscaped)
+                {
+                    auto r = range.save();
+                    r.popFront();
+                    if (r.front == quote && !isWysiwyg)
+                    {
+                        keepChar();
+                        keepChar();
+                    }
+                    else if (r.front == '\\' && !isWysiwyg)
+                    {
+                        keepChar();
+                        keepChar();
+                    }
+                    else
+                        keepChar();
+                }
+                else
+                    interpretEscapeSequence(range, index, buffer, bufferIndex);
+            }
+            else if (range.front == quote)
+            {
+                keepChar();
+                break;
+            }
+            else
+                keepChar();
+        }
+        lexStringSuffix();
+    }
+
+    void lexDelimitedString()
+    in
+    {
+        assert(range.front == 'q');
+    }
+    body
+    {
+        current.type = TokenType.stringLiteral;
+
+        keepChar();
+        keepChar();
+
+        bool heredoc;
+        ubyte open;
+        ubyte close;
+
+        switch (range.front)
+        {
+        case '[': open = '['; close = ']'; break;
+        case '{': open = '{'; close = '}'; break;
+        case '(': open = '('; close = ')'; break;
+        case '<': open = '<'; close = '>'; break;
+        default: heredoc = true; break;
+        }
+        if (heredoc)
+            lexHeredocString();
+        else
+            lexNormalDelimitedString(open, close);
+    }
+
+    void lexNormalDelimitedString(ubyte open, ubyte close)
+    in
+    {
+        assert(buffer[0 .. bufferIndex] == "q\"");
+    }
+    body
+    {
+        current.type = TokenType.stringLiteral;
+        int depth = 1;
+        keepChar();
+        scope (exit)
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+            else
+                current.value = (cast(char[]) buffer[3 .. bufferIndex - 2]).idup;
+        }
+        while (true)
+        {
+            if (range.isEoF())
+                errorMessage("Unterminated string literal");
+            if (range.front == open)
+            {
+                keepChar();
+                ++depth;
+            }
+            else if (range.front == close)
+            {
+                keepChar();
+                --depth;
+                if (depth <= 0)
+                {
+                    auto r = range.save();
+                    if (r.front == '"')
+                    {
+                        keepChar();
+                        return;
+                    }
+                    else
+                    {
+                        errorMessage("Expected \" after balanced "
+                            ~ cast(char) close ~ " but found "
+                            ~ cast(char) r.front ~ " instead.");
+                        return;
+                    }
+                }
+            }
+            else
+                keepChar();
+        }
+
+    }
+
+    void lexHeredocString()
+    in
+    {
+        assert (buffer[0 .. bufferIndex] == "q\"");
+    }
+    body
+    {
+        auto i = bufferIndex;
+        while (true)
+        {
+            if (range.isEoF())
+            {
+                errorMessage("Unterminated string literal");
+                return;
+            }
+            else if (isNewline(range))
+            {
+                keepChar();
+                break;
+            }
+            else if (isSeparating(range.front))
+            {
+                errorMessage("Unterminated string literal - Separating");
+                return;
+            }
+            else
+                keepChar();
+        }
+        auto ident = buffer[i .. bufferIndex - 1];
+
+        scope(exit)
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+            else
+            {
+                size_t b = 2 + ident.length;
+                if (buffer[b] == '\r') ++b;
+                if (buffer[b] == '\n') ++b;
+                size_t e = bufferIndex;
+                if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
+                    --e;
+                stderr.writeln("b = ", b, " e = ", e);
+                current.value = (cast(char[]) buffer[b .. e]).idup;
+            }
+        }
+
+        while (true)
+        {
+            if (range.isEoF())
+            {
+                errorMessage("Unterminated string literal -- a");
+                return;
+            }
+            else if (buffer[bufferIndex - ident.length .. bufferIndex] == ident)
+            {
+                if (range.front == '"')
+                {
+                    keepChar();
+                    lexStringSuffix();
+                    return;
+                }
+                else
+                {
+                    errorMessage("Unterminated string literal -- b");
+                    return;
+                }
+            }
+            else
+                keepChar();
+        }
+    }
+
+    void lexTokenString()
+    in
+    {
+        assert (range.front == 'q');
+    }
+    body
+    {
+        current.type = TokenType.stringLiteral;
+        size_t i;
+
+        scope (exit)
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+            else
+                current.value = (cast(char[]) buffer[2 .. bufferIndex - 1]).idup;
+        }
+
+        keepChar();
+        keepChar();
+
+        LexerConfig c;
+        c.iterStyle = IterationStyle.everything;
+        c.tokenStyle = TokenStyle.source;
+
+        auto r = byToken(range, c);
+        r.index = index;
+        int depth = 1;
+        while (!r.empty)
+        {
+            if (r.front.type == TokenType.lBrace)
+            {
+                ++depth;
+            }
+            else if (r.front.type == TokenType.rBrace)
+            {
+                --depth;
+                if (depth <= 0)
+                {
+                    if (config.tokenStyle & TokenStyle.includeQuotes)
+                    {
+                        if (bufferIndex >= buffer.length)
+                            buffer.length += 1024;
+                        buffer[bufferIndex++] = '}';
+                    }
+                    r.popFront();
+                    break;
+                }
+            }
+            if (bufferIndex + r.front.value.length > buffer.length)
+                buffer.length += 1024;
+            buffer[bufferIndex .. bufferIndex + r.front.value.length] = cast(ubyte[]) r.front.value;
+            bufferIndex += r.front.value.length;
+            r.popFront();
+        }
+        lexStringSuffix();
+    }
+
+    void lexSpecialTokenSequence()
+    in
+    {
+        assert (range.front == '#');
+    }
+    body
+    {
+        keepChar();
+        auto r = range.save();
+        auto app = appender!(ubyte[])();
+        app.put('#');
+        while (true)
+        {
+            if (r.isEoF())
+            {
+                errorMessage("Found EOF when interpreting special token sequence");
+                return;
+            }
+            else if (isNewline(r))
+                break;
+            else
+            {
+                app.put(r.front);
+                r.popFront();
+            }
+        }
+        auto m = match((cast(char[]) app.data),
+            `#line\s+(?P<line>\d+)\s*(?P<filespec>".+")*?`);
+        if (m)
+        {
+            current.type = TokenType.specialTokenSequence;
+            current.value = (cast(char[]) app.data).idup;
+            column += app.data.length;
+            index += app.data.length;
+            range.popFrontN(app.data.length);
+            auto c = m.captures;
+            if (c["filespec"])
+                config.fileName = c["filespec"].idup;
+            auto l = c["line"];
+            lineNumber = parse!uint(l);
+
+        }
+        else
+        {
+            current.type = TokenType.hash;
+            current.value = getTokenValue(TokenType.hash);
+        }
+    }
+
+    void errorMessage(string s)
+    {
+        import std.stdio;
+        if (config.errorFunc !is null)
+            config.errorFunc(config.fileName, current.startIndex,
+                current.line, current.column, s);
+        else
+            stderr.writefln("%s(%d:%d): %s", config.fileName, current.line,
+                current.column, s);
+    }
+
+    void keepChar()
+    {
+        if (bufferIndex + 2 >= buffer.length)
+            buffer.length += 1024;
+        bool foundNewline;
+        if (range.front == '\r')
+        {
+            buffer[bufferIndex++] = range.front;
+            range.popFront();
+            ++index;
+            foundNewline = true;
+        }
+        if (range.front == '\n')
+        {
+            buffer[bufferIndex++] = range.front;
+            range.popFront();
+            ++index;
+            foundNewline = true;
+        }
+        else
+        {
+            buffer[bufferIndex++] = range.front;
+            range.popFront();
+            ++index;
+            ++column;
+        }
+        if (foundNewline)
+        {
+            ++lineNumber;
+            column = 0;
+        }
+    }
+
+    Token current;
+    uint lineNumber;
+    uint index;
+    uint column;
+    R range;
+    bool _empty;
+    ubyte[] buffer;
+    size_t bufferIndex;
+    LexerConfig config;
 }
 
 /**
@@ -599,7 +1530,7 @@ unittest
  */
 pure nothrow bool isOperator(const TokenType t)
 {
-	return t >= TokenType.assign && t <= TokenType.xorEquals;
+    return t >= TokenType.assign && t <= TokenType.xorEquals;
 }
 
 /**
@@ -607,7 +1538,7 @@ pure nothrow bool isOperator(const TokenType t)
  */
 pure nothrow bool isKeyword(const TokenType t)
 {
-	return t >= TokenType.bool_ && t <= TokenType.with_;
+    return t >= TokenType.bool_ && t <= TokenType.with_;
 }
 
 /**
@@ -615,7 +1546,7 @@ pure nothrow bool isKeyword(const TokenType t)
  */
 pure nothrow bool isType(const TokenType t)
 {
-	return t >= TokenType.bool_ && t <= TokenType.wstring_;
+    return t >= TokenType.bool_ && t <= TokenType.wstring_;
 }
 
 /**
@@ -623,7 +1554,7 @@ pure nothrow bool isType(const TokenType t)
  */
 pure nothrow bool isAttribute(const TokenType t)
 {
-	return t >= TokenType.align_ && t <= TokenType.static_;
+    return t >= TokenType.align_ && t <= TokenType.static_;
 }
 
 /**
@@ -631,7 +1562,7 @@ pure nothrow bool isAttribute(const TokenType t)
  */
 pure nothrow bool isProtection(const TokenType t)
 {
-	return t >= TokenType.export_ && t <= TokenType.public_;
+    return t >= TokenType.export_ && t <= TokenType.public_;
 }
 
 /**
@@ -639,7 +1570,7 @@ pure nothrow bool isProtection(const TokenType t)
  */
 pure nothrow bool isConstant(const TokenType t)
 {
-	return t >= TokenType.date && t <= TokenType.traits;
+    return t >= TokenType.date && t <= TokenType.traits;
 }
 
 /**
@@ -647,7 +1578,7 @@ pure nothrow bool isConstant(const TokenType t)
  */
 pure nothrow bool isLiteral(const TokenType t)
 {
-	return t >= TokenType.doubleLiteral && t <= TokenType.wstringLiteral;
+    return t >= TokenType.doubleLiteral && t <= TokenType.wstringLiteral;
 }
 
 /**
@@ -655,7 +1586,7 @@ pure nothrow bool isLiteral(const TokenType t)
  */
 pure nothrow bool isNumberLiteral(const TokenType t)
 {
-	return t >= TokenType.doubleLiteral && t <= TokenType.ulongLiteral;
+    return t >= TokenType.doubleLiteral && t <= TokenType.ulongLiteral;
 }
 
 /**
@@ -663,7 +1594,7 @@ pure nothrow bool isNumberLiteral(const TokenType t)
  */
 pure nothrow bool isStringLiteral(const TokenType t)
 {
-	return t >= TokenType.dstringLiteral && t <= TokenType.wstringLiteral;
+    return t >= TokenType.dstringLiteral && t <= TokenType.wstringLiteral;
 }
 
 /**
@@ -672,7 +1603,7 @@ pure nothrow bool isStringLiteral(const TokenType t)
  */
 pure nothrow bool isMisc(const TokenType t)
 {
-	return t >= TokenType.comment && t <= TokenType.specialTokenSequence;
+    return t >= TokenType.comment && t <= TokenType.specialTokenSequence;
 }
 
 /**
@@ -680,216 +1611,212 @@ pure nothrow bool isMisc(const TokenType t)
  */
 enum TokenType: ushort
 {
-	assign,	/// =
-	at, /// @
-	bitAnd,	/// &
-	bitAndEquals,	/// &=
-	bitOr,	/// |
-	bitOrEquals,	/// |=
-	catEquals,	/// ~=
-	colon,	/// :
-	comma,	/// ,
-	decrement,	/// --
-	div,	/// /
-	divEquals,	/// /=
-	dollar,	/// $
-	dot,	/// .
-	equals,	/// ==
-	goesTo, /// =>
-	greater,	/// >
-	greaterEqual,	/// >=
-	hash, /// #
-	increment,	/// ++
-	lBrace,	/// {
-	lBracket,	/// [
-	less,	/// <
-	lessEqual,	/// <=
-	lessEqualGreater, /// <>=
-	lessOrGreater,	/// <>
-	logicAnd,	/// &&
-	logicOr,	/// ||
-	lParen,	/// $(LPAREN)
-	minus,	/// -
-	minusEquals,	/// -=
-	mod,	/// %
-	modEquals,	/// %=
-	mulEquals,	/// *=
-	not,	/// !
-	notEquals,	/// !=
-	notGreater,	/// !>
-	notGreaterEqual,	/// !>=
-	notLess,	/// !<
-	notLessEqual,	/// !<=
-	notLessEqualGreater,	/// !<>
-	plus,	/// +
-	plusEquals,	/// +=
-	pow,	/// ^^
-	powEquals,	/// ^^=
-	rBrace,	/// }
-	rBracket,	/// ]
-	rParen,	/// $(RPAREN)
-	semicolon,	/// ;
-	shiftLeft,	/// <<
-	shiftLeftEqual,	/// <<=
-	shiftRight,	/// >>
-	shiftRightEqual,	/// >>=
-	slice, /// ..
-	star,	/// *
-	ternary,	/// ?
-	tilde,	/// ~
-	unordered,	/// !<>=
-	unsignedShiftRight,	/// >>>
-	unsignedShiftRightEqual,	/// >>>=
-	vararg,	/// ...
-	xor,	/// ^
-	xorEquals,	/// ^=
+    assign, /// =
+    at, /// @
+    bitAnd, /// &
+    bitAndEquals, /// &=
+    bitOr, /// |
+    bitOrEquals, /// |=
+    catEquals, /// ~=
+    colon, /// :
+    comma, /// ,
+    decrement, /// --
+    div, /// /
+    divEquals, /// /=
+    dollar, /// $
+    dot, /// .
+    equals, /// ==
+    goesTo, /// =>
+    greater, /// >
+    greaterEqual, /// >=
+    hash, /// #
+    increment, /// ++
+    lBrace, /// {
+    lBracket, /// [
+    less, /// <
+    lessEqual, /// <=
+    lessEqualGreater, /// <>=
+    lessOrGreater, /// <>
+    logicAnd, /// &&
+    logicOr, /// ||
+    lParen, /// $(LPAREN)
+    minus, /// -
+    minusEquals, /// -=
+    mod, /// %
+    modEquals, /// %=
+    mulEquals, /// *=
+    not, /// !
+    notEquals, /// !=
+    notGreater, /// !>
+    notGreaterEqual, /// !>=
+    notLess, /// !<
+    notLessEqual, /// !<=
+    notLessEqualGreater, /// !<>
+    plus, /// +
+    plusEquals, /// +=
+    pow, /// ^^
+    powEquals, /// ^^=
+    rBrace, /// }
+    rBracket, /// ]
+    rParen, /// $(RPAREN)
+    semicolon, /// ;
+    shiftLeft, /// <<
+    shiftLeftEqual, /// <<=
+    shiftRight, /// >>
+    shiftRightEqual, /// >>=
+    slice, /// ..
+    star, /// *
+    ternary, /// ?
+    tilde, /// ~
+    unordered, /// !<>=
+    unsignedShiftRight, /// >>>
+    unsignedShiftRightEqual, /// >>>=
+    vararg, /// ...
+    xor, /// ^
+    xorEquals, /// ^=
 
-	bool_, /// $(D_KEYWORD bool)
-	byte_, /// $(D_KEYWORD byte)
-	cdouble_, /// $(D_KEYWORD cdouble)
-	cent_, /// $(D_KEYWORD cent)
-	cfloat_, /// $(D_KEYWORD cfloat)
-	char_, /// $(D_KEYWORD char)
-	creal_, /// $(D_KEYWORD creal)
-	dchar_, /// $(D_KEYWORD dchar)
-	double_, /// $(D_KEYWORD double)
-	dstring_, /// $(D_KEYWORD dstring)
-	float_, /// $(D_KEYWORD float)
-	function_, /// $(D_KEYWORD function)
-	idouble_, /// $(D_KEYWORD idouble)
-	ifloat_, /// $(D_KEYWORD ifloat)
-	int_, /// $(D_KEYWORD int)
-	ireal_, /// $(D_KEYWORD ireal)
-	long_, /// $(D_KEYWORD long)
-	real_, /// $(D_KEYWORD real)
-	short_, /// $(D_KEYWORD short)
-	string_, /// $(D_KEYWORD string)
-	ubyte_, /// $(D_KEYWORD ubyte)
-	ucent_, /// $(D_KEYWORD ucent)
-	uint_, /// $(D_KEYWORD uint)
-	ulong_, /// $(D_KEYWORD ulong)
-	ushort_, /// $(D_KEYWORD ushort)
-	void_, /// $(D_KEYWORD void)
-	wchar_, /// $(D_KEYWORD wchar)
-	wstring_, /// $(D_KEYWORD wstring)
+    bool_, /// $(D_KEYWORD bool)
+    byte_, /// $(D_KEYWORD byte)
+    cdouble_, /// $(D_KEYWORD cdouble)
+    cent_, /// $(D_KEYWORD cent)
+    cfloat_, /// $(D_KEYWORD cfloat)
+    char_, /// $(D_KEYWORD char)
+    creal_, /// $(D_KEYWORD creal)
+    dchar_, /// $(D_KEYWORD dchar)
+    double_, /// $(D_KEYWORD double)
+    dstring_, /// $(D_KEYWORD dstring)
+    float_, /// $(D_KEYWORD float)
+    function_, /// $(D_KEYWORD function)
+    idouble_, /// $(D_KEYWORD idouble)
+    ifloat_, /// $(D_KEYWORD ifloat)
+    int_, /// $(D_KEYWORD int)
+    ireal_, /// $(D_KEYWORD ireal)
+    long_, /// $(D_KEYWORD long)
+    real_, /// $(D_KEYWORD real)
+    short_, /// $(D_KEYWORD short)
+    string_, /// $(D_KEYWORD string)
+    ubyte_, /// $(D_KEYWORD ubyte)
+    ucent_, /// $(D_KEYWORD ucent)
+    uint_, /// $(D_KEYWORD uint)
+    ulong_, /// $(D_KEYWORD ulong)
+    ushort_, /// $(D_KEYWORD ushort)
+    void_, /// $(D_KEYWORD void)
+    wchar_, /// $(D_KEYWORD wchar)
+    wstring_, /// $(D_KEYWORD wstring)
 
-	align_, /// $(D_KEYWORD align)
-	deprecated_, /// $(D_KEYWORD deprecated)
-	extern_, /// $(D_KEYWORD extern)
-	pragma_, /// $(D_KEYWORD pragma)
-	export_, /// $(D_KEYWORD export)
-	package_, /// $(D_KEYWORD package)
-	private_, /// $(D_KEYWORD private)
-	protected_, /// $(D_KEYWORD protected)
-	public_, /// $(D_KEYWORD public)
-	abstract_, /// $(D_KEYWORD abstract)
-	auto_, /// $(D_KEYWORD auto)
-	const_, /// $(D_KEYWORD const)
-	final_, /// $(D_KEYWORD final)
-	gshared, /// $(D_KEYWORD __gshared)
-	immutable_, // immutable
-	inout_, // inout
-	scope_, /// $(D_KEYWORD scope)
-	shared_, // shared
-	static_, /// $(D_KEYWORD static)
+    align_, /// $(D_KEYWORD align)
+    deprecated_, /// $(D_KEYWORD deprecated)
+    extern_, /// $(D_KEYWORD extern)
+    pragma_, /// $(D_KEYWORD pragma)
+    export_, /// $(D_KEYWORD export)
+    package_, /// $(D_KEYWORD package)
+    private_, /// $(D_KEYWORD private)
+    protected_, /// $(D_KEYWORD protected)
+    public_, /// $(D_KEYWORD public)
+    abstract_, /// $(D_KEYWORD abstract)
+    auto_, /// $(D_KEYWORD auto)
+    const_, /// $(D_KEYWORD const)
+    final_, /// $(D_KEYWORD final)
+    gshared, /// $(D_KEYWORD __gshared)
+    immutable_, // immutable
+    inout_, // inout
+    scope_, /// $(D_KEYWORD scope)
+    shared_, // shared
+    static_, /// $(D_KEYWORD static)
 
-	synchronized_, /// $(D_KEYWORD synchronized)
-	alias_, /// $(D_KEYWORD alias)
-	asm_, /// $(D_KEYWORD asm)
-	assert_, /// $(D_KEYWORD assert)
-	body_, /// $(D_KEYWORD body)
-	break_, /// $(D_KEYWORD break)
-	case_, /// $(D_KEYWORD case)
-	cast_, /// $(D_KEYWORD cast)
-	catch_, /// $(D_KEYWORD catch)
-	class_, /// $(D_KEYWORD class)
-	continue_, /// $(D_KEYWORD continue)
-	debug_, /// $(D_KEYWORD debug)
-	default_, /// $(D_KEYWORD default)
-	delegate_, /// $(D_KEYWORD delegate)
-	delete_, /// $(D_KEYWORD delete)
-	do_, /// $(D_KEYWORD do)
-	else_, /// $(D_KEYWORD else)
-	enum_, /// $(D_KEYWORD enum)
-	false_, /// $(D_KEYWORD false)
-	finally_, /// $(D_KEYWORD finally)
-	foreach_, /// $(D_KEYWORD foreach)
-	foreach_reverse_, /// $(D_KEYWORD foreach_reverse)
-	for_, /// $(D_KEYWORD for)
-	goto_, /// $(D_KEYWORD goto)
-	if_, /// $(D_KEYWORD if)
-	import_, /// $(D_KEYWORD import)
-	in_, /// $(D_KEYWORD in)
-	interface_, /// $(D_KEYWORD interface)
-	invariant_, /// $(D_KEYWORD invariant)
-	is_, /// $(D_KEYWORD is)
-	lazy_, /// $(D_KEYWORD lazy)
-	macro_, /// $(D_KEYWORD macro)
-	mixin_, /// $(D_KEYWORD mixin)
-	module_, /// $(D_KEYWORD module)
-	new_, /// $(D_KEYWORD new)
-	nothrow_, /// $(D_KEYWORD nothrow)
-	null_, /// $(D_KEYWORD null)
-	out_, /// $(D_KEYWORD out)
-	override_, /// $(D_KEYWORD override)
-	pure_, /// $(D_KEYWORD pure)
-	ref_, /// $(D_KEYWORD ref)
-	return_, /// $(D_KEYWORD return)
-	struct_, /// $(D_KEYWORD struct)
-	super_, /// $(D_KEYWORD super)
-	switch_, /// $(D_KEYWORD switch)
-	template_, /// $(D_KEYWORD template)
-	this_, /// $(D_KEYWORD this)
-	throw_, /// $(D_KEYWORD throw)
-	true_, /// $(D_KEYWORD true)
-	try_, /// $(D_KEYWORD try)
-	typedef_, /// $(D_KEYWORD typedef)
-	typeid_, /// $(D_KEYWORD typeid)
-	typeof_, /// $(D_KEYWORD typeof)
-	union_, /// $(D_KEYWORD union)
-	unittest_, /// $(D_KEYWORD unittest)
-	version_, /// $(D_KEYWORD version)
-	volatile_, /// $(D_KEYWORD volatile)
-	while_, /// $(D_KEYWORD while)
-	with_, /// $(D_KEYWORD with)
+    synchronized_, /// $(D_KEYWORD synchronized)
+    alias_, /// $(D_KEYWORD alias)
+    asm_, /// $(D_KEYWORD asm)
+    assert_, /// $(D_KEYWORD assert)
+    body_, /// $(D_KEYWORD body)
+    break_, /// $(D_KEYWORD break)
+    case_, /// $(D_KEYWORD case)
+    cast_, /// $(D_KEYWORD cast)
+    catch_, /// $(D_KEYWORD catch)
+    class_, /// $(D_KEYWORD class)
+    continue_, /// $(D_KEYWORD continue)
+    debug_, /// $(D_KEYWORD debug)
+    default_, /// $(D_KEYWORD default)
+    delegate_, /// $(D_KEYWORD delegate)
+    delete_, /// $(D_KEYWORD delete)
+    do_, /// $(D_KEYWORD do)
+    else_, /// $(D_KEYWORD else)
+    enum_, /// $(D_KEYWORD enum)
+    false_, /// $(D_KEYWORD false)
+    finally_, /// $(D_KEYWORD finally)
+    foreach_, /// $(D_KEYWORD foreach)
+    foreach_reverse_, /// $(D_KEYWORD foreach_reverse)
+    for_, /// $(D_KEYWORD for)
+    goto_, /// $(D_KEYWORD goto)
+    if_, /// $(D_KEYWORD if)
+    import_, /// $(D_KEYWORD import)
+    in_, /// $(D_KEYWORD in)
+    interface_, /// $(D_KEYWORD interface)
+    invariant_, /// $(D_KEYWORD invariant)
+    is_, /// $(D_KEYWORD is)
+    lazy_, /// $(D_KEYWORD lazy)
+    macro_, /// $(D_KEYWORD macro)
+    mixin_, /// $(D_KEYWORD mixin)
+    module_, /// $(D_KEYWORD module)
+    new_, /// $(D_KEYWORD new)
+    nothrow_, /// $(D_KEYWORD nothrow)
+    null_, /// $(D_KEYWORD null)
+    out_, /// $(D_KEYWORD out)
+    override_, /// $(D_KEYWORD override)
+    pure_, /// $(D_KEYWORD pure)
+    ref_, /// $(D_KEYWORD ref)
+    return_, /// $(D_KEYWORD return)
+    struct_, /// $(D_KEYWORD struct)
+    super_, /// $(D_KEYWORD super)
+    switch_, /// $(D_KEYWORD switch)
+    template_, /// $(D_KEYWORD template)
+    this_, /// $(D_KEYWORD this)
+    throw_, /// $(D_KEYWORD throw)
+    true_, /// $(D_KEYWORD true)
+    try_, /// $(D_KEYWORD try)
+    typedef_, /// $(D_KEYWORD typedef)
+    typeid_, /// $(D_KEYWORD typeid)
+    typeof_, /// $(D_KEYWORD typeof)
+    union_, /// $(D_KEYWORD union)
+    unittest_, /// $(D_KEYWORD unittest)
+    version_, /// $(D_KEYWORD version)
+    volatile_, /// $(D_KEYWORD volatile)
+    while_, /// $(D_KEYWORD while)
+    with_, /// $(D_KEYWORD with)
 
-	date, /// ___DATE__
-	eof, /// ___EOF__
-	time, /// ___TIME__
-	timestamp, /// ___TIMESTAMP__
-	vendor, /// ___VENDOR__
-	compilerVersion, /// ___VERSION__
-	file, /// $(D_KEYWORD ___FILE__)
-	line, /// $(D_KEYWORD ___LINE__)
-	comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
-	identifier, /// anything else
-	scriptLine, // Line at the beginning of source file that starts from #!
-    argTypes, /// $(D_KEYWORD ___argTypes)
-    thread, /// $(D_KEYWORD ___thread)
+    date, /// ___DATE__
+    eof, /// ___EOF__
+    time, /// ___TIME__
+    timestamp, /// ___TIMESTAMP__
+    vendor, /// ___VENDOR__
+    compilerVersion, /// ___VERSION__
+    file, /// $(D_KEYWORD ___FILE__)
+    line, /// $(D_KEYWORD ___LINE__)
+    comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
+    identifier, /// anything else
+    scriptLine, // Line at the beginning of source file that starts from #!
     traits, /// $(D_KEYWORD ___traits)
-    overloadset, /// $(D_KEYWORD ___overloadset)
     parameters, /// $(D_KEYWORD ___parameters)
     vector, /// $(D_KEYWORD ___vector)
-	whitespace, /// whitespace
-	specialTokenSequence, /// #line 10 "file.d"
-	doubleLiteral, /// 123.456
-	floatLiteral, /// 123.456f or 0x123_45p-3
-	idoubleLiteral, /// 123.456i
-	ifloatLiteral, /// 123.456fi
-	intLiteral, /// 123 or 0b1101010101
-	longLiteral, /// 123L
-	realLiteral, /// 123.456L
-	irealLiteral, /// 123.456Li
-	uintLiteral, /// 123u
-	ulongLiteral, /// 123uL
-	dstringLiteral, /// $(D_STRING "32-bit character string"d)
-	stringLiteral, /// $(D_STRING "an 8-bit string")
-	wstringLiteral, /// $(D_STRING "16-bit character string"w)
+    whitespace, /// whitespace
+    specialTokenSequence, /// #line 10 "file.d"
+    doubleLiteral, /// 123.456
+    floatLiteral, /// 123.456f or 0x123_45p-3
+    idoubleLiteral, /// 123.456i
+    ifloatLiteral, /// 123.456fi
+    intLiteral, /// 123 or 0b1101010101
+    longLiteral, /// 123L
+    realLiteral, /// 123.456L
+    irealLiteral, /// 123.456Li
+    uintLiteral, /// 123u
+    ulongLiteral, /// 123uL
+    dstringLiteral, /// $(D_STRING "32-bit character string"d)
+    stringLiteral, /// $(D_STRING "an 8-bit string")
+    wstringLiteral, /// $(D_STRING "16-bit character string"w)
 }
 
 // Implementation details follow
 private:
-
 
 /*
  * To avoid memory allocations Token.value is set to a slice of this string
@@ -906,10 +1833,11 @@ immutable string opKwdValues =
     ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
     ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
     ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
-    ~ "FILE__LINE__overloadset__argTypes__thread";
+    ~ "FILE__LINE__";
 
 /*
- * Slices of the above string. This array is automatically generated.
+ * Slices of the above string to save memory. This array is automatically
+ * generated.
  */
 immutable(string[]) tokenValues = [
 	opKwdValues[2 .. 3], // =
@@ -1092,10 +2020,7 @@ immutable(string[]) tokenValues = [
 	null,
 	null,
 	null,
-	opKwdValues[685 .. 695], // __argTypes
-	opKwdValues[695 .. 703], // __thread
 	opKwdValues[587 .. 595], // __traits
-	opKwdValues[672 .. 685], // __overloadset
 	opKwdValues[603 .. 615], // __parameters
 	opKwdValues[595 .. 603], // __vector
 	null,
@@ -1122,1796 +2047,434 @@ pure string getTokenValue(const TokenType type)
 
 private pure bool isNewline(R)(R range)
 {
-	return range.front == '\n' || range.front == '\r';
+    return range.front == '\n' || range.front == '\r';
 }
 
 pure bool isEoF(R)(R range)
 {
-	return range.empty || range.front == 0 || range.front == 0x1a;
-}
-
-void popNewline(R)(ref R range, ref uint index, ref ubyte[] buffer, ref size_t i)
-	if (isForwardRange!R)
-{
-	if (range.front == '\r')
-	{
-		buffer[i++] = range.front;
-		range.popFront();
-		++index;
-	}
-	if (range.front == '\n')
-	{
-		buffer[i++] = range.front;
-		range.popFront();
-		++index;
-	}
-}
-
-unittest
-{
-	uint i;
-	auto s = "\r\ntest";
-	assert (popNewline(s, i) == "\r\n");
-	assert (s == "test");
-}
-
-Token lexWhitespace(R)(ref R range, ref uint index,
-	ref uint lineNumber, ref ubyte[] buffer, bool needValue) if (isForwardRange!R)
-{
-	Token t;
-	t.type = TokenType.whitespace;
-	t.lineNumber = lineNumber;
-	t.startIndex = index;
-	size_t i = 0;
-	while (!isEoF(range) && std.uni.isWhite(range.front))
-	{
-		if (i > buffer.length)
-			assert(false);
-		if (isNewline(range))
-		{
-			++lineNumber;
-			popNewline(range, index, buffer, i);
-		}
-		else
-		{
-			buffer[i++] = range.front;
-			range.popFront();
-			++index;
-		}
-	}
-	if (needValue)
-		t.value = (cast(char[]) buffer[0..i]).idup;
-	return t;
-}
-
-unittest
-{
-	import std.stdio;
-	uint lineNum = 1;
-	uint index;
-	auto chars = " \n \r\n \tabcde";
-	auto r = lexWhitespace(chars, index, lineNum);
-	assert (r.value == " \n \r\n \t");
-	assert (chars == "abcde");
-	assert (lineNum == 3);
-}
-
-Token lexComment(R)(ref R input, ref uint index, ref uint lineNumber,
-	ref ubyte[] buffer, bool needValue) if (isForwardRange!R)
-in
-{
-	assert (input.front == '/');
-}
-body
-{
-	Token t;
-	t.lineNumber = lineNumber;
-	t.type = TokenType.Comment;
-	t.startIndex = index;
-	size_t i;
-	buffer[i++] = input.front;
-	input.popFront();
-	switch(input.front)
-	{
-	case '/':
-		while (!isEoF(input) && !isNewline(input))
-		{
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-		}
-		break;
-	case '*':
-		while (!isEoF(input))
-		{
-			if (isNewline(input))
-			{
-				popNewline(input, index, buffer, i);
-				++lineNumber;
-			}
-			else if (input.front == '*')
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-				if (input.front == '/')
-				{
-					buffer[i++] = input.front;
-					input.popFront();
-					++index;
-					break;
-				}
-			}
-			else
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-			}
-		}
-		break;
-	case '+':
-		int depth = 1;
-		while (depth > 0 && !isEoF(input))
-		{
-			if (isNewline(input))
-			{
-				popNewline(input, index, buffer, i);
-				lineNumber++;
-			}
-			else if (input.front == '+')
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-				if (input.front == '/')
-				{
-					buffer[i++] = input.front;
-					input.popFront();
-					++index;
-					--depth;
-				}
-			}
-			else if (input.front == '/')
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-				if (input.front == '+')
-				{
-					buffer[i++] = input.front;
-					input.popFront();
-					++index;
-					++depth;
-				}
-			}
-			else
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-			}
-		}
-		break;
-	default:
-		Token errorToken;
-		return errorToken;
-	}
-	if (needValue)
-		t.value = (cast(char[]) buffer[0 .. i]).idup;
-	return t;
-}
-
-unittest
-{
-	uint index;
-	uint lineNumber = 1;
-	auto chars = "//this is a comment\r\nthis is not";
-	auto comment = lexComment(chars, index, lineNumber);
-	assert (chars == "\r\nthis is not");
-	assert (comment.value == "//this is a comment");
-}
-
-unittest
-{
-	uint index = 0;
-	uint lineNumber = 1;
-	auto chars = "/* this is a\n\tcomment\r\n */this is not";
-	auto comment = lexComment(chars, index, lineNumber);
-	assert (chars == "this is not");
-	assert (comment.value == "/* this is a\n\tcomment\r\n */");
-	assert (lineNumber == 3);
-}
-
-unittest
-{
-	uint index;
-	uint lineNumber = 1;
-	auto chars = "/+this is a /+c/+omm+/ent+/ \r\nthis+/ is not";
-	auto comment = lexComment(chars, index, lineNumber);
-	assert (chars == " is not");
-	assert (comment.value == "/+this is a /+c/+omm+/ent+/ \r\nthis+/");
-	assert (lineNumber == 2);
-}
-
-unittest
-{
-	uint i;
-	uint l;
-	auto chars = "/(";
-	auto comment = lexComment(chars, i, l);
-	assert (comment == "");
+    return range.empty || range.front == 0 || range.front == 0x1a;
 }
 
 ubyte[] popDigitChars(R, alias isInterestingDigit)(ref R input, ref uint index,
-	uint upTo) if (isForwardRange!R)
+    uint upTo) if (isForwardRange!R)
 {
-	ubyte[] chars;
-	chars.reserve(upTo);
-	for (uint i = 0; i != upTo; ++i)
-	{
-		if (isInterestingDigit(input.front))
-		{
-			chars ~= input.front;
-			input.popFront();
-		}
-		else
-			break;
-	}
-	return chars;
+    ubyte[] chars;
+    chars.reserve(upTo);
+    for (uint i = 0; i != upTo; ++i)
+    {
+        if (isInterestingDigit(input.front))
+        {
+            chars ~= input.front;
+            input.popFront();
+        }
+        else
+            break;
+    }
+    return chars;
 }
 
 ubyte[] popHexChars(R)(ref R input, ref uint index, uint upTo)
 {
-	return popDigitChars!(R, isHexDigit)(input, index, upTo);
+    return popDigitChars!(R, isHexDigit)(input, index, upTo);
 }
 
 ubyte[] popOctalChars(R)(ref R input, ref uint index, uint upTo)
 {
-	return popDigitChars!(R, isOctalDigit)(input, index, upTo);
-}
-
-unittest
-{
-	uint i;
-	auto a = "124ac82d3fqwerty";
-	auto ra = popHexChars(a, i, uint.max);
-	assert (a == "qwerty");
-	assert (ra == "124ac82d3f");
-	auto b = "08a7c2e3";
-	auto rb = popHexChars(b, i, 4);
-	assert (rb.length == 4);
-	assert (rb == "08a7");
-	assert (b == "c2e3");
-	auto c = "00123832";
-	auto rc = popOctalChars(c, i, uint.max);
-	assert (c == "832");
-	assert (rc == "00123");
+    return popDigitChars!(R, isOctalDigit)(input, index, upTo);
 }
 
 void interpretEscapeSequence(R)(ref R input, ref uint index, ref ubyte[] buffer,
-	ref size_t i) if (isForwardRange!R)
+    ref size_t i) if (isForwardRange!R)
 in
 {
-	assert(input.front == '\\');
+    assert(input.front == '\\');
 }
 body
 {
-	input.popFront();
-	short h = 0;
-	switch (input.front)
-	{
-	case '\'':
-	case '\"':
-	case '?':
-	case '\\':
-	case 0:
-	case 0x1a:
-		auto f = input.front;
-		input.popFront();
-		++index;
-		auto s = to!string(cast(char) f);
-		buffer[i .. i + s.length] = cast(ubyte[]) s;
-		return;
-	case 'a': input.popFront(); ++index; buffer[i++] = '\a'; return;
-	case 'b': input.popFront(); ++index; buffer[i++] = '\b'; return;
-	case 'f': input.popFront(); ++index; buffer[i++] = '\f'; return;
-	case 'n': input.popFront(); ++index; buffer[i++] = '\n'; return;
-	case 'r': input.popFront(); ++index; buffer[i++] = '\r'; return;
-	case 't': input.popFront(); ++index; buffer[i++] = '\t'; return;
-	case 'v': input.popFront(); ++index; buffer[i++] = '\v'; return;
-	case 'x': h = 2; goto hex;
-	case 'u': h = 4; goto hex;
-	case 'U': h = 8; goto hex;
-	case '0': .. case '7':
-		auto octalChars = cast(char[]) popOctalChars(input, index, 3);
-		char[4] b;
-		auto n = encode(b, cast(dchar) parse!uint(octalChars, 8));
-		buffer[i .. i + n] = cast(ubyte[]) b[0 .. n];
-		i += n;
-		return;
-	case '&':
-		input.popFront();
-		++index;
-		auto entity = appender!(ubyte[])();
-		while (!input.isEoF() && input.front != ';')
-		{
-			entity.put(input.front);
-			input.popFront();
-			++index;
-		}
-		if (!isEoF(input))
-		{
-			auto decoded = to!string(cast(char[]) entity.data) in characterEntities;
-			input.popFront();
-			++index;
-			if (decoded !is null)
-			{
-				buffer[i .. i + decoded.length] = cast(ubyte[]) *decoded;
-				i += decoded.length;
-			}
-		}
-		return;
-	default:
-		input.popFront();
-		++index;
-		// This is an error
-		buffer[i++] = '\\';
-		return;
-	}
+    input.popFront();
+    short h = 0;
+    switch (input.front)
+    {
+    case '\'':
+    case '\"':
+    case '?':
+    case '\\':
+    case 0:
+    case 0x1a:
+        auto f = input.front;
+        input.popFront();
+        ++index;
+        auto s = to!string(cast(char) f);
+        buffer[i .. i + s.length] = cast(ubyte[]) s;
+        return;
+    case 'a': input.popFront(); ++index; buffer[i++] = '\a'; return;
+    case 'b': input.popFront(); ++index; buffer[i++] = '\b'; return;
+    case 'f': input.popFront(); ++index; buffer[i++] = '\f'; return;
+    case 'n': input.popFront(); ++index; buffer[i++] = '\n'; return;
+    case 'r': input.popFront(); ++index; buffer[i++] = '\r'; return;
+    case 't': input.popFront(); ++index; buffer[i++] = '\t'; return;
+    case 'v': input.popFront(); ++index; buffer[i++] = '\v'; return;
+    case 'x': h = 2; goto hex;
+    case 'u': h = 4; goto hex;
+    case 'U': h = 8; goto hex;
+    case '0': .. case '7':
+        auto octalChars = cast(char[]) popOctalChars(input, index, 3);
+        char[4] b;
+        auto n = encode(b, cast(dchar) parse!uint(octalChars, 8));
+        buffer[i .. i + n] = cast(ubyte[]) b[0 .. n];
+        i += n;
+        return;
+    case '&':
+        input.popFront();
+        ++index;
+        auto entity = appender!(ubyte[])();
+        while (!input.isEoF() && input.front != ';')
+        {
+            entity.put(input.front);
+            input.popFront();
+            ++index;
+        }
+        if (!isEoF(input))
+        {
+            auto decoded = to!string(cast(char[]) entity.data) in characterEntities;
+            input.popFront();
+            ++index;
+            if (decoded !is null)
+            {
+                buffer[i .. i + decoded.length] = cast(ubyte[]) *decoded;
+                i += decoded.length;
+            }
+        }
+        return;
+    default:
+        input.popFront();
+        ++index;
+        // This is an error
+        buffer[i++] = '\\';
+        return;
+    }
 
 hex:
-	input.popFront();
-	auto hexChars = cast(char[]) popHexChars(input, index, h);
-	char[4] b;
-	auto n = encode(b, cast(dchar) parse!uint(hexChars, 16));
-	buffer[i .. i + n] = cast(ubyte[]) b[0 .. n];
-	i += n;
-	return;
-}
-
-unittest
-{
-	uint i;
-	auto vals = [
-		"\\&amp;": "&",
-		"\\n": "\n",
-		"\\?": "?",
-		"\\u0033": "\u0033",
-		"\\U00000076": "v",
-		"\\075": "=",
-		"\\'": "'",
-		"\\a": "\a",
-		"\\b": "\b",
-		"\\f": "\f",
-		"\\r": "\r",
-		"\\t": "\t",
-		"\\v": "\v",
-		"\\y": "\\",
-		"\\x20": " ",
-		"\\&eeeeeeror;": "",
-	];
-	foreach (k, v; vals)
-		assert (interpretEscapeSequence(k, i) == v);
-}
-
-Token lexHexString(R)(ref R input, ref uint index, ref uint lineNumber,
-	ref ubyte[] buffer, const TokenStyle style = TokenStyle.Default)
-in
-{
-	assert (input.front == 'x');
-}
-body
-{
-	Token t;
-	t.lineNumber = lineNumber;
-	t.startIndex = index;
-	t.type = TokenType.stringLiteral;
-	size_t i;
-	if (style & TokenStyle.includeQuotes)
-	{
-		buffer[i++] = 'x';
-		buffer[i++] = '"';
-	}
-	input.popFront();
-	input.popFront();
-	index += 2;
-	while (!input.isEoF())
-	{
-		if (isNewline(input))
-		{
-			popNewline(input, index, buffer, i);
-			++lineNumber;
-		}
-		else if (isHexDigit(input.front))
-		{
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-		}
-		else if (std.uni.isWhite(input.front) && (style & TokenStyle.notEscaped))
-		{
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-		}
-		else if (input.front == '"')
-		{
-			if (style & TokenStyle.includeQuotes)
-				buffer[i++] = '"';
-			input.popFront();
-			++index;
-			break;
-		}
-		else
-		{
-			// This is an error
-		}
-	}
-	if (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case 'w':
-			t.type = TokenType.wstringLiteral;
-			goto case 'c';
-		case 'd':
-			t.type = TokenType.dstringLiteral;
-			goto case 'c';
-		case 'c':
-			if (style & TokenStyle.includeQuotes)
-				buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		default:
-			break;
-		}
-	}
-	if (style & TokenStyle.notEscaped)
-		t.value = (cast(char[]) buffer[0 .. i]).idup;
-	else
-	{
-		auto a = appender!(ubyte[])();
-		foreach (b; std.range.chunks(buffer[0 .. i], 2))
-		{
-			string s = to!string(cast(char[]) b);
-			a.put(cast(ubyte[]) to!string(cast(dchar) parse!uint(s, 16)));
-		}
-		t.value = to!string(cast(char[]) a.data);
-	}
-
-
-	return t;
-}
-
-unittest
-{
-	uint i;
-	uint l;
-
-	auto a = `x"204041"`;
-	auto ar = lexHexString(a, i, l);
-	assert (ar == " @A");
-	assert (ar == TokenType.stringLiteral);
-
-	auto b = `x"20"w`;
-	auto br = lexHexString(b, i, l);
-	assert (br == " ");
-	assert (br == TokenType.wstringLiteral);
-
-	auto c = `x"6d"`;
-	auto cr = lexHexString(c, i, l, TokenStyle.notEscaped);
-	assert (cr == "6d");
-
-	auto d = `x"5e5f"d`;
-	auto dr = lexHexString(d, i, l, TokenStyle.notEscaped | TokenStyle.includeQuotes);
-	assert (dr == `x"5e5f"d`);
-	assert (dr == TokenType.dstringLiteral);
-}
-
-Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
-	ref ubyte[] buffer, const TokenStyle style = TokenStyle.default_)
-in
-{
-	assert (input.front == '\'' || input.front == '"' || input.front == '`' || input.front == 'r');
-}
-body
-{
-	Token t;
-	t.lineNumber = lineNumber;
-	t.startIndex = index;
-	t.type = TokenType.stringLiteral;
-	size_t i = 0;
-	bool isWysiwyg = input.front == 'r' || input.front == '`';
-	if (input.front == 'r')
-	{
-		if (style & TokenStyle.includeQuotes)
-			buffer[i++] = 'r';
-		input.popFront();
-	}
-	auto quote = input.front;
-	input.popFront();
-	++index;
-
-	if (style & TokenStyle.includeQuotes)
-		buffer[i++] = quote;
-	while (!isEoF(input))
-	{
-		if (isNewline(input))
-		{
-			popNewline(input, index, buffer, i);
-			lineNumber++;
-		}
-		else if (input.front == '\\')
-		{
-			if (style & TokenStyle.notEscaped)
-			{
-				auto r = input.save();
-				r.popFront();
-				if (r.front == quote && !isWysiwyg)
-				{
-					buffer[i++] = '\\';
-					buffer[i++] = quote;
-					input.popFront();
-					input.popFront();
-					index += 2;
-				}
-				else if (r.front == '\\' && !isWysiwyg)
-				{
-					buffer[i++] = '\\';
-					buffer[i++] = '\\';
-					input.popFront();
-					input.popFront();
-					index += 2;
-				}
-				else
-				{
-					buffer[i++] = '\\';
-					input.popFront();
-					++index;
-				}
-			}
-			else
-				interpretEscapeSequence(input, index, buffer, i);
-		}
-		else if (input.front == quote)
-		{
-			if (style & TokenStyle.includeQuotes)
-				buffer[i++] = quote;
-			input.popFront();
-			++index;
-			break;
-		}
-		else
-		{
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-		}
-	}
-	if (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case 'w':
-			t.type = TokenType.wstringLiteral;
-			goto case 'c';
-		case 'd':
-			t.type = TokenType.dstringLiteral;
-			goto case 'c';
-		case 'c':
-			if (style & TokenStyle.includeQuotes)
-				buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		default:
-			break;
-		}
-	}
-	t.value = (cast(char[]) buffer[0..i]).idup;
-	return t;
-}
-
-unittest
-{
-	uint l = 1;
-	uint i;
-	auto a = `"abcde"`;
-	assert (lexString(a, i, l) == "abcde");
-	auto b = "\"ab\\ncd\"";
-	assert (lexString(b, i, l) == "ab\ncd");
-	auto c = "`abc\\ndef`";
-	assert (lexString(c, i, l, TokenStyle.notEscaped) == "abc\\ndef");
-	auto d = `"12345"w`;
-	assert (lexString(d, i, l).type == TokenType.wstringLiteral);
-	auto e = `"abc"c`;
-	assert (lexString(e, i, l).type == TokenType.stringLiteral);
-	auto f = `"abc"d`;
-	assert (lexString(f, i, l).type == TokenType.dstringLiteral);
-	auto g = "\"a\nb\"";
-	assert (lexString(g, i, l) == "a\nb");
-}
-
-Token lexDelimitedString(R)(ref R input, ref uint index,
-	ref uint lineNumber, ref ubyte[] buffer,
-	const TokenStyle stringStyle = TokenStyle.Default)
-in
-{
-	assert(input.front == 'q');
-}
-body
-{
-	Token t;
-	t.startIndex = index;
-	t.lineNumber = lineNumber;
-	t.type = TokenType.stringLiteral;
-	size_t i;
-	input.popFront(); // q
-	input.popFront(); // "
-	index += 2;
-	if (stringStyle & TokenStyle.includeQuotes)
-	{
-		buffer[i++] = 'q';
-		buffer[i++] = '"';
-	}
-
-	bool heredoc;
-	ElementType!R open;
-	ElementType!R close;
-
-	switch (input.front)
-	{
-	case '[': open = '['; close = ']'; break;
-	case '{': open = '{'; close = '}'; break;
-	case '(': open = '('; close = ')'; break;
-	case '<': open = '<'; close = '>'; break;
-	default: heredoc = true; break;
-	}
-
-	if (heredoc)
-	{
-		auto hereOpen = appender!(ubyte[])();
-		while (!input.isEoF() && !std.uni.isWhite(input.front))
-		{
-			hereOpen.put(input.front());
-			input.popFront();
-		}
-		if (input.isNewline())
-		{
-			++lineNumber;
-			popNewline(input, index, buffer, i);
-		}
-//		else
-//			this is an error
-		while (!input.isEoF())
-		{
-			if (isNewline(input))
-			{
-				++lineNumber;
-				popNewline(input, index, buffer, i);
-			}
-			else if (input.front == '"' && buffer[0..i].endsWith(hereOpen.data))
-			{
-				buffer[i++] = '"';
-				++index;
-				input.popFront();
-				if (stringStyle & TokenStyle.includeQuotes)
-					t.value = (cast(char[]) buffer[0 .. i]).idup;
-				else
-					t.value = (cast(char[]) buffer[0 .. i - hereOpen.data.length - 1]).idup;
-				break;
-			}
-			else
-			{
-				buffer[i++] = input.front;
-				++index;
-				input.popFront();
-			}
-		}
-	}
-	else
-	{
-		if (stringStyle & TokenStyle.includeQuotes)
-			buffer[i++] = input.front;
-		input.popFront();
-		int depth = 1;
-		while (depth > 0 && !input.isEoF())
-		{
-			if (isNewline(input))
-				popNewline(input, index, buffer, i);
-			else
-			{
-				if (input.front == close)
-				{
-					--depth;
-					if (depth == 0)
-					{
-						if (stringStyle & TokenStyle.includeQuotes)
-						{
-							buffer[i++] = close;
-							buffer[i++] = '"';
-						}
-						input.popFront();
-						input.popFront();
-						break;
-					}
-				}
-				else if (input.front == open)
-					++depth;
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-			}
-		}
-	}
-	if (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case 'w':
-			t.type = TokenType.wstringLiteral;
-			goto case 'c';
-		case 'd':
-			t.type = TokenType.dstringLiteral;
-			goto case 'c';
-		case 'c':
-			if (stringStyle & TokenStyle.includeQuotes)
-				buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		default:
-			break;
-		}
-	}
-	if (t.value is null)
-		t.value = (cast(char[]) buffer[0 .. i]).idup;
-	return t;
-}
-
-unittest
-{
-	uint i;
-	uint l;
-	auto a = `q"{abc{}de}"`;
-	auto ar = lexDelimitedString(a, i, l);
-	assert (ar == "abc{}de");
-	assert (ar == TokenType.stringLiteral);
-
-	auto b = "q\"abcde\n123\nabcde\"w";
-	auto br = lexDelimitedString(b, i, l);
-	assert (br == "123\n");
-	assert (br == TokenType.wstringLiteral);
-
-	auto c = `q"[<xml></xml>]");`;
-	auto cr = lexDelimitedString(c, i, l, TokenStyle.Source);
-	assert (cr == `q"[<xml></xml>]"`);
-	assert (cr == TokenType.stringLiteral);
-}
-
-Token lexTokenString(R)(ref R input, ref uint index, ref uint lineNumber,
-	ref ubyte[] buffer, const TokenStyle stringStyle = TokenStyle.Default)
-in
-{
-	assert (input.front == 'q');
-}
-body
-{
-	Token t;
-	t.startIndex = index;
-	t.type = TokenType.stringLiteral;
-	t.lineNumber = lineNumber;
-	size_t i;
-	input.popFront(); // q
-	input.popFront(); // {
-	index += 2;
-	if (stringStyle & TokenStyle.includeQuotes)
-	{
-		buffer[i++] = 'q';
-		buffer[i++] = '{';
-	}
-	auto r = byToken(input, "", IterationStyle.everything, TokenStyle.source);
-	r.index = index;
-	int depth = 1;
-	while (!r.empty)
-	{
-		if (r.front.type == TokenType.LBrace)
-		{
-			++depth;
-		}
-		else if (r.front.type == TokenType.RBrace)
-		{
-			--depth;
-			if (depth <= 0)
-			{
-				if (stringStyle & TokenStyle.includeQuotes)
-					buffer[i++] = '}';
-				r.popFront();
-				break;
-			}
-		}
-		buffer[i .. i + r.front.value.length] = cast(ubyte[]) r.front.value;
-		i += r.front.value.length;
-		r.popFront();
-	}
-
-	auto n = i - (stringStyle & TokenStyle.includeQuotes ? 2 : 0);
-	input.popFrontN(n);
-	if (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case 'w':
-			t.type = TokenType.wstringLiteral;
-			goto case 'c';
-		case 'd':
-			t.type = TokenType.dstringLiteral;
-			goto case 'c';
-		case 'c':
-			if (stringStyle & TokenStyle.includeQuotes)
-				buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		default:
-			break;
-		}
-	}
-	t.value = (cast(char[]) buffer[0 .. i]).idup;
-	index = r.index;
-	return t;
-}
-
-unittest
-{
-	import std.stdio;
-	uint i;
-	uint l;
-	auto a = "q{import std.stdio;} abcd";
-	auto ar = lexTokenString(a, i, l);
-	assert (ar == TokenType.stringLiteral);
-	assert (ar == "import std.stdio;");
-
-	auto b = `q{writeln("hello world");}`;
-	auto br = lexTokenString(b, i, l, TokenStyle.Source);
-	assert (br == TokenType.stringLiteral);
-	assert (br == `q{writeln("hello world");}`);
-}
-
-Token lexNumber(R)(ref R input, ref uint index, const uint lineNumber,
-	ref ubyte[] buffer)
-in
-{
-	assert(isDigit(input.front));
-}
-body
-{
-	size_t i;
-	// hex and binary can start with zero, anything else is decimal
-	if (input.front != '0')
-		return lexDecimal(input, index, lineNumber, buffer, i);
-	else
-	{
-		buffer[i++] = input.front;
-		input.popFront();
-		++index;
-		switch (input.front)
-		{
-		case 'x':
-		case 'X':
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			return lexHex(input, index, lineNumber, buffer, i);
-		case 'b':
-		case 'B':
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			return lexBinary(input, index, lineNumber, buffer, i);
-		default:
-			return lexDecimal(input, index, lineNumber, buffer, i);
-		}
-	}
-}
-
-unittest
-{
-	uint i;
-	uint l;
-	auto a = "0q1239";
-	assert (lexNumber(a, i, l) == "0");
-}
-
-Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
-	ref ubyte[] buffer, ref size_t i)
-{
-	Token token;
-	token.lineNumber = lineNumber;
-	token.startIndex = index;
-	token.type = TokenType.intLiteral;
-	bool lexingSuffix = false;
-	bool isLong = false;
-	bool isUnsigned = false;
-	binaryLoop: while (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case '0':
-		case '1':
-		case '_':
-			if (lexingSuffix)
-				break binaryLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		case 'u':
-		case 'U':
-			if (isUnsigned)
-				break binaryLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			if (isLong)
-			{
-				token.type = TokenType.ulongLiteral;
-				break binaryLoop;
-			}
-			else
-				token.type = TokenType.uintLiteral;
-			isUnsigned = true;
-			break;
-		case 'L':
-			if (isLong)
-				break binaryLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			lexingSuffix = true;
-			if (isUnsigned)
-			{
-				token.type = TokenType.ulongLiteral;
-				break binaryLoop;
-			}
-			else
-				token.type = TokenType.LongLiteral;
-			isLong = true;
-			break;
-		default:
-			break binaryLoop;
-		}
-	}
-	token.value = (cast(char[]) buffer[0 .. i]).idup;
-	return token;
-}
-
-unittest
-{
-	uint i;
-	uint l;
-
-	auto a = "0b000101";
-	auto ar = lexNumber(a, i, l);
-	assert (ar.value == "0b000101");
-	assert (a == "");
-
-	auto b = "0b001L_";
-	auto br = lexNumber(b, i, l);
-	assert (br.value == "0b001L");
-	assert (br.type == TokenType.LongLiteral);
-
-	auto c = "0b1101uLL";
-	auto cr = lexNumber(c, i, l);
-	assert (cr.value == "0b1101uL");
-	assert (cr.type == TokenType.ulongLiteral);
-
-	auto d = "0b1q";
-	auto dr = lexNumber(d, i, l);
-	assert (dr.value == "0b1");
-	assert (dr.type == TokenType.intLiteral);
-
-	auto e = "0b1_0_1LU";
-	auto er = lexNumber(e, i, l);
-	assert (er.value == "0b1_0_1LU");
-	assert (er.type == TokenType.ulongLiteral);
-
-	auto f = "0b1_0_1uU";
-	auto fr = lexNumber(f, i, l);
-	assert (fr.value == "0b1_0_1u");
-	assert (fr.type == TokenType.uintLiteral);
-
-	auto g = "0b1_0_1LL";
-	auto gr = lexNumber(g, i, l);
-	assert (gr.value == "0b1_0_1L");
-	assert (gr.type == TokenType.LongLiteral);
-}
-
-
-Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
-	ref ubyte[] buffer, ref size_t i)
-{
-	bool lexingSuffix = false;
-	bool isLong = false;
-	bool isUnsigned = false;
-	bool isFloat = false;
-	bool isReal = false;
-	bool isDouble = false;
-	bool foundDot = false;
-	bool foundE = false;
-	bool foundPlusMinus = false;
-	Token token;
-	token.type = TokenType.intLiteral;
-	token.startIndex = index;
-	token.lineNumber = lineNumber;
-	decimalLoop: while (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case '0': .. case '9':
-		case '_':
-			if (lexingSuffix)
-				break decimalLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		case 'e':
-		case 'E':
-			// For this to be a valid exponent, the next character must be a
-			// decimal character or a sign
-			auto r = input.save();
-			r.popFront();
-			if (foundE || r.isEoF())
-				break decimalLoop;
-			switch (r.front)
-			{
-			case '+':
-			case '-':
-				r.popFront();
-				if (r.isEoF() || r.front < '0' || r.front > '9')
-				{
-					break decimalLoop;
-				}
-				break;
-			case '0': .. case '9':
-				break;
-			default:
-				break decimalLoop;
-			}
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			foundE = true;
-			isDouble = true;
-			token.type = TokenType.doubleLiteral;
-			break;
-		case '+':
-		case '-':
-			if (foundPlusMinus || !foundE)
-				break decimalLoop;
-			foundPlusMinus = true;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		case '.':
-			auto r = input.save();
-			r.popFront();
-			if (!r.isEoF() && r.front == '.')
-				break decimalLoop; // possibly slice expression
-			if (foundDot)
-				break decimalLoop; // two dots with other characters between them
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			foundDot = true;
-			token.type = TokenType.doubleLiteral;
-			isDouble = true;
-			break;
-		case 'u':
-		case 'U':
-			if (isUnsigned)
-				break decimalLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			lexingSuffix = true;
-			if (isLong)
-				token.type = TokenType.ulongLiteral;
-			else
-				token.type = TokenType.uintLiteral;
-			isUnsigned = true;
-			break;
-		case 'L':
-			if (isLong || isReal)
-				break decimalLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			lexingSuffix = true;
-			if (isDouble)
-			{
-				token.type = TokenType.RealLiteral;
-				isReal = true;
-			}
-			else if (isUnsigned)
-			{
-				token.type = TokenType.ulongLiteral;
-				isLong = true;
-			}
-			else
-			{
-				token.type = TokenType.LongLiteral;
-				isLong = true;
-			}
-			break;
-		case 'f':
-		case 'F':
-			lexingSuffix = true;
-			if (isUnsigned || isLong)
-				break decimalLoop;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			token.type = TokenType.FloatLiteral;
-			isFloat = true;
-			break;
-		case 'i':
-			// Spec says that this is the last suffix, so all cases break the
-			// loop.
-			if (isReal)
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-				token.type = TokenType.IRealLiteral;
-			}
-			else if (isFloat)
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-				token.type = TokenType.IFloatLiteral;
-			}
-			else if (isDouble)
-			{
-				buffer[i++] = input.front;
-				input.popFront();
-				++index;
-				token.type = TokenType.IDoubleLiteral;
-			}
-			break decimalLoop;
-		default:
-			break decimalLoop;
-		}
-	}
-	token.value = (cast(char[]) buffer[0 .. i]).idup;
-	return token;
-}
-
-
-unittest
-{
-	uint i;
-	uint l;
-	auto a = "55e-4";
-	auto ar = lexNumber(a, i, l);
-	assert (ar.value == "55e-4");
-	assert (ar.type == TokenType.doubleLiteral);
-
-	auto b = "123.45f";
-	auto br = lexNumber(b, i, l);
-	assert (br.value == "123.45f");
-	assert (br.type == TokenType.FloatLiteral);
-
-	auto c = "3e+f";
-	auto cr = lexNumber(c, i, l);
-	assert (cr.value == "3");
-	assert (cr.type == TokenType.intLiteral);
-
-	auto d = "3e++f";
-	auto dr = lexNumber(d, i, l);
-	assert (dr.value == "3");
-	assert (dr.type == TokenType.intLiteral);
-
-	auto e = "1234..1237";
-	auto er = lexNumber(e, i, l);
-	assert (er.value == "1234");
-	assert (er.type == TokenType.intLiteral);
-
-	auto f = "12L_";
-	auto fr = lexNumber(f, i, l);
-	assert (fr == "12L");
-
-	auto g = "12e-12e";
-	auto gr = lexNumber(g, i, l);
-	assert (gr == "12e-12");
-
-	auto h = "12e10";
-	auto hr = lexNumber(h, i, l);
-	assert (hr == "12e10");
-
-	auto j = "12er";
-	auto jr = lexNumber(j, i, l);
-	assert (jr == "12");
-
-	auto k = "12e+12-";
-	auto kr = lexNumber(k, i, l);
-	assert (kr == "12e+12");
-
-	auto m = "1.1.";
-	auto mr = lexNumber(m, i, l);
-	assert (mr == "1.1");
-
-	auto n = "12uu";
-	auto nr = lexNumber(n, i, l);
-	assert (nr == "12u");
-	assert (nr.type == TokenType.uintLiteral);
-
-	auto o = "12LU";
-	auto or = lexNumber(o, i, l);
-	assert (or == "12LU");
-
-	auto p = "3LL";
-	auto pr = lexNumber(p, i, l);
-	assert (pr == "3L");
-
-	auto q = "3.0LL";
-	auto qr = lexNumber(q, i, l);
-	assert (qr == "3.0L");
-
-	auto r = "5uL";
-	auto rr = lexNumber(r, i, l);
-	assert (rr == "5uL");
-
-	auto s = "5Lf";
-	auto sr = lexNumber(s, i, l);
-	assert (sr == "5L");
-	assert (sr == TokenType.LongLiteral);
-
-	auto t = "5i";
-	auto tr = lexNumber(t, i, l);
-	assert (tr == "5");
-	assert (tr == TokenType.intLiteral);
-
-	auto u = "894.3i";
-	auto ur = lexNumber(u, i, l);
-	assert (ur == "894.3i");
-	assert (ur == TokenType.IDoubleLiteral);
-
-	auto v = "894.3Li";
-	auto vr = lexNumber(v, i, l);
-	assert (vr == "894.3Li");
-	assert (vr == TokenType.IRealLiteral);
-
-	auto w = "894.3fi";
-	auto wr = lexNumber(w, i, l);
-	assert (wr == "894.3fi");
-	assert (wr == TokenType.IFloatLiteral);
-
-	auto x = "4892.4ee";
-	auto xr = lexNumber(x, i, l);
-	assert (xr == "4892.4");
-	assert (xr == TokenType.doubleLiteral);
-}
-
-Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
-	ref ubyte[] buffer, ref size_t i)
-{
-	bool isLong = false;
-	bool isUnsigned = false;
-	bool isFloat = false;
-	bool isReal = false;
-	bool isDouble = false;
-	bool foundDot = false;
-	bool foundExp = false;
-	bool foundPlusMinus = false;
-	string backup;
-	Token token;
-	token.lineNumber = lineNumber;
-	token.startIndex =  index;
-	token.type = TokenType.intLiteral;
-	hexLoop: while (!input.isEoF())
-	{
-		switch (input.front)
-		{
-		case 'a': .. case 'f':
-		case 'A': .. case 'F':
-			if (foundExp)
-				break hexLoop;
-			else
-				goto case;
-		case '0': .. case '9':
-		case '_':
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		case 'p':
-		case 'P':
-			if (foundExp)
-				break hexLoop;
-			auto r = input.save();
-			r.popFront();
-			switch (r.front)
-			{
-			case '-':
-			case '+':
-				r.popFront();
-				if (r.isEoF() || !isDigit(r.front))
-					break hexLoop;
-				break;
-			case '0': .. case '9':
-				break;
-			default:
-				break hexLoop;
-			}
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			foundExp = true;
-			isDouble = true;
-			token.type = TokenType.doubleLiteral;
-			break;
-		case '+':
-		case '-':
-			if (foundPlusMinus || !foundExp)
-				break hexLoop;
-			foundPlusMinus = true;
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			break;
-		case '.':
-			auto r = input.save();
-			r.popFront();
-			if (!r.isEoF() && r.front == '.')
-				break hexLoop; // slice expression
-			if (foundDot)
-				break hexLoop; // two dots with other characters between them
-			buffer[i++] = input.front;
-			input.popFront();
-			++index;
-			foundDot = true;
-			token.type = TokenType.doubleLiteral;
-			break;
-		default:
-			break hexLoop;
-		}
-	}
-	token.value = (cast(char[]) buffer[0 .. i]).idup;
-	return token;
-}
-
-unittest
-{
-	uint i;
-	uint l;
-
-	auto a = "0x193abfq";
-	auto ar = lexNumber(a, i, l);
-	assert(ar.value == "0x193abf");
-	assert(ar.type == TokenType.intLiteral);
-
-	auto b = "0x2130xabc";
-	auto br = lexNumber(b, i, l);
-	assert(br.value == "0x2130");
-	assert(br.type == TokenType.intLiteral);
-
-	auto c = "0x123..0321";
-	auto cr = lexNumber(c, i, l);
-	assert (cr.value == "0x123");
-	assert (cr.type == TokenType.intLiteral);
-
-	auto d = "0xabp5";
-	auto dr = lexNumber(d, i, l);
-	assert (dr == "0xabp5");
-	assert (dr == TokenType.doubleLiteral);
-
-	auto e = "0x93p+5";
-	auto er = lexNumber(e, i, l);
-	assert (er == "0x93p+5");
-	assert (er == TokenType.doubleLiteral);
-
-	auto f = "0x93pp";
-	auto fr = lexNumber(f, i, l);
-	assert (fr == "0x93");
-	assert (fr == TokenType.intLiteral);
-
-	auto g = "0XF..7";
-	auto gr = lexNumber(g, i, l);
-	assert (gr == "0XF");
-	assert (gr == TokenType.intLiteral);
-
-	auto h = "0x8.4p100";
-	auto hr = lexNumber(h, i, l);
-	assert (hr == "0x8.4p100");
-	assert (hr == TokenType.doubleLiteral);
-
-	auto j = "0x8.4.100";
-	auto jr = lexNumber(j, i, l);
-	assert (jr == "0x8.4");
-	assert (jr == TokenType.doubleLiteral);
-
-	auto k = "0x1p-t";
-	auto kr = lexNumber(k, i, l);
-	assert (kr == "0x1");
-	assert (kr == TokenType.intLiteral);
-
-	auto m = "0x1p-5p";
-	auto mr = lexNumber(m, i, l);
-	assert (mr == "0x1p-5");
-	assert (mr == TokenType.doubleLiteral);
-
-	auto n = "0x1p-c_";
-	auto nr = lexNumber(n, i, l);
-	assert (nr == "0x1");
-	assert (nr == TokenType.intLiteral);
-
-	auto o = "0x1p-1a";
-	auto or = lexNumber(o, i, l);
-	assert (or == "0x1p-1");
-	assert (or == TokenType.doubleLiteral);
-
-	auto p = "0x1p-1+";
-	auto pr = lexNumber(p, i, l);
-	assert (pr == "0x1p-1");
-	assert (pr == TokenType.doubleLiteral);
-}
-
-Token lexSpecialTokenSequence(R)(ref R input, ref uint index,
-	ref uint lineNumber, ref ubyte[] buffer)
-in
-{
-	assert (input.front == '#');
-}
-body
-{
-	input.popFront();
-	Token t;
-
-	// TODO: re-implement
-
-	return t;
-}
-
-unittest
-{
-	uint i;
-	uint l;
-	auto a = "#line 10\n";
-	auto ar = lexSpecialTokenSequence(a, i, l);
-	assert (ar == "#line 10\n");
-	assert (a == "");
-	assert (l == 10);
-
-	auto b = "#line 9201 \"test.d\"\n";
-	auto br = lexSpecialTokenSequence(b, i, l);
-	assert (l == 9201);
-	assert (br == "#line 9201 \"test.d\"\n");
-	assert (b == "");
-
-	auto c = `#lin`;
-	auto cr = lexSpecialTokenSequence(c, i, l);
-	assert (l == 9201);
-	assert (cr is null);
-	assert (c == `#lin`);
+    input.popFront();
+    auto hexChars = cast(char[]) popHexChars(input, index, h);
+    char[4] b;
+    auto n = encode(b, cast(dchar) parse!uint(hexChars, 16));
+    buffer[i .. i + n] = cast(ubyte[]) b[0 .. n];
+    i += n;
+    return;
 }
 
 pure nothrow bool isSeparating(ubyte ch)
 {
-	return (ch >= '!' && ch <= '/')
-		|| (ch >= ':' && ch <= '@')
-		|| (ch >= '[' && ch <= '^')
-		|| (ch >= '{' && ch <= '~')
-		|| ch == '`'
-		|| ch == 0x20
-		|| ch == 0x09
-		|| ch == 0x0a;
+    return (ch >= '!' && ch <= '/')
+        || (ch >= ':' && ch <= '@')
+        || (ch >= '[' && ch <= '^')
+        || (ch >= '{' && ch <= '~')
+        || ch == '`'
+        || ch == 0x20
+        || ch == 0x09
+        || ch == 0x0a;
 }
 
 pure nothrow TokenType lookupTokenType(const const(char)[] input)
 {
-	switch(input.length)
-	{
-	case 2:
-		switch (input)
-		{
-		case "do": return TokenType.do_;
-		case "if": return TokenType.if_;
-		case "in": return TokenType.in_;
-		case "is": return TokenType.is_;
-		default: break;
-		}
-		break;
-	case 3:
-		switch (input)
-		{
-		case "asm": return TokenType.asm_;
-		case "for": return TokenType.for_;
-		case "int": return TokenType.int_;
-		case "new": return TokenType.new_;
-		case "out": return TokenType.out_;
-		case "ref": return TokenType.ref_;
-		case "try": return TokenType.try_;
-		default: break;
-		}
-		break;
-	case 4:
-		switch (input)
-		{
-		case "auto": return TokenType.auto_;
-		case "body": return TokenType.body_;
-		case "bool": return TokenType.bool_;
-		case "byte": return TokenType.byte_;
-		case "case": return TokenType.case_;
-		case "cast": return TokenType.cast_;
-		case "cent": return TokenType.cent_;
-		case "char": return TokenType.char_;
-		case "else": return TokenType.else_;
-		case "enum": return TokenType.enum_;
-		case "goto": return TokenType.goto_;
-		case "lazy": return TokenType.lazy_;
-		case "long": return TokenType.long_;
-		case "null": return TokenType.null_;
-		case "pure": return TokenType.pure_;
-		case "real": return TokenType.real_;
-		case "this": return TokenType.this_;
-		case "true": return TokenType.true_;
-		case "uint": return TokenType.uint_;
-		case "void": return TokenType.void_;
-		case "with": return TokenType.with_;
-		default: break;
-		}
-		break;
-	case 5:
-		switch (input)
-		{
-		case "alias": return TokenType.alias_;
-		case "align": return TokenType.align_;
-		case "break": return TokenType.break_;
-		case "catch": return TokenType.catch_;
-		case "class": return TokenType.class_;
-		case "const": return TokenType.const_;
-		case "creal": return TokenType.creal_;
-		case "dchar": return TokenType.dchar_;
-		case "debug": return TokenType.debug_;
-		case "false": return TokenType.false_;
-		case "final": return TokenType.final_;
-		case "float": return TokenType.float_;
-		case "inout": return TokenType.inout_;
-		case "ireal": return TokenType.ireal_;
-		case "macro": return TokenType.macro_;
-		case "mixin": return TokenType.mixin_;
-		case "scope": return TokenType.scope_;
-		case "short": return TokenType.short_;
-		case "super": return TokenType.super_;
-		case "throw": return TokenType.throw_;
-		case "ubyte": return TokenType.ubyte_;
-		case "ucent": return TokenType.ucent_;
-		case "ulong": return TokenType.ulong_;
-		case "union": return TokenType.union_;
-		case "wchar": return TokenType.wchar_;
-		case "while": return TokenType.while_;
-		default: break;
-		}
-		break;
-	case 6:
-		switch (input)
-		{
-		case "assert": return TokenType.assert_;
-		case "cfloat": return TokenType.cfloat_;
-		case "delete": return TokenType.delete_;
-		case "double": return TokenType.double_;
-		case "export": return TokenType.export_;
-		case "extern": return TokenType.extern_;
-		case "ifloat": return TokenType.ifloat_;
-		case "import": return TokenType.import_;
-		case "module": return TokenType.module_;
-		case "pragma": return TokenType.pragma_;
-		case "public": return TokenType.public_;
-		case "return": return TokenType.return_;
-		case "shared": return TokenType.shared_;
-		case "static": return TokenType.static_;
-		case "string": return TokenType.string_;
-		case "struct": return TokenType.struct_;
-		case "switch": return TokenType.switch_;
-		case "typeid": return TokenType.typeid_;
-		case "typeof": return TokenType.typeof_;
-		case "ushort": return TokenType.ushort_;
-		default: break;
-		}
-		break;
-	case 7:
-		switch (input)
-		{
-		case "__EOF__": return TokenType.eof;
-		case "cdouble": return TokenType.cdouble_;
-		case "default": return TokenType.default_;
-		case "dstring": return TokenType.dstring_;
-		case "finally": return TokenType.finally_;
-		case "foreach": return TokenType.foreach_;
-		case "idouble": return TokenType.idouble_;
-		case "nothrow": return TokenType.nothrow_;
-		case "package": return TokenType.package_;
-		case "private": return TokenType.private_;
-		case "typedef": return TokenType.typedef_;
-		case "version": return TokenType.version_;
-		case "wstring": return TokenType.wstring_;
-		default: break;
-		}
-		break;
-	case 8:
-		switch (input)
-		{
-		case "override": return TokenType.override_;
-		case "continue": return TokenType.continue_;
-		case "__LINE__": return TokenType.line;
-		case "template": return TokenType.template_;
-		case "abstract": return TokenType.abstract_;
-		case "__traits": return TokenType.traits;
-		case "volatile": return TokenType.volatile_;
-		case "delegate": return TokenType.delegate_;
-		case "function": return TokenType.function_;
-		case "unittest": return TokenType.unittest_;
-		case "__FILE__": return TokenType.file;
-		case "__DATE__": return TokenType.date;
-		case "__TIME__": return TokenType.time;
-		default: break;
-		}
-		break;
-	case 9:
-		switch (input)
-		{
-		case "__gshared": return TokenType.gshared;
-		case "immutable": return TokenType.immutable_;
-		case "interface": return TokenType.interface_;
-		case "invariant": return TokenType.invariant_;
-		case "protected": return TokenType.protected_;
-		default: break;
-		}
-		break;
-	case 10:
-		switch (input)
-		{
-		case "deprecated": return TokenType.deprecated_;
-		case "__VENDOR__": return TokenType.vendor;
-		default: break;
-		}
-		break;
-	case 11:
-		if (input == "__VERSION__")
-			return TokenType.compilerVersion;
-		break;
-	case 12:
-		if (input == "synchronized")
-			return TokenType.synchronized_;
-		break;
-	case 13:
-		if (input == "__TIMESTAMP__")
-			return TokenType.timestamp;
-		break;
-	case 15:
-		if (input == "foreach_reverse")
-			return TokenType.foreach_reverse_;
-		break;
-	default: break;
-	}
-	return TokenType.identifier;
+    switch(input.length)
+    {
+    case 2:
+        switch (input)
+        {
+        case "do": return TokenType.do_;
+        case "if": return TokenType.if_;
+        case "in": return TokenType.in_;
+        case "is": return TokenType.is_;
+        default: break;
+        }
+        break;
+    case 3:
+        switch (input)
+        {
+        case "asm": return TokenType.asm_;
+        case "for": return TokenType.for_;
+        case "int": return TokenType.int_;
+        case "new": return TokenType.new_;
+        case "out": return TokenType.out_;
+        case "ref": return TokenType.ref_;
+        case "try": return TokenType.try_;
+        default: break;
+        }
+        break;
+    case 4:
+        switch (input)
+        {
+        case "auto": return TokenType.auto_;
+        case "body": return TokenType.body_;
+        case "bool": return TokenType.bool_;
+        case "byte": return TokenType.byte_;
+        case "case": return TokenType.case_;
+        case "cast": return TokenType.cast_;
+        case "cent": return TokenType.cent_;
+        case "char": return TokenType.char_;
+        case "else": return TokenType.else_;
+        case "enum": return TokenType.enum_;
+        case "goto": return TokenType.goto_;
+        case "lazy": return TokenType.lazy_;
+        case "long": return TokenType.long_;
+        case "null": return TokenType.null_;
+        case "pure": return TokenType.pure_;
+        case "real": return TokenType.real_;
+        case "this": return TokenType.this_;
+        case "true": return TokenType.true_;
+        case "uint": return TokenType.uint_;
+        case "void": return TokenType.void_;
+        case "with": return TokenType.with_;
+        default: break;
+        }
+        break;
+    case 5:
+        switch (input)
+        {
+        case "alias": return TokenType.alias_;
+        case "align": return TokenType.align_;
+        case "break": return TokenType.break_;
+        case "catch": return TokenType.catch_;
+        case "class": return TokenType.class_;
+        case "const": return TokenType.const_;
+        case "creal": return TokenType.creal_;
+        case "dchar": return TokenType.dchar_;
+        case "debug": return TokenType.debug_;
+        case "false": return TokenType.false_;
+        case "final": return TokenType.final_;
+        case "float": return TokenType.float_;
+        case "inout": return TokenType.inout_;
+        case "ireal": return TokenType.ireal_;
+        case "macro": return TokenType.macro_;
+        case "mixin": return TokenType.mixin_;
+        case "scope": return TokenType.scope_;
+        case "short": return TokenType.short_;
+        case "super": return TokenType.super_;
+        case "throw": return TokenType.throw_;
+        case "ubyte": return TokenType.ubyte_;
+        case "ucent": return TokenType.ucent_;
+        case "ulong": return TokenType.ulong_;
+        case "union": return TokenType.union_;
+        case "wchar": return TokenType.wchar_;
+        case "while": return TokenType.while_;
+        default: break;
+        }
+        break;
+    case 6:
+        switch (input)
+        {
+        case "assert": return TokenType.assert_;
+        case "cfloat": return TokenType.cfloat_;
+        case "delete": return TokenType.delete_;
+        case "double": return TokenType.double_;
+        case "export": return TokenType.export_;
+        case "extern": return TokenType.extern_;
+        case "ifloat": return TokenType.ifloat_;
+        case "import": return TokenType.import_;
+        case "module": return TokenType.module_;
+        case "pragma": return TokenType.pragma_;
+        case "public": return TokenType.public_;
+        case "return": return TokenType.return_;
+        case "shared": return TokenType.shared_;
+        case "static": return TokenType.static_;
+        case "string": return TokenType.string_;
+        case "struct": return TokenType.struct_;
+        case "switch": return TokenType.switch_;
+        case "typeid": return TokenType.typeid_;
+        case "typeof": return TokenType.typeof_;
+        case "ushort": return TokenType.ushort_;
+        default: break;
+        }
+        break;
+    case 7:
+        switch (input)
+        {
+        case "__EOF__": return TokenType.eof;
+        case "cdouble": return TokenType.cdouble_;
+        case "default": return TokenType.default_;
+        case "dstring": return TokenType.dstring_;
+        case "finally": return TokenType.finally_;
+        case "foreach": return TokenType.foreach_;
+        case "idouble": return TokenType.idouble_;
+        case "nothrow": return TokenType.nothrow_;
+        case "package": return TokenType.package_;
+        case "private": return TokenType.private_;
+        case "typedef": return TokenType.typedef_;
+        case "version": return TokenType.version_;
+        case "wstring": return TokenType.wstring_;
+        default: break;
+        }
+        break;
+    case 8:
+        switch (input)
+        {
+        case "override": return TokenType.override_;
+        case "continue": return TokenType.continue_;
+        case "__LINE__": return TokenType.line;
+        case "template": return TokenType.template_;
+        case "abstract": return TokenType.abstract_;
+        case "__traits": return TokenType.traits;
+        case "volatile": return TokenType.volatile_;
+        case "delegate": return TokenType.delegate_;
+        case "function": return TokenType.function_;
+        case "unittest": return TokenType.unittest_;
+        case "__FILE__": return TokenType.file;
+        case "__DATE__": return TokenType.date;
+        case "__TIME__": return TokenType.time;
+        default: break;
+        }
+        break;
+    case 9:
+        switch (input)
+        {
+        case "__gshared": return TokenType.gshared;
+        case "immutable": return TokenType.immutable_;
+        case "interface": return TokenType.interface_;
+        case "invariant": return TokenType.invariant_;
+        case "protected": return TokenType.protected_;
+        default: break;
+        }
+        break;
+    case 10:
+        switch (input)
+        {
+        case "deprecated": return TokenType.deprecated_;
+        case "__VENDOR__": return TokenType.vendor;
+        default: break;
+        }
+        break;
+    case 11:
+        if (input == "__VERSION__")
+            return TokenType.compilerVersion;
+        break;
+    case 12:
+        if (input == "synchronized")
+            return TokenType.synchronized_;
+        break;
+    case 13:
+        if (input == "__TIMESTAMP__")
+            return TokenType.timestamp;
+        break;
+    case 15:
+        if (input == "foreach_reverse")
+            return TokenType.foreach_reverse_;
+        break;
+    default: break;
+    }
+    return TokenType.identifier;
 }
 
 class Trie(K, V) if (isInputRange!K): TrieNode!(K, V)
 {
-	/**
-	* Adds the given value to the trie with the given key
-	*/
-	void add(K key, V value) pure
-	{
-		TrieNode!(K,V) current = this;
-		foreach(keyPart; key)
-		{
-			if ((keyPart in current.children) is null)
-			{
-				auto node = new TrieNode!(K, V);
-				current.children[keyPart] = node;
-				current = node;
-			}
-			else
-				current = current.children[keyPart];
-		}
-		current.value = value;
-	}
+    /**
+    * Adds the given value to the trie with the given key
+    */
+    void add(K key, V value) pure
+    {
+        TrieNode!(K,V) current = this;
+        foreach(keyPart; key)
+        {
+            if ((keyPart in current.children) is null)
+            {
+                auto node = new TrieNode!(K, V);
+                current.children[keyPart] = node;
+                current = node;
+            }
+            else
+                current = current.children[keyPart];
+        }
+        current.value = value;
+    }
 }
 
 class TrieNode(K, V) if (isInputRange!K)
 {
-	V value;
-	TrieNode!(K,V)[ElementType!K] children;
+    V value;
+    TrieNode!(K,V)[ElementType!K] children;
 }
 
 string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 {
-	string caseStatement = "";
-	foreach(dchar k, TrieNode!(K,V) v; node.children)
-	{
-		caseStatement ~= indentString;
-		caseStatement ~= "case '";
-		caseStatement ~= k;
-		caseStatement ~= "':\n";
-		if (indentString == "")
-		{
-			caseStatement ~= indentString;
-			caseStatement ~= "\tsize_t i = 0;\n";
-		}
-		caseStatement ~= indentString;
-		caseStatement ~= "\tbuffer[i++] = '";
-		caseStatement ~= k;
-		caseStatement ~= "';\n";
-		caseStatement ~= indentString;
-		caseStatement ~= "\t++index;\n";
-		caseStatement ~= indentString;
-		caseStatement ~= "\trange.popFront();\n";
-		if (v.children.length > 0)
-		{
-			caseStatement ~= indentString;
-			caseStatement ~= "\tif (range.isEoF())\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t{\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t\tcurrent.type = " ~ node.children[k].value;
-			caseStatement ~= ";\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t\tbreak;\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t}\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\tswitch (range.front)\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t{\n";
-			caseStatement ~= printCaseStatements(v, indentString ~ "\t");
-			caseStatement ~= indentString;
-			caseStatement ~= "\tdefault:\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t\tcurrent.type = ";
-			caseStatement ~= v.value;
-			caseStatement ~= ";\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t\tbreak;\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\t}\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\tbreak;\n";
-		}
-		else
-		{
-			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.type = ";
-			caseStatement ~= v.value;
-			caseStatement ~= ";\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
-			caseStatement ~= indentString;
-			caseStatement ~= "\tbreak;\n";
-		}
-	}
-	return caseStatement;
+    string caseStatement = "";
+    foreach(dchar k, TrieNode!(K,V) v; node.children)
+    {
+        caseStatement ~= indentString;
+        caseStatement ~= "case '";
+        caseStatement ~= k;
+        caseStatement ~= "':\n";
+        if (indentString == "")
+        {
+            caseStatement ~= indentString;
+            caseStatement ~= "\tsize_t i = 0;\n";
+        }
+        caseStatement ~= indentString;
+        caseStatement ~= "\tbuffer[i++] = '";
+        caseStatement ~= k;
+        caseStatement ~= "';\n";
+        caseStatement ~= indentString;
+        caseStatement ~= "\t++index;\n";
+        caseStatement ~= indentString;
+        caseStatement ~= "\trange.popFront();\n";
+        if (v.children.length > 0)
+        {
+            caseStatement ~= indentString;
+            caseStatement ~= "\tif (range.isEoF())\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t{\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t\tcurrent.type = " ~ node.children[k].value;
+            caseStatement ~= ";\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t\tbreak;\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t}\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\tswitch (range.front)\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t{\n";
+            caseStatement ~= printCaseStatements(v, indentString ~ "\t");
+            caseStatement ~= indentString;
+            caseStatement ~= "\tdefault:\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t\tcurrent.type = ";
+            caseStatement ~= v.value;
+            caseStatement ~= ";\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t\tbreak;\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\t}\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\tbreak;\n";
+        }
+        else
+        {
+            caseStatement ~= indentString;
+            caseStatement ~= "\tcurrent.type = ";
+            caseStatement ~= v.value;
+            caseStatement ~= ";\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= indentString;
+            caseStatement ~= "\tbreak;\n";
+        }
+    }
+    return caseStatement;
 }
 
 string generateCaseTrie(string[] args ...)
 {
-	auto t = new Trie!(string, string);
-	for(int i = 0; i < args.length; i+=2)
-	{
-		t.add(args[i], args[i+1]);
-	}
-	return printCaseStatements(t, "");
+    auto t = new Trie!(string, string);
+    for(int i = 0; i < args.length; i+=2)
+    {
+        t.add(args[i], args[i+1]);
+    }
+    return printCaseStatements(t, "");
 }
 
 //void main(string[] args) {}

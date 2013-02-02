@@ -463,7 +463,7 @@ Module parseModule(TokenBuffer tokens, string protection = "public", string[] at
 				if (tokens.front == TokenType.lParen)
 				{
 					mod.functions ~= parseFunction(tokens, type, name,
-						tokens.front.lineNumber,
+						tokens.front.line,
 						localProtection.empty() ? protection : localProtection,
 						attributes ~ localAttributes);
 				}
@@ -474,7 +474,7 @@ Module parseModule(TokenBuffer tokens, string protection = "public", string[] at
 					v.type = type;
 					v.attributes = localAttributes ~ attributes;
 					v.protection = localProtection.empty() ? protection : localProtection;
-					v.line = tokens.front.lineNumber;
+					v.line = tokens.front.line;
 					mod.variables ~= v;
 				}
 				resetLocals();
@@ -500,7 +500,7 @@ Module parseModule(TokenBuffer tokens, string protection = "public", string[] at
 			if (!tokens.empty && tokens.front == TokenType.lParen)
 			{
 				mod.functions ~= parseFunction(tokens, "", name,
-					tokens.peek(-1).lineNumber,
+					tokens.peek(-1).line,
 					localProtection.empty() ? protection : localProtection,
 					localAttributes ~ attributes);
 			}
@@ -565,7 +565,7 @@ in
 body
 {
 	Enum e = new Enum;
-	e.line = tokens.front.lineNumber;
+	e.line = tokens.front.line;
 	tokens.popFront();
 	string enumType;
 	e.protection = protection;
@@ -581,7 +581,7 @@ body
 			EnumMember m;
 			m.type = tokens.front.value;
 			tokens.popFront();
-			m.line = tokens.front.lineNumber;
+			m.line = tokens.front.line;
 			e.name = m.name = tokens.front.value;
 			e.members ~= m;
 			tokens.skipBlockStatement();
@@ -593,7 +593,7 @@ body
 			e.name = tokens.front.value;
 			EnumMember m;
 			m.name = e.name;
-			m.line = tokens.front.lineNumber;
+			m.line = tokens.front.line;
 			m.type = getTypeFromToken(tokens.peek(2));
 			e.members ~= m;
 			tokens.skipBlockStatement();
@@ -627,7 +627,7 @@ enumBody:
 //		EnumMember m;
 //		if (isIdentifierOrType(r.front) && i + 1 < r.length && isIdentifierOrType(r[i + 1]))
 //		{
-//			m.line = r[i + 1].lineNumber;
+//			m.line = r[i + 1].line;
 //			m.name = r[i + 1].value;
 //			m.type = r.front.value;
 //		}
@@ -637,12 +637,12 @@ enumBody:
 //				m.type = getTypeFromToken(r[i + 2]);
 //			else
 //				m.type = enumType;
-//			m.line = r.front.lineNumber;
+//			m.line = r.front.line;
 //			m.name = r.front.value;
 //		}
 //		else
 //		{
-//			m.line = r.front.lineNumber;
+//			m.line = r.front.line;
 //			m.name = r.front.value;
 //			m.type = enumType == null ? "int" : enumType;
 //		}
@@ -787,7 +787,7 @@ body
 			}
 			else
 			{
-				v.line = r.front.lineNumber;
+				v.line = r.front.line;
 				v.name = r.front.value;
 				r.popFront();
 				appender.put(v);
@@ -845,7 +845,7 @@ Struct parseStructOrUnion(TokenBuffer tokens, string protection,
 	string[] attributes)
 {
 	Struct s = new Struct;
-	s.line = tokens.front.lineNumber;
+	s.line = tokens.front.line;
 	s.attributes = attributes;
 	s.protection = protection;
 	s.name = tokens.front.value;
@@ -893,7 +893,7 @@ body
 Inherits parseInherits(TokenBuffer tokens, string protection, string[] attributes)
 {
 	auto i = new Inherits;
-	i.line = tokens.front.lineNumber;
+	i.line = tokens.front.line;
 	i.name = tokens.front.value;
 	tokens.popFront();
 	i.protection = protection;
@@ -966,7 +966,7 @@ body
 	if (tokens.front == TokenType.identifier)
 	{
 		a.name = tokens.front.value;
-		a.line = tokens.front.lineNumber;
+		a.line = tokens.front.line;
 		skipBlockStatement(tokens);
 	}
 	else

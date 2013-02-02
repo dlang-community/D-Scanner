@@ -19,7 +19,8 @@ void writeSpan(string cssClass, string value)
 // http://ethanschoonover.com/solarized
 void highlight(R)(R tokens)
 {
-	stdout.writeln(q"[<!DOCTYPE html>
+	stdout.writeln(q"EOS
+<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
@@ -34,7 +35,8 @@ html  { background-color: #fdf6e3; color: #002b36; }
 .type { color: #268bd2; font-weight: bold;  }
 .cons { color: #859900; font-weight: bold;  }
 </style>
-<pre>]");
+<pre>
+EOS");
 
 	foreach (Token t; tokens)
 	{
@@ -55,3 +57,13 @@ html  { background-color: #fdf6e3; color: #002b36; }
 	}
 	stdout.writeln("</pre>\n</body></html>");
 }
+
+/+void main(string[] args)
+{
+	LexerConfig config;
+	config.tokenStyle = TokenStyle.source;
+	config.iterStyle = IterationStyle.everything;
+	config.fileName = args[1];
+	auto f = File(args[1]);
+	(cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
+}+/
