@@ -59,7 +59,7 @@
  *
  * void main(string[] args)
  * {
- *     args[1].readText().byToken(args[1], IterationStyle.Everything, TokenStyle.Source).highlight();
+ *     args[1].readText().byToken(args[1], IterationStyle.eEverything, TokenStyle.source).highlight();
  * }
  * ---
  * Iterate by tokens that would be significant to a parser
@@ -77,8 +77,8 @@
  * Replace special tokens
  * ---
  * string s = "#line 5\n__VERSION__";
- * auto tokens = byToken(s, "example.d", IterationStyle.CodeOnly, TokenStyle.Default, "foo", "1.0");
- * assert (tokens.front.type == TokenType.IntLiteral);
+ * auto tokens = byToken(s, "example.d", IterationStyle.codeOnly, TokenStyle.default_, "foo", "1.0");
+ * assert (tokens.front.type == TokenType.intLiteral);
  * assert (tokens.front.value == "1.0")
  * assert (tokens.front.lineNumber == 5);
  * ---
@@ -162,15 +162,15 @@ enum IterationStyle
 	/// Only include code, not whitespace or comments
 	CodeOnly = 0,
 	/// Includes comments
-	IncludeComments = 0b0001,
+	includeComments = 0b0001,
 	/// Includes whitespace
-	IncludeWhitespace = 0b0010,
+	includeWhitespace = 0b0010,
 	/// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
-	IncludeSpecialTokens = 0b0100,
+	includeSpecialTokens = 0b0100,
 	/// Do not stop iteration on reaching the ___EOF__ token
-	IgnoreEOF = 0b1000,
+	ignoreEOF = 0b1000,
 	/// Include everything
-	Everything = IncludeComments | IncludeWhitespace | IgnoreEOF
+	everything = includeComments | includeWhitespace | ignoreEOF
 }
 
 /**
@@ -185,14 +185,14 @@ enum TokenStyle : uint
 	 * __VENDOR__ will be replaced with their equivalent strings. Useful for
 	 * creating a compiler or interpreter.
 	 */
-	Default = 0b0000,
+	default_ = 0b0000,
 
 	/**
 	* Escape sequences will not be processed. An escaped quote character will
 	* not terminate string lexing, but it will not be replaced with the quote
 	* character in the token.
 	*/
-	NotEscaped = 0b0001,
+	notEscaped = 0b0001,
 
 	/**
 	 * Strings will include their opening and closing quote characters as well
@@ -200,20 +200,20 @@ enum TokenStyle : uint
 	 * include the $(D_STRING 'w') character as well as the opening and closing
 	 * quotes$(RPAREN)
 	 */
-	IncludeQuotes = 0b0010,
+	includeQuotes = 0b0010,
 
 	/**
 	 * Do not replace the value field of the special tokens such as ___DATE__
 	 * with their string equivalents.
 	 */
-	DoNotReplaceSpecial = 0b0100,
+	doNotReplaceSpecial = 0b0100,
 
 	/**
 	 * Strings will be read exactly as they appeared in the source, including
 	 * their opening and closing quote characters. Useful for syntax
 	 * highlighting.
 	 */
-	Source = NotEscaped | IncludeQuotes | DoNotReplaceSpecial
+	source = notEscaped | includeQuotes | doNotReplaceSpecial
 }
 
 /// Default replacement for the ___VERSION__ special token
@@ -234,8 +234,8 @@ immutable string VENDOR = "std.d.lexer";
  *     an input range of tokens
  */
 TokenRange!(R) byToken(R)(R range, string fileName = "",
-	const IterationStyle iterationStyle = IterationStyle.CodeOnly,
-	const TokenStyle stringStyle = TokenStyle.Default, string vendor = VENDOR,
+	const IterationStyle iterationStyle = IterationStyle.codeOnly,
+	const TokenStyle stringStyle = TokenStyle.default_, string vendor = VENDOR,
 	string ver = VERSION) if (isForwardRange!(R))
 {
 	auto r = TokenRange!(R)(range);
@@ -313,16 +313,16 @@ struct TokenRange(R) if (isForwardRange!(R))
 			advance();
 			switch (current.type)
 			{
-            case TokenType.Whitespace:
-				if (iterStyle & IterationStyle.IncludeWhitespace)
+            case TokenType.whitespace:
+				if (iterStyle & IterationStyle.includeWhitespace)
 					break loop;
 				break;
-			case TokenType.Comment:
-				if (iterStyle & IterationStyle.IncludeComments)
+			case TokenType.comment:
+				if (iterStyle & IterationStyle.includeComments)
 					break loop;
 				break;
-			case TokenType.SpecialTokenSequence:
-				if (iterStyle & IterationStyle.IncludeSpecialTokens)
+			case TokenType.specialTokenSequence:
+				if (iterStyle & IterationStyle.includeSpecialTokens)
 					break loop;
 				break;
 			default:
@@ -358,79 +358,79 @@ private:
 		if (std.uni.isWhite(range.front))
 		{
 			current = lexWhitespace(range, index, lineNumber, buffer,
-				(iterStyle & IterationStyle.IncludeWhitespace) > 0);
+				(iterStyle & IterationStyle.includeWhitespace) > 0);
 			return;
 		}
 		outer: switch (range.front)
 		{
 		mixin(generateCaseTrie(
-			"=",    "TokenType.Assign",
-			"@",    "TokenType.At",
-			"&",    "TokenType.BitAnd",
-			"&=",   "TokenType.BitAndEquals",
-			"|",    "TokenType.BitOr",
-			"|=",   "TokenType.BitOrEquals",
-			"~=",   "TokenType.CatEquals",
-			":",    "TokenType.Colon",
-            ",",    "TokenType.Comma",
-			"--",   "TokenType.Decrement",
-			"$",    "TokenType.Dollar",
-            ".",    "TokenType.Dot",
-            "==",   "TokenType.Equals",
-			"=>",   "TokenType.GoesTo",
-			">",    "TokenType.Greater",
-			">=",   "TokenType.GreaterEqual",
-			"++",   "TokenType.Increment",
-            "{",    "TokenType.LBrace",
-            "[",    "TokenType.LBracket",
-            "<",    "TokenType.Less",
-			"<=",   "TokenType.LessEqual",
-            "<>=",  "TokenType.LessEqualGreater",
-			"<>",   "TokenType.LessOrGreater",
-			"&&",   "TokenType.LogicAnd",
-            "||",   "TokenType.LogicOr",
-            "(",    "TokenType.LParen",
-			"-",    "TokenType.Minus",
-			"-=",   "TokenType.MinusEquals",
-			"%",    "TokenType.Mod",
-			"%=",   "TokenType.ModEquals",
-			"*=",   "TokenType.MulEquals",
-            "!",    "TokenType.Not",
-			"!=",   "TokenType.NotEquals",
-			"!>",   "TokenType.NotGreater",
-			"!>=",  "TokenType.NotGreaterEqual",
-			"!<",   "TokenType.NotLess",
-			"!<=",  "TokenType.NotLessEqual",
-			"!<>",  "TokenType.NotLessEqualGreater",
-			"+",    "TokenType.Plus",
-			"+=",   "TokenType.PlusEquals",
-			"^^",   "TokenType.Pow",
-			"^^=",  "TokenType.PowEquals",
-            "}",    "TokenType.RBrace",
-            "]",    "TokenType.RBracket",
-            ")",    "TokenType.RParen",
-            ";",    "TokenType.Semicolon",
-			"<<",   "TokenType.ShiftLeft",
-			"<<=",  "TokenType.ShiftLeftEqual",
-			">>",   "TokenType.ShiftRight",
-			">>=",  "TokenType.ShiftRightEqual",
-			"..",   "TokenType.Slice",
-			"*",    "TokenType.Star",
-			"?",    "TokenType.Ternary",
-			"~",    "TokenType.Tilde",
-			"!<>=", "TokenType.Unordered",
-			">>>",  "TokenType.UnsignedShiftRight",
-			">>>=", "TokenType.UnsignedShiftRightEqual",
-			"...",  "TokenType.Vararg",
-			"^",    "TokenType.Xor",
-			"^=",   "TokenType.XorEquals",
+			"=",    "TokenType.assign",
+			"@",    "TokenType.at",
+			"&",    "TokenType.bitAnd",
+			"&=",   "TokenType.bitAndEquals",
+			"|",    "TokenType.bitOr",
+			"|=",   "TokenType.bitOrEquals",
+			"~=",   "TokenType.catEquals",
+			":",    "TokenType.colon",
+            ",",    "TokenType.comma",
+			"--",   "TokenType.decrement",
+			"$",    "TokenType.dollar",
+            ".",    "TokenType.dot",
+            "==",   "TokenType.equals",
+			"=>",   "TokenType.goesTo",
+			">",    "TokenType.greater",
+			">=",   "TokenType.greaterEqual",
+			"++",   "TokenType.increment",
+            "{",    "TokenType.lBrace",
+            "[",    "TokenType.lBracket",
+            "<",    "TokenType.less",
+			"<=",   "TokenType.lessEqual",
+            "<>=",  "TokenType.lessEqualGreater",
+			"<>",   "TokenType.lessOrGreater",
+			"&&",   "TokenType.logicAnd",
+            "||",   "TokenType.logicOr",
+            "(",    "TokenType.lParen",
+			"-",    "TokenType.minus",
+			"-=",   "TokenType.minusEquals",
+			"%",    "TokenType.mod",
+			"%=",   "TokenType.modEquals",
+			"*=",   "TokenType.mulEquals",
+            "!",    "TokenType.not",
+			"!=",   "TokenType.notEquals",
+			"!>",   "TokenType.notGreater",
+			"!>=",  "TokenType.notGreaterEqual",
+			"!<",   "TokenType.notLess",
+			"!<=",  "TokenType.notLessEqual",
+			"!<>",  "TokenType.notLessEqualGreater",
+			"+",    "TokenType.plus",
+			"+=",   "TokenType.plusEquals",
+			"^^",   "TokenType.pow",
+			"^^=",  "TokenType.powEquals",
+            "}",    "TokenType.rBrace",
+            "]",    "TokenType.rBracket",
+            ")",    "TokenType.rParen",
+            ";",    "TokenType.semicolon",
+			"<<",   "TokenType.shiftLeft",
+			"<<=",  "TokenType.shiftLeftEqual",
+			">>",   "TokenType.shiftRight",
+			">>=",  "TokenType.shiftRightEqual",
+			"..",   "TokenType.slice",
+			"*",    "TokenType.star",
+			"?",    "TokenType.ternary",
+			"~",    "TokenType.tilde",
+			"!<>=", "TokenType.unordered",
+			">>>",  "TokenType.unsignedShiftRight",
+			">>>=", "TokenType.unsignedShiftRightEqual",
+			"...",  "TokenType.vararg",
+			"^",    "TokenType.xor",
+			"^=",   "TokenType.xorEquals",
 		));
         case '/':
 			auto r = range.save();
 			r.popFront();
 			if (r.isEoF())
 			{
-				current.type = TokenType.Div;
+				current.type = TokenType.div;
 				current.value = "/";
 				range.popFront();
 				++index;
@@ -442,17 +442,17 @@ private:
 			case '*':
 			case '+':
 				current = lexComment(range, index, lineNumber, buffer,
-					(iterStyle & IterationStyle.IncludeComments) > 0);
+					(iterStyle & IterationStyle.includeComments) > 0);
 				break outer;
 			case '=':
-				current.type = TokenType.DivEquals;
+				current.type = TokenType.divEquals;
 				current.value = "/=";
 				range.popFront();
 				range.popFront();
 				index += 2;
 				break outer;
 			default:
-				current.type = TokenType.Div;
+				current.type = TokenType.div;
 				current.value = "/";
 				++index;
 				range.popFront();
@@ -521,7 +521,7 @@ private:
             if (current.value is null)
                 current.value = (cast(char[]) buffer[0 .. i]).idup;
 
-			if (!(iterStyle & IterationStyle.IgnoreEOF) && current.type == TokenType.EOF)
+			if (!(iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.EOF)
 			{
 				_empty = true;
 				return;
@@ -533,37 +533,37 @@ private:
 			switch (current.type)
 			{
 			case TokenType.Date:
-				current.type = TokenType.StringLiteral;
+				current.type = TokenType.stringLiteral;
 				auto time = Clock.currTime();
 				current.value = format("%s %02d %04d", time.month, time.day, time.year);
 				break;
 			case TokenType.Time:
 				auto time = Clock.currTime();
-				current.type = TokenType.StringLiteral;
+				current.type = TokenType.stringLiteral;
 				current.value = (cast(TimeOfDay)(time)).toISOExtString();
 				break;
 			case TokenType.Timestamp:
 				auto time = Clock.currTime();
 				auto dt = cast(DateTime) time;
-				current.type = TokenType.StringLiteral;
+				current.type = TokenType.stringLiteral;
 				current.value = format("%s %s %02d %02d:%02d:%02d %04d",
 					dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
 					dt.second, dt.year);
 				break;
 			case TokenType.Vendor:
-				current.type = TokenType.StringLiteral;
+				current.type = TokenType.stringLiteral;
 				current.value = vendor;
 				break;
 			case TokenType.CompilerVersion:
-				current.type = TokenType.StringLiteral;
+				current.type = TokenType.stringLiteral;
 				current.value = ver;
 				break;
 			case TokenType.Line:
-				current.type = TokenType.IntLiteral;
+				current.type = TokenType.intLiteral;
 				current.value = format("%d", current.lineNumber);
 				break;
 			case TokenType.File:
-				current.type = TokenType.StringLiteral;
+				current.type = TokenType.stringLiteral;
 				current.value = fileName;
 				break;
 			default:
@@ -599,7 +599,7 @@ unittest
  */
 pure nothrow bool isOperator(const TokenType t)
 {
-	return t >= TokenType.Assign && t <= TokenType.XorEquals;
+	return t >= TokenType.assign && t <= TokenType.xorEquals;
 }
 
 /**
@@ -607,7 +607,7 @@ pure nothrow bool isOperator(const TokenType t)
  */
 pure nothrow bool isKeyword(const TokenType t)
 {
-	return t >= TokenType.Bool && t <= TokenType.With;
+	return t >= TokenType.bool_ && t <= TokenType.with_;
 }
 
 /**
@@ -615,7 +615,7 @@ pure nothrow bool isKeyword(const TokenType t)
  */
 pure nothrow bool isType(const TokenType t)
 {
-	return t >= TokenType.Bool && t <= TokenType.WString;
+	return t >= TokenType.bool_ && t <= TokenType.wstring_;
 }
 
 /**
@@ -623,7 +623,7 @@ pure nothrow bool isType(const TokenType t)
  */
 pure nothrow bool isAttribute(const TokenType t)
 {
-	return t >= TokenType.Align && t <= TokenType.Static;
+	return t >= TokenType.align_ && t <= TokenType.static_;
 }
 
 /**
@@ -631,7 +631,7 @@ pure nothrow bool isAttribute(const TokenType t)
  */
 pure nothrow bool isProtection(const TokenType t)
 {
-	return t >= TokenType.Export && t <= TokenType.Public;
+	return t >= TokenType.export_ && t <= TokenType.public_;
 }
 
 /**
@@ -639,7 +639,7 @@ pure nothrow bool isProtection(const TokenType t)
  */
 pure nothrow bool isConstant(const TokenType t)
 {
-	return t >= TokenType.Date && t <= TokenType.Traits;
+	return t >= TokenType.date && t <= TokenType.traits;
 }
 
 /**
@@ -647,7 +647,7 @@ pure nothrow bool isConstant(const TokenType t)
  */
 pure nothrow bool isLiteral(const TokenType t)
 {
-	return t >= TokenType.DoubleLiteral && t <= TokenType.WStringLiteral;
+	return t >= TokenType.doubleLiteral && t <= TokenType.wstringLiteral;
 }
 
 /**
@@ -655,7 +655,7 @@ pure nothrow bool isLiteral(const TokenType t)
  */
 pure nothrow bool isNumberLiteral(const TokenType t)
 {
-	return t >= TokenType.DoubleLiteral && t <= TokenType.UnsignedLongLiteral;
+	return t >= TokenType.doubleLiteral && t <= TokenType.ulongLiteral;
 }
 
 /**
@@ -663,7 +663,7 @@ pure nothrow bool isNumberLiteral(const TokenType t)
  */
 pure nothrow bool isStringLiteral(const TokenType t)
 {
-	return t >= TokenType.DStringLiteral && t <= TokenType.WStringLiteral;
+	return t >= TokenType.dstringLiteral && t <= TokenType.wstringLiteral;
 }
 
 /**
@@ -672,7 +672,7 @@ pure nothrow bool isStringLiteral(const TokenType t)
  */
 pure nothrow bool isMisc(const TokenType t)
 {
-	return t >= TokenType.Comment && t <= TokenType.SpecialTokenSequence;
+	return t >= TokenType.comment && t <= TokenType.specialTokenSequence;
 }
 
 /**
@@ -680,208 +680,211 @@ pure nothrow bool isMisc(const TokenType t)
  */
 enum TokenType: ushort
 {
-	Assign,	/// =
-	At, /// @
-	BitAnd,	/// &
-	BitAndEquals,	/// &=
-	BitOr,	/// |
-	BitOrEquals,	/// |=
-	CatEquals,	/// ~=
-	Colon,	/// :
-	Comma,	/// ,
-	Decrement,	/// --
-	Div,	/// /
-	DivEquals,	/// /=
-	Dollar,	/// $
-	Dot,	/// .
-	Equals,	/// ==
-	GoesTo, /// =>
-	Greater,	/// >
-	GreaterEqual,	/// >=
-	Hash, /// #
-	Increment,	/// ++
-	LBrace,	/// {
-	LBracket,	/// [
-	Less,	/// <
-	LessEqual,	/// <=
-	LessEqualGreater, /// <>=
-	LessOrGreater,	/// <>
-	LogicAnd,	/// &&
-	LogicOr,	/// ||
-	LParen,	/// $(LPAREN)
-	Minus,	/// -
-	MinusEquals,	/// -=
-	Mod,	/// %
-	ModEquals,	/// %=
-	MulEquals,	/// *=
-	Not,	/// !
-	NotEquals,	/// !=
-	NotGreater,	/// !>
-	NotGreaterEqual,	/// !>=
-	NotLess,	/// !<
-	NotLessEqual,	/// !<=
-	NotLessEqualGreater,	/// !<>
-	Plus,	/// +
-	PlusEquals,	/// +=
-	Pow,	/// ^^
-	PowEquals,	/// ^^=
-	RBrace,	/// }
-	RBracket,	/// ]
-	RParen,	/// $(RPAREN)
-	Semicolon,	/// ;
-	ShiftLeft,	/// <<
-	ShiftLeftEqual,	/// <<=
-	ShiftRight,	/// >>
-	ShiftRightEqual,	/// >>=
-	Slice, /// ..
-	Star,	/// *
-	Ternary,	/// ?
-	Tilde,	/// ~
-	Unordered,	/// !<>=
-	UnsignedShiftRight,	/// >>>
-	UnsignedShiftRightEqual,	/// >>>=
-	Vararg,	/// ...
-	Xor,	/// ^
-	XorEquals,	/// ^=
+	assign,	/// =
+	at, /// @
+	bitAnd,	/// &
+	bitAndEquals,	/// &=
+	bitOr,	/// |
+	bitOrEquals,	/// |=
+	catEquals,	/// ~=
+	colon,	/// :
+	comma,	/// ,
+	decrement,	/// --
+	div,	/// /
+	divEquals,	/// /=
+	dollar,	/// $
+	dot,	/// .
+	equals,	/// ==
+	goesTo, /// =>
+	greater,	/// >
+	greaterEqual,	/// >=
+	hash, /// #
+	increment,	/// ++
+	lBrace,	/// {
+	lBracket,	/// [
+	less,	/// <
+	lessEqual,	/// <=
+	lessEqualGreater, /// <>=
+	lessOrGreater,	/// <>
+	logicAnd,	/// &&
+	logicOr,	/// ||
+	lParen,	/// $(LPAREN)
+	minus,	/// -
+	minusEquals,	/// -=
+	mod,	/// %
+	modEquals,	/// %=
+	mulEquals,	/// *=
+	not,	/// !
+	notEquals,	/// !=
+	notGreater,	/// !>
+	notGreaterEqual,	/// !>=
+	notLess,	/// !<
+	notLessEqual,	/// !<=
+	notLessEqualGreater,	/// !<>
+	plus,	/// +
+	plusEquals,	/// +=
+	pow,	/// ^^
+	powEquals,	/// ^^=
+	rBrace,	/// }
+	rBracket,	/// ]
+	rParen,	/// $(RPAREN)
+	semicolon,	/// ;
+	shiftLeft,	/// <<
+	shiftLeftEqual,	/// <<=
+	shiftRight,	/// >>
+	shiftRightEqual,	/// >>=
+	slice, /// ..
+	star,	/// *
+	ternary,	/// ?
+	tilde,	/// ~
+	unordered,	/// !<>=
+	unsignedShiftRight,	/// >>>
+	unsignedShiftRightEqual,	/// >>>=
+	vararg,	/// ...
+	xor,	/// ^
+	xorEquals,	/// ^=
 
-	Bool, /// $(D_KEYWORD bool)
-	Byte, /// $(D_KEYWORD byte)
-	Cdouble, /// $(D_KEYWORD cdouble)
-	Cent, /// $(D_KEYWORD cent)
-	Cfloat, /// $(D_KEYWORD cfloat)
-	Char, /// $(D_KEYWORD char)
-	Creal, /// $(D_KEYWORD creal)
-	Dchar, /// $(D_KEYWORD dchar)
-	Double, /// $(D_KEYWORD double)
-	DString, /// $(D_KEYWORD dstring)
-	Float, /// $(D_KEYWORD float)
-	Function, /// $(D_KEYWORD function)
-	Idouble, /// $(D_KEYWORD idouble)
-	Ifloat, /// $(D_KEYWORD ifloat)
-	Int, /// $(D_KEYWORD int)
-	Ireal, /// $(D_KEYWORD ireal)
-	Long, /// $(D_KEYWORD long)
-	Real, /// $(D_KEYWORD real)
-	Short, /// $(D_KEYWORD short)
-	String, /// $(D_KEYWORD string)
-	Ubyte, /// $(D_KEYWORD ubyte)
-	Ucent, /// $(D_KEYWORD ucent)
-	Uint, /// $(D_KEYWORD uint)
-	Ulong, /// $(D_KEYWORD ulong)
-	Ushort, /// $(D_KEYWORD ushort)
-	Void, /// $(D_KEYWORD void)
-	Wchar, /// $(D_KEYWORD wchar)
-	WString, /// $(D_KEYWORD wstring)
+	bool_, /// $(D_KEYWORD bool)
+	byte_, /// $(D_KEYWORD byte)
+	cdouble_, /// $(D_KEYWORD cdouble)
+	cent_, /// $(D_KEYWORD cent)
+	cfloat_, /// $(D_KEYWORD cfloat)
+	char_, /// $(D_KEYWORD char)
+	creal_, /// $(D_KEYWORD creal)
+	dchar_, /// $(D_KEYWORD dchar)
+	double_, /// $(D_KEYWORD double)
+	dstring_, /// $(D_KEYWORD dstring)
+	float_, /// $(D_KEYWORD float)
+	function_, /// $(D_KEYWORD function)
+	idouble_, /// $(D_KEYWORD idouble)
+	ifloat_, /// $(D_KEYWORD ifloat)
+	int_, /// $(D_KEYWORD int)
+	ireal_, /// $(D_KEYWORD ireal)
+	long_, /// $(D_KEYWORD long)
+	real_, /// $(D_KEYWORD real)
+	short_, /// $(D_KEYWORD short)
+	string_, /// $(D_KEYWORD string)
+	ubyte_, /// $(D_KEYWORD ubyte)
+	ucent_, /// $(D_KEYWORD ucent)
+	uint_, /// $(D_KEYWORD uint)
+	ulong_, /// $(D_KEYWORD ulong)
+	ushort_, /// $(D_KEYWORD ushort)
+	void_, /// $(D_KEYWORD void)
+	wchar_, /// $(D_KEYWORD wchar)
+	wstring_, /// $(D_KEYWORD wstring)
 
-	Align, /// $(D_KEYWORD align)
-	Deprecated, /// $(D_KEYWORD deprecated)
-	Extern, /// $(D_KEYWORD extern)
-	Pragma, /// $(D_KEYWORD pragma)
-	Export, /// $(D_KEYWORD export)
-	Package, /// $(D_KEYWORD package)
-	Private, /// $(D_KEYWORD private)
-	Protected, /// $(D_KEYWORD protected)
-	Public, /// $(D_KEYWORD public)
-	Abstract, /// $(D_KEYWORD abstract)
-	Auto, /// $(D_KEYWORD auto)
-	Const, /// $(D_KEYWORD const)
-	Final, /// $(D_KEYWORD final)
-	Gshared, /// $(D_KEYWORD __gshared)
-	Immutable, // immutable
-	Inout, // inout
-	Scope, /// $(D_KEYWORD scope)
-	Shared, // shared
-	Static, /// $(D_KEYWORD static)
+	align_, /// $(D_KEYWORD align)
+	deprecated_, /// $(D_KEYWORD deprecated)
+	extern_, /// $(D_KEYWORD extern)
+	pragma_, /// $(D_KEYWORD pragma)
+	export_, /// $(D_KEYWORD export)
+	package_, /// $(D_KEYWORD package)
+	private_, /// $(D_KEYWORD private)
+	protected_, /// $(D_KEYWORD protected)
+	public_, /// $(D_KEYWORD public)
+	abstract_, /// $(D_KEYWORD abstract)
+	auto_, /// $(D_KEYWORD auto)
+	const_, /// $(D_KEYWORD const)
+	final_, /// $(D_KEYWORD final)
+	gshared, /// $(D_KEYWORD __gshared)
+	immutable_, // immutable
+	inout_, // inout
+	scope_, /// $(D_KEYWORD scope)
+	shared_, // shared
+	static_, /// $(D_KEYWORD static)
 
-	Synchronized, /// $(D_KEYWORD synchronized)
-	Alias, /// $(D_KEYWORD alias)
-	Asm, /// $(D_KEYWORD asm)
-	Assert, /// $(D_KEYWORD assert)
-	Body, /// $(D_KEYWORD body)
-	Break, /// $(D_KEYWORD break)
-	Case, /// $(D_KEYWORD case)
-	Cast, /// $(D_KEYWORD cast)
-	Catch, /// $(D_KEYWORD catch)
-	Class, /// $(D_KEYWORD class)
-	Continue, /// $(D_KEYWORD continue)
-	Debug, /// $(D_KEYWORD debug)
-	Default, /// $(D_KEYWORD default)
-	Delegate, /// $(D_KEYWORD delegate)
-	Delete, /// $(D_KEYWORD delete)
-	Do, /// $(D_KEYWORD do)
-	Else, /// $(D_KEYWORD else)
-	Enum, /// $(D_KEYWORD enum)
-	False, /// $(D_KEYWORD false)
-	Finally, /// $(D_KEYWORD finally)
-	Foreach, /// $(D_KEYWORD foreach)
-	Foreach_reverse, /// $(D_KEYWORD foreach_reverse)
-	For, /// $(D_KEYWORD for)
-	Goto, /// $(D_KEYWORD goto)
-	If, /// $(D_KEYWORD if)
-	Import, /// $(D_KEYWORD import)
-	In, /// $(D_KEYWORD in)
-	Interface, /// $(D_KEYWORD interface)
-	Invariant, /// $(D_KEYWORD invariant)
-	Is, /// $(D_KEYWORD is)
-	Lazy, /// $(D_KEYWORD lazy)
-	Macro, /// $(D_KEYWORD macro)
-	Mixin, /// $(D_KEYWORD mixin)
-	Module, /// $(D_KEYWORD module)
-	New, /// $(D_KEYWORD new)
-	Nothrow, /// $(D_KEYWORD nothrow)
-	Null, /// $(D_KEYWORD null)
-	Out, /// $(D_KEYWORD out)
-	Override, /// $(D_KEYWORD override)
-	Pure, /// $(D_KEYWORD pure)
-	Ref, /// $(D_KEYWORD ref)
-	Return, /// $(D_KEYWORD return)
-	Struct, /// $(D_KEYWORD struct)
-	Super, /// $(D_KEYWORD super)
-	Switch, /// $(D_KEYWORD switch)
-	Template, /// $(D_KEYWORD template)
-	This, /// $(D_KEYWORD this)
-	Throw, /// $(D_KEYWORD throw)
-	True, /// $(D_KEYWORD true)
-	Try, /// $(D_KEYWORD try)
-	Typedef, /// $(D_KEYWORD typedef)
-	Typeid, /// $(D_KEYWORD typeid)
-	Typeof, /// $(D_KEYWORD typeof)
-	Union, /// $(D_KEYWORD union)
-	Unittest, /// $(D_KEYWORD unittest)
-	Version, /// $(D_KEYWORD version)
-	Volatile, /// $(D_KEYWORD volatile)
-	While, /// $(D_KEYWORD while)
-	With, /// $(D_KEYWORD with)
+	synchronized_, /// $(D_KEYWORD synchronized)
+	alias_, /// $(D_KEYWORD alias)
+	asm_, /// $(D_KEYWORD asm)
+	assert_, /// $(D_KEYWORD assert)
+	body_, /// $(D_KEYWORD body)
+	break_, /// $(D_KEYWORD break)
+	case_, /// $(D_KEYWORD case)
+	cast_, /// $(D_KEYWORD cast)
+	catch_, /// $(D_KEYWORD catch)
+	class_, /// $(D_KEYWORD class)
+	continue_, /// $(D_KEYWORD continue)
+	debug_, /// $(D_KEYWORD debug)
+	default_, /// $(D_KEYWORD default)
+	delegate_, /// $(D_KEYWORD delegate)
+	delete_, /// $(D_KEYWORD delete)
+	do_, /// $(D_KEYWORD do)
+	else_, /// $(D_KEYWORD else)
+	enum_, /// $(D_KEYWORD enum)
+	false_, /// $(D_KEYWORD false)
+	finally_, /// $(D_KEYWORD finally)
+	foreach_, /// $(D_KEYWORD foreach)
+	foreach_reverse_, /// $(D_KEYWORD foreach_reverse)
+	for_, /// $(D_KEYWORD for)
+	goto_, /// $(D_KEYWORD goto)
+	if_, /// $(D_KEYWORD if)
+	import_, /// $(D_KEYWORD import)
+	in_, /// $(D_KEYWORD in)
+	interface_, /// $(D_KEYWORD interface)
+	invariant_, /// $(D_KEYWORD invariant)
+	is_, /// $(D_KEYWORD is)
+	lazy_, /// $(D_KEYWORD lazy)
+	macro_, /// $(D_KEYWORD macro)
+	mixin_, /// $(D_KEYWORD mixin)
+	module_, /// $(D_KEYWORD module)
+	new_, /// $(D_KEYWORD new)
+	nothrow_, /// $(D_KEYWORD nothrow)
+	null_, /// $(D_KEYWORD null)
+	out_, /// $(D_KEYWORD out)
+	override_, /// $(D_KEYWORD override)
+	pure_, /// $(D_KEYWORD pure)
+	ref_, /// $(D_KEYWORD ref)
+	return_, /// $(D_KEYWORD return)
+	struct_, /// $(D_KEYWORD struct)
+	super_, /// $(D_KEYWORD super)
+	switch_, /// $(D_KEYWORD switch)
+	template_, /// $(D_KEYWORD template)
+	this_, /// $(D_KEYWORD this)
+	throw_, /// $(D_KEYWORD throw)
+	true_, /// $(D_KEYWORD true)
+	try_, /// $(D_KEYWORD try)
+	typedef_, /// $(D_KEYWORD typedef)
+	typeid_, /// $(D_KEYWORD typeid)
+	typeof_, /// $(D_KEYWORD typeof)
+	union_, /// $(D_KEYWORD union)
+	unittest_, /// $(D_KEYWORD unittest)
+	version_, /// $(D_KEYWORD version)
+	volatile_, /// $(D_KEYWORD volatile)
+	while_, /// $(D_KEYWORD while)
+	with_, /// $(D_KEYWORD with)
 
-	Date, /// ___DATE__
-	EOF, /// ___EOF__
-	Time, /// ___TIME__
-	Timestamp, /// ___TIMESTAMP__
-	Vendor, /// ___VENDOR__
-	CompilerVersion, /// ___VERSION__
-	File, /// ___FILE__
-	Line, /// ___LINE__
-	Comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
-	Identifier, /// anything else
-	ScriptLine, // Line at the beginning of source file that starts from #!
-    Traits, /// $(D_KEYWORD ___traits)
-    Parameters, /// $(D_KEYWORD ___parameters)
-    Vector, /// $(D_KEYWORD ___vector)
-	Whitespace, /// whitespace
-	SpecialTokenSequence, /// #line 10 "file.d"
-	DoubleLiteral, /// 123.456
-	FloatLiteral, /// 123.456f or 0x123_45p-3
-	IDoubleLiteral, /// 123.456i
-	IFloatLiteral, /// 123.456fi
-	IntLiteral, /// 123 or 0b1101010101
-	LongLiteral, /// 123L
-	RealLiteral, /// 123.456L
-	IRealLiteral, /// 123.456Li
-	UnsignedIntLiteral, /// 123u
-	UnsignedLongLiteral, /// 123uL
-	DStringLiteral, /// $(D_STRING "32-bit character string"d)
-	StringLiteral, /// $(D_STRING "an 8-bit string")
-	WStringLiteral, /// $(D_STRING "16-bit character string"w)
+	date, /// ___DATE__
+	eof, /// ___EOF__
+	time, /// ___TIME__
+	timestamp, /// ___TIMESTAMP__
+	vendor, /// ___VENDOR__
+	compilerVersion, /// ___VERSION__
+	file, /// $(D_KEYWORD ___FILE__)
+	line, /// $(D_KEYWORD ___LINE__)
+	comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
+	identifier, /// anything else
+	scriptLine, // Line at the beginning of source file that starts from #!
+    argTypes, /// $(D_KEYWORD ___argTypes)
+    thread, /// $(D_KEYWORD ___thread)
+    traits, /// $(D_KEYWORD ___traits)
+    overloadset, /// $(D_KEYWORD ___overloadset)
+    parameters, /// $(D_KEYWORD ___parameters)
+    vector, /// $(D_KEYWORD ___vector)
+	whitespace, /// whitespace
+	specialTokenSequence, /// #line 10 "file.d"
+	doubleLiteral, /// 123.456
+	floatLiteral, /// 123.456f or 0x123_45p-3
+	idoubleLiteral, /// 123.456i
+	ifloatLiteral, /// 123.456fi
+	intLiteral, /// 123 or 0b1101010101
+	longLiteral, /// 123L
+	realLiteral, /// 123.456L
+	irealLiteral, /// 123.456Li
+	uintLiteral, /// 123u
+	ulongLiteral, /// 123uL
+	dstringLiteral, /// $(D_STRING "32-bit character string"d)
+	stringLiteral, /// $(D_STRING "an 8-bit string")
+	wstringLiteral, /// $(D_STRING "16-bit character string"w)
 }
 
 // Implementation details follow
@@ -903,12 +906,12 @@ immutable string opKwdValues =
     ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
     ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
     ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
-    ~ "FILE__LINE__";
+    ~ "FILE__LINE__overloadset__argTypes__thread";
 
 /*
  * Slices of the above string. This array is automatically generated.
  */
-immutable(string[TokenType.max + 1]) tokenValues = [
+immutable(string[]) tokenValues = [
 	opKwdValues[2 .. 3], // =
 	opKwdValues[59 .. 60], // @
 	opKwdValues[31 .. 32], // &
@@ -1089,7 +1092,10 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	null,
 	null,
 	null,
+	opKwdValues[685 .. 695], // __argTypes
+	opKwdValues[695 .. 703], // __thread
 	opKwdValues[587 .. 595], // __traits
+	opKwdValues[672 .. 685], // __overloadset
 	opKwdValues[603 .. 615], // __parameters
 	opKwdValues[595 .. 603], // __vector
 	null,
@@ -1153,7 +1159,7 @@ Token lexWhitespace(R)(ref R range, ref uint index,
 	ref uint lineNumber, ref ubyte[] buffer, bool needValue) if (isForwardRange!R)
 {
 	Token t;
-	t.type = TokenType.Whitespace;
+	t.type = TokenType.whitespace;
 	t.lineNumber = lineNumber;
 	t.startIndex = index;
 	size_t i = 0;
@@ -1500,9 +1506,9 @@ body
 	Token t;
 	t.lineNumber = lineNumber;
 	t.startIndex = index;
-	t.type = TokenType.StringLiteral;
+	t.type = TokenType.stringLiteral;
 	size_t i;
-	if (style & TokenStyle.IncludeQuotes)
+	if (style & TokenStyle.includeQuotes)
 	{
 		buffer[i++] = 'x';
 		buffer[i++] = '"';
@@ -1523,7 +1529,7 @@ body
 			input.popFront();
 			++index;
 		}
-		else if (std.uni.isWhite(input.front) && (style & TokenStyle.NotEscaped))
+		else if (std.uni.isWhite(input.front) && (style & TokenStyle.notEscaped))
 		{
 			buffer[i++] = input.front;
 			input.popFront();
@@ -1531,7 +1537,7 @@ body
 		}
 		else if (input.front == '"')
 		{
-			if (style & TokenStyle.IncludeQuotes)
+			if (style & TokenStyle.includeQuotes)
 				buffer[i++] = '"';
 			input.popFront();
 			++index;
@@ -1547,13 +1553,13 @@ body
 		switch (input.front)
 		{
 		case 'w':
-			t.type = TokenType.WStringLiteral;
+			t.type = TokenType.wstringLiteral;
 			goto case 'c';
 		case 'd':
-			t.type = TokenType.DStringLiteral;
+			t.type = TokenType.dstringLiteral;
 			goto case 'c';
 		case 'c':
-			if (style & TokenStyle.IncludeQuotes)
+			if (style & TokenStyle.includeQuotes)
 				buffer[i++] = input.front;
 			input.popFront();
 			++index;
@@ -1562,7 +1568,7 @@ body
 			break;
 		}
 	}
-	if (style & TokenStyle.NotEscaped)
+	if (style & TokenStyle.notEscaped)
 		t.value = (cast(char[]) buffer[0 .. i]).idup;
 	else
 	{
@@ -1587,25 +1593,25 @@ unittest
 	auto a = `x"204041"`;
 	auto ar = lexHexString(a, i, l);
 	assert (ar == " @A");
-	assert (ar == TokenType.StringLiteral);
+	assert (ar == TokenType.stringLiteral);
 
 	auto b = `x"20"w`;
 	auto br = lexHexString(b, i, l);
 	assert (br == " ");
-	assert (br == TokenType.WStringLiteral);
+	assert (br == TokenType.wstringLiteral);
 
 	auto c = `x"6d"`;
-	auto cr = lexHexString(c, i, l, TokenStyle.NotEscaped);
+	auto cr = lexHexString(c, i, l, TokenStyle.notEscaped);
 	assert (cr == "6d");
 
 	auto d = `x"5e5f"d`;
-	auto dr = lexHexString(d, i, l, TokenStyle.NotEscaped | TokenStyle.IncludeQuotes);
+	auto dr = lexHexString(d, i, l, TokenStyle.notEscaped | TokenStyle.includeQuotes);
 	assert (dr == `x"5e5f"d`);
-	assert (dr == TokenType.DStringLiteral);
+	assert (dr == TokenType.dstringLiteral);
 }
 
 Token lexString(R)(ref R input, ref uint index, ref uint lineNumber,
-	ref ubyte[] buffer, const TokenStyle style = TokenStyle.Default)
+	ref ubyte[] buffer, const TokenStyle style = TokenStyle.default_)
 in
 {
 	assert (input.front == '\'' || input.front == '"' || input.front == '`' || input.front == 'r');
@@ -1615,12 +1621,12 @@ body
 	Token t;
 	t.lineNumber = lineNumber;
 	t.startIndex = index;
-	t.type = TokenType.StringLiteral;
+	t.type = TokenType.stringLiteral;
 	size_t i = 0;
 	bool isWysiwyg = input.front == 'r' || input.front == '`';
 	if (input.front == 'r')
 	{
-		if (style & TokenStyle.IncludeQuotes)
+		if (style & TokenStyle.includeQuotes)
 			buffer[i++] = 'r';
 		input.popFront();
 	}
@@ -1628,7 +1634,7 @@ body
 	input.popFront();
 	++index;
 
-	if (style & TokenStyle.IncludeQuotes)
+	if (style & TokenStyle.includeQuotes)
 		buffer[i++] = quote;
 	while (!isEoF(input))
 	{
@@ -1639,7 +1645,7 @@ body
 		}
 		else if (input.front == '\\')
 		{
-			if (style & TokenStyle.NotEscaped)
+			if (style & TokenStyle.notEscaped)
 			{
 				auto r = input.save();
 				r.popFront();
@@ -1671,7 +1677,7 @@ body
 		}
 		else if (input.front == quote)
 		{
-			if (style & TokenStyle.IncludeQuotes)
+			if (style & TokenStyle.includeQuotes)
 				buffer[i++] = quote;
 			input.popFront();
 			++index;
@@ -1689,13 +1695,13 @@ body
 		switch (input.front)
 		{
 		case 'w':
-			t.type = TokenType.WStringLiteral;
+			t.type = TokenType.wstringLiteral;
 			goto case 'c';
 		case 'd':
-			t.type = TokenType.DStringLiteral;
+			t.type = TokenType.dstringLiteral;
 			goto case 'c';
 		case 'c':
-			if (style & TokenStyle.IncludeQuotes)
+			if (style & TokenStyle.includeQuotes)
 				buffer[i++] = input.front;
 			input.popFront();
 			++index;
@@ -1717,13 +1723,13 @@ unittest
 	auto b = "\"ab\\ncd\"";
 	assert (lexString(b, i, l) == "ab\ncd");
 	auto c = "`abc\\ndef`";
-	assert (lexString(c, i, l, TokenStyle.NotEscaped) == "abc\\ndef");
+	assert (lexString(c, i, l, TokenStyle.notEscaped) == "abc\\ndef");
 	auto d = `"12345"w`;
-	assert (lexString(d, i, l).type == TokenType.WStringLiteral);
+	assert (lexString(d, i, l).type == TokenType.wstringLiteral);
 	auto e = `"abc"c`;
-	assert (lexString(e, i, l).type == TokenType.StringLiteral);
+	assert (lexString(e, i, l).type == TokenType.stringLiteral);
 	auto f = `"abc"d`;
-	assert (lexString(f, i, l).type == TokenType.DStringLiteral);
+	assert (lexString(f, i, l).type == TokenType.dstringLiteral);
 	auto g = "\"a\nb\"";
 	assert (lexString(g, i, l) == "a\nb");
 }
@@ -1740,12 +1746,12 @@ body
 	Token t;
 	t.startIndex = index;
 	t.lineNumber = lineNumber;
-	t.type = TokenType.StringLiteral;
+	t.type = TokenType.stringLiteral;
 	size_t i;
 	input.popFront(); // q
 	input.popFront(); // "
 	index += 2;
-	if (stringStyle & TokenStyle.IncludeQuotes)
+	if (stringStyle & TokenStyle.includeQuotes)
 	{
 		buffer[i++] = 'q';
 		buffer[i++] = '"';
@@ -1791,7 +1797,7 @@ body
 				buffer[i++] = '"';
 				++index;
 				input.popFront();
-				if (stringStyle & TokenStyle.IncludeQuotes)
+				if (stringStyle & TokenStyle.includeQuotes)
 					t.value = (cast(char[]) buffer[0 .. i]).idup;
 				else
 					t.value = (cast(char[]) buffer[0 .. i - hereOpen.data.length - 1]).idup;
@@ -1807,7 +1813,7 @@ body
 	}
 	else
 	{
-		if (stringStyle & TokenStyle.IncludeQuotes)
+		if (stringStyle & TokenStyle.includeQuotes)
 			buffer[i++] = input.front;
 		input.popFront();
 		int depth = 1;
@@ -1822,7 +1828,7 @@ body
 					--depth;
 					if (depth == 0)
 					{
-						if (stringStyle & TokenStyle.IncludeQuotes)
+						if (stringStyle & TokenStyle.includeQuotes)
 						{
 							buffer[i++] = close;
 							buffer[i++] = '"';
@@ -1845,13 +1851,13 @@ body
 		switch (input.front)
 		{
 		case 'w':
-			t.type = TokenType.WStringLiteral;
+			t.type = TokenType.wstringLiteral;
 			goto case 'c';
 		case 'd':
-			t.type = TokenType.DStringLiteral;
+			t.type = TokenType.dstringLiteral;
 			goto case 'c';
 		case 'c':
-			if (stringStyle & TokenStyle.IncludeQuotes)
+			if (stringStyle & TokenStyle.includeQuotes)
 				buffer[i++] = input.front;
 			input.popFront();
 			++index;
@@ -1872,17 +1878,17 @@ unittest
 	auto a = `q"{abc{}de}"`;
 	auto ar = lexDelimitedString(a, i, l);
 	assert (ar == "abc{}de");
-	assert (ar == TokenType.StringLiteral);
+	assert (ar == TokenType.stringLiteral);
 
 	auto b = "q\"abcde\n123\nabcde\"w";
 	auto br = lexDelimitedString(b, i, l);
 	assert (br == "123\n");
-	assert (br == TokenType.WStringLiteral);
+	assert (br == TokenType.wstringLiteral);
 
 	auto c = `q"[<xml></xml>]");`;
 	auto cr = lexDelimitedString(c, i, l, TokenStyle.Source);
 	assert (cr == `q"[<xml></xml>]"`);
-	assert (cr == TokenType.StringLiteral);
+	assert (cr == TokenType.stringLiteral);
 }
 
 Token lexTokenString(R)(ref R input, ref uint index, ref uint lineNumber,
@@ -1895,18 +1901,18 @@ body
 {
 	Token t;
 	t.startIndex = index;
-	t.type = TokenType.StringLiteral;
+	t.type = TokenType.stringLiteral;
 	t.lineNumber = lineNumber;
 	size_t i;
 	input.popFront(); // q
 	input.popFront(); // {
 	index += 2;
-	if (stringStyle & TokenStyle.IncludeQuotes)
+	if (stringStyle & TokenStyle.includeQuotes)
 	{
 		buffer[i++] = 'q';
 		buffer[i++] = '{';
 	}
-	auto r = byToken(input, "", IterationStyle.Everything, TokenStyle.Source);
+	auto r = byToken(input, "", IterationStyle.everything, TokenStyle.source);
 	r.index = index;
 	int depth = 1;
 	while (!r.empty)
@@ -1920,7 +1926,7 @@ body
 			--depth;
 			if (depth <= 0)
 			{
-				if (stringStyle & TokenStyle.IncludeQuotes)
+				if (stringStyle & TokenStyle.includeQuotes)
 					buffer[i++] = '}';
 				r.popFront();
 				break;
@@ -1931,20 +1937,20 @@ body
 		r.popFront();
 	}
 
-	auto n = i - (stringStyle & TokenStyle.IncludeQuotes ? 2 : 0);
+	auto n = i - (stringStyle & TokenStyle.includeQuotes ? 2 : 0);
 	input.popFrontN(n);
 	if (!input.isEoF())
 	{
 		switch (input.front)
 		{
 		case 'w':
-			t.type = TokenType.WStringLiteral;
+			t.type = TokenType.wstringLiteral;
 			goto case 'c';
 		case 'd':
-			t.type = TokenType.DStringLiteral;
+			t.type = TokenType.dstringLiteral;
 			goto case 'c';
 		case 'c':
-			if (stringStyle & TokenStyle.IncludeQuotes)
+			if (stringStyle & TokenStyle.includeQuotes)
 				buffer[i++] = input.front;
 			input.popFront();
 			++index;
@@ -1965,12 +1971,12 @@ unittest
 	uint l;
 	auto a = "q{import std.stdio;} abcd";
 	auto ar = lexTokenString(a, i, l);
-	assert (ar == TokenType.StringLiteral);
+	assert (ar == TokenType.stringLiteral);
 	assert (ar == "import std.stdio;");
 
 	auto b = `q{writeln("hello world");}`;
 	auto br = lexTokenString(b, i, l, TokenStyle.Source);
-	assert (br == TokenType.StringLiteral);
+	assert (br == TokenType.stringLiteral);
 	assert (br == `q{writeln("hello world");}`);
 }
 
@@ -2025,7 +2031,7 @@ Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
 	Token token;
 	token.lineNumber = lineNumber;
 	token.startIndex = index;
-	token.type = TokenType.IntLiteral;
+	token.type = TokenType.intLiteral;
 	bool lexingSuffix = false;
 	bool isLong = false;
 	bool isUnsigned = false;
@@ -2051,11 +2057,11 @@ Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
 			++index;
 			if (isLong)
 			{
-				token.type = TokenType.UnsignedLongLiteral;
+				token.type = TokenType.ulongLiteral;
 				break binaryLoop;
 			}
 			else
-				token.type = TokenType.UnsignedIntLiteral;
+				token.type = TokenType.uintLiteral;
 			isUnsigned = true;
 			break;
 		case 'L':
@@ -2067,7 +2073,7 @@ Token lexBinary(R)(ref R input, ref uint index, const uint lineNumber,
 			lexingSuffix = true;
 			if (isUnsigned)
 			{
-				token.type = TokenType.UnsignedLongLiteral;
+				token.type = TokenType.ulongLiteral;
 				break binaryLoop;
 			}
 			else
@@ -2100,22 +2106,22 @@ unittest
 	auto c = "0b1101uLL";
 	auto cr = lexNumber(c, i, l);
 	assert (cr.value == "0b1101uL");
-	assert (cr.type == TokenType.UnsignedLongLiteral);
+	assert (cr.type == TokenType.ulongLiteral);
 
 	auto d = "0b1q";
 	auto dr = lexNumber(d, i, l);
 	assert (dr.value == "0b1");
-	assert (dr.type == TokenType.IntLiteral);
+	assert (dr.type == TokenType.intLiteral);
 
 	auto e = "0b1_0_1LU";
 	auto er = lexNumber(e, i, l);
 	assert (er.value == "0b1_0_1LU");
-	assert (er.type == TokenType.UnsignedLongLiteral);
+	assert (er.type == TokenType.ulongLiteral);
 
 	auto f = "0b1_0_1uU";
 	auto fr = lexNumber(f, i, l);
 	assert (fr.value == "0b1_0_1u");
-	assert (fr.type == TokenType.UnsignedIntLiteral);
+	assert (fr.type == TokenType.uintLiteral);
 
 	auto g = "0b1_0_1LL";
 	auto gr = lexNumber(g, i, l);
@@ -2137,7 +2143,7 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 	bool foundE = false;
 	bool foundPlusMinus = false;
 	Token token;
-	token.type = TokenType.IntLiteral;
+	token.type = TokenType.intLiteral;
 	token.startIndex = index;
 	token.lineNumber = lineNumber;
 	decimalLoop: while (!input.isEoF())
@@ -2180,7 +2186,7 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 			++index;
 			foundE = true;
 			isDouble = true;
-			token.type = TokenType.DoubleLiteral;
+			token.type = TokenType.doubleLiteral;
 			break;
 		case '+':
 		case '-':
@@ -2202,7 +2208,7 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 			input.popFront();
 			++index;
 			foundDot = true;
-			token.type = TokenType.DoubleLiteral;
+			token.type = TokenType.doubleLiteral;
 			isDouble = true;
 			break;
 		case 'u':
@@ -2214,9 +2220,9 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 			++index;
 			lexingSuffix = true;
 			if (isLong)
-				token.type = TokenType.UnsignedLongLiteral;
+				token.type = TokenType.ulongLiteral;
 			else
-				token.type = TokenType.UnsignedIntLiteral;
+				token.type = TokenType.uintLiteral;
 			isUnsigned = true;
 			break;
 		case 'L':
@@ -2233,7 +2239,7 @@ Token lexDecimal(R)(ref R input, ref uint index, const uint lineNumber,
 			}
 			else if (isUnsigned)
 			{
-				token.type = TokenType.UnsignedLongLiteral;
+				token.type = TokenType.ulongLiteral;
 				isLong = true;
 			}
 			else
@@ -2294,7 +2300,7 @@ unittest
 	auto a = "55e-4";
 	auto ar = lexNumber(a, i, l);
 	assert (ar.value == "55e-4");
-	assert (ar.type == TokenType.DoubleLiteral);
+	assert (ar.type == TokenType.doubleLiteral);
 
 	auto b = "123.45f";
 	auto br = lexNumber(b, i, l);
@@ -2304,17 +2310,17 @@ unittest
 	auto c = "3e+f";
 	auto cr = lexNumber(c, i, l);
 	assert (cr.value == "3");
-	assert (cr.type == TokenType.IntLiteral);
+	assert (cr.type == TokenType.intLiteral);
 
 	auto d = "3e++f";
 	auto dr = lexNumber(d, i, l);
 	assert (dr.value == "3");
-	assert (dr.type == TokenType.IntLiteral);
+	assert (dr.type == TokenType.intLiteral);
 
 	auto e = "1234..1237";
 	auto er = lexNumber(e, i, l);
 	assert (er.value == "1234");
-	assert (er.type == TokenType.IntLiteral);
+	assert (er.type == TokenType.intLiteral);
 
 	auto f = "12L_";
 	auto fr = lexNumber(f, i, l);
@@ -2343,7 +2349,7 @@ unittest
 	auto n = "12uu";
 	auto nr = lexNumber(n, i, l);
 	assert (nr == "12u");
-	assert (nr.type == TokenType.UnsignedIntLiteral);
+	assert (nr.type == TokenType.uintLiteral);
 
 	auto o = "12LU";
 	auto or = lexNumber(o, i, l);
@@ -2369,7 +2375,7 @@ unittest
 	auto t = "5i";
 	auto tr = lexNumber(t, i, l);
 	assert (tr == "5");
-	assert (tr == TokenType.IntLiteral);
+	assert (tr == TokenType.intLiteral);
 
 	auto u = "894.3i";
 	auto ur = lexNumber(u, i, l);
@@ -2389,7 +2395,7 @@ unittest
 	auto x = "4892.4ee";
 	auto xr = lexNumber(x, i, l);
 	assert (xr == "4892.4");
-	assert (xr == TokenType.DoubleLiteral);
+	assert (xr == TokenType.doubleLiteral);
 }
 
 Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
@@ -2407,7 +2413,7 @@ Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
 	Token token;
 	token.lineNumber = lineNumber;
 	token.startIndex =  index;
-	token.type = TokenType.IntLiteral;
+	token.type = TokenType.intLiteral;
 	hexLoop: while (!input.isEoF())
 	{
 		switch (input.front)
@@ -2448,7 +2454,7 @@ Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
 			++index;
 			foundExp = true;
 			isDouble = true;
-			token.type = TokenType.DoubleLiteral;
+			token.type = TokenType.doubleLiteral;
 			break;
 		case '+':
 		case '-':
@@ -2470,7 +2476,7 @@ Token lexHex(R)(ref R input, ref uint index, const uint lineNumber,
 			input.popFront();
 			++index;
 			foundDot = true;
-			token.type = TokenType.DoubleLiteral;
+			token.type = TokenType.doubleLiteral;
 			break;
 		default:
 			break hexLoop;
@@ -2488,72 +2494,72 @@ unittest
 	auto a = "0x193abfq";
 	auto ar = lexNumber(a, i, l);
 	assert(ar.value == "0x193abf");
-	assert(ar.type == TokenType.IntLiteral);
+	assert(ar.type == TokenType.intLiteral);
 
 	auto b = "0x2130xabc";
 	auto br = lexNumber(b, i, l);
 	assert(br.value == "0x2130");
-	assert(br.type == TokenType.IntLiteral);
+	assert(br.type == TokenType.intLiteral);
 
 	auto c = "0x123..0321";
 	auto cr = lexNumber(c, i, l);
 	assert (cr.value == "0x123");
-	assert (cr.type == TokenType.IntLiteral);
+	assert (cr.type == TokenType.intLiteral);
 
 	auto d = "0xabp5";
 	auto dr = lexNumber(d, i, l);
 	assert (dr == "0xabp5");
-	assert (dr == TokenType.DoubleLiteral);
+	assert (dr == TokenType.doubleLiteral);
 
 	auto e = "0x93p+5";
 	auto er = lexNumber(e, i, l);
 	assert (er == "0x93p+5");
-	assert (er == TokenType.DoubleLiteral);
+	assert (er == TokenType.doubleLiteral);
 
 	auto f = "0x93pp";
 	auto fr = lexNumber(f, i, l);
 	assert (fr == "0x93");
-	assert (fr == TokenType.IntLiteral);
+	assert (fr == TokenType.intLiteral);
 
 	auto g = "0XF..7";
 	auto gr = lexNumber(g, i, l);
 	assert (gr == "0XF");
-	assert (gr == TokenType.IntLiteral);
+	assert (gr == TokenType.intLiteral);
 
 	auto h = "0x8.4p100";
 	auto hr = lexNumber(h, i, l);
 	assert (hr == "0x8.4p100");
-	assert (hr == TokenType.DoubleLiteral);
+	assert (hr == TokenType.doubleLiteral);
 
 	auto j = "0x8.4.100";
 	auto jr = lexNumber(j, i, l);
 	assert (jr == "0x8.4");
-	assert (jr == TokenType.DoubleLiteral);
+	assert (jr == TokenType.doubleLiteral);
 
 	auto k = "0x1p-t";
 	auto kr = lexNumber(k, i, l);
 	assert (kr == "0x1");
-	assert (kr == TokenType.IntLiteral);
+	assert (kr == TokenType.intLiteral);
 
 	auto m = "0x1p-5p";
 	auto mr = lexNumber(m, i, l);
 	assert (mr == "0x1p-5");
-	assert (mr == TokenType.DoubleLiteral);
+	assert (mr == TokenType.doubleLiteral);
 
 	auto n = "0x1p-c_";
 	auto nr = lexNumber(n, i, l);
 	assert (nr == "0x1");
-	assert (nr == TokenType.IntLiteral);
+	assert (nr == TokenType.intLiteral);
 
 	auto o = "0x1p-1a";
 	auto or = lexNumber(o, i, l);
 	assert (or == "0x1p-1");
-	assert (or == TokenType.DoubleLiteral);
+	assert (or == TokenType.doubleLiteral);
 
 	auto p = "0x1p-1+";
 	auto pr = lexNumber(p, i, l);
 	assert (pr == "0x1p-1");
-	assert (pr == TokenType.DoubleLiteral);
+	assert (pr == TokenType.doubleLiteral);
 }
 
 Token lexSpecialTokenSequence(R)(ref R input, ref uint index,
@@ -2614,187 +2620,187 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
 	case 2:
 		switch (input)
 		{
-		case "do": return TokenType.Do;
-		case "if": return TokenType.If;
-		case "in": return TokenType.In;
-		case "is": return TokenType.Is;
+		case "do": return TokenType.do_;
+		case "if": return TokenType.if_;
+		case "in": return TokenType.in_;
+		case "is": return TokenType.is_;
 		default: break;
 		}
 		break;
 	case 3:
 		switch (input)
 		{
-		case "asm": return TokenType.Asm;
-		case "for": return TokenType.For;
-		case "int": return TokenType.Int;
-		case "new": return TokenType.New;
-		case "out": return TokenType.Out;
-		case "ref": return TokenType.Ref;
-		case "try": return TokenType.Try;
+		case "asm": return TokenType.asm_;
+		case "for": return TokenType.for_;
+		case "int": return TokenType.int_;
+		case "new": return TokenType.new_;
+		case "out": return TokenType.out_;
+		case "ref": return TokenType.ref_;
+		case "try": return TokenType.try_;
 		default: break;
 		}
 		break;
 	case 4:
 		switch (input)
 		{
-		case "auto": return TokenType.Auto;
-		case "body": return TokenType.Body;
-		case "bool": return TokenType.Bool;
-		case "byte": return TokenType.Byte;
-		case "case": return TokenType.Case;
-		case "cast": return TokenType.Cast;
-		case "cent": return TokenType.Cent;
-		case "char": return TokenType.Char;
-		case "else": return TokenType.Else;
-		case "enum": return TokenType.Enum;
-		case "goto": return TokenType.Goto;
-		case "lazy": return TokenType.Lazy;
-		case "long": return TokenType.Long;
-		case "null": return TokenType.Null;
-		case "pure": return TokenType.Pure;
-		case "real": return TokenType.Real;
-		case "this": return TokenType.This;
-		case "true": return TokenType.True;
-		case "uint": return TokenType.Uint;
-		case "void": return TokenType.Void;
-		case "with": return TokenType.With;
+		case "auto": return TokenType.auto_;
+		case "body": return TokenType.body_;
+		case "bool": return TokenType.bool_;
+		case "byte": return TokenType.byte_;
+		case "case": return TokenType.case_;
+		case "cast": return TokenType.cast_;
+		case "cent": return TokenType.cent_;
+		case "char": return TokenType.char_;
+		case "else": return TokenType.else_;
+		case "enum": return TokenType.enum_;
+		case "goto": return TokenType.goto_;
+		case "lazy": return TokenType.lazy_;
+		case "long": return TokenType.long_;
+		case "null": return TokenType.null_;
+		case "pure": return TokenType.pure_;
+		case "real": return TokenType.real_;
+		case "this": return TokenType.this_;
+		case "true": return TokenType.true_;
+		case "uint": return TokenType.uint_;
+		case "void": return TokenType.void_;
+		case "with": return TokenType.with_;
 		default: break;
 		}
 		break;
 	case 5:
 		switch (input)
 		{
-		case "alias": return TokenType.Alias;
-		case "align": return TokenType.Align;
-		case "break": return TokenType.Break;
-		case "catch": return TokenType.Catch;
-		case "class": return TokenType.Class;
-		case "const": return TokenType.Const;
-		case "creal": return TokenType.Creal;
-		case "dchar": return TokenType.Dchar;
-		case "debug": return TokenType.Debug;
-		case "false": return TokenType.False;
-		case "final": return TokenType.Final;
-		case "float": return TokenType.Float;
-		case "inout": return TokenType.Inout;
-		case "ireal": return TokenType.Ireal;
-		case "macro": return TokenType.Macro;
-		case "mixin": return TokenType.Mixin;
-		case "scope": return TokenType.Scope;
-		case "short": return TokenType.Short;
-		case "super": return TokenType.Super;
-		case "throw": return TokenType.Throw;
-		case "ubyte": return TokenType.Ubyte;
-		case "ucent": return TokenType.Ucent;
-		case "ulong": return TokenType.Ulong;
-		case "union": return TokenType.Union;
-		case "wchar": return TokenType.Wchar;
-		case "while": return TokenType.While;
+		case "alias": return TokenType.alias_;
+		case "align": return TokenType.align_;
+		case "break": return TokenType.break_;
+		case "catch": return TokenType.catch_;
+		case "class": return TokenType.class_;
+		case "const": return TokenType.const_;
+		case "creal": return TokenType.creal_;
+		case "dchar": return TokenType.dchar_;
+		case "debug": return TokenType.debug_;
+		case "false": return TokenType.false_;
+		case "final": return TokenType.final_;
+		case "float": return TokenType.float_;
+		case "inout": return TokenType.inout_;
+		case "ireal": return TokenType.ireal_;
+		case "macro": return TokenType.macro_;
+		case "mixin": return TokenType.mixin_;
+		case "scope": return TokenType.scope_;
+		case "short": return TokenType.short_;
+		case "super": return TokenType.super_;
+		case "throw": return TokenType.throw_;
+		case "ubyte": return TokenType.ubyte_;
+		case "ucent": return TokenType.ucent_;
+		case "ulong": return TokenType.ulong_;
+		case "union": return TokenType.union_;
+		case "wchar": return TokenType.wchar_;
+		case "while": return TokenType.while_;
 		default: break;
 		}
 		break;
 	case 6:
 		switch (input)
 		{
-		case "assert": return TokenType.Assert;
-		case "cfloat": return TokenType.Cfloat;
-		case "delete": return TokenType.Delete;
-		case "double": return TokenType.Double;
-		case "export": return TokenType.Export;
-		case "extern": return TokenType.Extern;
-		case "ifloat": return TokenType.Ifloat;
-		case "import": return TokenType.Import;
-		case "module": return TokenType.Module;
-		case "pragma": return TokenType.Pragma;
-		case "public": return TokenType.Public;
-		case "return": return TokenType.Return;
-		case "shared": return TokenType.Shared;
-		case "static": return TokenType.Static;
-		case "string": return TokenType.String;
-		case "struct": return TokenType.Struct;
-		case "switch": return TokenType.Switch;
-		case "typeid": return TokenType.Typeid;
-		case "typeof": return TokenType.Typeof;
-		case "ushort": return TokenType.Ushort;
+		case "assert": return TokenType.assert_;
+		case "cfloat": return TokenType.cfloat_;
+		case "delete": return TokenType.delete_;
+		case "double": return TokenType.double_;
+		case "export": return TokenType.export_;
+		case "extern": return TokenType.extern_;
+		case "ifloat": return TokenType.ifloat_;
+		case "import": return TokenType.import_;
+		case "module": return TokenType.module_;
+		case "pragma": return TokenType.pragma_;
+		case "public": return TokenType.public_;
+		case "return": return TokenType.return_;
+		case "shared": return TokenType.shared_;
+		case "static": return TokenType.static_;
+		case "string": return TokenType.string_;
+		case "struct": return TokenType.struct_;
+		case "switch": return TokenType.switch_;
+		case "typeid": return TokenType.typeid_;
+		case "typeof": return TokenType.typeof_;
+		case "ushort": return TokenType.ushort_;
 		default: break;
 		}
 		break;
 	case 7:
 		switch (input)
 		{
-		case "__EOF__": return TokenType.EOF;
-		case "cdouble": return TokenType.Cdouble;
-		case "default": return TokenType.Default;
-		case "dstring": return TokenType.DString;
-		case "finally": return TokenType.Finally;
-		case "foreach": return TokenType.Foreach;
-		case "idouble": return TokenType.Idouble;
-		case "nothrow": return TokenType.Nothrow;
-		case "package": return TokenType.Package;
-		case "private": return TokenType.Private;
-		case "typedef": return TokenType.Typedef;
-		case "version": return TokenType.Version;
-		case "wstring": return TokenType.WString;
+		case "__EOF__": return TokenType.eof;
+		case "cdouble": return TokenType.cdouble_;
+		case "default": return TokenType.default_;
+		case "dstring": return TokenType.dstring_;
+		case "finally": return TokenType.finally_;
+		case "foreach": return TokenType.foreach_;
+		case "idouble": return TokenType.idouble_;
+		case "nothrow": return TokenType.nothrow_;
+		case "package": return TokenType.package_;
+		case "private": return TokenType.private_;
+		case "typedef": return TokenType.typedef_;
+		case "version": return TokenType.version_;
+		case "wstring": return TokenType.wstring_;
 		default: break;
 		}
 		break;
 	case 8:
 		switch (input)
 		{
-		case "override": return TokenType.Override;
-		case "continue": return TokenType.Continue;
-		case "__LINE__": return TokenType.Line;
-		case "template": return TokenType.Template;
-		case "abstract": return TokenType.Abstract;
-		case "__traits": return TokenType.Traits;
-		case "volatile": return TokenType.Volatile;
-		case "delegate": return TokenType.Delegate;
-		case "function": return TokenType.Function;
-		case "unittest": return TokenType.Unittest;
-		case "__FILE__": return TokenType.File;
-		case "__DATE__": return TokenType.Date;
-		case "__TIME__": return TokenType.Date;
+		case "override": return TokenType.override_;
+		case "continue": return TokenType.continue_;
+		case "__LINE__": return TokenType.line;
+		case "template": return TokenType.template_;
+		case "abstract": return TokenType.abstract_;
+		case "__traits": return TokenType.traits;
+		case "volatile": return TokenType.volatile_;
+		case "delegate": return TokenType.delegate_;
+		case "function": return TokenType.function_;
+		case "unittest": return TokenType.unittest_;
+		case "__FILE__": return TokenType.file;
+		case "__DATE__": return TokenType.date;
+		case "__TIME__": return TokenType.time;
 		default: break;
 		}
 		break;
 	case 9:
 		switch (input)
 		{
-		case "__gshared": return TokenType.Gshared;
-		case "immutable": return TokenType.Immutable;
-		case "interface": return TokenType.Interface;
-		case "invariant": return TokenType.Invariant;
-		case "protected": return TokenType.Protected;
+		case "__gshared": return TokenType.gshared;
+		case "immutable": return TokenType.immutable_;
+		case "interface": return TokenType.interface_;
+		case "invariant": return TokenType.invariant_;
+		case "protected": return TokenType.protected_;
 		default: break;
 		}
 		break;
 	case 10:
 		switch (input)
 		{
-		case "deprecated": return TokenType.Deprecated;
-		case "__VENDOR__": return TokenType.Vendor;
+		case "deprecated": return TokenType.deprecated_;
+		case "__VENDOR__": return TokenType.vendor;
 		default: break;
 		}
 		break;
 	case 11:
 		if (input == "__VERSION__")
-			return TokenType.CompilerVersion;
+			return TokenType.compilerVersion;
 		break;
 	case 12:
 		if (input == "synchronized")
-			return TokenType.Synchronized;
+			return TokenType.synchronized_;
 		break;
 	case 13:
 		if (input == "__TIMESTAMP__")
-			return TokenType.Timestamp;
+			return TokenType.timestamp;
 		break;
 	case 15:
 		if (input == "foreach_reverse")
-			return TokenType.Foreach_reverse;
+			return TokenType.foreach_reverse_;
 		break;
 	default: break;
 	}
-	return TokenType.Identifier;
+	return TokenType.identifier;
 }
 
 class Trie(K, V) if (isInputRange!K): TrieNode!(K, V)

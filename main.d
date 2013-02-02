@@ -33,13 +33,13 @@ pure nothrow bool isLineOfCode(TokenType t)
 {
 	switch(t)
 	{
-	case TokenType.Semicolon:
-	case TokenType.While:
-	case TokenType.If:
-	case TokenType.For:
-	case TokenType.Foreach:
-	case TokenType.Foreach_reverse:
-	case TokenType.Case:
+	case TokenType.semicolon:
+	case TokenType.while_:
+	case TokenType.if_:
+	case TokenType.for_:
+	case TokenType.foreach_:
+	case TokenType.foreach_reverse_:
+	case TokenType.case_:
 		return true;
 	default:
 		return false;
@@ -180,7 +180,7 @@ int main(string[] args)
 	{
         File f = args.length == 1 ? stdin : File(args[1]);
         highlighter.highlight((cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(
-            "", IterationStyle.Everything, TokenStyle.Source));
+            "", IterationStyle.everything, TokenStyle.source));
 		return 0;
 	}
 

@@ -42,7 +42,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 			writeSpan("type", t.value);
 		else if (isKeyword(t.type))
 			writeSpan("kwrd", t.value);
-		else if (t.type == TokenType.Comment)
+		else if (t.type == TokenType.comment)
 			writeSpan("com", t.value);
 		else if (isStringLiteral(t.type))
 			writeSpan("str", t.value);

@@ -182,7 +182,10 @@ string[] opkwds = [
     null, // Comment
     null, // Identifier
     null, // ScriptLine
+    "__argTypes",
+    "__thread",
     "__traits",
+    "__overloadset",
     "__parameters",
     "__vector",
     null, // Whitespace
@@ -213,7 +216,7 @@ immutable string opKwdValues =
     ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
     ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
     ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
-    ~ "FILE__LINE__";
+    ~ "FILE__LINE__overloadset__argTypes__thread";
 
 void main(string[] args)
 {

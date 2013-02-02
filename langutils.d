@@ -22,25 +22,25 @@ pure nothrow string getTypeFromToken(const Token t)
 	switch (t.type)
 	{
 
-	case TokenType.DoubleLiteral:
+	case TokenType.doubleLiteral:
 		return "double";
-	case TokenType.FloatLiteral:
+	case TokenType.floatLiteral:
 		return "float";
-	case TokenType.IntLiteral:
+	case TokenType.intLiteral:
 		return "int";
-	case TokenType.RealLiteral:
+	case TokenType.realLiteral:
 		return "real";
-	case TokenType.UnsignedIntLiteral:
+	case TokenType.uintLiteral:
 		return "uint";
-	case TokenType.UnsignedLongLiteral:
+	case TokenType.ulongLiteral:
 		return "ulong";
-	case TokenType.LongLiteral:
+	case TokenType.longLiteral:
 		return "long";
-	case TokenType.DStringLiteral:
+	case TokenType.dstringLiteral:
 		return "dstring";
-	case TokenType.StringLiteral:
+	case TokenType.stringLiteral:
 		return "string";
-	case TokenType.WStringLiteral:
+	case TokenType.wstringLiteral:
 		return "wstring";
 	default:
 		return null;
@@ -55,5 +55,5 @@ pure bool isDocComment(ref const Token t)
 
 pure nothrow bool isIdentifierOrType(const TokenType t)
 {
-	return isType(t) || t == TokenType.Identifier;
+	return isType(t) || t == TokenType.identifier;
 }
