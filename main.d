@@ -140,6 +140,7 @@ int main(string[] args)
 
 	if (tokenCount)
 	{
+		import core.memory;
 		/+if (args.length == 1)
 		{
 			writeln((cast (ubyte[]) stdin.byLine(KeepTerminator.yes).join()).byToken().walkLength());
@@ -151,11 +152,12 @@ int main(string[] args)
 			{
 				config.fileName = arg;
 				uint count;
+				//GC.disable();
 				foreach(t; byToken(cast(ubyte[]) File(arg).byLine(KeepTerminator.yes).join(), config))
 				{
-					writeln(t);
 					++count;
 				}
+				//GC.enable();
 				writefln("%s: %d", arg, count);
 			}
 		/+}+/
@@ -193,7 +195,8 @@ int main(string[] args)
 		config.iterStyle = IterationStyle.everything;
 		config.tokenStyle = TokenStyle.source;
         File f = args.length == 1 ? stdin : File(args[1]);
-        highlighter.highlight((cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config));
+        highlighter.highlight((cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config),
+			args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
 

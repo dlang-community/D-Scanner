@@ -119,8 +119,7 @@ import std.traits;
 import std.uni;
 import std.utf;
 import std.regex;
-
-import std.stdio;
+import std.container;
 
 public:
 
@@ -268,7 +267,7 @@ struct LexerConfig
     /**
      * Replacement for the ___VERSION__ token. Defaults to 1.
      */
-    uint versionNumber = 1;
+    uint versionNumber = 100;
 
     /**
      * Replacement for the ___VENDOR__ token. Defaults to $(D_STRING "std.d.lexer")
@@ -415,6 +414,7 @@ private:
     {
         this.range = range;
         buffer = new ubyte[config.bufferSize];
+		cache.initialize();
     }
 
     /*
@@ -631,7 +631,7 @@ private:
             current.type = lookupTokenType(cast(char[]) buffer[0 .. bufferIndex]);
             current.value = getTokenValue(current.type);
             if (current.value is null)
-                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+                setTokenValue();
 
             if (!(config.iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.eof)
             {
@@ -693,7 +693,7 @@ private:
             keepChar();
         }
         if (config.iterStyle & IterationStyle.includeWhitespace)
-            current.value = (cast(char[]) buffer[0..bufferIndex]).idup;
+			setTokenValue();
     }
 
     void lexComment()
@@ -759,7 +759,7 @@ private:
             assert(false);
         }
         if (config.iterStyle & IterationStyle.includeComments)
-            current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+			setTokenValue();
     }
 
     void lexHexString()
@@ -770,20 +770,13 @@ private:
     body
     {
         current.type = TokenType.stringLiteral;
-        size_t i;
-        if (config.tokenStyle & TokenStyle.includeQuotes)
+		keepChar();
+		keepChar();
+        while (true)
         {
-            buffer[i++] = 'x';
-            buffer[i++] = '"';
-        }
-        range.popFront();
-        range.popFront();
-        index += 2;
-        while (!range.isEoF())
-        {
-            if (i >= buffer.length)
+            if (range.isEoF())
             {
-                errorMessage("Hex string constant exceeded buffer size");
+                errorMessage("Unterminated hex string literal");
                 return;
             }
             else if (isHexDigit(range.front))
@@ -796,44 +789,28 @@ private:
             }
             else if (range.front == '"')
             {
-                if (config.tokenStyle & TokenStyle.includeQuotes)
-                    buffer[i++] = '"';
-                range.popFront();
-                ++index;
+                keepChar();
                 break;
             }
             else
             {
                 errorMessage(format("Invalid character '%s' in hex string literal",
                     cast(char) range.front));
+				return;
             }
         }
-        if (!range.isEoF())
-        {
-            switch (range.front)
-            {
-            case 'w':
-                current.type = TokenType.wstringLiteral;
-                goto case 'c';
-            case 'd':
-                current.type = TokenType.dstringLiteral;
-                goto case 'c';
-            case 'c':
-                if (config.tokenStyle & TokenStyle.includeQuotes)
-                    buffer[i++] = range.front;
-                range.popFront();
-                ++index;
-                break;
-            default:
-                break;
-            }
-        }
+        lexStringSuffix();
         if (config.tokenStyle & TokenStyle.notEscaped)
-            current.value = (cast(char[]) buffer[0 .. i]).idup;
+		{
+			if (config.tokenStyle & TokenStyle.includeQuotes)
+				setTokenValue();
+			else
+				setTokenValue(bufferIndex - 1, 2);
+		}
         else
         {
             auto a = appender!(ubyte[])();
-            foreach (b; std.range.chunks(buffer[0 .. i], 2))
+            foreach (b; std.range.chunks(buffer[2 .. bufferIndex - 1], 2))
             {
                 string s = to!string(cast(char[]) b);
                 a.put(cast(ubyte[]) to!string(cast(dchar) parse!uint(s, 16)));
@@ -999,7 +976,7 @@ private:
     {
         bool foundDot = false;
         current.type = TokenType.intLiteral;
-        scope(exit) current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+        scope(exit) setTokenValue();
         decimalLoop: while (!range.isEoF())
         {
             switch (range.front)
@@ -1049,7 +1026,7 @@ private:
     void lexBinary()
     {
         current.type = TokenType.intLiteral;
-        scope(exit) current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+        scope(exit) setTokenValue();
         binaryLoop: while (!range.isEoF())
         {
             switch (range.front)
@@ -1073,7 +1050,7 @@ private:
     void lexHex()
     {
         current.type = TokenType.intLiteral;
-        scope(exit) current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+        scope(exit) setTokenValue();
         bool foundDot;
         hexLoop: while (!range.isEoF())
         {
@@ -1155,13 +1132,13 @@ private:
         scope (exit)
         {
             if (config.tokenStyle & TokenStyle.includeQuotes)
-                current.value = (cast(char[]) buffer[0..bufferIndex]).idup;
+                setTokenValue();
             else
             {
                 if (buffer[0] == 'r')
-                    current.value = (cast(char[]) buffer[2..bufferIndex - 1]).idup;
+					setTokenValue(bufferIndex - 1, 2);
                 else
-                    current.value = (cast(char[]) buffer[1..bufferIndex - 1]).idup;
+					setTokenValue(bufferIndex - 1, 1);
             }
         }
 
@@ -1250,9 +1227,9 @@ private:
         scope (exit)
         {
             if (config.tokenStyle & TokenStyle.includeQuotes)
-                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+                setTokenValue();
             else
-                current.value = (cast(char[]) buffer[3 .. bufferIndex - 2]).idup;
+				setTokenValue(bufferIndex - 2, 3);
         }
         while (true)
         {
@@ -1323,7 +1300,7 @@ private:
         scope(exit)
         {
             if (config.tokenStyle & TokenStyle.includeQuotes)
-                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+                setTokenValue();
             else
             {
                 size_t b = 2 + ident.length;
@@ -1332,8 +1309,7 @@ private:
                 size_t e = bufferIndex;
                 if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
                     --e;
-                stderr.writeln("b = ", b, " e = ", e);
-                current.value = (cast(char[]) buffer[b .. e]).idup;
+				setTokenValue(e, b);
             }
         }
 
@@ -1376,9 +1352,9 @@ private:
         scope (exit)
         {
             if (config.tokenStyle & TokenStyle.includeQuotes)
-                current.value = (cast(char[]) buffer[0 .. bufferIndex]).idup;
+                setTokenValue();
             else
-                current.value = (cast(char[]) buffer[2 .. bufferIndex - 1]).idup;
+                setTokenValue(bufferIndex - 1, 2);
         }
 
         keepChar();
@@ -1514,6 +1490,13 @@ private:
         }
     }
 
+	void setTokenValue(size_t endIndex = 0, size_t startIndex = 0)
+	{
+		if (endIndex == 0)
+			endIndex = bufferIndex;
+		current.value = cache.get(buffer[startIndex .. endIndex]);
+	}
+
     Token current;
     uint lineNumber;
     uint index;
@@ -1523,6 +1506,7 @@ private:
     ubyte[] buffer;
     size_t bufferIndex;
     LexerConfig config;
+	StringCache cache;
 }
 
 /**
@@ -1822,207 +1806,207 @@ private:
  * To avoid memory allocations Token.value is set to a slice of this string
  * for operators and keywords.
  */
-immutable string opKwdValues =
-      "#/=*=+=++-=--^^=~=<<=%==>>>=||=&&=,;:!<=!<>=!=!>=?...()[]{}@$"
-    ~ "boolcdoublecentcfloatcrealdchardstringfunctionidoubleifloatirealubyte"
-    ~ "ucentuintulongushortvoidwcharwstringaligndeprecatedexternpragmaexport"
-    ~ "packageprivateprotectedpublicabstractautoconstfinal__gsharedimmutable"
-    ~ "inoutscopesharedstaticsynchronizedaliasasmassertbodybreakcasecastcatch"
-    ~ "classcontinuedebugdefaultdelegatedeleteelseenumfalsefinally"
-    ~ "foreach_reversegotoimportinterfaceinvariantlazymacromixinmodule"
-    ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
-    ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
-    ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
-    ~ "FILE__LINE__";
+//immutable string opKwdValues =
+//      "#/=*=+=++-=--^^=~=<<=%==>>>=||=&&=,;:!<=!<>=!=!>=?...()[]{}@$"
+//    ~ "boolcdoublecentcfloatcrealdchardstringfunctionidoubleifloatirealubyte"
+//    ~ "ucentuintulongushortvoidwcharwstringaligndeprecatedexternpragmaexport"
+//    ~ "packageprivateprotectedpublicabstractautoconstfinal__gsharedimmutable"
+//    ~ "inoutscopesharedstaticsynchronizedaliasasmassertbodybreakcasecastcatch"
+//    ~ "classcontinuedebugdefaultdelegatedeleteelseenumfalsefinally"
+//    ~ "foreach_reversegotoimportinterfaceinvariantlazymacromixinmodule"
+//    ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
+//    ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
+//    ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
+//    ~ "FILE__LINE__";
 
 /*
  * Slices of the above string to save memory. This array is automatically
  * generated.
  */
-immutable(string[]) tokenValues = [
-	opKwdValues[2 .. 3], // =
-	opKwdValues[59 .. 60], // @
-	opKwdValues[31 .. 32], // &
-	opKwdValues[32 .. 34], // &=
-	opKwdValues[28 .. 29], // |
-	opKwdValues[29 .. 31], // |=
-	opKwdValues[16 .. 18], // ~=
-	opKwdValues[36 .. 37], // :
-	opKwdValues[34 .. 35], // ,
-	opKwdValues[11 .. 13], // --
-	opKwdValues[1 .. 2], // /
-	opKwdValues[1 .. 3], // /=
-	opKwdValues[60 .. 61], // $
-	opKwdValues[50 .. 51], // .
-	opKwdValues[22 .. 24], // ==
-	opKwdValues[23 .. 25], // =>
-	opKwdValues[24 .. 25], // >
-	opKwdValues[26 .. 28], // >=
-	opKwdValues[0 .. 1], // #
-	opKwdValues[7 .. 9], // ++
-	opKwdValues[57 .. 58], // {
-	opKwdValues[55 .. 56], // [
-	opKwdValues[18 .. 19], // <
-	opKwdValues[19 .. 21], // <=
-	opKwdValues[41 .. 44], // <>=
-	opKwdValues[41 .. 43], // <>
-	opKwdValues[31 .. 33], // &&
-	opKwdValues[28 .. 30], // ||
-	opKwdValues[53 .. 54], // (
-	opKwdValues[9 .. 10], // -
-	opKwdValues[9 .. 11], // -=
-	opKwdValues[21 .. 22], // %
-	opKwdValues[21 .. 23], // %=
-	opKwdValues[3 .. 5], // *=
-	opKwdValues[37 .. 38], // !
-	opKwdValues[44 .. 46], // !=
-	opKwdValues[46 .. 48], // !>
-	opKwdValues[46 .. 49], // !>=
-	opKwdValues[37 .. 39], // !<
-	opKwdValues[37 .. 40], // !<=
-	opKwdValues[40 .. 43], // !<>
-	opKwdValues[5 .. 6], // +
-	opKwdValues[5 .. 7], // +=
-	opKwdValues[13 .. 15], // ^^
-	opKwdValues[13 .. 16], // ^^=
-	opKwdValues[58 .. 59], // }
-	opKwdValues[56 .. 57], // ]
-	opKwdValues[54 .. 55], // )
-	opKwdValues[35 .. 36], // ;
-	opKwdValues[18 .. 20], // <<
-	opKwdValues[18 .. 21], // <<=
-	opKwdValues[24 .. 26], // >>
-	opKwdValues[25 .. 28], // >>=
-	opKwdValues[50 .. 52], // ..
-	opKwdValues[3 .. 4], // *
-	opKwdValues[49 .. 50], // ?
-	opKwdValues[16 .. 17], // ~
-	opKwdValues[40 .. 44], // !<>=
-	opKwdValues[24 .. 27], // >>>
-	opKwdValues[24 .. 28], // >>>=
-	opKwdValues[50 .. 53], // ...
-	opKwdValues[13 .. 14], // ^
-	opKwdValues[14 .. 16], // ^=
-	opKwdValues[61 .. 65], // bool
-	opKwdValues[126 .. 130], // byte
-	opKwdValues[65 .. 72], // cdouble
-	opKwdValues[72 .. 76], // cent
-	opKwdValues[76 .. 82], // cfloat
-	opKwdValues[88 .. 92], // char
-	opKwdValues[82 .. 87], // creal
-	opKwdValues[87 .. 92], // dchar
-	opKwdValues[66 .. 72], // double
-	opKwdValues[92 .. 99], // dstring
-	opKwdValues[77 .. 82], // float
-	opKwdValues[99 .. 107], // function
-	opKwdValues[107 .. 114], // idouble
-	opKwdValues[114 .. 120], // ifloat
-	opKwdValues[136 .. 139], // int
-	opKwdValues[120 .. 125], // ireal
-	opKwdValues[140 .. 144], // long
-	opKwdValues[83 .. 87], // real
-	opKwdValues[145 .. 150], // short
-	opKwdValues[93 .. 99], // string
-	opKwdValues[125 .. 130], // ubyte
-	opKwdValues[130 .. 135], // ucent
-	opKwdValues[135 .. 139], // uint
-	opKwdValues[139 .. 144], // ulong
-	opKwdValues[144 .. 150], // ushort
-	opKwdValues[150 .. 154], // void
-	opKwdValues[154 .. 159], // wchar
-	opKwdValues[159 .. 166], // wstring
-	opKwdValues[166 .. 171], // align
-	opKwdValues[171 .. 181], // deprecated
-	opKwdValues[181 .. 187], // extern
-	opKwdValues[187 .. 193], // pragma
-	opKwdValues[193 .. 199], // export
-	opKwdValues[199 .. 206], // package
-	opKwdValues[206 .. 213], // private
-	opKwdValues[213 .. 222], // protected
-	opKwdValues[222 .. 228], // public
-	opKwdValues[228 .. 236], // abstract
-	opKwdValues[236 .. 240], // auto
-	opKwdValues[240 .. 245], // const
-	opKwdValues[245 .. 250], // final
-	opKwdValues[250 .. 259], // __gshared
-	opKwdValues[259 .. 268], // immutable
-	opKwdValues[268 .. 273], // inout
-	opKwdValues[273 .. 278], // scope
-	opKwdValues[253 .. 259], // shared
-	opKwdValues[284 .. 290], // static
-	opKwdValues[290 .. 302], // synchronized
-	opKwdValues[302 .. 307], // alias
-	opKwdValues[307 .. 310], // asm
-	opKwdValues[310 .. 316], // assert
-	opKwdValues[316 .. 320], // body
-	opKwdValues[320 .. 325], // break
-	opKwdValues[325 .. 329], // case
-	opKwdValues[329 .. 333], // cast
-	opKwdValues[333 .. 338], // catch
-	opKwdValues[338 .. 343], // class
-	opKwdValues[343 .. 351], // continue
-	opKwdValues[351 .. 356], // debug
-	opKwdValues[356 .. 363], // default
-	opKwdValues[363 .. 371], // delegate
-	opKwdValues[371 .. 377], // delete
-	opKwdValues[66 .. 68], // do
-	opKwdValues[377 .. 381], // else
-	opKwdValues[381 .. 385], // enum
-	opKwdValues[385 .. 390], // false
-	opKwdValues[390 .. 397], // finally
-	opKwdValues[397 .. 404], // foreach
-	opKwdValues[397 .. 412], // foreach_reverse
-	opKwdValues[397 .. 400], // for
-	opKwdValues[412 .. 416], // goto
-	opKwdValues[114 .. 116], // if
-	opKwdValues[416 .. 422], // import
-	opKwdValues[96 .. 98], // in
-	opKwdValues[422 .. 431], // interface
-	opKwdValues[431 .. 440], // invariant
-	opKwdValues[522 .. 524], // is
-	opKwdValues[440 .. 444], // lazy
-	opKwdValues[444 .. 449], // macro
-	opKwdValues[449 .. 454], // mixin
-	opKwdValues[454 .. 460], // module
-	opKwdValues[460 .. 463], // new
-	opKwdValues[463 .. 470], // nothrow
-	opKwdValues[470 .. 474], // null
-	opKwdValues[270 .. 273], // out
-	opKwdValues[474 .. 482], // override
-	opKwdValues[482 .. 486], // pure
-	opKwdValues[486 .. 489], // ref
-	opKwdValues[489 .. 495], // return
-	opKwdValues[495 .. 501], // struct
-	opKwdValues[501 .. 506], // super
-	opKwdValues[506 .. 512], // switch
-	opKwdValues[512 .. 520], // template
-	opKwdValues[520 .. 524], // this
-	opKwdValues[465 .. 470], // throw
-	opKwdValues[524 .. 528], // true
-	opKwdValues[528 .. 531], // try
-	opKwdValues[531 .. 538], // typedef
-	opKwdValues[538 .. 544], // typeid
-	opKwdValues[544 .. 550], // typeof
-	opKwdValues[550 .. 555], // union
-	opKwdValues[555 .. 563], // unittest
-	opKwdValues[563 .. 570], // version
-	opKwdValues[570 .. 578], // volatile
-	opKwdValues[578 .. 583], // while
-	opKwdValues[583 .. 587], // with
-	opKwdValues[615 .. 623], // __DATE__
-	opKwdValues[621 .. 628], // __EOF__
-	opKwdValues[626 .. 634], // __TIME__
-	opKwdValues[632 .. 645], // __TIMESTAMP__
-	opKwdValues[643 .. 653], // __VENDOR__
-	opKwdValues[651 .. 662], // __VERSION__
-	opKwdValues[660 .. 668], // __FILE__
-	opKwdValues[666 .. 674], // __LINE__
+immutable(string[TokenType.max + 1]) tokenValues = [
+	"=",
+	"@",
+	"&",
+	"&=",
+	"|",
+	"|=",
+	"~=",
+	":",
+	",",
+	"--",
+	"/",
+	"/=",
+	"$",
+	".",
+	"==",
+	"=>",
+	">",
+	">=",
+	"#",
+	"++",
+	"{",
+	"[",
+	"<",
+	"<=",
+	"<>=",
+	"<>",
+	"&&",
+	"||",
+	"(",
+	"-",
+	"-=",
+	"%",
+	"%=",
+	"*=",
+	"!",
+	"!=",
+	"!>",
+	"!>=",
+	"!<",
+	"!<=",
+	"!<>",
+	"+",
+	"+=",
+	"^^",
+	"^^=",
+	"}",
+	"]",
+	")",
+	";",
+	"<<",
+	"<<=",
+	">>",
+	">>=",
+	"..",
+	"*",
+	"?",
+	"~",
+	"!<>=",
+	">>>",
+	">>>=",
+	"...",
+	"^",
+	"^=",
+	"bool",
+	"byte",
+	"cdouble",
+	"cent",
+	"cfloat",
+	"char",
+	"creal",
+	"dchar",
+	"double",
+	"dstring",
+	"float",
+	"function",
+	"idouble",
+	"ifloat",
+	"int",
+	"ireal",
+	"long",
+	"real",
+	"short",
+	"string",
+	"ubyte",
+	"ucent",
+	"uint",
+	"ulong",
+	"ushort",
+	"void",
+	"wchar",
+	"wstring",
+	"align",
+	"deprecated",
+	"extern",
+	"pragma",
+	"export",
+	"package",
+	"private",
+	"protected",
+	"public",
+	"abstract",
+	"auto",
+	"const",
+	"final",
+	"__gshared",
+	"immutable",
+	"inout",
+	"scope",
+	"shared",
+	"static",
+	"synchronized",
+	"alias",
+	"asm",
+	"assert",
+	"body",
+	"break",
+	"case",
+	"cast",
+	"catch",
+	"class",
+	"continue",
+	"debug",
+	"default",
+	"delegate",
+	"delete",
+	"do",
+	"else",
+	"enum",
+	"false",
+	"finally",
+	"foreach",
+	"foreach_reverse",
+	"for",
+	"goto",
+	"if",
+	"import",
+	"in",
+	"interface",
+	"invariant",
+	"is",
+	"lazy",
+	"macro",
+	"mixin",
+	"module",
+	"new",
+	"nothrow",
+	"null",
+	"out",
+	"override",
+	"pure",
+	"ref",
+	"return",
+	"struct",
+	"super",
+	"switch",
+	"template",
+	"this",
+	"throw",
+	"true",
+	"try",
+	"typedef",
+	"typeid",
+	"typeof",
+	"union",
+	"unittest",
+	"version",
+	"volatile",
+	"while",
+	"with",
+	"__DATE__",
+	"__EOF__",
+	"__TIME__",
+	"__TIMESTAMP__",
+	"__VENDOR__",
+	"__VERSION__",
+	"__FILE__",
+	"__LINE__",
 	null,
 	null,
 	null,
-	opKwdValues[587 .. 595], // __traits
-	opKwdValues[603 .. 615], // __parameters
-	opKwdValues[595 .. 603], // __vector
+	"__traits",
+	"__parameters",
+	"__vector",
 	null,
 	null,
 	null,
@@ -2475,6 +2459,66 @@ string generateCaseTrie(string[] args ...)
         t.add(args[i], args[i+1]);
     }
     return printCaseStatements(t, "");
+}
+
+struct StringCache
+{
+
+	void initialize()
+	{
+		pages.length = 1;
+	}
+
+	string get(ubyte[] bytes)
+	{
+
+		import std.stdio;
+		string* val = (cast(string) bytes) in index;
+		if (val !is null)
+		{
+			return *val;
+		}
+		else
+		{
+			auto s = insert(bytes);
+			index[s] = s;
+			return s;
+		}
+	}
+
+private:
+
+	immutable pageSize = 1024 * 1024;
+
+	string insert(ubyte[] bytes)
+	{
+		if (bytes.length >= pageSize)
+			assert(false);
+		size_t last = pages.length - 1;
+		Page* p = &(pages[last]);
+		size_t free = p.data.length - p.lastUsed;
+		if (free >= bytes.length)
+		{
+			p.data[p.lastUsed .. (p.lastUsed + bytes.length)] = bytes;
+			p.lastUsed += bytes.length;
+			return cast(immutable(char)[]) p.data[p.lastUsed - bytes.length .. p.lastUsed];
+		}
+		else
+		{
+			pages.length++;
+			pages[pages.length - 1].data[0 .. bytes.length] = bytes;
+			pages[pages.length - 1].lastUsed = bytes.length;
+			return cast(immutable(char)[]) pages[pages.length - 1].data[0 .. bytes.length];
+		}
+	}
+
+	struct Page
+	{
+		ubyte[pageSize] data;
+		size_t lastUsed;
+	}
+	Page[] pages;
+	string[string] index;
 }
 
 //void main(string[] args) {}

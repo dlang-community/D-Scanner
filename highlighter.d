@@ -17,13 +17,15 @@ void writeSpan(string cssClass, string value)
 
 
 // http://ethanschoonover.com/solarized
-void highlight(R)(R tokens)
+void highlight(R)(TokenRange!R tokens, string fileName)
 {
-	stdout.writeln(q"EOS
+	stdout.writeln(q"[
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>]");
+	stdout.writeln("<title>", fileName, "</title>");
+	stdout.writeln(q"[</head>
 <body>
 <style type="text/css">
 html  { background-color: #fdf6e3; color: #002b36; }
@@ -35,8 +37,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 .type { color: #268bd2; font-weight: bold;  }
 .cons { color: #859900; font-weight: bold;  }
 </style>
-<pre>
-EOS");
+<pre>]");
 
 	foreach (Token t; tokens)
 	{
