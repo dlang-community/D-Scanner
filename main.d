@@ -18,14 +18,7 @@ import std.stdio;
 import std.range;
 import std.d.lexer;
 
-import autocomplete;
 import highlighter;
-import langutils;
-import location;
-import parser;
-
-import types;
-import circularbuffer;
 
 immutable size_t CIRC_BUFF_SIZE = 4;
 
@@ -152,12 +145,12 @@ int main(string[] args)
 			{
 				config.fileName = arg;
 				uint count;
-				//GC.disable();
-				foreach(t; byToken(cast(ubyte[]) File(arg).byLine(KeepTerminator.yes).join(), config))
+                auto f = File(arg);
+                ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
+				foreach(t; byToken(f.rawRead(buffer), config))
 				{
 					++count;
 				}
-				//GC.enable();
 				writefln("%s: %d", arg, count);
 			}
 		/+}+/

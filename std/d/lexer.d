@@ -117,8 +117,6 @@ import std.exception;
 import std.range;
 import std.string;
 import std.traits;
-import std.uni;
-import std.utf;
 import std.regex;
 import std.container;
 
@@ -154,7 +152,7 @@ struct Token
      * The index of the start of the token in the original source.
      * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
      */
-    uint startIndex;
+    size_t startIndex;
 
     /**
      * Check to see if the token is of the same type and has the same string
@@ -288,7 +286,7 @@ struct LexerConfig
      * Parameters are file name, code uint index, line number, column,
      * and error messsage.
      */
-    void delegate(string, uint, uint, uint, string) errorFunc;
+    void delegate(string, size_t, uint, uint, string) errorFunc;
 
     /**
      * Initial size of the lexer's internal token buffer in bytes. The lexer
@@ -330,7 +328,7 @@ struct TokenRange(R) if (isForwardRange!(R))
     /**
      * Returns: the current token
      */
-    Token front() const @property
+    ref const(Token) front() const @property
     {
         enforce(!_empty, "Cannot call front() on empty token range");
         return current;
@@ -414,7 +412,7 @@ private:
     this(ref R range)
     {
         this.range = range;
-        buffer = new ubyte[config.bufferSize];
+        buffer = uninitializedArray!(ubyte[])(config.bufferSize);
 		cache.initialize();
     }
 
@@ -423,7 +421,7 @@ private:
      */
     void advance()
     {
-        if (range.empty)
+        if (isEoF())
         {
             _empty = true;
             return;
@@ -435,12 +433,13 @@ private:
         current.column = column;
         current.value = null;
 
-        if (std.ascii.isWhite(range.front))
+        if (isWhite(currentElement()))
         {
             lexWhitespace();
             return;
         }
-        outer: switch (range.front)
+
+        outer: switch (currentElement())
         {
 //        pragma(msg, generateCaseTrie(
         mixin(generateCaseTrie(
@@ -501,133 +500,18 @@ private:
             ">>>=",            "TokenType.unsignedShiftRightEqual",
             "^",               "TokenType.xor",
             "^=",              "TokenType.xorEquals",
-//			"bool",            "TokenType.bool_",
-//			"byte",            "TokenType.byte_",
-//			"cdouble",         "TokenType.cdouble_",
-//			"cent",            "TokenType.cent_",
-//			"cfloat",          "TokenType.cfloat_",
-//			"char",            "TokenType.char_",
-//			"creal",           "TokenType.creal_",
-//			"dchar",           "TokenType.dchar_",
-//			"double",          "TokenType.double_",
-//			"dstring",         "TokenType.dstring_",
-//			"float",           "TokenType.float_",
-//			"function",        "TokenType.function_",
-//			"idouble",         "TokenType.idouble_",
-//			"ifloat",          "TokenType.ifloat_",
-//			"int",             "TokenType.int_",
-//			"ireal",           "TokenType.ireal_",
-//			"long",            "TokenType.long_",
-//			"real",            "TokenType.real_",
-//			"short",           "TokenType.short_",
-//			"string",          "TokenType.string_",
-//			"ubyte",           "TokenType.ubyte_",
-//			"ucent",           "TokenType.ucent_",
-//			"uint",            "TokenType.uint_",
-//			"ulong",           "TokenType.ulong_",
-//			"ushort",          "TokenType.ushort_",
-//			"void",            "TokenType.void_",
-//			"wchar",           "TokenType.wchar_",
-//			"wstring",         "TokenType.wstring_",
-//			"align",           "TokenType.align_",
-//			"deprecated",      "TokenType.deprecated_",
-//			"extern",          "TokenType.extern_",
-//			"pragma",          "TokenType.pragma_",
-//			"export",          "TokenType.export_",
-//			"package",         "TokenType.package_",
-//			"private",         "TokenType.private_",
-//			"protected",       "TokenType.protected_",
-//			"public",          "TokenType.public_",
-//			"abstract",        "TokenType.abstract_",
-//			"auto",            "TokenType.auto_",
-//			"const",           "TokenType.const_",
-//			"final",           "TokenType.final_",
-//			"__gshared",       "TokenType.gshared",
-//			"immutable",       "TokenType.immutable_",
-//			"inout",           "TokenType.inout_",
-//			"scope",           "TokenType.scope_",
-//			"shared",          "TokenType.shared_",
-//			"static",          "TokenType.static_",
-//			"synchronized",    "TokenType.synchronized_",
-//			"alias",           "TokenType.alias_",
-//			"asm",             "TokenType.asm_",
-//			"assert",          "TokenType.assert_",
-//			"body",            "TokenType.body_",
-//			"break",           "TokenType.break_",
-//			"case",            "TokenType.case_",
-//			"cast",            "TokenType.cast_",
-//			"catch",           "TokenType.catch_",
-//			"class",           "TokenType.class_",
-//			"continue",        "TokenType.continue_",
-//			"debug",           "TokenType.debug_",
-//			"default",         "TokenType.default_",
-//			"delegate",        "TokenType.delegate_",
-//			"delete",          "TokenType.delete_",
-//			"do",              "TokenType.do_",
-//			"else",            "TokenType.else_",
-//			"enum",            "TokenType.enum_",
-//			"false",           "TokenType.false_",
-//			"finally",         "TokenType.finally_",
-//			"foreach",         "TokenType.foreach_",
-//			"foreach_reverse", "TokenType.foreach_reverse_",
-//			"for",             "TokenType.for_",
-//			"goto",            "TokenType.goto_",
-//			"if",              "TokenType.if_",
-//			"import",          "TokenType.import_",
-//			"in",              "TokenType.in_",
-//			"interface",       "TokenType.interface_",
-//			"invariant",       "TokenType.invariant_",
-//			"is",              "TokenType.is_",
-//			"lazy",            "TokenType.lazy_",
-//			"macro",           "TokenType.macro_",
-//			"mixin",           "TokenType.mixin_",
-//			"module",          "TokenType.module_",
-//			"new",             "TokenType.new_",
-//			"nothrow",         "TokenType.nothrow_",
-//			"null",            "TokenType.null_",
-//			"out",             "TokenType.out_",
-//			"override",        "TokenType.override_",
-//			"pure",            "TokenType.pure_",
-//			"ref",             "TokenType.ref_",
-//			"return",          "TokenType.return_",
-//			"struct",          "TokenType.struct_",
-//			"super",           "TokenType.super_",
-//			"switch",          "TokenType.switch_",
-//			"template",        "TokenType.template_",
-//			"this",            "TokenType.this_",
-//			"throw",           "TokenType.throw_",
-//			"true",            "TokenType.true_",
-//			"try",             "TokenType.try_",
-//			"typedef",         "TokenType.typedef_",
-//			"typeid",          "TokenType.typeid_",
-//			"typeof",          "TokenType.typeof_",
-//			"union",           "TokenType.union_",
-//			"unittest",        "TokenType.unittest_",
-//			"version",         "TokenType.version_",
-//			"volatile",        "TokenType.volatile_",
-//			"while",           "TokenType.while_",
-//			"with",            "TokenType.with_",
-//			"__DATE__",        "TokenType.date",
-//			"__EOF__",         "TokenType.eof",
-//			"__TIME__",        "TokenType.time",
-//			"__TIMESTAMP__",   "TokenType.timestamp",
-//			"__VENDOR__",      "TokenType.vendor",
-//			"__VERSION__",     "TokenType.compilerVersion",
-//			"__FILE__",        "TokenType.file",
-//			"__LINE__",        "TokenType.line",
-//			"__traits",        "TokenType.traits",
-//			"__parameters",    "TokenType.parameters",
-//			"__vector",        "TokenType.vector",
         ));
         case '/':
-            auto r = range.save();
+            static if (isArray!R)
+                auto r = range[index .. $];
+            else
+                auto r = range.save();
             r.popFront();
-            if (r.isEoF())
+            if (r.isRangeEoF())
             {
                 current.type = TokenType.div;
                 current.value = "/";
-                range.popFront();
-                ++index;
+                advanceRange();
                 break;
             }
             switch (r.front)
@@ -636,30 +520,30 @@ private:
             case '*':
             case '+':
                 lexComment();
-                break outer;
+                return;
             case '=':
                 current.type = TokenType.divEquals;
                 current.value = "/=";
-                range.popFront();
-                range.popFront();
-                index += 2;
-                break outer;
+                advanceRange();
+                advanceRange();
+                return;
             default:
                 current.type = TokenType.div;
                 current.value = "/";
-                ++index;
-                range.popFront();
-                break outer;
+                advanceRange();
+                return;
             }
         case '.':
-            auto r = range.save();
+            static if (isArray!R)
+                auto r = range[index .. $];
+            else
+                auto r = range.save();
             r.popFront();
-            if (r.isEoF())
+            if (r.isRangeEoF())
             {
                 current.type = TokenType.dot;
                 current.value = getTokenValue(TokenType.dot);
-                range.popFront();
-                ++index;
+                advanceRange();
                 break outer;
             }
             else if (r.front >= '0' && r.front <= '9')
@@ -674,23 +558,20 @@ private:
                 if (r.front == '.')
                 {
                     current.type = TokenType.vararg;
-                    range.popFront();
-                    range.popFront();
-                    range.popFront();
-                    index += 3;
+                    advanceRange();
+                    advanceRange();
+                    advanceRange();
                 }
                 else
                 {
-
-                    range.popFront();
-                    range.popFront();
-                    index += 2;
+                    advanceRange();
+                    advanceRange();
                 }
                 current.value = getTokenValue(current.type);
             }
             else
             {
-                range.popFront();
+                advanceRange();
                 current.type = TokenType.dot;
                 current.value = getTokenValue(TokenType.dot);
             }
@@ -704,14 +585,17 @@ private:
             lexString();
             break;
         case 'q':
-            auto r = range.save;
+            static if (isArray!R)
+                auto r = range[index .. $];
+            else
+                auto r = range.save();
             r.popFront();
-            if (!r.isEoF() && r.front == '{')
+            if (!r.isRangeEoF() && r.front == '{')
             {
                 lexTokenString();
                 break;
             }
-            else if (!r.isEoF() && r.front == '"')
+            else if (!r.isRangeEoF() && r.front == '"')
             {
                 lexDelimitedString();
                 break;
@@ -719,9 +603,12 @@ private:
             else
                 goto default;
         case 'r':
-            auto r = range.save();
+            static if (isArray!R)
+                auto r = range[index .. $];
+            else
+                auto r = range.save();
             r.popFront();
-            if (!r.isEoF() && r.front == '"')
+            if (!r.isRangeEoF() && r.front == '"')
             {
                 lexString();
                 break;
@@ -729,9 +616,12 @@ private:
             else
                 goto default;
         case 'x':
-            auto r = range.save();
+            static if (isArray!R)
+                auto r = range[index .. $];
+            else
+                auto r = range.save();
             r.popFront();
-            if (!r.isEoF() && r.front == '"')
+            if (!r.isRangeEoF() && r.front == '"')
             {
                 lexHexString();
                 break;
@@ -742,9 +632,9 @@ private:
             lexSpecialTokenSequence();
             break;
         default:
-            while(!range.isEoF() && !isSeparating(range.front))
+            while(!isEoF() && !isSeparating(currentElement()))
             {
-                keepChar();
+                keepNonNewlineChar();
             }
 
             current.type = lookupTokenType(cast(char[]) buffer[0 .. bufferIndex]);
@@ -807,7 +697,7 @@ private:
     void lexWhitespace()
     {
         current.type = TokenType.whitespace;
-        while (!isEoF(range) && std.ascii.isWhite(range.front))
+        while (!isEoF() && isWhite(currentElement()))
         {
             keepChar();
         }
@@ -818,27 +708,27 @@ private:
     void lexComment()
     in
     {
-        assert (range.front == '/');
+        assert (currentElement() == '/');
     }
     body
     {
         current.type = TokenType.comment;
         keepChar();
-        switch(range.front)
+        switch(currentElement())
         {
         case '/':
-            while (!isEoF(range) && !isNewline(range))
+            while (!isEoF() && !isNewline(currentElement()))
             {
                 keepChar();
             }
             break;
         case '*':
-            while (!isEoF(range))
+            while (!isEoF())
             {
-                if (range.front == '*')
+                if (currentElement() == '*')
                 {
                     keepChar();
-                    if (range.front == '/')
+                    if (currentElement() == '/')
                     {
                         keepChar();
                         break;
@@ -850,21 +740,21 @@ private:
             break;
         case '+':
             int depth = 1;
-            while (depth > 0 && !isEoF(range))
+            while (depth > 0 && !isEoF())
             {
-                if (range.front == '+')
+                if (currentElement() == '+')
                 {
                     keepChar();
-                    if (range.front == '/')
+                    if (currentElement() == '/')
                     {
                         keepChar();
                         --depth;
                     }
                 }
-                else if (range.front == '/')
+                else if (currentElement() == '/')
                 {
                     keepChar();
-                    if (range.front == '+')
+                    if (currentElement() == '+')
                     {
                         keepChar();
                         ++depth;
@@ -884,7 +774,7 @@ private:
     void lexHexString()
     in
     {
-        assert (range.front == 'x');
+        assert (currentElement() == 'x');
     }
     body
     {
@@ -893,20 +783,20 @@ private:
 		keepChar();
         while (true)
         {
-            if (range.isEoF())
+            if (isEoF())
             {
                 errorMessage("Unterminated hex string literal");
                 return;
             }
-            else if (isHexDigit(range.front))
+            else if (isHexDigit(currentElement()))
             {
                 keepChar();
             }
-            else if (std.ascii.isWhite(range.front) && (config.tokenStyle & TokenStyle.notEscaped))
+            else if (isWhite(currentElement()) && (config.tokenStyle & TokenStyle.notEscaped))
             {
                 keepChar();
             }
-            else if (range.front == '"')
+            else if (currentElement() == '"')
             {
                 keepChar();
                 break;
@@ -914,7 +804,7 @@ private:
             else
             {
                 errorMessage(format("Invalid character '%s' in hex string literal",
-                    cast(char) range.front));
+                    cast(char) currentElement()));
 				return;
             }
         }
@@ -941,16 +831,19 @@ private:
     void lexNumber()
     in
     {
-        assert(isDigit(cast(char) range.front) || range.front == '.');
+        assert(isDigit(cast(char) currentElement()) || currentElement() == '.');
     }
     body
     {
         // hex and binary can start with zero, anything else is decimal
-        if (range.front != '0')
+        if (currentElement() != '0')
             lexDecimal();
         else
         {
-            auto r = range.save();
+            static if (isArray!R)
+                auto r = range[index .. $];
+            else
+                auto r = range.save();
             r.popFront();
             switch (r.front)
             {
@@ -975,7 +868,7 @@ private:
 
     void lexFloatSuffix()
     {
-        switch (range.front)
+        switch (currentElement())
         {
         case 'L':
             keepChar();
@@ -989,7 +882,7 @@ private:
         default:
             break;
         }
-        if (!range.isEoF() && range.front == 'i')
+        if (!isEoF() && currentElement() == 'i')
         {
             keepChar();
             if (current.type == TokenType.floatLiteral)
@@ -1003,9 +896,9 @@ private:
     {
         bool foundU;
         bool foundL;
-        while (!range.isEoF())
+        while (!isEoF())
         {
-            switch (range.front)
+            switch (currentElement())
             {
             case 'u':
             case 'U':
@@ -1053,16 +946,16 @@ private:
     void lexExponent()
     in
     {
-        assert (range.front == 'e' || range.front == 'E' || range.front == 'p'
-            || range.front == 'P');
+        assert (currentElement() == 'e' || currentElement() == 'E' || currentElement() == 'p'
+            || currentElement() == 'P');
     }
     body
     {
         keepChar();
         bool foundSign = false;
-        while (!range.isEoF())
+        while (!isEoF())
         {
-            switch (range.front)
+            switch (currentElement())
             {
             case '-':
             case '+':
@@ -1089,16 +982,16 @@ private:
     void lexDecimal()
     in
     {
-        assert ((range.front >= '0' && range.front <= '9') || range.front == '.');
+        assert ((currentElement() >= '0' && currentElement() <= '9') || currentElement() == '.');
     }
     body
     {
         bool foundDot = false;
         current.type = TokenType.intLiteral;
         scope(exit) setTokenValue();
-        decimalLoop: while (!range.isEoF())
+        decimalLoop: while (!isEoF())
         {
-            switch (range.front)
+            switch (currentElement())
             {
             case '0': .. case '9':
             case '_':
@@ -1125,9 +1018,12 @@ private:
                 lexExponent();
                 return;
             case '.':
-                auto r = range.save();
+                static if (isArray!R)
+                    auto r = range[index .. $];
+                else
+                    auto r = range.save();
                 r.popFront();
-                if (!r.isEoF() && r.front == '.')
+                if (!r.isRangeEoF() && r.front == '.')
                     break decimalLoop; // possibly slice expression
                 if (foundDot)
                     break decimalLoop; // two dots with other characters between them
@@ -1146,9 +1042,9 @@ private:
     {
         current.type = TokenType.intLiteral;
         scope(exit) setTokenValue();
-        binaryLoop: while (!range.isEoF())
+        binaryLoop: while (!isEoF())
         {
-            switch (range.front)
+            switch (currentElement())
             {
             case '0':
             case '1':
@@ -1171,9 +1067,9 @@ private:
         current.type = TokenType.intLiteral;
         scope(exit) setTokenValue();
         bool foundDot;
-        hexLoop: while (!range.isEoF())
+        hexLoop: while (!isEoF())
         {
-            switch (range.front)
+            switch (currentElement())
             {
             case 'a': .. case 'f':
             case 'A': .. case 'F':
@@ -1198,9 +1094,12 @@ private:
                 lexExponent();
                 return;
             case '.':
-                auto r = range.save();
+                static if (isArray!R)
+                    auto r = range[index .. $];
+                else
+                    auto r = range.save();
                 r.popFront();
-                if (!r.isEoF() && r.front == '.')
+                if (!r.isRangeEoF() && r.front == '.')
                     break hexLoop; // slice expression
                 if (foundDot)
                     break hexLoop; // two dots with other characters between them
@@ -1217,9 +1116,9 @@ private:
     void lexStringSuffix()
     {
         current.type = TokenType.stringLiteral;
-        if (!range.isEoF())
+        if (!isEoF())
         {
-            switch (range.front)
+            switch (currentElement())
             {
             case 'w':
                 current.type = TokenType.wstringLiteral;
@@ -1239,13 +1138,13 @@ private:
     void lexString()
     in
     {
-        assert (range.front == '\'' || range.front == '"' || range.front == '`' || range.front == 'r');
+        assert (currentElement() == '\'' || currentElement() == '"' || currentElement() == '`' || currentElement() == 'r');
     }
     body
     {
         current.type = TokenType.stringLiteral;
-        bool isWysiwyg = range.front == 'r' || range.front == '`';
-        if (range.front == 'r')
+        bool isWysiwyg = currentElement() == 'r' || currentElement() == '`';
+        if (currentElement() == 'r')
             keepChar();
 
         scope (exit)
@@ -1261,38 +1160,36 @@ private:
             }
         }
 
-        auto quote = range.front;
+        auto quote = currentElement();
         keepChar();
         while (true)
         {
-            if (range.isEoF())
+            if (isEoF())
             {
                 errorMessage("Unterminated string literal");
                 return;
             }
-            else if (range.front == '\\' && !isWysiwyg)
+            else if (currentElement() == '\\' && !isWysiwyg)
             {
-                if (config.tokenStyle & TokenStyle.notEscaped)
-                {
+                static if (isArray!R)
+                    auto r = range[index .. $];
+                else
                     auto r = range.save();
-                    r.popFront();
-                    if (r.front == quote && !isWysiwyg)
-                    {
-                        keepChar();
-                        keepChar();
-                    }
-                    else if (r.front == '\\' && !isWysiwyg)
-                    {
-                        keepChar();
-                        keepChar();
-                    }
-                    else
-                        keepChar();
+                r.popFront();
+                if (r.front == quote && !isWysiwyg)
+                {
+                    keepChar();
+                    keepChar();
+                }
+                else if (r.front == '\\' && !isWysiwyg)
+                {
+                    keepChar();
+                    keepChar();
                 }
                 else
-                    interpretEscapeSequence(range, index, buffer, bufferIndex);
+                    keepChar();
             }
-            else if (range.front == quote)
+            else if (currentElement() == quote)
             {
                 keepChar();
                 break;
@@ -1306,7 +1203,7 @@ private:
     void lexDelimitedString()
     in
     {
-        assert(range.front == 'q');
+        assert(currentElement() == 'q');
     }
     body
     {
@@ -1319,7 +1216,7 @@ private:
         ubyte open;
         ubyte close;
 
-        switch (range.front)
+        switch (currentElement())
         {
         case '[': open = '['; close = ']'; break;
         case '{': open = '{'; close = '}'; break;
@@ -1352,20 +1249,23 @@ private:
         }
         while (true)
         {
-            if (range.isEoF())
+            if (isEoF())
                 errorMessage("Unterminated string literal");
-            if (range.front == open)
+            if (currentElement() == open)
             {
                 keepChar();
                 ++depth;
             }
-            else if (range.front == close)
+            else if (currentElement() == close)
             {
                 keepChar();
                 --depth;
                 if (depth <= 0)
                 {
-                    auto r = range.save();
+                    static if (isArray!R)
+                        auto r = range[index .. $];
+                    else
+                        auto r = range.save();
                     if (r.front == '"')
                     {
                         keepChar();
@@ -1396,17 +1296,17 @@ private:
         auto i = bufferIndex;
         while (true)
         {
-            if (range.isEoF())
+            if (isEoF())
             {
                 errorMessage("Unterminated string literal");
                 return;
             }
-            else if (isNewline(range))
+            else if (isNewline(currentElement()))
             {
                 keepChar();
                 break;
             }
-            else if (isSeparating(range.front))
+            else if (isSeparating(currentElement()))
             {
                 errorMessage("Unterminated string literal - Separating");
                 return;
@@ -1434,14 +1334,14 @@ private:
 
         while (true)
         {
-            if (range.isEoF())
+            if (isEoF())
             {
                 errorMessage("Unterminated string literal -- a");
                 return;
             }
             else if (buffer[bufferIndex - ident.length .. bufferIndex] == ident)
             {
-                if (range.front == '"')
+                if (currentElement() == '"')
                 {
                     keepChar();
                     lexStringSuffix();
@@ -1461,80 +1361,70 @@ private:
     void lexTokenString()
     in
     {
-        assert (range.front == 'q');
+        assert (currentElement() == 'q');
     }
     body
     {
         current.type = TokenType.stringLiteral;
-        size_t i;
-
-        scope (exit)
-        {
-            if (config.tokenStyle & TokenStyle.includeQuotes)
-                setTokenValue();
-            else
-                setTokenValue(bufferIndex - 1, 2);
-        }
-
         keepChar();
         keepChar();
-
-        LexerConfig c;
-        c.iterStyle = IterationStyle.everything;
-        c.tokenStyle = TokenStyle.source;
-
-        auto r = byToken(range, c);
-        r.index = index;
+        LexerConfig c = config;
+        config.iterStyle = IterationStyle.everything;
+        config.tokenStyle = TokenStyle.source;
+        size_t bi;
+        ubyte[] b = uninitializedArray!(ubyte[])(1024 * 4);
         int depth = 1;
-        while (!r.empty)
+        while (!isEoF())
         {
-            if (r.front.type == TokenType.lBrace)
-            {
+            advance();
+            while (bi + current.value.length >= b.length)
+                b.length += 1024 * 4;
+            b[bi .. bi + current.value.length] = cast(ubyte[]) current.value;
+            bi += current.value.length;
+            if (current.type == TokenType.lBrace)
                 ++depth;
-            }
-            else if (r.front.type == TokenType.rBrace)
+            else if (current.type == TokenType.rBrace)
             {
                 --depth;
                 if (depth <= 0)
-                {
-                    if (config.tokenStyle & TokenStyle.includeQuotes)
-                    {
-                        if (bufferIndex >= buffer.length)
-                            buffer.length += 1024;
-                        buffer[bufferIndex++] = '}';
-                    }
-                    r.popFront();
                     break;
-                }
             }
-            if (bufferIndex + r.front.value.length > buffer.length)
-                buffer.length += 1024;
-            buffer[bufferIndex .. bufferIndex + r.front.value.length] = cast(ubyte[]) r.front.value;
-            bufferIndex += r.front.value.length;
-            r.popFront();
         }
+        config = c;
+        buffer[0] = 'q';
+        buffer[1] = '{';
+        buffer[2 .. bi] = b[0 .. bi];
+        buffer[bi++] = '}';
+        bufferIndex = bi;
+        if (config.tokenStyle & TokenStyle.includeQuotes)
+            setTokenValue();
+        else
+            setTokenValue(bufferIndex - 1, 2);
         lexStringSuffix();
     }
 
     void lexSpecialTokenSequence()
     in
     {
-        assert (range.front == '#');
+        assert (currentElement() == '#');
     }
     body
     {
         keepChar();
-        auto r = range.save();
+        static if (isArray!R)
+            auto r = range[index .. $];
+        else
+            auto r = range.save();
         auto app = appender!(ubyte[])();
         app.put('#');
         while (true)
         {
-            if (r.isEoF())
+            if (r.isRangeEoF())
             {
                 errorMessage("Found EOF when interpreting special token sequence");
                 return;
             }
-            else if (isNewline(r))
+            else if (isNewline(r.front))
                 break;
             else
             {
@@ -1549,8 +1439,8 @@ private:
             current.type = TokenType.specialTokenSequence;
             current.value = (cast(char[]) app.data).idup;
             column += app.data.length;
-            index += app.data.length;
-            range.popFrontN(app.data.length);
+            foreach (i; 0 .. app.data.length)
+                advanceRange();
             auto c = m.captures;
             if (c["filespec"])
                 config.fileName = c["filespec"].idup;
@@ -1576,30 +1466,62 @@ private:
                 current.column, s);
     }
 
+    void keepNonNewlineChar()
+    {
+        if (bufferIndex + 2 >= buffer.length)
+            buffer.length += (1024 * 4);
+        static if (isArray!R)
+            buffer[bufferIndex++] = range[index++];
+        else
+        {
+            buffer[bufferIndex++] = currentElement();
+            advanceRange();
+        }
+        ++column;
+    }
+
     void keepChar()
     {
         if (bufferIndex + 2 >= buffer.length)
-            buffer.length += 1024;
+            buffer.length += (1024 * 4);
         bool foundNewline;
-        if (range.front == '\r')
+        if (currentElement() == '\r')
         {
-            buffer[bufferIndex++] = range.front;
-            range.popFront();
-            ++index;
+            static if (isArray!R)
+            {
+                buffer[bufferIndex++] = range[index++];
+            }
+            else
+            {
+                buffer[bufferIndex++] = currentElement();
+                advanceRange();
+            }
             foundNewline = true;
         }
-        if (range.front == '\n')
+        if (currentElement() == '\n')
         {
-            buffer[bufferIndex++] = range.front;
-            range.popFront();
-            ++index;
+            static if (isArray!R)
+            {
+                buffer[bufferIndex++] = range[index++];
+            }
+            else
+            {
+                buffer[bufferIndex++] = currentElement();
+                advanceRange();
+            }
             foundNewline = true;
         }
         else
         {
-            buffer[bufferIndex++] = range.front;
-            range.popFront();
-            ++index;
+            static if (isArray!R)
+            {
+                buffer[bufferIndex++] = range[index++];
+            }
+            else
+            {
+                buffer[bufferIndex++] = currentElement();
+                advanceRange();
+            }
             ++column;
         }
         if (foundNewline)
@@ -1609,6 +1531,22 @@ private:
         }
     }
 
+    ElementType!R currentElement()
+    {
+        assert (index < range.length, "%d, %d".format(index, range.length));
+        static if (isArray!R)
+            return range[index];
+        else
+            return range.front;
+    }
+
+    void advanceRange()
+    {
+        static if (!isArray!R)
+            range.popFront();
+        ++index;
+    }
+
 	void setTokenValue(size_t endIndex = 0, size_t startIndex = 0)
 	{
 		if (endIndex == 0)
@@ -1616,9 +1554,21 @@ private:
 		current.value = cache.get(buffer[startIndex .. endIndex]);
 	}
 
+    bool isEoF()
+    {
+        static if (isArray!R)
+        {
+//            import std.stdio;
+//            stderr.writefln("%d %d", index, range.length);
+            return index >= range.length || range[index] == 0 || range[index] == 0x1a;
+        }
+        else
+            return range.empty || range.front == 0 || range.front == 0x1a;
+    }
+
     Token current;
     uint lineNumber;
-    uint index;
+    size_t index;
     uint column;
     R range;
     bool _empty;
@@ -1649,7 +1599,7 @@ pure nothrow bool isKeyword(const TokenType t)
  */
 pure nothrow bool isType(const TokenType t)
 {
-    return t >= TokenType.bool_ && t <= TokenType.wstring_;
+    return t >= TokenType.bool_ && t <= TokenType.wchar_;
 }
 
 /**
@@ -1787,7 +1737,6 @@ enum TokenType: ushort
     creal_, /// $(D_KEYWORD creal)
     dchar_, /// $(D_KEYWORD dchar)
     double_, /// $(D_KEYWORD double)
-    dstring_, /// $(D_KEYWORD dstring)
     float_, /// $(D_KEYWORD float)
     function_, /// $(D_KEYWORD function)
     idouble_, /// $(D_KEYWORD idouble)
@@ -1797,7 +1746,6 @@ enum TokenType: ushort
     long_, /// $(D_KEYWORD long)
     real_, /// $(D_KEYWORD real)
     short_, /// $(D_KEYWORD short)
-    string_, /// $(D_KEYWORD string)
     ubyte_, /// $(D_KEYWORD ubyte)
     ucent_, /// $(D_KEYWORD ucent)
     uint_, /// $(D_KEYWORD uint)
@@ -1805,7 +1753,6 @@ enum TokenType: ushort
     ushort_, /// $(D_KEYWORD ushort)
     void_, /// $(D_KEYWORD void)
     wchar_, /// $(D_KEYWORD wchar)
-    wstring_, /// $(D_KEYWORD wstring)
 
     align_, /// $(D_KEYWORD align)
     deprecated_, /// $(D_KEYWORD deprecated)
@@ -1921,22 +1868,10 @@ enum TokenType: ushort
 // Implementation details follow
 private:
 
-/*
- * To avoid memory allocations Token.value is set to a slice of this string
- * for operators and keywords.
- */
-//immutable string opKwdValues =
-//      "#/=*=+=++-=--^^=~=<<=%==>>>=||=&&=,;:!<=!<>=!=!>=?...()[]{}@$"
-//    ~ "boolcdoublecentcfloatcrealdchardstringfunctionidoubleifloatirealubyte"
-//    ~ "ucentuintulongushortvoidwcharwstringaligndeprecatedexternpragmaexport"
-//    ~ "packageprivateprotectedpublicabstractautoconstfinal__gsharedimmutable"
-//    ~ "inoutscopesharedstaticsynchronizedaliasasmassertbodybreakcasecastcatch"
-//    ~ "classcontinuedebugdefaultdelegatedeleteelseenumfalsefinally"
-//    ~ "foreach_reversegotoimportinterfaceinvariantlazymacromixinmodule"
-//    ~ "newnothrownulloverridepurerefreturnstructsuperswitchtemplatethistruetry"
-//    ~ "typedeftypeidtypeofunionunittestversionvolatilewhilewith__traits"
-//    ~ "__vector__parameters__DATE__EOF__TIME__TIMESTAMP__VENDOR__VERSION__"
-//    ~ "FILE__LINE__";
+pure nothrow bool isRangeEoF(R)(ref R range)
+{
+    return range.empty || range.front == 0 || range.front == 0x1a;
+}
 
 /*
  * Slices of the above string to save memory. This array is automatically
@@ -2015,7 +1950,6 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	"creal",
 	"dchar",
 	"double",
-	"dstring",
 	"float",
 	"function",
 	"idouble",
@@ -2025,7 +1959,6 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	"long",
 	"real",
 	"short",
-	"string",
 	"ubyte",
 	"ucent",
 	"uint",
@@ -2033,7 +1966,6 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	"ushort",
 	"void",
 	"wchar",
-	"wstring",
 	"align",
 	"deprecated",
 	"extern",
@@ -2148,135 +2080,19 @@ pure string getTokenValue(const TokenType type)
     return tokenValues[type];
 }
 
-private pure bool isNewline(R)(R range)
+private pure bool isNewline(ubyte ch)
 {
-    return range.front == '\n' || range.front == '\r';
-}
-
-pure bool isEoF(R)(R range)
-{
-    return range.empty || range.front == 0 || range.front == 0x1a;
-}
-
-ubyte[] popDigitChars(R, alias isInterestingDigit)(ref R input, ref uint index,
-    uint upTo) if (isForwardRange!R)
-{
-    ubyte[] chars;
-    chars.reserve(upTo);
-    for (uint i = 0; i != upTo; ++i)
-    {
-        if (isInterestingDigit(input.front))
-        {
-            chars ~= input.front;
-            input.popFront();
-        }
-        else
-            break;
-    }
-    return chars;
-}
-
-ubyte[] popHexChars(R)(ref R input, ref uint index, uint upTo)
-{
-    return popDigitChars!(R, isHexDigit)(input, index, upTo);
-}
-
-ubyte[] popOctalChars(R)(ref R input, ref uint index, uint upTo)
-{
-    return popDigitChars!(R, isOctalDigit)(input, index, upTo);
-}
-
-void interpretEscapeSequence(R)(ref R input, ref uint index, ref ubyte[] buffer,
-    ref size_t i) if (isForwardRange!R)
-in
-{
-    assert(input.front == '\\');
-}
-body
-{
-    input.popFront();
-    short h = 0;
-    switch (input.front)
-    {
-    case '\'':
-    case '\"':
-    case '?':
-    case '\\':
-    case 0:
-    case 0x1a:
-        auto f = input.front;
-        input.popFront();
-        ++index;
-        auto s = to!string(cast(char) f);
-        buffer[i .. i + s.length] = cast(ubyte[]) s;
-        return;
-    case 'a': input.popFront(); ++index; buffer[i++] = '\a'; return;
-    case 'b': input.popFront(); ++index; buffer[i++] = '\b'; return;
-    case 'f': input.popFront(); ++index; buffer[i++] = '\f'; return;
-    case 'n': input.popFront(); ++index; buffer[i++] = '\n'; return;
-    case 'r': input.popFront(); ++index; buffer[i++] = '\r'; return;
-    case 't': input.popFront(); ++index; buffer[i++] = '\t'; return;
-    case 'v': input.popFront(); ++index; buffer[i++] = '\v'; return;
-    case 'x': h = 2; goto hex;
-    case 'u': h = 4; goto hex;
-    case 'U': h = 8; goto hex;
-    case '0': .. case '7':
-        auto octalChars = cast(char[]) popOctalChars(input, index, 3);
-        char[4] b;
-        auto n = encode(b, cast(dchar) parse!uint(octalChars, 8));
-        buffer[i .. i + n] = cast(ubyte[]) b[0 .. n];
-        i += n;
-        return;
-    case '&':
-        input.popFront();
-        ++index;
-        auto entity = appender!(ubyte[])();
-        while (!input.isEoF() && input.front != ';')
-        {
-            entity.put(input.front);
-            input.popFront();
-            ++index;
-        }
-        if (!isEoF(input))
-        {
-            auto decoded = to!string(cast(char[]) entity.data) in characterEntities;
-            input.popFront();
-            ++index;
-            if (decoded !is null)
-            {
-                buffer[i .. i + decoded.length] = cast(ubyte[]) *decoded;
-                i += decoded.length;
-            }
-        }
-        return;
-    default:
-        input.popFront();
-        ++index;
-        // This is an error
-        buffer[i++] = '\\';
-        return;
-    }
-
-hex:
-    input.popFront();
-    auto hexChars = cast(char[]) popHexChars(input, index, h);
-    char[4] b;
-    auto n = encode(b, cast(dchar) parse!uint(hexChars, 16));
-    buffer[i .. i + n] = cast(ubyte[]) b[0 .. n];
-    i += n;
-    return;
+    return ch == '\n' || ch == '\r';
 }
 
 pure nothrow bool isSeparating(ubyte ch)
 {
-    return (ch >= '!' && ch <= '/')
-        || (ch >= ':' && ch <= '@')
-        || (ch >= '[' && ch <= '^')
-        || (ch >= '{' && ch <= '~')
-        || ch == '`'
-        || ch == 0x20
-        || ch == 0x09
-        || ch == 0x0a;
+    if (ch <= 0x2f) return true;
+    if (ch >= ':' && ch <= '@') return true;
+    if (ch >= '[' && ch <= '^') return true;
+    if (ch >= '{' && ch <= '~') return true;
+    if (ch == '`') return true;
+    return false;
 }
 
 pure nothrow TokenType lookupTokenType(const const(char)[] input)
@@ -2382,7 +2198,6 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
         case "return": return TokenType.return_;
         case "shared": return TokenType.shared_;
         case "static": return TokenType.static_;
-        case "string": return TokenType.string_;
         case "struct": return TokenType.struct_;
         case "switch": return TokenType.switch_;
         case "typeid": return TokenType.typeid_;
@@ -2397,7 +2212,6 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
         case "__EOF__": return TokenType.eof;
         case "cdouble": return TokenType.cdouble_;
         case "default": return TokenType.default_;
-        case "dstring": return TokenType.dstring_;
         case "finally": return TokenType.finally_;
         case "foreach": return TokenType.foreach_;
         case "idouble": return TokenType.idouble_;
@@ -2406,7 +2220,6 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
         case "private": return TokenType.private_;
         case "typedef": return TokenType.typedef_;
         case "version": return TokenType.version_;
-        case "wstring": return TokenType.wstring_;
         default: break;
         }
         break;
@@ -2507,17 +2320,12 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
         caseStatement ~= "case '";
         caseStatement ~= k;
         caseStatement ~= "':\n";
-        if (indentString == "")
-        {
-            caseStatement ~= indentString;
-            caseStatement ~= "\tsize_t i = 0;\n";
-        }
         caseStatement ~= indentString;
-        caseStatement ~= "\tkeepChar();\n";
+        caseStatement ~= "\tkeepNonNewlineChar();\n";
         if (v.children.length > 0)
         {
             caseStatement ~= indentString;
-            caseStatement ~= "\tif (range.isEoF())\n";
+            caseStatement ~= "\tif (isEoF())\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t{\n";
             caseStatement ~= indentString;
@@ -2601,7 +2409,7 @@ struct StringCache
 
 private:
 
-	immutable pageSize = 1024 * 1024;
+	immutable pageSize = 1024 * 256;
 
 	string insert(ubyte[] bytes)
 	{
@@ -2627,7 +2435,7 @@ private:
 
 	struct Page
 	{
-		ubyte[pageSize] data;
+		ubyte[pageSize] data = void;
 		size_t lastUsed;
 	}
 	Page[] pages;
