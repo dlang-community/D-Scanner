@@ -412,8 +412,7 @@ private:
     this(ref R range)
     {
         this.range = range;
-        buffer = uninitializedArray!(ubyte[])(config.bufferSize);
-		cache.initialize();
+        buffer = uninitializedArray!(ubyte[])(bufferSize);
     }
 
     /*
@@ -512,7 +511,7 @@ private:
                 current.type = TokenType.div;
                 current.value = "/";
                 advanceRange();
-                break;
+                return;
             }
             switch (r.front)
             {
@@ -544,12 +543,12 @@ private:
                 current.type = TokenType.dot;
                 current.value = getTokenValue(TokenType.dot);
                 advanceRange();
-                break outer;
+                return;
             }
             else if (r.front >= '0' && r.front <= '9')
             {
                 lexNumber();
-                break outer;
+                return;
             }
             else if (r.front == '.')
             {
@@ -568,22 +567,23 @@ private:
                     advanceRange();
                 }
                 current.value = getTokenValue(current.type);
+                return;
             }
             else
             {
                 advanceRange();
                 current.type = TokenType.dot;
                 current.value = getTokenValue(TokenType.dot);
+                return;
             }
-            break;
         case '0': .. case '9':
             lexNumber();
-            break;
+            return;
         case '\'':
         case '"':
         case '`':
             lexString();
-            break;
+            return;
         case 'q':
             static if (isArray!R)
                 auto r = range[index .. $];
@@ -593,12 +593,12 @@ private:
             if (!r.isRangeEoF() && r.front == '{')
             {
                 lexTokenString();
-                break;
+                return;
             }
             else if (!r.isRangeEoF() && r.front == '"')
             {
                 lexDelimitedString();
-                break;
+                return;
             }
             else
                 goto default;
@@ -611,7 +611,7 @@ private:
             if (!r.isRangeEoF() && r.front == '"')
             {
                 lexString();
-                break;
+                return;
             }
             else
                 goto default;
@@ -624,13 +624,13 @@ private:
             if (!r.isRangeEoF() && r.front == '"')
             {
                 lexHexString();
-                break;
+                return;
             }
             else
                 goto default;
         case '#':
             lexSpecialTokenSequence();
-            break;
+            return;
         default:
             while(!isEoF() && !isSeparating(currentElement()))
             {
@@ -649,7 +649,7 @@ private:
             }
 
             if (!(config.iterStyle & TokenStyle.doNotReplaceSpecial))
-                break;
+                return;
 
             switch (current.type)
             {
@@ -657,12 +657,12 @@ private:
                 current.type = TokenType.stringLiteral;
                 auto time = Clock.currTime();
                 current.value = format("%s %02d %04d", time.month, time.day, time.year);
-                break;
+                return;
             case TokenType.time:
                 auto time = Clock.currTime();
                 current.type = TokenType.stringLiteral;
                 current.value = (cast(TimeOfDay)(time)).toISOExtString();
-                break;
+                return;
             case TokenType.timestamp:
                 auto time = Clock.currTime();
                 auto dt = cast(DateTime) time;
@@ -670,27 +670,26 @@ private:
                 current.value = format("%s %s %02d %02d:%02d:%02d %04d",
                     dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
                     dt.second, dt.year);
-                break;
+                return;
             case TokenType.vendor:
                 current.type = TokenType.stringLiteral;
                 current.value = config.vendorString;
-                break;
+                return;
             case TokenType.compilerVersion:
                 current.type = TokenType.stringLiteral;
                 current.value = format("%d", config.versionNumber);
-                break;
+                return;
             case TokenType.line:
                 current.type = TokenType.intLiteral;
                 current.value = format("%d", current.line);
-                break;
+                return;
             case TokenType.file:
                 current.type = TokenType.stringLiteral;
                 current.value = config.fileName;
-                break;
+                return;
             default:
-                break;
+                return;
             }
-            break;
         }
     }
 
@@ -702,7 +701,7 @@ private:
             keepChar();
         }
         if (config.iterStyle & IterationStyle.includeWhitespace)
-			setTokenValue();
+            setTokenValue();
     }
 
     void lexComment()
@@ -768,7 +767,7 @@ private:
             assert(false);
         }
         if (config.iterStyle & IterationStyle.includeComments)
-			setTokenValue();
+            setTokenValue();
     }
 
     void lexHexString()
@@ -779,8 +778,8 @@ private:
     body
     {
         current.type = TokenType.stringLiteral;
-		keepChar();
-		keepChar();
+        keepChar();
+        keepChar();
         while (true)
         {
             if (isEoF())
@@ -805,17 +804,17 @@ private:
             {
                 errorMessage(format("Invalid character '%s' in hex string literal",
                     cast(char) currentElement()));
-				return;
+                return;
             }
         }
         lexStringSuffix();
         if (config.tokenStyle & TokenStyle.notEscaped)
-		{
-			if (config.tokenStyle & TokenStyle.includeQuotes)
-				setTokenValue();
-			else
-				setTokenValue(bufferIndex - 1, 2);
-		}
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                setTokenValue();
+            else
+                setTokenValue(bufferIndex - 1, 2);
+        }
         else
         {
             auto a = appender!(ubyte[])();
@@ -1154,9 +1153,9 @@ private:
             else
             {
                 if (buffer[0] == 'r')
-					setTokenValue(bufferIndex - 1, 2);
+                    setTokenValue(bufferIndex - 1, 2);
                 else
-					setTokenValue(bufferIndex - 1, 1);
+                    setTokenValue(bufferIndex - 1, 1);
             }
         }
 
@@ -1245,7 +1244,7 @@ private:
             if (config.tokenStyle & TokenStyle.includeQuotes)
                 setTokenValue();
             else
-				setTokenValue(bufferIndex - 2, 3);
+                setTokenValue(bufferIndex - 2, 3);
         }
         while (true)
         {
@@ -1328,7 +1327,7 @@ private:
                 size_t e = bufferIndex;
                 if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
                     --e;
-				setTokenValue(e, b);
+                setTokenValue(e, b);
             }
         }
 
@@ -1468,8 +1467,8 @@ private:
 
     void keepNonNewlineChar()
     {
-        if (bufferIndex + 2 >= buffer.length)
-            buffer.length += (1024 * 4);
+        if (bufferIndex >= buffer.length)
+            buffer.length += 1024;
         static if (isArray!R)
             buffer[bufferIndex++] = range[index++];
         else
@@ -1483,7 +1482,7 @@ private:
     void keepChar()
     {
         if (bufferIndex + 2 >= buffer.length)
-            buffer.length += (1024 * 4);
+            buffer.length += 1024;
         bool foundNewline;
         if (currentElement() == '\r')
         {
@@ -1531,7 +1530,7 @@ private:
         }
     }
 
-    ElementType!R currentElement()
+    ElementType!R currentElement() const
     {
         assert (index < range.length, "%d, %d".format(index, range.length));
         static if (isArray!R)
@@ -1547,25 +1546,24 @@ private:
         ++index;
     }
 
-	void setTokenValue(size_t endIndex = 0, size_t startIndex = 0)
-	{
-		if (endIndex == 0)
-			endIndex = bufferIndex;
-		current.value = cache.get(buffer[startIndex .. endIndex]);
-	}
+    void setTokenValue(size_t endIndex = 0, size_t startIndex = 0)
+    {
+        if (endIndex == 0)
+            endIndex = bufferIndex;
+        current.value = cache.get(buffer[startIndex .. endIndex]);
+    }
 
-    bool isEoF()
+    bool isEoF() const
     {
         static if (isArray!R)
         {
-//            import std.stdio;
-//            stderr.writefln("%d %d", index, range.length);
             return index >= range.length || range[index] == 0 || range[index] == 0x1a;
         }
         else
             return range.empty || range.front == 0 || range.front == 0x1a;
     }
 
+    immutable bufferSize = 1024 * 8;
     Token current;
     uint lineNumber;
     size_t index;
@@ -1575,7 +1573,7 @@ private:
     ubyte[] buffer;
     size_t bufferIndex;
     LexerConfig config;
-	StringCache cache;
+    StringCache cache;
 }
 
 /**
@@ -1878,201 +1876,201 @@ pure nothrow bool isRangeEoF(R)(ref R range)
  * generated.
  */
 immutable(string[TokenType.max + 1]) tokenValues = [
-	"=",
-	"@",
-	"&",
-	"&=",
-	"|",
-	"|=",
-	"~=",
-	":",
-	",",
-	"--",
-	"/",
-	"/=",
-	"$",
-	".",
-	"==",
-	"=>",
-	">",
-	">=",
-	"#",
-	"++",
-	"{",
-	"[",
-	"<",
-	"<=",
-	"<>=",
-	"<>",
-	"&&",
-	"||",
-	"(",
-	"-",
-	"-=",
-	"%",
-	"%=",
-	"*=",
-	"!",
-	"!=",
-	"!>",
-	"!>=",
-	"!<",
-	"!<=",
-	"!<>",
-	"+",
-	"+=",
-	"^^",
-	"^^=",
-	"}",
-	"]",
-	")",
-	";",
-	"<<",
-	"<<=",
-	">>",
-	">>=",
-	"..",
-	"*",
-	"?",
-	"~",
-	"!<>=",
-	">>>",
-	">>>=",
-	"...",
-	"^",
-	"^=",
-	"bool",
-	"byte",
-	"cdouble",
-	"cent",
-	"cfloat",
-	"char",
-	"creal",
-	"dchar",
-	"double",
-	"float",
-	"function",
-	"idouble",
-	"ifloat",
-	"int",
-	"ireal",
-	"long",
-	"real",
-	"short",
-	"ubyte",
-	"ucent",
-	"uint",
-	"ulong",
-	"ushort",
-	"void",
-	"wchar",
-	"align",
-	"deprecated",
-	"extern",
-	"pragma",
-	"export",
-	"package",
-	"private",
-	"protected",
-	"public",
-	"abstract",
-	"auto",
-	"const",
-	"final",
-	"__gshared",
-	"immutable",
-	"inout",
-	"scope",
-	"shared",
-	"static",
-	"synchronized",
-	"alias",
-	"asm",
-	"assert",
-	"body",
-	"break",
-	"case",
-	"cast",
-	"catch",
-	"class",
-	"continue",
-	"debug",
-	"default",
-	"delegate",
-	"delete",
-	"do",
-	"else",
-	"enum",
-	"false",
-	"finally",
-	"foreach",
-	"foreach_reverse",
-	"for",
-	"goto",
-	"if",
-	"import",
-	"in",
-	"interface",
-	"invariant",
-	"is",
-	"lazy",
-	"macro",
-	"mixin",
-	"module",
-	"new",
-	"nothrow",
-	"null",
-	"out",
-	"override",
-	"pure",
-	"ref",
-	"return",
-	"struct",
-	"super",
-	"switch",
-	"template",
-	"this",
-	"throw",
-	"true",
-	"try",
-	"typedef",
-	"typeid",
-	"typeof",
-	"union",
-	"unittest",
-	"version",
-	"volatile",
-	"while",
-	"with",
-	"__DATE__",
-	"__EOF__",
-	"__TIME__",
-	"__TIMESTAMP__",
-	"__VENDOR__",
-	"__VERSION__",
-	"__FILE__",
-	"__LINE__",
-	null,
-	null,
-	null,
-	"__traits",
-	"__parameters",
-	"__vector",
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
+    "=",
+    "@",
+    "&",
+    "&=",
+    "|",
+    "|=",
+    "~=",
+    ":",
+    ",",
+    "--",
+    "/",
+    "/=",
+    "$",
+    ".",
+    "==",
+    "=>",
+    ">",
+    ">=",
+    "#",
+    "++",
+    "{",
+    "[",
+    "<",
+    "<=",
+    "<>=",
+    "<>",
+    "&&",
+    "||",
+    "(",
+    "-",
+    "-=",
+    "%",
+    "%=",
+    "*=",
+    "!",
+    "!=",
+    "!>",
+    "!>=",
+    "!<",
+    "!<=",
+    "!<>",
+    "+",
+    "+=",
+    "^^",
+    "^^=",
+    "}",
+    "]",
+    ")",
+    ";",
+    "<<",
+    "<<=",
+    ">>",
+    ">>=",
+    "..",
+    "*",
+    "?",
+    "~",
+    "!<>=",
+    ">>>",
+    ">>>=",
+    "...",
+    "^",
+    "^=",
+    "bool",
+    "byte",
+    "cdouble",
+    "cent",
+    "cfloat",
+    "char",
+    "creal",
+    "dchar",
+    "double",
+    "float",
+    "function",
+    "idouble",
+    "ifloat",
+    "int",
+    "ireal",
+    "long",
+    "real",
+    "short",
+    "ubyte",
+    "ucent",
+    "uint",
+    "ulong",
+    "ushort",
+    "void",
+    "wchar",
+    "align",
+    "deprecated",
+    "extern",
+    "pragma",
+    "export",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "abstract",
+    "auto",
+    "const",
+    "final",
+    "__gshared",
+    "immutable",
+    "inout",
+    "scope",
+    "shared",
+    "static",
+    "synchronized",
+    "alias",
+    "asm",
+    "assert",
+    "body",
+    "break",
+    "case",
+    "cast",
+    "catch",
+    "class",
+    "continue",
+    "debug",
+    "default",
+    "delegate",
+    "delete",
+    "do",
+    "else",
+    "enum",
+    "false",
+    "finally",
+    "foreach",
+    "foreach_reverse",
+    "for",
+    "goto",
+    "if",
+    "import",
+    "in",
+    "interface",
+    "invariant",
+    "is",
+    "lazy",
+    "macro",
+    "mixin",
+    "module",
+    "new",
+    "nothrow",
+    "null",
+    "out",
+    "override",
+    "pure",
+    "ref",
+    "return",
+    "struct",
+    "super",
+    "switch",
+    "template",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typedef",
+    "typeid",
+    "typeof",
+    "union",
+    "unittest",
+    "version",
+    "volatile",
+    "while",
+    "with",
+    "__DATE__",
+    "__EOF__",
+    "__TIME__",
+    "__TIMESTAMP__",
+    "__VENDOR__",
+    "__VERSION__",
+    "__FILE__",
+    "__LINE__",
+    null,
+    null,
+    null,
+    "__traits",
+    "__parameters",
+    "__vector",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
 ];
 
 pure string getTokenValue(const TokenType type)
@@ -2100,164 +2098,175 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
     switch(input.length)
     {
     case 2:
-        switch (input)
+        switch (input[0])
         {
-        case "do": return TokenType.do_;
-        case "if": return TokenType.if_;
-        case "in": return TokenType.in_;
-        case "is": return TokenType.is_;
+        case 'd': if (input == "do") return TokenType.do_; else break;
+        case 'i':
+            if (input == "if") return TokenType.if_;
+            else if (input == "in") return TokenType.in_;
+            else if (input == "is") return TokenType.is_;
+            else break;
         default: break;
         }
         break;
     case 3:
-        switch (input)
+        switch (input[0])
         {
-        case "asm": return TokenType.asm_;
-        case "for": return TokenType.for_;
-        case "int": return TokenType.int_;
-        case "new": return TokenType.new_;
-        case "out": return TokenType.out_;
-        case "ref": return TokenType.ref_;
-        case "try": return TokenType.try_;
+        case 'a': if (input == "asm") return TokenType.asm_; else break;
+        case 'f': if (input == "for") return TokenType.for_; else break;
+        case 'i': if (input == "int") return TokenType.int_; else break;
+        case 'n': if (input == "new") return TokenType.new_; else break;
+        case 'o': if (input == "out") return TokenType.out_; else break;
+        case 'r': if (input == "ref") return TokenType.ref_; else break;
+        case 't': if (input == "try") return TokenType.try_; else break;
         default: break;
         }
         break;
     case 4:
-        switch (input)
+        switch (input[0])
         {
-        case "auto": return TokenType.auto_;
-        case "body": return TokenType.body_;
-        case "bool": return TokenType.bool_;
-        case "byte": return TokenType.byte_;
-        case "case": return TokenType.case_;
-        case "cast": return TokenType.cast_;
-        case "cent": return TokenType.cent_;
-        case "char": return TokenType.char_;
-        case "else": return TokenType.else_;
-        case "enum": return TokenType.enum_;
-        case "goto": return TokenType.goto_;
-        case "lazy": return TokenType.lazy_;
-        case "long": return TokenType.long_;
-        case "null": return TokenType.null_;
-        case "pure": return TokenType.pure_;
-        case "real": return TokenType.real_;
-        case "this": return TokenType.this_;
-        case "true": return TokenType.true_;
-        case "uint": return TokenType.uint_;
-        case "void": return TokenType.void_;
-        case "with": return TokenType.with_;
+        case 'a': if (input == "auto") return TokenType.auto_; else break;
+        case 'b': if (input == "body") return TokenType.body_;
+            else if (input == "bool") return TokenType.bool_;
+            else if (input == "byte") return TokenType.byte_;
+            else break;
+        case 'c': if (input == "case") return TokenType.case_;
+            else if (input == "cast") return TokenType.cast_;
+            else if (input == "cent") return TokenType.cent_;
+            else if (input == "char") return TokenType.char_;
+            else break;
+        case 'e': if (input == "else") return TokenType.else_;
+            else if (input == "enum") return TokenType.enum_;
+            else break;
+        case 'g': if (input == "goto") return TokenType.goto_; else break;
+        case 'l': if (input == "lazy") return TokenType.lazy_;
+            else if (input == "long") return TokenType.long_;
+            else break;
+        case 'n': if (input == "null") return TokenType.null_; else break;
+        case 'p': if (input == "pure") return TokenType.pure_; else break;
+        case 'r': if (input == "real") return TokenType.real_; else break;
+        case 't': if (input == "this") return TokenType.this_;
+            else if (input == "true") return TokenType.true_;
+            else break;
+        case 'u': if (input == "uint") return TokenType.uint_; else break;
+        case 'v': if (input == "void") return TokenType.void_; else break;
+        case 'w': if (input == "with") return TokenType.with_; else break;
         default: break;
         }
         break;
     case 5:
-        switch (input)
+        switch (input[0])
         {
-        case "alias": return TokenType.alias_;
-        case "align": return TokenType.align_;
-        case "break": return TokenType.break_;
-        case "catch": return TokenType.catch_;
-        case "class": return TokenType.class_;
-        case "const": return TokenType.const_;
-        case "creal": return TokenType.creal_;
-        case "dchar": return TokenType.dchar_;
-        case "debug": return TokenType.debug_;
-        case "false": return TokenType.false_;
-        case "final": return TokenType.final_;
-        case "float": return TokenType.float_;
-        case "inout": return TokenType.inout_;
-        case "ireal": return TokenType.ireal_;
-        case "macro": return TokenType.macro_;
-        case "mixin": return TokenType.mixin_;
-        case "scope": return TokenType.scope_;
-        case "short": return TokenType.short_;
-        case "super": return TokenType.super_;
-        case "throw": return TokenType.throw_;
-        case "ubyte": return TokenType.ubyte_;
-        case "ucent": return TokenType.ucent_;
-        case "ulong": return TokenType.ulong_;
-        case "union": return TokenType.union_;
-        case "wchar": return TokenType.wchar_;
-        case "while": return TokenType.while_;
+        case 'a': if (input == "alias") return TokenType.alias_;
+            else if (input == "align") return TokenType.align_; else break;
+        case 'b': if (input == "break") return TokenType.break_; else break;
+        case 'c': if (input == "catch") return TokenType.catch_;
+            else if (input == "class") return TokenType.class_;
+            else if (input == "const") return TokenType.const_;
+            else if (input == "creal") return TokenType.creal_;
+            else break;
+        case 'd': if (input == "dchar") return TokenType.dchar_;
+            else if (input == "debug") return TokenType.debug_; else break;
+        case 'f': if (input == "false") return TokenType.false_;
+            else if (input == "final") return TokenType.final_;
+            else if (input == "float") return TokenType.float_;
+            else break;
+        case 'i': if (input == "inout") return TokenType.inout_;
+            else if (input == "ireal") return TokenType.ireal_; else break;
+        case 'm': if (input == "macro") return TokenType.macro_;
+            else if (input == "mixin") return TokenType.mixin_; else break;
+        case 's': if (input == "scope") return TokenType.scope_;
+            else if (input == "short") return TokenType.short_;
+            else if (input == "super") return TokenType.super_; else break;
+        case 't': if (input == "throw") return TokenType.throw_; else break;
+        case 'u': if (input == "ubyte") return TokenType.ubyte_;
+            else if (input == "ucent") return TokenType.ucent_;
+            else if (input == "ulong") return TokenType.ulong_;
+            else if (input == "union") return TokenType.union_;
+            else break;
+        case 'w': if (input == "wchar") return TokenType.wchar_;
+            else if (input == "while") return TokenType.while_;
+            else break;
         default: break;
         }
         break;
     case 6:
-        switch (input)
+        switch (input[0])
         {
-        case "assert": return TokenType.assert_;
-        case "cfloat": return TokenType.cfloat_;
-        case "delete": return TokenType.delete_;
-        case "double": return TokenType.double_;
-        case "export": return TokenType.export_;
-        case "extern": return TokenType.extern_;
-        case "ifloat": return TokenType.ifloat_;
-        case "import": return TokenType.import_;
-        case "module": return TokenType.module_;
-        case "pragma": return TokenType.pragma_;
-        case "public": return TokenType.public_;
-        case "return": return TokenType.return_;
-        case "shared": return TokenType.shared_;
-        case "static": return TokenType.static_;
-        case "struct": return TokenType.struct_;
-        case "switch": return TokenType.switch_;
-        case "typeid": return TokenType.typeid_;
-        case "typeof": return TokenType.typeof_;
-        case "ushort": return TokenType.ushort_;
+        case 'a': if (input == "assert") return TokenType.assert_; else break;
+        case 'c': if (input == "cfloat") return TokenType.cfloat_; else break;
+        case 'd': if (input == "delete") return TokenType.delete_;
+            else if (input == "double") return TokenType.double_; else break;
+        case 'e': if (input == "export") return TokenType.export_;
+            else if (input == "extern") return TokenType.extern_; else break;
+        case 'i': if (input == "ifloat") return TokenType.ifloat_;
+            else if (input == "import") return TokenType.import_; else break;
+        case 'm': if (input == "module") return TokenType.module_; else break;
+        case 'p': if (input == "pragma") return TokenType.pragma_;
+            else if (input == "public") return TokenType.public_; else break;
+        case 'r': if (input == "return") return TokenType.return_; else break;
+        case 's': if (input == "shared") return TokenType.shared_;
+            else if (input == "static") return TokenType.static_;
+            else if (input == "struct") return TokenType.struct_;
+            else if (input == "switch") return TokenType.switch_; else break;
+        case 't': if (input == "typeid") return TokenType.typeid_;
+            else if (input == "typeof") return TokenType.typeof_; else break;
+        case 'u': if (input == "ushort") return TokenType.ushort_; else break;
         default: break;
         }
         break;
     case 7:
-        switch (input)
+        switch (input[0])
         {
-        case "__EOF__": return TokenType.eof;
-        case "cdouble": return TokenType.cdouble_;
-        case "default": return TokenType.default_;
-        case "finally": return TokenType.finally_;
-        case "foreach": return TokenType.foreach_;
-        case "idouble": return TokenType.idouble_;
-        case "nothrow": return TokenType.nothrow_;
-        case "package": return TokenType.package_;
-        case "private": return TokenType.private_;
-        case "typedef": return TokenType.typedef_;
-        case "version": return TokenType.version_;
+        case '_': if (input == "__EOF__") return TokenType.eof; else break;
+        case 'c': if (input == "cdouble") return TokenType.cdouble_; else break;
+        case 'd': if (input == "default") return TokenType.default_; else break;
+        case 'f': if (input == "finally") return TokenType.finally_;
+            else if (input == "foreach") return TokenType.foreach_; else break;
+        case 'i': if (input == "idouble") return TokenType.idouble_; else break;
+        case 'n': if (input == "nothrow") return TokenType.nothrow_; else break;
+        case 'p': if (input == "package") return TokenType.package_;
+            else if (input == "private") return TokenType.private_; else break;
+        case 't': if (input == "typedef") return TokenType.typedef_; else break;
+        case 'v': if (input == "version") return TokenType.version_; else break;
         default: break;
         }
         break;
     case 8:
-        switch (input)
+        switch (input[0])
         {
-        case "override": return TokenType.override_;
-        case "continue": return TokenType.continue_;
-        case "__LINE__": return TokenType.line;
-        case "template": return TokenType.template_;
-        case "abstract": return TokenType.abstract_;
-        case "__traits": return TokenType.traits;
-        case "volatile": return TokenType.volatile_;
-        case "delegate": return TokenType.delegate_;
-        case "function": return TokenType.function_;
-        case "unittest": return TokenType.unittest_;
-        case "__FILE__": return TokenType.file;
-        case "__DATE__": return TokenType.date;
-        case "__TIME__": return TokenType.time;
+        case '_': if (input == "__DATE__") return TokenType.date;
+            else if (input == "__FILE__") return TokenType.file;
+            else if (input == "__LINE__") return TokenType.line;
+            else if (input == "__TIME__") return TokenType.time;
+            else if (input == "__traits") return TokenType.traits; else break;
+        case 'a': if (input == "abstract") return TokenType.abstract_; else break;
+        case 'c': if (input == "continue") return TokenType.continue_; else break;
+        case 'd': if (input == "delegate") return TokenType.delegate_; else break;
+        case 'f': if (input == "function") return TokenType.function_; else break;
+        case 'o': if (input == "override") return TokenType.override_; else break;
+        case 't': if (input == "template") return TokenType.template_; else break;
+        case 'u': if (input == "unittest") return TokenType.unittest_; else break;
+        case 'v': if (input == "volatile") return TokenType.volatile_; else break;
         default: break;
         }
         break;
     case 9:
-        switch (input)
+        switch (input[0])
         {
-        case "__gshared": return TokenType.gshared;
-        case "immutable": return TokenType.immutable_;
-        case "interface": return TokenType.interface_;
-        case "invariant": return TokenType.invariant_;
-        case "protected": return TokenType.protected_;
+        case '_': if (input == "__gshared") return TokenType.gshared; else break;
+        case 'i': if (input == "immutable") return TokenType.immutable_;
+            else if (input == "interface") return TokenType.interface_;
+            else if (input == "invariant") return TokenType.invariant_; else break;
+        case 'p': if (input == "protected") return TokenType.protected_; else break;
         default: break;
         }
         break;
     case 10:
-        switch (input)
+        switch (input[0])
         {
-        case "deprecated": return TokenType.deprecated_;
-        case "__VENDOR__": return TokenType.vendor;
+        case 'd': if (input == "deprecated") return TokenType.deprecated_; else break;
+        case '_': if (input == "__VENDOR__") return TokenType.vendor; else break;
         default: break;
         }
         break;
@@ -2329,12 +2338,12 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= indentString;
             caseStatement ~= "\t{\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= "\t\tcurrent.value = getTokenValue(current.type);\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t\tcurrent.type = " ~ node.children[k].value;
             caseStatement ~= ";\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\t\tbreak;\n";
+            caseStatement ~= "\t\treturn;\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t}\n";
             caseStatement ~= indentString;
@@ -2349,13 +2358,13 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= v.value;
             caseStatement ~= ";\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= "\t\tcurrent.value = getTokenValue(current.type);\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\t\tbreak;\n";
+            caseStatement ~= "\t\treturn;\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t}\n";
-            caseStatement ~= indentString;
-            caseStatement ~= "\tbreak;\n";
+//            caseStatement ~= indentString;
+//            caseStatement ~= "\treturn;\n";
         }
         else
         {
@@ -2366,7 +2375,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= indentString;
             caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\tbreak;\n";
+            caseStatement ~= "\treturn;\n";
         }
     }
     return caseStatement;
@@ -2384,62 +2393,54 @@ string generateCaseTrie(string[] args ...)
 
 struct StringCache
 {
+    string get(const ubyte[] bytes)
+    {
 
-	void initialize()
-	{
-		pages.length = 1;
-	}
-
-	string get(ubyte[] bytes)
-	{
-
-		import std.stdio;
-		string* val = (cast(string) bytes) in index;
-		if (val !is null)
-		{
-			return *val;
-		}
-		else
-		{
-			auto s = insert(bytes);
-			index[s] = s;
-			return s;
-		}
-	}
+        import std.stdio;
+        size_t bucket;
+        hash_t h;
+        string* val = find(bytes, bucket, h);
+        if (val !is null)
+        {
+            return *val;
+        }
+        else
+        {
+            auto s = (cast(char[]) bytes).idup;
+            index[bucket] ~= s;
+            return s;
+        }
+    }
 
 private:
 
-	immutable pageSize = 1024 * 256;
+    string* find(const ubyte[] data, out size_t bucket, out hash_t h)
+    {
+        h = hash(data);
+        bucket = h % mapSize;
+        foreach (i; 0 .. index[bucket].length)
+        {
+            if (index[bucket][i] == data)
+                return &index[bucket][i];
+        }
+        return null;
+    }
 
-	string insert(ubyte[] bytes)
-	{
-		if (bytes.length >= pageSize)
-			assert(false);
-		size_t last = pages.length - 1;
-		Page* p = &(pages[last]);
-		size_t free = p.data.length - p.lastUsed;
-		if (free >= bytes.length)
-		{
-			p.data[p.lastUsed .. (p.lastUsed + bytes.length)] = bytes;
-			p.lastUsed += bytes.length;
-			return cast(immutable(char)[]) p.data[p.lastUsed - bytes.length .. p.lastUsed];
-		}
-		else
-		{
-			pages.length++;
-			pages[pages.length - 1].data[0 .. bytes.length] = bytes;
-			pages[pages.length - 1].lastUsed = bytes.length;
-			return cast(immutable(char)[]) pages[pages.length - 1].data[0 .. bytes.length];
-		}
-	}
+    static hash_t hash(const(ubyte)[] data)
+    {
+        hash_t h = 5381;
+        int c;
+        size_t i;
+        while (i < data.length)
+        {
+            c = data[i++];
+            h = ((h << 5) + h) ^ c;
+        }
+        return h;
+    }
 
-	struct Page
-	{
-		ubyte[pageSize] data = void;
-		size_t lastUsed;
-	}
-	Page[] pages;
-	string[string] index;
+    immutable mapSize = 997;
+    string[][mapSize] index;
 }
 
 //void main(string[] args) {}
