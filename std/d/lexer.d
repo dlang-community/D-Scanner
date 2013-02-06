@@ -438,7 +438,7 @@ private:
             return;
         }
 
-        outer: switch (currentElement())
+        switch (currentElement())
         {
 //        pragma(msg, generateCaseTrie(
         mixin(generateCaseTrie(
@@ -501,19 +501,14 @@ private:
             "^=",              "TokenType.xorEquals",
         ));
         case '/':
-            static if (isArray!R)
-                auto r = range[index .. $];
-            else
-                auto r = range.save();
-            r.popFront();
-            if (r.isRangeEoF())
+            keepNonNewlineChar();
+            if (isEoF())
             {
                 current.type = TokenType.div;
                 current.value = "/";
-                advanceRange();
                 return;
             }
-            switch (r.front)
+            switch (currentElement())
             {
             case '/':
             case '*':
@@ -524,59 +519,42 @@ private:
                 current.type = TokenType.divEquals;
                 current.value = "/=";
                 advanceRange();
-                advanceRange();
                 return;
             default:
                 current.type = TokenType.div;
                 current.value = "/";
-                advanceRange();
                 return;
             }
         case '.':
-            static if (isArray!R)
-                auto r = range[index .. $];
-            else
-                auto r = range.save();
-            r.popFront();
-            if (r.isRangeEoF())
+            keepNonNewlineChar();
+            if (isEoF())
             {
                 current.type = TokenType.dot;
                 current.value = getTokenValue(TokenType.dot);
-                advanceRange();
                 return;
             }
-            else if (r.front >= '0' && r.front <= '9')
+            switch (currentElement())
             {
+            case '0': .. case '9':
                 lexNumber();
                 return;
-            }
-            else if (r.front == '.')
-            {
+            case '.':
                 current.type = TokenType.slice;
-                r.popFront();
-                if (r.front == '.')
+                keepNonNewlineChar();
+                if (currentElement() == '.')
                 {
                     current.type = TokenType.vararg;
-                    advanceRange();
-                    advanceRange();
-                    advanceRange();
-                }
-                else
-                {
-                    advanceRange();
-                    advanceRange();
+                    keepNonNewlineChar();
                 }
                 current.value = getTokenValue(current.type);
                 return;
-            }
-            else
-            {
-                advanceRange();
+            default:
                 current.type = TokenType.dot;
                 current.value = getTokenValue(TokenType.dot);
                 return;
             }
         case '0': .. case '9':
+            keepNonNewlineChar();
             lexNumber();
             return;
         case '\'':
@@ -585,30 +563,26 @@ private:
             lexString();
             return;
         case 'q':
-            static if (isArray!R)
-                auto r = range[index .. $];
-            else
-                auto r = range.save();
-            r.popFront();
-            if (!r.isRangeEoF() && r.front == '{')
+            keepNonNewlineChar();
+            if (isEoF())
+                goto default;
+            switch (currentElement())
             {
+            case '{':
                 lexTokenString();
                 return;
-            }
-            else if (!r.isRangeEoF() && r.front == '"')
-            {
+            case '"':
                 lexDelimitedString();
                 return;
+            default:
+                break;
             }
-            else
-                goto default;
+            goto default;
         case 'r':
-            static if (isArray!R)
-                auto r = range[index .. $];
-            else
-                auto r = range.save();
-            r.popFront();
-            if (!r.isRangeEoF() && r.front == '"')
+            keepNonNewlineChar();
+            if (isEoF())
+                goto default;
+            else if (currentElement() == '"')
             {
                 lexString();
                 return;
@@ -616,12 +590,10 @@ private:
             else
                 goto default;
         case 'x':
-            static if (isArray!R)
-                auto r = range[index .. $];
-            else
-                auto r = range.save();
-            r.popFront();
-            if (!r.isRangeEoF() && r.front == '"')
+            keepNonNewlineChar();
+            if (isEoF())
+                goto default;
+            else if (currentElement() == '"')
             {
                 lexHexString();
                 return;
@@ -707,18 +679,17 @@ private:
     void lexComment()
     in
     {
-        assert (currentElement() == '/');
+        assert (currentElement() == '/' || currentElement() == '*' || currentElement() == '+');
     }
     body
     {
         current.type = TokenType.comment;
-        keepChar();
         switch(currentElement())
         {
         case '/':
             while (!isEoF() && !isNewline(currentElement()))
             {
-                keepChar();
+                keepNonNewlineChar();
             }
             break;
         case '*':
@@ -726,10 +697,10 @@ private:
             {
                 if (currentElement() == '*')
                 {
-                    keepChar();
+                    keepNonNewlineChar();
                     if (currentElement() == '/')
                     {
-                        keepChar();
+                        keepNonNewlineChar();
                         break;
                     }
                 }
@@ -743,19 +714,19 @@ private:
             {
                 if (currentElement() == '+')
                 {
-                    keepChar();
+                    keepNonNewlineChar();
                     if (currentElement() == '/')
                     {
-                        keepChar();
+                        keepNonNewlineChar();
                         --depth;
                     }
                 }
                 else if (currentElement() == '/')
                 {
-                    keepChar();
+                    keepNonNewlineChar();
                     if (currentElement() == '+')
                     {
-                        keepChar();
+                        keepNonNewlineChar();
                         ++depth;
                     }
                 }
@@ -773,12 +744,11 @@ private:
     void lexHexString()
     in
     {
-        assert (currentElement() == 'x');
+        assert (currentElement() == '"' && buffer[0] == 'x');
     }
     body
     {
         current.type = TokenType.stringLiteral;
-        keepChar();
         keepChar();
         while (true)
         {
@@ -789,7 +759,7 @@ private:
             }
             else if (isHexDigit(currentElement()))
             {
-                keepChar();
+                keepNonNewlineChar();
             }
             else if (isWhite(currentElement()) && (config.tokenStyle & TokenStyle.notEscaped))
             {
@@ -797,7 +767,7 @@ private:
             }
             else if (currentElement() == '"')
             {
-                keepChar();
+                keepNonNewlineChar();
                 break;
             }
             else
@@ -813,7 +783,7 @@ private:
             if (config.tokenStyle & TokenStyle.includeQuotes)
                 setTokenValue();
             else
-                setTokenValue(bufferIndex - 1, 2);
+                setTokenValue(2, bufferIndex - 1);
         }
         else
         {
@@ -830,7 +800,7 @@ private:
     void lexNumber()
     in
     {
-        assert(isDigit(cast(char) currentElement()) || currentElement() == '.');
+        assert(buffer[0] || buffer[0] == '.');
     }
     body
     {
@@ -839,23 +809,16 @@ private:
             lexDecimal();
         else
         {
-            static if (isArray!R)
-                auto r = range[index .. $];
-            else
-                auto r = range.save();
-            r.popFront();
-            switch (r.front)
+            switch (currentElement())
             {
             case 'x':
             case 'X':
-                keepChar();
-                keepChar();
+                keepNonNewlineChar();
                 lexHex();
                 break;
             case 'b':
             case 'B':
-                keepChar();
-                keepChar();
+                keepNonNewlineChar();
                 lexBinary();
                 break;
             default:
@@ -870,12 +833,12 @@ private:
         switch (currentElement())
         {
         case 'L':
-            keepChar();
+            keepNonNewlineChar();
             current.type = TokenType.doubleLiteral;
             break;
         case 'f':
         case 'F':
-            keepChar();
+            keepNonNewlineChar();
             current.type = TokenType.floatLiteral;
             break;
         default:
@@ -883,7 +846,7 @@ private:
         }
         if (!isEoF() && currentElement() == 'i')
         {
-            keepChar();
+            keepNonNewlineChar();
             if (current.type == TokenType.floatLiteral)
                 current.type = TokenType.ifloatLiteral;
             else
@@ -907,11 +870,11 @@ private:
                 {
                 case TokenType.intLiteral:
                     current.type = TokenType.uintLiteral;
-                    keepChar();
+                    keepNonNewlineChar();
                     break;
                 case TokenType.longLiteral:
                     current.type = TokenType.ulongLiteral;
-                    keepChar();
+                    keepNonNewlineChar();
                     break;
                 default:
                     return;
@@ -925,11 +888,11 @@ private:
                 {
                 case TokenType.intLiteral:
                     current.type = TokenType.longLiteral;
-                    keepChar();
+                    keepNonNewlineChar();
                     break;
                 case TokenType.uintLiteral:
                     current.type = TokenType.ulongLiteral;
-                    keepChar();
+                    keepNonNewlineChar();
                     break;
                 default:
                     return;
@@ -950,7 +913,7 @@ private:
     }
     body
     {
-        keepChar();
+        keepNonNewlineChar();
         bool foundSign = false;
         while (!isEoF())
         {
@@ -961,10 +924,10 @@ private:
                 if (foundSign)
                     return;
                 foundSign = true;
-                keepChar();
+                keepNonNewlineChar();
             case '0': .. case '9':
             case '_':
-                keepChar();
+                keepNonNewlineChar();
                 break;
             case 'L':
             case 'f':
@@ -981,7 +944,7 @@ private:
     void lexDecimal()
     in
     {
-        assert ((currentElement() >= '0' && currentElement() <= '9') || currentElement() == '.');
+        assert ((buffer[0] >= '0' && buffer[0] <= '9') || buffer[0] == '.');
     }
     body
     {
@@ -994,7 +957,7 @@ private:
             {
             case '0': .. case '9':
             case '_':
-                keepChar();
+                keepNonNewlineChar();
                 break;
             case 'i':
             case 'L':
@@ -1026,7 +989,7 @@ private:
                     break decimalLoop; // possibly slice expression
                 if (foundDot)
                     break decimalLoop; // two dots with other characters between them
-                keepChar();
+                keepNonNewlineChar();
                 foundDot = true;
                 current.type = TokenType.doubleLiteral;
                 break;
@@ -1048,7 +1011,7 @@ private:
             case '0':
             case '1':
             case '_':
-                keepChar();
+                keepNonNewlineChar();
                 break;
             case 'u':
             case 'U':
@@ -1074,7 +1037,7 @@ private:
             case 'A': .. case 'F':
             case '0': .. case '9':
             case '_':
-                keepChar();
+                keepNonNewlineChar();
                 break;
             case 'i':
             case 'L':
@@ -1102,7 +1065,7 @@ private:
                     break hexLoop; // slice expression
                 if (foundDot)
                     break hexLoop; // two dots with other characters between them
-                keepChar();
+                keepNonNewlineChar();
                 foundDot = true;
                 current.type = TokenType.doubleLiteral;
                 break;
@@ -1126,7 +1089,7 @@ private:
                 current.type = TokenType.dstringLiteral;
                 goto case 'c';
             case 'c':
-                keepChar();
+                keepNonNewlineChar();
                 break;
             default:
                 break;
@@ -1137,14 +1100,12 @@ private:
     void lexString()
     in
     {
-        assert (currentElement() == '\'' || currentElement() == '"' || currentElement() == '`' || currentElement() == 'r');
+        assert (currentElement() == '\'' || currentElement() == '"' || currentElement() == '`');
     }
     body
     {
         current.type = TokenType.stringLiteral;
-        bool isWysiwyg = currentElement() == 'r' || currentElement() == '`';
-        if (currentElement() == 'r')
-            keepChar();
+        bool isWysiwyg = buffer[0] == 'r' || currentElement() == '`';
 
         scope (exit)
         {
@@ -1153,9 +1114,9 @@ private:
             else
             {
                 if (buffer[0] == 'r')
-                    setTokenValue(bufferIndex - 1, 2);
+                    setTokenValue(2, bufferIndex - 1);
                 else
-                    setTokenValue(bufferIndex - 1, 1);
+                    setTokenValue(1, bufferIndex - 1);
             }
         }
 
@@ -1177,20 +1138,20 @@ private:
                 r.popFront();
                 if (r.front == quote && !isWysiwyg)
                 {
-                    keepChar();
-                    keepChar();
+                    keepNonNewlineChar();
+                    keepNonNewlineChar();
                 }
                 else if (r.front == '\\' && !isWysiwyg)
                 {
-                    keepChar();
-                    keepChar();
+                    keepNonNewlineChar();
+                    keepNonNewlineChar();
                 }
                 else
                     keepChar();
             }
             else if (currentElement() == quote)
             {
-                keepChar();
+                keepNonNewlineChar();
                 break;
             }
             else
@@ -1208,7 +1169,6 @@ private:
     {
         current.type = TokenType.stringLiteral;
 
-        keepChar();
         keepChar();
 
         bool heredoc;
@@ -1232,7 +1192,7 @@ private:
     void lexNormalDelimitedString(ubyte open, ubyte close)
     in
     {
-        assert(buffer[0 .. bufferIndex] == "q\"");
+        assert(currentElement() == '"');
     }
     body
     {
@@ -1244,7 +1204,7 @@ private:
             if (config.tokenStyle & TokenStyle.includeQuotes)
                 setTokenValue();
             else
-                setTokenValue(bufferIndex - 2, 3);
+                setTokenValue(3, bufferIndex - 2);
         }
         while (true)
         {
@@ -1327,7 +1287,7 @@ private:
                 size_t e = bufferIndex;
                 if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
                     --e;
-                setTokenValue(e, b);
+                setTokenValue(b, e);
             }
         }
 
@@ -1360,12 +1320,11 @@ private:
     void lexTokenString()
     in
     {
-        assert (currentElement() == 'q');
+        assert (currentElement() == '{');
     }
     body
     {
         current.type = TokenType.stringLiteral;
-        keepChar();
         keepChar();
         LexerConfig c = config;
         config.iterStyle = IterationStyle.everything;
@@ -1392,13 +1351,13 @@ private:
         config = c;
         buffer[0] = 'q';
         buffer[1] = '{';
-        buffer[2 .. bi] = b[0 .. bi];
+        buffer[2 .. bi + 2] = b[0 .. bi];
         buffer[bi++] = '}';
         bufferIndex = bi;
         if (config.tokenStyle & TokenStyle.includeQuotes)
             setTokenValue();
         else
-            setTokenValue(bufferIndex - 1, 2);
+            setTokenValue(2, bufferIndex - 1);
         lexStringSuffix();
     }
 
@@ -1481,7 +1440,7 @@ private:
 
     void keepChar()
     {
-        if (bufferIndex + 2 >= buffer.length)
+        while (bufferIndex + 2 >= buffer.length)
             buffer.length += 1024;
         bool foundNewline;
         if (currentElement() == '\r')
@@ -1546,7 +1505,7 @@ private:
         ++index;
     }
 
-    void setTokenValue(size_t endIndex = 0, size_t startIndex = 0)
+    void setTokenValue(size_t startIndex = 0, size_t endIndex = 0)
     {
         if (endIndex == 0)
             endIndex = bufferIndex;
@@ -2347,7 +2306,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= indentString;
             caseStatement ~= "\t}\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\tswitch (range.front)\n";
+            caseStatement ~= "\tswitch (currentElement())\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t{\n";
             caseStatement ~= printCaseStatements(v, indentString ~ "\t");
@@ -2363,8 +2322,6 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= "\t\treturn;\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t}\n";
-//            caseStatement ~= indentString;
-//            caseStatement ~= "\treturn;\n";
         }
         else
         {

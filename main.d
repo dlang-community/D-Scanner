@@ -20,8 +20,6 @@ import std.d.lexer;
 
 import highlighter;
 
-immutable size_t CIRC_BUFF_SIZE = 4;
-
 pure nothrow bool isLineOfCode(TokenType t)
 {
 	switch(t)
@@ -141,6 +139,7 @@ int main(string[] args)
 		else
 		{+/
 			LexerConfig config;
+            config.tokenStyle = TokenStyle.doNotReplaceSpecial;
 			foreach (arg; args[1..$])
 			{
 				config.fileName = arg;
