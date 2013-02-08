@@ -111,14 +111,14 @@ module std.d.lexer;
 import std.algorithm;
 import std.ascii;
 import std.conv;
-import std.d.entities;
 import std.datetime;
+import std.d.entities;
 import std.exception;
 import std.range;
+import std.regex;
 import std.string;
 import std.traits;
-import std.regex;
-import std.container;
+import std.utf;
 
 public:
 
@@ -432,7 +432,7 @@ private:
         current.column = column;
         current.value = null;
 
-        if (isWhite(currentElement()))
+        if (isWhite())
         {
             lexWhitespace();
             return;
@@ -604,7 +604,7 @@ private:
             lexSpecialTokenSequence();
             return;
         default:
-            while(!isEoF() && !isSeparating(currentElement()))
+            while(!isEoF() && !isSeparating())
             {
                 keepNonNewlineChar();
             }
@@ -668,7 +668,7 @@ private:
     void lexWhitespace()
     {
         current.type = TokenType.whitespace;
-        while (!isEoF() && isWhite(currentElement()))
+        while (!isEoF() && isWhite())
         {
             keepChar();
         }
@@ -761,7 +761,7 @@ private:
             {
                 keepNonNewlineChar();
             }
-            else if (isWhite(currentElement()) && (config.tokenStyle & TokenStyle.notEscaped))
+            else if (isWhite() && (config.tokenStyle & TokenStyle.notEscaped))
             {
                 keepChar();
             }
@@ -1097,10 +1097,50 @@ private:
         }
     }
 
+    void lexCharacterLiteral()
+    in
+    {
+        assert (currentElement() == '\'');
+    }
+    body
+    {
+        current.type = TokenType.characterLiteral;
+        scope (exit)
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                setTokenValue();
+            else
+                setTokenValue(1, bufferIndex - 1);
+        }
+        keepChar();
+        if (isEoF())
+        {
+            errorMessage("Unterminated character literal");
+            return;
+        }
+        sw: switch (currentElement())
+        {
+            case '\'':
+                return;
+            case '\\':
+                lexEscapeSequence();
+                break;
+            default:
+                keepChar();
+                break;
+        }
+        if (currentElement() != '\'')
+        {
+            errorMessage("Expected \"'\" to end character literal");
+            return;
+        }
+        keepChar();
+    }
+
     void lexString()
     in
     {
-        assert (currentElement() == '\'' || currentElement() == '"' || currentElement() == '`');
+        assert (currentElement() == '"' || currentElement() == '`');
     }
     body
     {
@@ -1129,25 +1169,12 @@ private:
                 errorMessage("Unterminated string literal");
                 return;
             }
-            else if (currentElement() == '\\' && !isWysiwyg)
+            else if (currentElement() == '\\')
             {
-                static if (isArray!R)
-                    auto r = range[index .. $];
-                else
-                    auto r = range.save();
-                r.popFront();
-                if (r.front == quote && !isWysiwyg)
-                {
-                    keepNonNewlineChar();
-                    keepNonNewlineChar();
-                }
-                else if (r.front == '\\' && !isWysiwyg)
-                {
-                    keepNonNewlineChar();
-                    keepNonNewlineChar();
-                }
-                else
+                if (isWysiwyg)
                     keepChar();
+                else
+                    lexEscapeSequence();
             }
             else if (currentElement() == quote)
             {
@@ -1158,6 +1185,156 @@ private:
                 keepChar();
         }
         lexStringSuffix();
+    }
+
+    void lexEscapeSequence()
+    in
+    {
+        assert (currentElement() == '\\');
+    }
+    body
+    {
+        if (config.tokenStyle & TokenStyle.notEscaped)
+        {
+            keepChar();
+            switch (currentElement())
+            {
+            case '\'':
+            case '"':
+            case '?':
+            case '\\':
+            case 'a':
+            case 'b':
+            case 'f':
+            case 'n':
+            case 'r':
+            case 't':
+            case 'v':
+            case 0x0a:
+            case 0x00:
+                keepChar();
+                return;
+            case '0': .. case '7':
+                foreach(i; 0 .. 3)
+                {
+                    keepChar();
+                    if (currentElement() < '0' || currentElement() > '7') return;
+                }
+                return;
+            case 'x':
+                keepChar();
+                foreach(i; 0 .. 4)
+                {
+                    if (!isHexDigit(currentElement()))
+                    {
+                        errorMessage("Expected hex digit");
+                        return;
+                    }
+                    keepChar();
+                }
+                return;
+            case 'u':
+            case 'U':
+                keepChar();
+                foreach (i; 0 .. 2)
+                {
+                    foreach (j; 0 .. 4)
+                    {
+                        if (!isHexDigit(currentElement()))
+                        {
+                            errorMessage("Expected hex digit");
+                            return;
+                        }
+                        keepChar();
+                    }
+                    if (!isHexDigit(currentElement()))
+                        break;
+                }
+                return;
+            default:
+                errorMessage("Invalid escape sequence");
+                return;
+            }
+        }
+        else
+        {
+            advanceRange();
+            switch (currentElement())
+            {
+            case '\'': bufferChar('\''); advanceRange(); return;
+            case '"':  bufferChar('"');  advanceRange(); return;
+            case '?':  bufferChar('\?'); advanceRange(); return;
+            case '\\': bufferChar('\\'); advanceRange(); return;
+            case 'a':  bufferChar('\a'); advanceRange(); return;
+            case 'b':  bufferChar('\b'); advanceRange(); return;
+            case 'f':  bufferChar('\f'); advanceRange(); return;
+            case 'n':  bufferChar('\n'); advanceRange(); return;
+            case 'r':  bufferChar('\r'); advanceRange(); return;
+            case 't':  bufferChar('\t'); advanceRange(); return;
+            case 'v':  bufferChar('\v'); advanceRange(); return;
+            case 0x0a: bufferChar(0x0a); advanceRange(); return;
+            case 0x00: bufferChar(0x00); advanceRange(); return;
+            case '0': .. case '7':
+                ubyte[3] digits;
+                size_t i;
+                for(; i < 3 && !isEoF(); ++i)
+                {
+                    digits[i] = currentElement();
+                    advanceRange();
+                    if (currentElement() < '0' || currentElement() > '7') break;
+                }
+                decodeAndStore(digits, i, 8);
+                return;
+            case 'x':
+                ubyte[2] digits;
+                advanceRange();
+                foreach(i; 0 .. 2)
+                {
+                    if (!isHexDigit(currentElement()))
+                    {
+                        errorMessage("Expected hex digit");
+                        return;
+                    }
+                    digits[i] = currentElement();
+                }
+                decodeAndStore(digits, 2, 16);
+                return;
+            case 'u':
+            case 'U':
+                advanceRange();
+                ubyte[8] digits;
+                size_t i;
+                foreach (j; 0 .. 2)
+                {
+                    foreach (k; 0 .. 4)
+                    {
+                        if (!isHexDigit(currentElement()))
+                        {
+                            errorMessage("Expected hex digit");
+                            return;
+                        }
+                        digits[i++] = currentElement();
+                    }
+                    if (!isHexDigit(currentElement()))
+                        break;
+                }
+                decodeAndStore(digits, i, 16);
+                return;
+            default:
+                errorMessage("Invalid escape sequence");
+                return;
+            }
+        }
+    }
+
+    void decodeAndStore(ubyte[] digits, size_t maxIndex, uint base)
+    {
+        char[4] codeUnits;
+        auto source = cast(char[]) digits[0 .. maxIndex + 1];
+        uint codePoint = parse!uint(source, base);
+        ulong unitCount = encode(codeUnits, codePoint);
+        foreach (i; 0 .. unitCount)
+            bufferChar(codeUnits[unitCount]);
     }
 
     void lexDelimitedString()
@@ -1265,7 +1442,7 @@ private:
                 keepChar();
                 break;
             }
-            else if (isSeparating(currentElement()))
+            else if (isSeparating())
             {
                 errorMessage("Unterminated string literal - Separating");
                 return;
@@ -1295,7 +1472,7 @@ private:
         {
             if (isEoF())
             {
-                errorMessage("Unterminated string literal -- a");
+                errorMessage("Unterminated string literal");
                 return;
             }
             else if (buffer[bufferIndex - ident.length .. bufferIndex] == ident)
@@ -1308,7 +1485,7 @@ private:
                 }
                 else
                 {
-                    errorMessage("Unterminated string literal -- b");
+                    errorMessage("Unterminated string literal");
                     return;
                 }
             }
@@ -1438,6 +1615,13 @@ private:
         ++column;
     }
 
+    void bufferChar(ubyte ch)
+    {
+        if (bufferIndex >= buffer.length)
+            buffer.length += 1024;
+        buffer[bufferIndex++] = ch;
+    }
+
     void keepChar()
     {
         while (bufferIndex + 2 >= buffer.length)
@@ -1489,9 +1673,9 @@ private:
         }
     }
 
-    ElementType!R currentElement() const
+    ElementType!R currentElement() const nothrow
     {
-        assert (index < range.length, "%d, %d".format(index, range.length));
+        assert (index < range.length);
         static if (isArray!R)
             return range[index];
         else
@@ -1520,6 +1704,51 @@ private:
         }
         else
             return range.empty || range.front == 0 || range.front == 0x1a;
+    }
+
+    bool isSeparating() const nothrow
+    {
+        auto ch = currentElement();
+        if (ch <= 0x2f) return true;
+        if (ch >= ':' && ch <= '@') return true;
+        if (ch >= '[' && ch <= '^') return true;
+        if (ch >= '{' && ch <= '~') return true;
+        if (ch == '`') return true;
+        if (isWhite()) return true;
+        return false;
+    }
+
+    bool isWhite() const nothrow
+    {
+        auto c = currentElement();
+        if (c & 0x80) // multi-byte utf-8
+        {
+            static if (isArray!R)
+            {
+                if (index + 2 >= range.length) return false;
+                if (range[index] != 0xe2) return false;
+                if (range[index + 1] != 0x80) return false;
+                if (range[index + 2] != 0xa8 && range[index + 2] != 0xa9) return false;
+            }
+            else
+            {
+                auto r = range.save();
+                if (r.front != 0xe2)
+                    return false;
+                else
+                    r.popFront();
+                if (r.empty || r.front != 0x80)
+                    return false;
+                else
+                    r.popFront();
+                if (r.empty || (r.front != 0xa8 && range.front != 0xa9))
+                    return false;
+            }
+            return true;
+        }
+        else
+            return c == 0x20 || c == 0x09 || c == 0x0b
+                || c == 0x0c || c == 0x0a || c == 0x0d;
     }
 
     immutable bufferSize = 1024 * 8;
@@ -1817,6 +2046,7 @@ enum TokenType: ushort
     irealLiteral, /// 123.456Li
     uintLiteral, /// 123u
     ulongLiteral, /// 123uL
+    characterLiteral, /// 'a'
     dstringLiteral, /// $(D_STRING "32-bit character string"d)
     stringLiteral, /// $(D_STRING "an 8-bit string")
     wstringLiteral, /// $(D_STRING "16-bit character string"w)
@@ -2030,6 +2260,7 @@ immutable(string[TokenType.max + 1]) tokenValues = [
     null,
     null,
     null,
+    null,
 ];
 
 pure string getTokenValue(const TokenType type)
@@ -2040,16 +2271,6 @@ pure string getTokenValue(const TokenType type)
 private pure bool isNewline(ubyte ch)
 {
     return ch == '\n' || ch == '\r';
-}
-
-pure nothrow bool isSeparating(ubyte ch)
-{
-    if (ch <= 0x2f) return true;
-    if (ch >= ':' && ch <= '@') return true;
-    if (ch >= '[' && ch <= '^') return true;
-    if (ch >= '{' && ch <= '~') return true;
-    if (ch == '`') return true;
-    return false;
 }
 
 pure nothrow TokenType lookupTokenType(const const(char)[] input)
@@ -2399,5 +2620,3 @@ private:
     immutable mapSize = 997;
     string[][mapSize] index;
 }
-
-//void main(string[] args) {}
