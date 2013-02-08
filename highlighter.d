@@ -47,7 +47,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 			writeSpan("kwrd", t.value);
 		else if (t.type == TokenType.comment)
 			writeSpan("com", t.value);
-		else if (isStringLiteral(t.type))
+		else if (isStringLiteral(t.type) || t.type == TokenType.characterLiteral)
 			writeSpan("str", t.value);
 		else if (isNumberLiteral(t.type))
 			writeSpan("num", t.value);

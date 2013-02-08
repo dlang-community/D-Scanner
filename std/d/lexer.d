@@ -558,6 +558,8 @@ private:
             lexNumber();
             return;
         case '\'':
+			lexCharacterLiteral();
+			return;
         case '"':
         case '`':
             lexString();
@@ -959,6 +961,16 @@ private:
             case '_':
                 keepNonNewlineChar();
                 break;
+			case 'u':
+			case 'U':
+				if (foundDot)
+				{
+					errorMessage("Floating-point literal cannot have %s suffix".format(
+						cast(char) currentElement()));
+					return;
+				}
+				else
+					lexIntSuffix();
             case 'i':
             case 'L':
                 if (foundDot)
@@ -1118,7 +1130,7 @@ private:
             errorMessage("Unterminated character literal");
             return;
         }
-        sw: switch (currentElement())
+        switch (currentElement())
         {
             case '\'':
                 return;
@@ -1126,8 +1138,17 @@ private:
                 lexEscapeSequence();
                 break;
             default:
-                keepChar();
-                break;
+				if (currentElement() & 0x80)
+				{
+					while (currentElement() & 0x80)
+						keepChar();
+					break;
+				}
+				else
+				{
+					keepChar();
+					break;
+				}
         }
         if (currentElement() != '\'')
         {
@@ -1235,22 +1256,27 @@ private:
                 return;
             case 'u':
             case 'U':
+				uint digits = currentElement == 'u' ? 4 : 8;
                 keepChar();
-                foreach (i; 0 .. 2)
+                foreach (i; 0 .. digits)
                 {
-                    foreach (j; 0 .. 4)
-                    {
-                        if (!isHexDigit(currentElement()))
-                        {
-                            errorMessage("Expected hex digit");
-                            return;
-                        }
-                        keepChar();
-                    }
-                    if (!isHexDigit(currentElement()))
-                        break;
-                }
+					if (!isHexDigit(currentElement()))
+					{
+						errorMessage("Expected hex digit instead of %s".format(
+							cast(char) currentElement()));
+						return;
+					}
+					keepChar();
+				}
                 return;
+			case '&':
+				while (!isEoF())
+				{
+					keepChar();
+					if (currentElement() == ';')
+						break;
+				}
+				return;
             default:
                 errorMessage("Invalid escape sequence");
                 return;
@@ -1277,9 +1303,9 @@ private:
             case '0': .. case '7':
                 ubyte[3] digits;
                 size_t i;
-                for(; i < 3 && !isEoF(); ++i)
+                while(i < 3 && !isEoF())
                 {
-                    digits[i] = currentElement();
+                    digits[i++] = currentElement();
                     advanceRange();
                     if (currentElement() < '0' || currentElement() > '7') break;
                 }
@@ -1296,30 +1322,61 @@ private:
                         return;
                     }
                     digits[i] = currentElement();
+					advanceRange();
                 }
                 decodeAndStore(digits, 2, 16);
                 return;
             case 'u':
             case 'U':
+				uint digitCount = currentElement == 'u' ? 4 : 8;
                 advanceRange();
                 ubyte[8] digits;
-                size_t i;
-                foreach (j; 0 .. 2)
-                {
-                    foreach (k; 0 .. 4)
-                    {
-                        if (!isHexDigit(currentElement()))
-                        {
-                            errorMessage("Expected hex digit");
-                            return;
-                        }
-                        digits[i++] = currentElement();
-                    }
-                    if (!isHexDigit(currentElement()))
-                        break;
-                }
-                decodeAndStore(digits, i, 16);
+				foreach (i; 0 .. digitCount)
+				{
+					if (!isHexDigit(currentElement()))
+					{
+						errorMessage("Expected hex digit");
+						return;
+					}
+					digits[i] = currentElement();
+					advanceRange();
+				}
+                decodeAndStore(digits, digitCount, 16);
                 return;
+			case '&':
+				advanceRange();
+				ubyte[] b;
+				while (!isEoF())
+				{
+					if (isAlpha(currentElement()))
+					{
+						b ~= currentElement();
+						advanceRange();
+					}
+					else if (currentElement() == ';')
+					{
+						advanceRange();
+						break;
+					}
+					else
+					{
+						errorMessage("Invalid character entity");
+						return;
+					}
+				}
+				auto entity = (cast(string) b) in characterEntities;
+				if (entity is null)
+				{
+					errorMessage("Invalid character entity \"&%s;\"".format(
+						cast(char[]) b));
+					return;
+				}
+				else
+				{
+					for (size_t i = 0; i < (*entity).length; i++)
+						bufferChar(cast(ubyte) (*entity)[i]);
+				}
+				return;
             default:
                 errorMessage("Invalid escape sequence");
                 return;
@@ -1329,18 +1386,24 @@ private:
 
     void decodeAndStore(ubyte[] digits, size_t maxIndex, uint base)
     {
+		scope(failure)
+		{
+			import std.stdio;
+			stderr.writeln("Failed on line ", lineNumber, " of file ",
+				config.fileName);
+		}
         char[4] codeUnits;
-        auto source = cast(char[]) digits[0 .. maxIndex + 1];
+        auto source = cast(char[]) digits[0 .. maxIndex];
         uint codePoint = parse!uint(source, base);
         ulong unitCount = encode(codeUnits, codePoint);
         foreach (i; 0 .. unitCount)
-            bufferChar(codeUnits[unitCount]);
+            bufferChar(codeUnits[i]);
     }
 
     void lexDelimitedString()
     in
     {
-        assert(currentElement() == 'q');
+        assert(currentElement() == '"');
     }
     body
     {
@@ -1369,7 +1432,7 @@ private:
     void lexNormalDelimitedString(ubyte open, ubyte close)
     in
     {
-        assert(currentElement() == '"');
+        assert(buffer[0 .. 2] == `q"`);
     }
     body
     {
