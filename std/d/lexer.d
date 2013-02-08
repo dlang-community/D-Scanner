@@ -516,7 +516,10 @@ private:
 			case '/':
 			case '*':
 			case '+':
-				lexComment();
+				if (config.iterStyle & IterationStyle.includeComments)
+					lexComment!true();
+				else
+					lexComment!false();
 				return;
 			case '=':
 				current.type = TokenType.divEquals;
@@ -681,7 +684,7 @@ private:
 		static if (keep) setTokenValue();
 	}
 
-	void lexComment()
+	void lexComment(bool keep)()
 	in
 	{
 		assert (currentElement() == '/' || currentElement() == '*' || currentElement() == '+');
@@ -694,7 +697,8 @@ private:
 		case '/':
 			while (!isEoF() && !isNewline(currentElement()))
 			{
-				keepNonNewlineChar();
+				static if (keep) keepNonNewlineChar();
+				else advanceRange();
 			}
 			break;
 		case '*':
@@ -702,10 +706,12 @@ private:
 			{
 				if (currentElement() == '*')
 				{
-					keepNonNewlineChar();
+					static if (keep) keepNonNewlineChar();
+					else advanceRange();
 					if (currentElement() == '/')
 					{
-						keepNonNewlineChar();
+						static if (keep) keepNonNewlineChar();
+						else advanceRange();
 						break;
 					}
 				}
@@ -719,19 +725,23 @@ private:
 			{
 				if (currentElement() == '+')
 				{
-					keepNonNewlineChar();
+					static if (keep) keepNonNewlineChar();
+					else advanceRange();
 					if (currentElement() == '/')
 					{
-						keepNonNewlineChar();
+						static if (keep) keepNonNewlineChar();
+						else advanceRange();
 						--depth;
 					}
 				}
 				else if (currentElement() == '/')
 				{
-					keepNonNewlineChar();
+					static if (keep) keepNonNewlineChar();
+					else advanceRange();
 					if (currentElement() == '+')
 					{
-						keepNonNewlineChar();
+						static if (keep) keepNonNewlineChar();
+						else advanceRange();
 						++depth;
 					}
 				}
@@ -742,7 +752,7 @@ private:
 		default:
 			assert(false);
 		}
-		if (config.iterStyle & IterationStyle.includeComments)
+		static if (keep) keepNonNewlineChar();
 			setTokenValue();
 	}
 
@@ -974,6 +984,7 @@ private:
 				}
 				else
 					lexIntSuffix();
+				return;
 			case 'i':
 			case 'L':
 				if (foundDot)
@@ -1259,7 +1270,7 @@ private:
 				return;
 			case 'u':
 			case 'U':
-				uint digits = currentElement == 'u' ? 4 : 8;
+				uint digits = currentElement() == 'u' ? 4 : 8;
 				keepChar();
 				foreach (i; 0 .. digits)
 				{
@@ -1331,7 +1342,7 @@ private:
 				return;
 			case 'u':
 			case 'U':
-				uint digitCount = currentElement == 'u' ? 4 : 8;
+				uint digitCount = currentElement() == 'u' ? 4 : 8;
 				advanceRange();
 				ubyte[8] digits;
 				foreach (i; 0 .. digitCount)
@@ -1813,8 +1824,7 @@ private:
 			return true;
 		}
 		else
-			return c == 0x20 || c == 0x09 || c == 0x0b
-				|| c == 0x0c || c == 0x0a || c == 0x0d;
+			return c == 0x20 || (c >= 0x09 && c <= 0x0d);
 	}
 
 	immutable bufferSize = 1024 * 8;
