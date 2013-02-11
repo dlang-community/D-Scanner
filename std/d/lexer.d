@@ -312,10 +312,97 @@ TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
 	return r;
 }
 
+// For now a private helper that is tailored to the way lexer works
+// hides away forwardness of range by buffering
+// RA-version is strightforward thin wrapping
+// partially byte-specific
+private struct LexSource(R, size_t bufferSize = 1024*8)
+    if(isForwardRange!R && !isRandomAccessRange!R)
+{   
+    bool empty(){ return range.empty; }
+    
+    ref front()
+    {
+        return accum[accumIdx];
+    }
+    
+    void popFront()
+    { 
+        range.popFront();
+        if(range.empty)
+            return;
+        accumIdx =  (accumIdx+1) & mask;
+        accum[accumIdx] = range.front;
+        
+        if(accumIdx == savedAccumIdx)
+        {
+            //TODO: enlarge circular buffer to the next pow-2
+            // and move stuff around
+            assert(0);
+        }
+    }
+    
+    // mark a position to slice from later on
+    size_t mark()
+    {
+        savedAccumIdx = _accumIdx;
+        return accumIdx;
+    }
+    
+    // slice from marked position
+    auto slice()
+    {
+        // it's an open right range as usual, accumIdx is $-1 in fact
+        return CircularRange(accum, savedAccumIdx, accumIdx+1);
+    }   
+    
+private:
+    // a true RA-range of ubyte
+    struct CircularRange
+    {
+        this(size_t s, size_t e, ubyte[] buffer)
+        {
+            start = s;
+            end = e;
+        }
+        //Bidirectional range primitives
+        @property bool empty(){ return start == end; }
+        @property ref front(){ return buffer[start]; }        
+        void popFront(){ start = (start + 1) & mask; }
+        //back is a bit slower, but should be rarely used (if at all)
+        @property ref back(){ return buffer[(end-1) & mask]; }
+        void popBack(){ end  = (end - 1) & mask; }
+        
+        // RA range primitives
+        ref opIndex(size_t idx){ return data[(start+idx) & mask]; }
+        @property size_t length(){ return (end - start) & mask; }
+        
+        auto opSlice(){ return opSlice(0, length); }
+        auto opSlice(size_t newStart, size_t newEnd)
+        { 
+            assert(newStart <= newEnd);
+            assert(newStart+newEnd < end);
+            size_t maskedStart = (start+newStart) & mask;
+            size_t maskedEnd = (start+newEnd) & mask;
+            return typeof(this)(, start+newEnd, buffer); 
+        }
+    private:
+        size_t start, end;
+        ubyte[] buffer;
+    }
+    enum mask = bufferSize - 1;
+    static assert(bufferSize & (bufferSize-1) == 0); //pow of 2
+    R range;
+    ubyte[] accum; // accumulator buffer for non-RA ranges
+    size_t savedAccumIdx;
+    size_t accumIdx; // current index in accumulator
+}        
+
 /**
 * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
 */
-struct TokenRange(R) if (isForwardRange!(R))
+struct TokenRange(R) 
+    if (isForwardRange!(R))
 {
 	/**
 	* Returns: true if the range is empty
@@ -1701,15 +1788,31 @@ private:
 
 	void keepChar()
 	{
+        bool foundNewline;
+        static if (slicingLexer)
+        {
+            if (range[index] == '\r')
+            {
+                index++;
+                foundNewLine = true;
+            }
+            if (range[index] == '\r')              
+                foundNewLine = true;
+            index++;
+            if (foundNewline)
+            {
+                column = true;
+                lines++;
+            }     
+            else
+                column++;
+        }
 		while (bufferIndex + 2 >= buffer.length)
 			buffer.length += 1024;
-		bool foundNewline;
+		
 		if (currentElement() == '\r')
 		{
-			static if (isArray!R)
-			{
-				buffer[bufferIndex++] = range[index++];
-			}
+			
 			else
 			{
 				buffer[bufferIndex++] = currentElement();
@@ -1753,15 +1856,15 @@ private:
 	ElementType!R currentElement() const nothrow
 	{
 		assert (index < range.length);
-		static if (isArray!R)
+		static if (slicingLexer)
 			return range[index];
 		else
 			return range.front;
 	}
 
-	void advanceRange()
+	void skip()
 	{
-		static if (!isArray!R)
+		static if (!slicingLexer)
 			range.popFront();
 		++index;
 	}
@@ -1777,7 +1880,7 @@ private:
 	{
 		static if (isArray!R)
 		{
-			return index >= range.length || range[index] == 0 || range[index] == 0x1a;
+			return index == range.length || range[index] == 0 || range[index] == 0x1a;
 		}
 		else
 			return range.empty || range.front == 0 || range.front == 0x1a;
@@ -1800,7 +1903,7 @@ private:
 		auto c = currentElement();
 		if (c & 0x80) // multi-byte utf-8
 		{
-			static if (isArray!R)
+			static if (bufferingLexer)
 			{
 				if (index + 2 >= range.length) return false;
 				if (range[index] != 0xe2) return false;
@@ -1826,16 +1929,19 @@ private:
 		else
 			return c == 0x20 || (c >= 0x09 && c <= 0x0d);
 	}
-
-	immutable bufferSize = 1024 * 8;
+    
 	Token current;
 	uint lineNumber;
-	size_t index;
-	uint column;
+    uint column;
+    // slicing lexer, copies directly to string cache on demand    
+    static if(slicingLexer) 
+    {
+        size_t prevIndex; // previous index in the range (absolute)        
+    }    
+	size_t index; // index in the range, as calculated or natural	
 	R range;
 	bool _empty;
-	ubyte[] buffer;
-	size_t bufferIndex;
+	
 	LexerConfig config;
 	StringCache cache;
 }
@@ -2645,21 +2751,22 @@ string generateCaseTrie(string[] args ...)
 	return printCaseStatements(t, "");
 }
 
-
 struct StringCache
 {
-	string get(const ubyte[] bytes)
+	string get(R)(R range)
+        if(isRandomAccessRange!R 
+            && is(Unqual!(ElementType!R) : const(ubyte)))
 	{
 		size_t bucket;
 		hash_t h;
-		string* val = find(bytes, bucket, h);
+		string* val = find(range, bucket, h);
 		if (val !is null)
 		{
 			return *val;
 		}
 		else
 		{
-			auto s = putIntoCache(bytes);
+			auto s = putIntoCache(range);
 			index[bucket] ~= s;
 			return s;
 		}
@@ -2667,25 +2774,26 @@ struct StringCache
 
 private:
 
-	import std.stdio;
-	string* find(const ubyte[] data, out size_t bucket, out hash_t h)
+	import std.stdio, core.stdc.string;
+	string* find(R)(R data, out size_t bucket, out hash_t h)
 	{
 		h = hash(data);
 		bucket = h % mapSize;
 		foreach (i; 0 .. index[bucket].length)
-		{
-			if (index[bucket][i] == data)
-			{
-				return &index[bucket][i];
-			}
+		{            
+            if (equal(index[bucket][i], data))
+            {
+                return &index[bucket][i];
+            }
 		}
 		return null;
 	}
 
-	static hash_t hash(const(ubyte)[] data)
+	static hash_t hash(R)(R data)
+        
 	{
 		uint hash = 0;
-		foreach ( b; data)
+		foreach (b; data)
 		{
 			hash ^= sbox[b];
 			hash *= 3;
@@ -2700,7 +2808,7 @@ private:
 	ubyte*[] chunkS;
 	size_t next = chunkSize;
 
-	string putIntoCache(const ubyte[] data)
+	string putIntoCache(R)(R data)
 	{
 		import core.memory;
 
