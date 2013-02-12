@@ -315,8 +315,8 @@ TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
 // For now a private helper that is tailored to the way lexer works
 // hides away forwardness of range by buffering
 // RA-version is strightforward thin wrapping
-// partially byte-specific
-private struct LexSource(R, size_t bufferSize = 1024*8)
+// atm this is byte-oriented
+private struct LexSource(R)
     if(isForwardRange!R && !isRandomAccessRange!R)
 {   
     bool empty(){ return range.empty; }
@@ -327,13 +327,12 @@ private struct LexSource(R, size_t bufferSize = 1024*8)
     }
     
     void popFront()
-    { 
+    {         
         range.popFront();
         if(range.empty)
             return;
         accumIdx =  (accumIdx+1) & mask;
-        accum[accumIdx] = range.front;
-        
+        accum[accumIdx] = range.front;        
         if(accumIdx == savedAccumIdx)
         {
             //TODO: enlarge circular buffer to the next pow-2
@@ -345,59 +344,119 @@ private struct LexSource(R, size_t bufferSize = 1024*8)
     // mark a position to slice from later on
     size_t mark()
     {
-        savedAccumIdx = _accumIdx;
+        savedAccumIdx = accumIdx;
         return accumIdx;
     }
     
-    // slice from marked position
+    // slice to current position from previously marked position
     auto slice()
     {
-        // it's an open right range as usual, accumIdx is $-1 in fact
-        return CircularRange(accum, savedAccumIdx, accumIdx+1);
+        // it's an open right range as usual
+        return CircularRange(accum, savedAccumIdx, accumIdx);
     }   
     
 private:
+    this(R src, size_t bufferSize)
+    {
+        range = src;
+        assert(bufferSize > 1);
+        assert((bufferSize & (bufferSize-1)) == 0); //is power of 2
+        accum = new ubyte[bufferSize];        
+        if(!range.empty) 
+            accum[accumIdx] = range.front; // load front
+    }
+    
     // a true RA-range of ubyte
     struct CircularRange
     {
-        this(size_t s, size_t e, ubyte[] buffer)
+        this(ubyte[] buf, size_t s, size_t e)
         {
+            assert((buffer.length & (buffer.length-1)) == 0);
+            buffer = buf;
             start = s;
             end = e;
         }
-        //Bidirectional range primitives
+        //Forward range primitives
         @property bool empty(){ return start == end; }
         @property ref front(){ return buffer[start]; }        
         void popFront(){ start = (start + 1) & mask; }
-        //back is a bit slower, but should be rarely used (if at all)
+        @property auto save(){ return this; }
+        
+        //Backwards is a bit slower, but should be rarely used (if at all)
         @property ref back(){ return buffer[(end-1) & mask]; }
         void popBack(){ end  = (end - 1) & mask; }
         
         // RA range primitives
-        ref opIndex(size_t idx){ return data[(start+idx) & mask]; }
+        ref opIndex(size_t idx){ return buffer[(start+idx) & mask]; }
         @property size_t length(){ return (end - start) & mask; }
         
-        auto opSlice(){ return opSlice(0, length); }
         auto opSlice(size_t newStart, size_t newEnd)
         { 
             assert(newStart <= newEnd);
             assert(newStart+newEnd < end);
             size_t maskedStart = (start+newStart) & mask;
             size_t maskedEnd = (start+newEnd) & mask;
-            return typeof(this)(, start+newEnd, buffer); 
+            return typeof(this)(buffer, maskedStart, maskedEnd); 
         }
+        // @@@bug fwd-ref in ldc0.10 (if placed above previous one)
+        auto opSlice(){ return opSlice(0, length); }
     private:
+        @property auto mask(){ return buffer.length-1; }
         size_t start, end;
         ubyte[] buffer;
     }
-    enum mask = bufferSize - 1;
-    static assert(bufferSize & (bufferSize-1) == 0); //pow of 2
+    static assert(isRandomAccessRange!CircularRange);
+    @property auto mask(){ return accum.length-1; }
     R range;
     ubyte[] accum; // accumulator buffer for non-RA ranges
     size_t savedAccumIdx;
     size_t accumIdx; // current index in accumulator
-}        
+}
 
+private struct LexSource(R)
+    if(isRandomAccessRange!R)
+{
+    
+}
+
+auto lexerSource(Range)(Range range, size_t bufSize=8)
+    if(isForwardRange!Range && !isRandomAccessRange!Range
+     && is(ElementType!Range : const(ubyte)))
+{
+    return LexSource!(Range)(range, bufSize);
+}
+
+auto lexerSource(Range)(Range range, size_t bufSize=8)
+    if(isRandomAccessRange!Range 
+    && is(ElementType!Range : const(ubyte)))
+{
+    return LexSource!(Range)(range);
+}
+
+unittest
+{
+    //basic functionality of buffered range
+    import std.string;
+    auto lexs = lexerSource(
+        "Hello, world!"
+        .representation
+        .filter!"a != ' '", 8
+    );
+    assert(lexs.front == 'H');
+    lexs.popFront();
+    assert(lexs.front == 'e');
+    lexs.mark();
+    assert(lexs.slice.equal(""));
+    lexs.popFront();
+    assert(lexs.slice.equal("e"));
+    lexs.popFrontN(4);
+    auto bytes = lexs.slice.map!"cast(char)a".array();
+    assert(bytes.equal("ello,"), bytes.to!string);
+    lexs.mark();
+    assert(lexs.slice.equal(""));
+}
+/+
+ 
 /**
 * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
 */
@@ -1945,6 +2004,8 @@ private:
 	LexerConfig config;
 	StringCache cache;
 }
+
++/
 
 /**
 * Returns: true if the token is an operator
