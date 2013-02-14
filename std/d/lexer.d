@@ -315,11 +315,11 @@ TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
 // For now a private helper that is tailored to the way lexer works
 // hides away forwardness of range by buffering
 // RA-version is strightforward thin wrapping
-// atm this is byte-oriented
+// ATM it is byte-oriented
 private struct LexSource(R)
     if(isForwardRange!R && !isRandomAccessRange!R)
 {   
-    bool empty(){ return range.empty; }
+    bool empty(){ return _empty; }
     
     ref front()
     {
@@ -329,17 +329,36 @@ private struct LexSource(R)
     void popFront()
     {         
         range.popFront();
+        // if that was last byte
+        // just advance so that open-righted slice just works
+        accumIdx =  (accumIdx+1) & mask; 
         if(range.empty)
+        {
+            _empty = true;
             return;
-        accumIdx =  (accumIdx+1) & mask;
-        accum[accumIdx] = range.front;        
+        }        
         if(accumIdx == savedAccumIdx)
         {
-            //TODO: enlarge circular buffer to the next pow-2
             // and move stuff around
-            assert(0);
+            auto oldLen = accum.length;
+            auto toCopy = oldLen - accumIdx;
+            accum.length *= 2; // keep pow of 2
+            // copy starting with last item
+            copy(retro(accum[accumIdx..oldLen]), 
+                retro(accum[$-toCopy..$]));
+            savedAccumIdx = accum.length - toCopy;            
         }
+        accum[accumIdx] = range.front;
     }
+    
+    auto save()
+    {
+        typeof(this) copy = this;
+        copy.range = range.save;        
+        // sadly need to dup circular buffer, as it overwrites items
+        copy.accum = copy.accum.dup;
+        return copy;
+    }    
     
     // mark a position to slice from later on
     size_t mark()
@@ -359,10 +378,12 @@ private:
     this(R src, size_t bufferSize)
     {
         range = src;
-        assert(bufferSize > 1);
+        assert(bufferSize > 0);
         assert((bufferSize & (bufferSize-1)) == 0); //is power of 2
         accum = new ubyte[bufferSize];        
-        if(!range.empty) 
+        if(range.empty) 
+            _empty = true;
+        else
             accum[accumIdx] = range.front; // load front
     }
     
@@ -388,12 +409,14 @@ private:
         
         // RA range primitives
         ref opIndex(size_t idx){ return buffer[(start+idx) & mask]; }
-        @property size_t length(){ return (end - start) & mask; }
+        @property size_t length()
+        { 
+            return end < start ? end + buffer.length -start : end - start; 
+        }
+        alias opDollar = length;
         
         auto opSlice(size_t newStart, size_t newEnd)
         { 
-            assert(newStart <= newEnd);
-            assert(newStart+newEnd < end);
             size_t maskedStart = (start+newStart) & mask;
             size_t maskedEnd = (start+newEnd) & mask;
             return typeof(this)(buffer, maskedStart, maskedEnd); 
@@ -408,15 +431,45 @@ private:
     static assert(isRandomAccessRange!CircularRange);
     @property auto mask(){ return accum.length-1; }
     R range;
+    bool _empty;
     ubyte[] accum; // accumulator buffer for non-RA ranges
     size_t savedAccumIdx;
     size_t accumIdx; // current index in accumulator
 }
 
+//trivial pass-through for RA ranges
 private struct LexSource(R)
     if(isRandomAccessRange!R)
-{
+{    
+    bool empty(){ return cur >= range.length; }    
+    auto ref front(){ return range[cur]; }    
+    void popFront(){ cur++; }
     
+    auto save()
+    { 
+        typeof(this) copy = this;
+        copy.range = range.save;
+        return copy; 
+    }
+    
+    auto mark()
+    {
+        saved = cur;
+    }
+    
+    // use the underliying range slicing capability
+    auto slice()
+    {
+        return range[saved..cur]; 
+    }
+    
+private:
+    this(R src)
+    {
+        range = src;        
+    }
+    size_t cur, saved;
+    R range;
 }
 
 auto lexerSource(Range)(Range range, size_t bufSize=8)
@@ -426,7 +479,7 @@ auto lexerSource(Range)(Range range, size_t bufSize=8)
     return LexSource!(Range)(range, bufSize);
 }
 
-auto lexerSource(Range)(Range range, size_t bufSize=8)
+auto lexerSource(Range)(Range range)
     if(isRandomAccessRange!Range 
     && is(ElementType!Range : const(ubyte)))
 {
@@ -435,26 +488,70 @@ auto lexerSource(Range)(Range range, size_t bufSize=8)
 
 unittest
 {
-    //basic functionality of buffered range
-    import std.string;
-    auto lexs = lexerSource(
+    // test the basic functionality of a "mark-slice" range
+    import std.string, std.stdio;    
+        
+    static void test_hello(T)(T lexs)
+    {
+        assert(lexs.front == 'H');
+        lexs.popFront();
+        assert(lexs.front == 'e');
+        foreach(i; 0..2)
+        {
+            auto saved = lexs.save;
+            lexs.mark();
+            assert(lexs.slice.equal(""));
+            lexs.popFront();
+            assert(lexs.slice.equal("e"), text(cast(char)lexs.front));
+            lexs.popFrontN(4);
+            auto bytes = lexs.slice.map!"cast(char)a".array();
+            assert(bytes.equal("ello,"), bytes.to!string);
+            lexs.mark();
+            assert(lexs.slice.equal(""));
+            assert(lexs.front == 'w');
+            lexs.popFrontN(6);         
+            assert(lexs.empty);
+            auto s = lexs.slice();
+            auto msg = s.save.map!"cast(char)a".array;
+            assert(s[].equal("world!"), msg);
+            assert(s[2..$-1].equal("rld"), msg); 
+            assert(s[0] == 'w' && s[$-1] == '!');
+            s.popFront();
+            assert(s.front == 'o' && s.back == '!');
+            s.popBack();
+            assert(s.front == 'o' && s.back == 'd');
+            //restore and repeat again
+            lexs = saved;
+        }
+    }
+    
+    static void test_empty(T)(T lexs)
+    {
+        assert(lexs.empty);
+        lexs.mark();
+        assert(lexs.slice().equal(""));
+    }
+    
+    auto fwdLex = lexerSource(
         "Hello, world!"
         .representation
-        .filter!"a != ' '", 8
-    );
-    assert(lexs.front == 'H');
-    lexs.popFront();
-    assert(lexs.front == 'e');
-    lexs.mark();
-    assert(lexs.slice.equal(""));
-    lexs.popFront();
-    assert(lexs.slice.equal("e"));
-    lexs.popFrontN(4);
-    auto bytes = lexs.slice.map!"cast(char)a".array();
-    assert(bytes.equal("ello,"), bytes.to!string);
-    lexs.mark();
-    assert(lexs.slice.equal(""));
+        .filter!"a != ' '", 16 // and the one that is more then enough
+    );    
+    test_hello(fwdLex);    
+    fwdLex = lexerSource(
+        "Hello, world!"
+        .representation
+        .filter!"a != ' '", 1 // try the smallest initial buffer 
+    );    
+    test_hello(fwdLex);    
+    fwdLex = lexerSource("".representation.filter!"a != ' '");
+    auto raLex = lexerSource("".representation);
+    test_empty(raLex);
+    test_empty(fwdLex);    
+    raLex = lexerSource("Hello,world!".representation);    
+    test_hello(raLex);
 }
+
 /+
  
 /**
