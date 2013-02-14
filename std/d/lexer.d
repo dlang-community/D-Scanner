@@ -761,8 +761,7 @@ private:
 		default:
 			assert(false);
 		}
-		static if (keep) keepNonNewlineChar();
-			setTokenValue();
+        setTokenValue();
 	}
 
 	void lexHexString()
@@ -824,12 +823,12 @@ private:
 	void lexNumber()
 	in
 	{
-		assert(buffer[0] || buffer[0] == '.');
+		assert((buffer[0] >= '0' && buffer[0] <= '9') || buffer[0] == '.');
 	}
 	body
 	{
 		// hex and binary can start with zero, anything else is decimal
-		if (currentElement() != '0')
+		if (buffer[0] != '0' || isEoF())
 			lexDecimal();
 		else
 		{
@@ -939,18 +938,20 @@ private:
 	{
 		keepNonNewlineChar();
 		bool foundSign = false;
+        bool foundDigit = false;
 		while (!isEoF())
 		{
 			switch (currentElement())
 			{
 			case '-':
 			case '+':
-				if (foundSign)
+				if (foundSign || foundDigit)
 					return;
 				foundSign = true;
 				keepNonNewlineChar();
 			case '0': .. case '9':
 			case '_':
+                foundDigit = true;
 				keepNonNewlineChar();
 				break;
 			case 'L':
@@ -1074,7 +1075,14 @@ private:
 			case '_':
 				keepNonNewlineChar();
 				break;
+            case 'u':
+            case 'U':
+                lexIntSuffix();
+                return;
 			case 'i':
+                if (foundDot)
+                    lexFloatSuffix();
+                return;
 			case 'L':
 				if (foundDot)
 				{
@@ -1615,6 +1623,7 @@ private:
 		buffer[0] = 'q';
 		buffer[1] = '{';
 		buffer[2 .. bi + 2] = b[0 .. bi];
+        bi++;
 		buffer[bi++] = '}';
 		bufferIndex = bi;
 		if (config.tokenStyle & TokenStyle.includeQuotes)
@@ -2796,3 +2805,88 @@ immutable uint[] sbox = [
 	0xA0B38F96, 0x51D39199, 0x37A6AD75, 0xDF84EE41,
 	0x3C034CBA, 0xACDA62FC, 0x11923B8B, 0x45EF170A,
 ];
+
+unittest
+{
+    import std.stdio;
+    auto source = cast(ubyte[]) (
+        " bool byte cdouble cent cfloat char creal dchar double float function"
+        ~ " idouble ifloat int ireal long real short ubyte ucent uint ulong"
+        ~ " ushort void wchar align deprecated extern pragma export package private"
+        ~ " protected public abstract auto const final __gshared immutable inout"
+        ~ " scope shared static synchronized alias asm assert body break case"
+        ~ " cast catch class continue debug default delegate delete do else"
+        ~ " enum false finally foreach foreach_reverse for goto if import in"
+        ~ " interface invariant is lazy macro mixin module new nothrow null"
+        ~ " out override pure ref return struct super switch template this"
+        ~ " throw true try typedef typeid typeof union unittest version volatile"
+        ~ " while with __traits __parameters __vector");
+    auto expected = ["bool", "byte", "cdouble",
+        "cent", "cfloat", "char", "creal",
+        "dchar", "double", "float", "function",
+        "idouble", "ifloat", "int", "ireal", "long",
+        "real", "short", "ubyte", "ucent", "uint",
+        "ulong", "ushort", "void", "wchar", "align",
+        "deprecated", "extern", "pragma", "export",
+        "package", "private", "protected", "public",
+        "abstract", "auto", "const", "final", "__gshared",
+        "immutable", "inout", "scope", "shared",
+        "static", "synchronized", "alias", "asm", "assert",
+        "body", "break", "case", "cast", "catch",
+        "class", "continue", "debug", "default", "delegate",
+        "delete", "do", "else", "enum", "false",
+        "finally", "foreach", "foreach_reverse", "for",
+        "goto", "if", "import", "in", "interface",
+        "invariant", "is", "lazy","macro", "mixin",
+        "module", "new", "nothrow", "null", "out",
+        "override", "pure", "ref", "return", "struct",
+        "super", "switch", "template", "this", "throw",
+        "true", "try", "typedef", "typeid", "typeof",
+        "union", "unittest", "version", "volatile",
+        "while", "with", "__traits", "__parameters", "__vector"];
+    LexerConfig config;
+    auto tokens = byToken(source, config);
+    //writeln(tokens.map!"a.value"().array());
+    assert (equal(map!"a.value"(tokens), expected));
+}
+
+unittest
+{
+    //import std.stdio;
+    auto source = cast(ubyte[]) ("=@& &=| |=~=:,--/ /=$.===>> >=++{[< <=<>=<>&&||(- -=%%=*=!!=!>!>=!<!<=!<>+ +=^^^^=}]);<< <<=>> >>=..*?~!<>=>>>>>>=...^ ^=");
+    auto expected = ["=",  "@", "&", "&=", "|", "|=", "~=",
+        ":", ",", "--", "/", "/=", "$", ".", "==",
+        "=>", ">", ">=", "++", "{", "[", "<",
+        "<=", "<>=", "<>", "&&", "||", "(", "-", "-=", "%",
+        "%=", "*=", "!", "!=", "!>", "!>=", "!<",
+        "!<=", "!<>", "+", "+=", "^^", "^^=",
+        "}", "]", ")", ";", "<<", "<<=", ">>",
+        ">>=", "..", "*", "?", "~", "!<>=",
+        ">>>", ">>>=", "...", "^", "^="];
+    LexerConfig config;
+    auto tokens = byToken(source, config);
+    //writeln(tokens.map!"a.value"().array());
+    assert (equal(map!"a.value"(tokens), expected));
+}
+
+unittest
+{
+    import std.stdio;
+    auto source = cast(ubyte[]) (q{
+        1 1.2 1.2f 1u 1uL 0b11 0b1u 0b1 0x11001uL
+    });
+    auto expected = ["1", "1.2", "1.2f", "1u", "1uL", "0b11", "0b1u", "0b1",
+    "0x11001uL"];
+    LexerConfig config;
+    auto tokens = byToken(source, config);
+    writeln(tokens.map!"a.value"().array());
+    assert (equal(map!"a.value"(tokens), expected));
+}
+
+
+void main(string[] args)
+{
+
+
+
+}
