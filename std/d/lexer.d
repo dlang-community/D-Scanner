@@ -317,6 +317,15 @@ TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
 */
 struct TokenRange(R) if (isForwardRange!(R))
 {
+
+	/**
+	 * Returns the file name of the config object.
+	 */
+	string fileName() const @property
+	{
+		return config.fileName;
+	}
+
 	/**
 	* Returns: true if the range is empty
 	*/
