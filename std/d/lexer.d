@@ -643,9 +643,11 @@ struct TokenRange(LexSrc)
 	void popFront()
 	{
 		// Filter out tokens we don't care about
-		loop: do
+		loop: for (;;)
 		{
 			advance();
+            if(empty)
+                break loop;
 			switch (current.type)
 			{
 			case TokenType.whitespace:
@@ -664,7 +666,6 @@ struct TokenRange(LexSrc)
 				break loop;
 			}
 		}
-		while (!empty());
 	}
 private:
 
@@ -812,8 +813,7 @@ private:
 				current.value = getTokenValue(TokenType.dot);
 				return;
 			}
-		case '0': .. case '9':
-			nextCharNonLF();
+		case '0': .. case '9':			
 			lexNumber();
 			return;
 		case '\'':
@@ -1043,6 +1043,8 @@ private:
 			}
 		}
 		lexStringSuffix();
+        //TODO: and what about suffix ??
+        // I don't see it handled when slicing out quotes 
 		if (config.tokenStyle & TokenStyle.notEscaped)
 		{
 			if (config.tokenStyle & TokenStyle.includeQuotes)
@@ -1071,8 +1073,7 @@ private:
     void lexNumber()
 	in
 	{
-        //TODO: restore some contracts later
-		//assert(isDigit(src.front) || src.front == '.');
+		assert(isDigit(src.front) || src.front == '.');
 	}
 	body
 	{
@@ -1081,6 +1082,7 @@ private:
 			lexDecimal();
 		else
 		{
+            nextCharNonLF();            
 			switch (src.front)
 			{
 			case 'x':
@@ -1093,8 +1095,12 @@ private:
 				nextCharNonLF();
 				lexBinary();
 				break;
-			default:
+            case '0': .. case '9': case '.':			
 				lexDecimal();
+                break;
+            default: // a lone zero followed by something
+                current.type = TokenType.intLiteral;
+                setTokenValue();
 				return;
 			}
 		}
@@ -1129,7 +1135,7 @@ private:
     void lexDecimal()
 	in
 	{
-		assert ((src.front >= '0' && src.front <= '9') || src.front == '.');
+		assert (isDigit(src.front) || src.front == '.');
 	}
 	body
 	{
@@ -1381,13 +1387,12 @@ private:
 	}
 	body
 	{
+        import std.stdio;
 		current.type = TokenType.characterLiteral;		
-		nextChar();
-        
+		nextChar();        
 		if (isEoF())
 		{
 			errorMessage("Unterminated character literal");
-			
 		}
 		switch (src.front)
 		{
@@ -1407,14 +1412,16 @@ private:
                     {
                         utf8[0] = '\'';
                         len = decodeEscapeSequence(utf8[1..$]);
-                        utf8[len++] = '\'';                        
+                        utf8[len++] = '\'';
                     }   
                     else
-                        len = decodeEscapeSequence(utf8[]);                    
+                        len = decodeEscapeSequence(utf8[]);                       
                     if (src.front != '\'')
                     {
                         errorMessage("Expected \"'\" to end character literal");
-                    }                     
+                    }       
+                    // skip over last "'"
+                    nextChar();
                     setTokenValue(utf8[0..len]);                    
                     return; 
                 }
@@ -1450,21 +1457,9 @@ private:
 	{
 		current.type = TokenType.stringLiteral;
         bool longWysiwg = src.front == 'r'; // 2 chars : r"
-		bool isWysiwyg = src.front == '`';
-
-		scope (exit)
-		{
-			if (config.tokenStyle & TokenStyle.includeQuotes)
-				setTokenValue();
-			else
-			{
-				if (longWysiwg)
-					setTokenValue(2, -1);
-				else
-					setTokenValue(1, -1);
-			}
-		}
-
+		bool isWysiwyg = src.front == '`';        
+        // in case we need to unescape string
+        Appender!(ubyte[]) unescaped;
 		auto quote = src.front;
 		nextChar();
 		while (true)
@@ -1483,7 +1478,13 @@ private:
 					skipEscapeSequence();
                 }
                 else
-                    assert(0); //TODO!
+                {
+                    if(unescaped == Appender!(ubyte[]).init)
+                        unescaped = appender!(ubyte[])();
+                    unescaped.put(src.slice());
+                    decodeEscapeSequence(unescaped);
+                    src.mark(); //start next slice after escape sequence
+                }
 			}
 			else if (src.front == quote)
 			{
@@ -1494,6 +1495,27 @@ private:
 				nextChar();
 		}
 		lexStringSuffix();
+        // helper to handle quotes
+        void setData(R)(R range)
+        {
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                setTokenValue(range);
+            else if (longWysiwg)
+                setTokenValue(range[2..$-1]);
+            else
+                setTokenValue(range[1..$-1]);
+        }
+        import std.stdio;
+        if(unescaped != Appender!(ubyte[]).init)
+        {
+            //stuff in the last slice and used buffered data
+            unescaped.put(src.slice); 
+            setData(unescaped.data); 
+        }
+        else
+        {
+            setData(src.slice); //slice directly
+        }
 	}
     
     void lexDelimitedString()
@@ -1813,14 +1835,14 @@ private:
         }
     }
     
-    size_t decodeEscapeSequence(ubyte[] dest)
+    size_t decodeEscapeSequence(OutputRange)(OutputRange dest)
 	in
 	{
 		assert (src.front == '\\');
 	}
 	body
 	{    
-        static size_t reencodeNumeric(ubyte[] srcDest, int radix)
+        static size_t reencodeNumeric(ubyte[] src, int radix, OutputRange dest)
         {
             /*scope(failure) //TODO: get rid of std.stdio in lexer
             {
@@ -1828,13 +1850,14 @@ private:
                 ("Failed on line ", lineNumber, " of file ",
                     config.fileName);
             }*/
-            char[] chunk = cast(char[])srcDest;
+            char[] chunk = cast(char[])src;
             char[4] utfBuf;
             uint codepoint = parse!uint(chunk, radix);            
             size_t len = encode(utfBuf, codepoint);
-            srcDest[0..len] = utfBuf[0..len].representation;
+            dest.put(utfBuf[0..len].representation);
             return len;
-        }        
+        }
+        ubyte[40] buffer;   
         src.popFront();
         switch (src.front)
         {
@@ -1842,27 +1865,27 @@ private:
         case '"':  
         case '?':  
         case '\\': 
-            dest[0] = src.front;
+            buffer[0] = src.front;
             src.popFront();
             return 1;
-        case 'a':  dest[0] = '\a'; src.popFront(); return 1;
-        case 'b':  dest[0] = '\b'; src.popFront(); return 1;
-        case 'f':  dest[0] = '\f'; src.popFront(); return 1;
-        case 'n':  dest[0] = '\n'; src.popFront(); return 1;
-        case 'r':  dest[0] = '\r'; src.popFront(); return 1;
-        case 't':  dest[0] = '\t'; src.popFront(); return 1;
-        case 'v':  dest[0] = '\v'; src.popFront(); return 1;
-        case 0x0a: dest[0] = 0x0a; src.popFront(); return 1;
-        case 0x00: dest[0] = 0x00; src.popFront(); return 1;
+        case 'a':  dest.put('\a'); src.popFront(); return 1;
+        case 'b':  dest.put('\b'); src.popFront(); return 1;
+        case 'f':  dest.put('\f'); src.popFront(); return 1;
+        case 'n':  dest.put('\n'); src.popFront(); return 1;
+        case 'r':  dest.put('\r'); src.popFront(); return 1;
+        case 't':  dest.put('\t'); src.popFront(); return 1;
+        case 'v':  dest.put('\v'); src.popFront(); return 1;
+        case 0x0a: dest.put(cast(ubyte)0x0a); src.popFront(); return 1;
+        case 0x00: dest.put(cast(ubyte)0x00); src.popFront(); return 1;
         case '0': .. case '7':
             size_t idx = 0;
             while(idx < 3 && !isEoF())
             {
-                dest[idx++] = src.front;
+                buffer[idx++] = src.front;
                 src.popFront();
                 if (src.front < '0' || src.front > '7') break;
             }
-            return reencodeNumeric(dest[0..idx], 8);
+            return reencodeNumeric(buffer[0..idx], 8, dest);
         case 'x':
             src.popFront();
             foreach(i; 0 .. 2)
@@ -1872,10 +1895,10 @@ private:
                     errorMessage("Expected hex digit");
                     return 1;
                 }
-                dest[i] = src.front;
+                buffer[i] = src.front;
                 src.popFront();
             }
-            return reencodeNumeric(dest[0..2], 16);
+            return reencodeNumeric(buffer[0..2], 16, dest);
         case 'u':
         case 'U':
             uint digitCount = src.front == 'u' ? 4 : 8;
@@ -1887,10 +1910,10 @@ private:
                     errorMessage("Expected hex digit");
                     return 1;
                 }
-                dest[i] = src.front;
+                buffer[i] = src.front;
                 src.popFront();
             }
-            return reencodeNumeric(dest[0..digitCount], 16);
+            return reencodeNumeric(buffer[0..digitCount], 16, dest);
         case '&':
             src.popFront();
             size_t idx = 0;
@@ -1898,7 +1921,9 @@ private:
             {
                 if (isAlpha(src.front))
                 {
-                    dest[idx++] = src.front;
+                    buffer[idx++] = src.front;
+                    if(idx == buffer.length) // way over maximum length
+                        errorMessage("Invalid character entity");
                     src.popFront();
                 }
                 else if (src.front == ';')
@@ -1912,7 +1937,7 @@ private:
                     return idx;
                 }
             }
-            auto chunk = dest[0..idx];
+            auto chunk = buffer[0..idx];
             auto entity = cast(string)chunk in characterEntities;
             if (entity is null)
             {
@@ -1920,10 +1945,7 @@ private:
                     .format(cast(string) chunk));
                 return 1;
             }
-            else
-            {
-                dest[0..entity.length] = (*entity)[0..$].representation;
-            }
+            dest.put((*entity)[0..$].representation);
             return entity.length;
         default:
             errorMessage("Invalid escape sequence");
@@ -1948,13 +1970,15 @@ private:
 		else
 		{
             src.popFront();
-			++column;
 		}
 		if (foundNewline)
 		{
 			++lineNumber;
 			column = 0;
 		}
+        else
+            ++column;
+        
 	}
     
     //same but don't bother for LF sequences
@@ -2889,7 +2913,7 @@ struct StringCache
 
 private:
 
-	import std.stdio, core.stdc.string;
+	import core.stdc.string;
 	string* find(R)(R data, out size_t bucket, out hash_t h)
 	{
 		h = hash(data);
@@ -3010,3 +3034,19 @@ immutable uint[] sbox = [
 	0xA0B38F96, 0x51D39199, 0x37A6AD75, 0xDF84EE41,
 	0x3C034CBA, 0xACDA62FC, 0x11923B8B, 0x45EF170A,
 ];
+
+unittest
+{
+    LexerConfig cfg;
+    auto tkr = "void main(){ }".representation.byToken(cfg);
+    assert(tkr.map!"a.value".equal(["void", "main", "(", ")", "{", "}"]));  
+    tkr = "1234 54.23232".representation.byToken(cfg);
+    assert(tkr.equal(["1234", "54.23232"]));
+    auto str =  r"0 0. .0 1 0x3 0b102 007";
+    cfg.iterStyle = IterationStyle.everything;
+    tkr = str.representation.byToken(cfg);
+    assert(tkr.map!"a.value".equal(["0", " ", "0.", " ", 
+        ".0", " ", "1", " ", "0x3", " ", "0b10", 
+        "2", " ", "007"]
+    ), text(tkr.map!"a.value"));  
+}
