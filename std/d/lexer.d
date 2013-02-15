@@ -287,12 +287,6 @@ struct LexerConfig
 	* and error messsage.
 	*/
 	void delegate(string, size_t, uint, uint, string) errorFunc;
-
-	/**
-	* Initial size of the lexer's internal token buffer in bytes. The lexer
-	* will grow this buffer if necessary.
-	*/
-	size_t bufferSize = 1024 * 4;
 }
 
 /**
@@ -300,12 +294,29 @@ struct LexerConfig
 * Params:
 *     range = the range of characters
 *     config = the lexer configuration
+*     bufferSize = initial size of internal circular buffer
 * Returns:
 *     an input range of tokens
 */
-TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
+auto byToken(R)(R range, LexerConfig config, size_t bufferSize = 4*1024) 
+    if (isForwardRange!(R) && !isRandomAccessRange!(R)
+        && is(ElementType!R : const(ubyte)))
 {
-	auto r = TokenRange!(R)(range);
+    // 4K of circular buffer by default
+	auto r = TokenRange!(typeof(lexerSource(range)))
+        (lexerSource(range, bufferSize), config);  
+	r.config = config;
+	r.lineNumber = 1;
+	r.popFront();
+	return r;
+}
+
+///ditto
+auto byToken(R)(R range, LexerConfig config) 
+    if (isRandomAccessRange!(R) && is(ElementType!R : const(ubyte)))
+{
+    auto r = TokenRange!(typeof(lexerSource(range)))
+        (lexerSource(range), config); 
 	r.config = config;
 	r.lineNumber = 1;
 	r.popFront();
@@ -319,9 +330,9 @@ TokenRange!(R) byToken(R)(R range, LexerConfig config) if (isForwardRange!(R))
 private struct LexSource(R)
     if(isForwardRange!R && !isRandomAccessRange!R)
 {   
-    bool empty(){ return _empty; }
+    bool empty() const { return _empty; }
     
-    ref front()
+    auto ref front() const
     {
         return accum[accumIdx];
     }
@@ -398,8 +409,8 @@ private:
             end = e;
         }
         //Forward range primitives
-        @property bool empty(){ return start == end; }
-        @property ref front(){ return buffer[start]; }        
+        @property bool empty() const { return start == end; }
+        @property auto ref front() const { return buffer[start]; }        
         void popFront(){ start = (start + 1) & mask; }
         @property auto save(){ return this; }
         
@@ -413,7 +424,7 @@ private:
         { 
             return end < start ? end + buffer.length -start : end - start; 
         }
-        alias opDollar = length;
+        alias length opDollar;
         
         auto opSlice(size_t newStart, size_t newEnd)
         { 
@@ -441,8 +452,8 @@ private:
 private struct LexSource(R)
     if(isRandomAccessRange!R)
 {    
-    bool empty(){ return cur >= range.length; }    
-    auto ref front(){ return range[cur]; }    
+    bool empty() const { return cur >= range.length; }    
+    auto ref front() const { return range[cur]; }    
     void popFront(){ cur++; }
     
     auto save()
@@ -552,15 +563,14 @@ unittest
     test_hello(raLex);
 }
 
-/+
- 
+
 /**
 * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
 */
-struct TokenRange(R) 
-    if (isForwardRange!(R))
+struct TokenRange(LexSrc) 
+    //if ( is(LexSrc : LexSource!(U...), U...)) //check for LexSource
 {
-	/**
+    /**
 	* Returns: true if the range is empty
 	*/
 	bool empty() const @property
@@ -573,7 +583,7 @@ struct TokenRange(R)
 	*/
 	ref const(Token) front() const @property
 	{
-		enforce(!_empty, "Cannot call front() on empty token range");
+		assert(!empty, "trying to get front of an empty token range");
 		return current;
 	}
 
@@ -582,13 +592,13 @@ struct TokenRange(R)
 	*/
 	Token moveFront()
 	{
-		auto r = front();
+		auto r = move(current);
 		popFront();
 		return r;
 	}
 
 	/**
-	* Range operation
+	* Foreach operation
 	*/
 	int opApply(int delegate(Token) dg)
 	{
@@ -604,7 +614,7 @@ struct TokenRange(R)
 	}
 
 	/**
-	* Range operation
+	* Foreach operation
 	*/
 	int opApply(int delegate(size_t, Token) dg)
 	{
@@ -649,16 +659,9 @@ struct TokenRange(R)
 		}
 		while (!empty());
 	}
-
 private:
 
-	this(ref R range)
-	{
-		this.range = range;
-		buffer = uninitializedArray!(ubyte[])(bufferSize);
-	}
-
-	/*
+    /*
 	* Advances the range to the next token
 	*/
 	void advance()
@@ -669,9 +672,9 @@ private:
 			return;
 		}
 
-		bufferIndex = 0;
+		src.mark(); // mark a start of a lexing "frame"
 		current.line = lineNumber;
-		current.startIndex = index;
+		//current.startIndex = index; //TODO: need index ?
 		current.column = column;
 		current.value = null;
 
@@ -684,7 +687,7 @@ private:
 			return;
 		}
 
-		switch (currentElement())
+		switch (src.front)
 		{
 //        pragma(msg, generateCaseTrie(
 		mixin(generateCaseTrie(
@@ -747,14 +750,14 @@ private:
 			"^=",              "TokenType.xorEquals",
 		));
 		case '/':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			if (isEoF())
 			{
 				current.type = TokenType.div;
 				current.value = "/";
 				return;
 			}
-			switch (currentElement())
+			switch (src.front)
 			{
 			case '/':
 			case '*':
@@ -767,7 +770,7 @@ private:
 			case '=':
 				current.type = TokenType.divEquals;
 				current.value = "/=";
-				advanceRange();
+				src.popFront();
 				return;
 			default:
 				current.type = TokenType.div;
@@ -775,25 +778,25 @@ private:
 				return;
 			}
 		case '.':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			if (isEoF())
 			{
 				current.type = TokenType.dot;
 				current.value = getTokenValue(TokenType.dot);
 				return;
 			}
-			switch (currentElement())
+			switch (src.front)
 			{
 			case '0': .. case '9':
 				lexNumber();
 				return;
 			case '.':
 				current.type = TokenType.slice;
-				keepNonNewlineChar();
-				if (currentElement() == '.')
+				nextCharNonLF();
+				if (src.front == '.')
 				{
 					current.type = TokenType.vararg;
-					keepNonNewlineChar();
+					nextCharNonLF();
 				}
 				current.value = getTokenValue(current.type);
 				return;
@@ -803,7 +806,7 @@ private:
 				return;
 			}
 		case '0': .. case '9':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			lexNumber();
 			return;
 		case '\'':
@@ -814,10 +817,10 @@ private:
 			lexString();
 			return;
 		case 'q':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			if (isEoF())
 				goto default;
-			switch (currentElement())
+			switch (src.front)
 			{
 			case '{':
 				lexTokenString();
@@ -830,10 +833,10 @@ private:
 			}
 			goto default;
 		case 'r':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			if (isEoF())
 				goto default;
-			else if (currentElement() == '"')
+			else if (src.front == '"')
 			{
 				lexString();
 				return;
@@ -841,10 +844,10 @@ private:
 			else
 				goto default;
 		case 'x':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			if (isEoF())
 				goto default;
-			else if (currentElement() == '"')
+			else if (src.front == '"')
 			{
 				lexHexString();
 				return;
@@ -857,10 +860,10 @@ private:
 		default:
 			while(!isEoF() && !isSeparating())
 			{
-				keepNonNewlineChar();
+				nextCharNonLF();
 			}
 
-			current.type = lookupTokenType(cast(char[]) buffer[0 .. bufferIndex]);
+			current.type = lookupTokenType(src.slice);
 			current.value = getTokenValue(current.type);
 			if (current.value is null)
 				setTokenValue();
@@ -915,99 +918,96 @@ private:
 			}
 		}
 	}
-
-	void lexWhitespace(bool keep)()
+    
+    // TODO: LexSource could be improved for forward ranges 
+    // to avoid buffering at all (by disabling it for a moment)
+    // so keep the 'keep' parameter here and elsewhere
+    void lexWhitespace(bool keep)()
 	{
 		current.type = TokenType.whitespace;
 		while (!isEoF() && isWhite())
 		{
-			static if (keep) keepChar();
-			else advanceRange();
+			nextChar();
 		}
-		static if (keep) setTokenValue();
+		static if (keep) setTokenValue(); 
 	}
-
-	void lexComment(bool keep)()
+    
+    void lexComment(bool keep)()
 	in
 	{
-		assert (currentElement() == '/' || currentElement() == '*' || currentElement() == '+');
+		assert (src.front == '/' || src.front == '*' || src.front == '+');
 	}
 	body
 	{
 		current.type = TokenType.comment;
-		switch(currentElement())
+		switch(src.front)
 		{
 		case '/':
-			while (!isEoF() && !isNewline(currentElement()))
+			while (!isEoF() && !isNewline(src.front))
 			{
-				static if (keep) keepNonNewlineChar();
-				else advanceRange();
+                nextCharNonLF();
 			}
 			break;
 		case '*':
 			while (!isEoF())
 			{
-				if (currentElement() == '*')
+				if (src.front == '*')
 				{
-					static if (keep) keepNonNewlineChar();
-					else advanceRange();
-					if (currentElement() == '/')
+					static if (keep) nextCharNonLF();
+					else src.popFront();
+					if (src.front == '/')
 					{
-						static if (keep) keepNonNewlineChar();
-						else advanceRange();
+                        nextCharNonLF();
 						break;
 					}
 				}
 				else
-					keepChar();
+					nextChar();
 			}
 			break;
 		case '+':
 			int depth = 1;
 			while (depth > 0 && !isEoF())
 			{
-				if (currentElement() == '+')
+				if (src.front == '+')
 				{
-					static if (keep) keepNonNewlineChar();
-					else advanceRange();
-					if (currentElement() == '/')
+                    nextCharNonLF();
+					if (src.front == '/')
 					{
-						static if (keep) keepNonNewlineChar();
-						else advanceRange();
+						nextCharNonLF();
 						--depth;
 					}
 				}
-				else if (currentElement() == '/')
+				else if (src.front == '/')
 				{
-					static if (keep) keepNonNewlineChar();
-					else advanceRange();
-					if (currentElement() == '+')
+					nextCharNonLF();
+					if (src.front == '+')
 					{
-						static if (keep) keepNonNewlineChar();
-						else advanceRange();
+						nextCharNonLF();
 						++depth;
 					}
 				}
 				else
-					keepChar();
+					nextChar();
 			}
 			break;
 		default:
 			assert(false);
 		}
-		static if (keep) keepNonNewlineChar();
+		nextCharNonLF();
+        static if (keep)
 			setTokenValue();
 	}
-
-	void lexHexString()
+    
+    void lexHexString()
 	in
 	{
-		assert (currentElement() == '"' && buffer[0] == 'x');
+		assert (src.front == '"' && src.front == 'x');
 	}
 	body
 	{
 		current.type = TokenType.stringLiteral;
-		keepChar();
+		nextChar();
 		while (true)
 		{
 			if (isEoF())
@@ -1015,23 +1015,23 @@ private:
 				errorMessage("Unterminated hex string literal");
 				return;
 			}
-			else if (isHexDigit(currentElement()))
+			else if (isHexDigit(src.front))
 			{
-				keepNonNewlineChar();
+				nextCharNonLF();
 			}
 			else if (isWhite() && (config.tokenStyle & TokenStyle.notEscaped))
 			{
-				keepChar();
+				nextChar();
 			}
-			else if (currentElement() == '"')
+			else if (src.front == '"')
 			{
-				keepNonNewlineChar();
+				nextCharNonLF();
 				break;
 			}
 			else
 			{
 				errorMessage(format("Invalid character '%s' in hex string literal",
-					cast(char) currentElement()));
+					cast(char) src.front));
 				return;
 			}
 		}
@@ -1041,42 +1041,49 @@ private:
 			if (config.tokenStyle & TokenStyle.includeQuotes)
 				setTokenValue();
 			else
-				setTokenValue(2, bufferIndex - 1);
+				setTokenValue(2, -1);
 		}
 		else
 		{
-			auto a = appender!(ubyte[])();
-			foreach (b; std.range.chunks(buffer[2 .. bufferIndex - 1], 2))
+            // TODO: appender is an allocation happy fat pig
+            // remove it later
+			auto a = appender!(char[])();
+			foreach (b; std.range.chunks(src.slice[2 .. $ - 1], 2))
 			{
-				string s = to!string(cast(char[]) b);
-				a.put(cast(ubyte[]) to!string(cast(dchar) parse!uint(s, 16)));
+				auto s = cast(char[])b;
+                dchar ch = cast(dchar)parse!uint(s, 16);
+                char[4] utf8Buf;
+                size_t utf8Size = encode(utf8Buf, ch);
+				a.put(utf8Buf[0..utf8Size]);
 			}
-			current.value = to!string(cast(char[]) a.data);
+            // can safely assume ownership of data
+			current.value = cast(string)a.data;
 		}
 	}
-
-	void lexNumber()
+    
+    void lexNumber()
 	in
 	{
-		assert(buffer[0] || buffer[0] == '.');
+        //TODO: restore some contracts later
+		//assert(isDigit(src.front) || src.front == '.');
 	}
 	body
 	{
 		// hex and binary can start with zero, anything else is decimal
-		if (currentElement() != '0')
+		if (src.front != '0')
 			lexDecimal();
 		else
 		{
-			switch (currentElement())
+			switch (src.front)
 			{
 			case 'x':
 			case 'X':
-				keepNonNewlineChar();
+				nextCharNonLF();
 				lexHex();
 				break;
 			case 'b':
 			case 'B':
-				keepNonNewlineChar();
+				nextCharNonLF();
 				lexBinary();
 				break;
 			default:
@@ -1085,124 +1092,37 @@ private:
 			}
 		}
 	}
-
-	void lexFloatSuffix()
+    
+    void lexFloatSuffix()
 	{
-		switch (currentElement())
+		switch (src.front)
 		{
 		case 'L':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			current.type = TokenType.doubleLiteral;
 			break;
 		case 'f':
 		case 'F':
-			keepNonNewlineChar();
+			nextCharNonLF();
 			current.type = TokenType.floatLiteral;
 			break;
 		default:
 			break;
 		}
-		if (!isEoF() && currentElement() == 'i')
+		if (!isEoF() && src.front == 'i')
 		{
-			keepNonNewlineChar();
+			nextCharNonLF();
 			if (current.type == TokenType.floatLiteral)
 				current.type = TokenType.ifloatLiteral;
 			else
 				current.type = TokenType.idoubleLiteral;
 		}
 	}
-
-	void lexIntSuffix()
-	{
-		bool foundU;
-		bool foundL;
-		while (!isEoF())
-		{
-			switch (currentElement())
-			{
-			case 'u':
-			case 'U':
-				if (foundU)
-					return;
-				switch (current.type)
-				{
-				case TokenType.intLiteral:
-					current.type = TokenType.uintLiteral;
-					keepNonNewlineChar();
-					break;
-				case TokenType.longLiteral:
-					current.type = TokenType.ulongLiteral;
-					keepNonNewlineChar();
-					break;
-				default:
-					return;
-				}
-				foundU = true;
-				break;
-			case 'L':
-				if (foundL)
-					return;
-				switch (current.type)
-				{
-				case TokenType.intLiteral:
-					current.type = TokenType.longLiteral;
-					keepNonNewlineChar();
-					break;
-				case TokenType.uintLiteral:
-					current.type = TokenType.ulongLiteral;
-					keepNonNewlineChar();
-					break;
-				default:
-					return;
-				}
-				foundL = true;
-				break;
-			default:
-				return;
-			}
-		}
-	}
-
-	void lexExponent()
+    
+    void lexDecimal()
 	in
 	{
-		assert (currentElement() == 'e' || currentElement() == 'E' || currentElement() == 'p'
-			|| currentElement() == 'P');
-	}
-	body
-	{
-		keepNonNewlineChar();
-		bool foundSign = false;
-		while (!isEoF())
-		{
-			switch (currentElement())
-			{
-			case '-':
-			case '+':
-				if (foundSign)
-					return;
-				foundSign = true;
-				keepNonNewlineChar();
-			case '0': .. case '9':
-			case '_':
-				keepNonNewlineChar();
-				break;
-			case 'L':
-			case 'f':
-			case 'F':
-			case 'i':
-				lexFloatSuffix();
-				return;
-			default:
-				return;
-			}
-		}
-	}
-
-	void lexDecimal()
-	in
-	{
-		assert ((buffer[0] >= '0' && buffer[0] <= '9') || buffer[0] == '.');
+		assert ((src.front >= '0' && src.front <= '9') || src.front == '.');
 	}
 	body
 	{
@@ -1211,18 +1131,18 @@ private:
 		scope(exit) setTokenValue();
 		decimalLoop: while (!isEoF())
 		{
-			switch (currentElement())
+			switch (src.front)
 			{
 			case '0': .. case '9':
 			case '_':
-				keepNonNewlineChar();
+				nextCharNonLF();
 				break;
 			case 'u':
 			case 'U':
 				if (foundDot)
 				{
 					errorMessage("Floating-point literal cannot have %s suffix".format(
-						cast(char) currentElement()));
+						cast(char) src.front));
 					return;
 				}
 				else
@@ -1249,16 +1169,13 @@ private:
 				lexExponent();
 				return;
 			case '.':
-				static if (isArray!R)
-					auto r = range[index .. $];
-				else
-					auto r = range.save();
+                auto r = src.save(); //TODO: allocates with fwd ranges
 				r.popFront();
 				if (!r.isRangeEoF() && r.front == '.')
 					break decimalLoop; // possibly slice expression
 				if (foundDot)
 					break decimalLoop; // two dots with other characters between them
-				keepNonNewlineChar();
+				nextCharNonLF();
 				foundDot = true;
 				current.type = TokenType.doubleLiteral;
 				break;
@@ -1266,75 +1183,158 @@ private:
 				break decimalLoop;
 			}
 		}
-
 	}
-
-	void lexBinary()
+    
+    void lexIntSuffix()
 	{
-		current.type = TokenType.intLiteral;
-		scope(exit) setTokenValue();
+		bool foundU;
+		bool foundL;
+		while (!isEoF())
+		{
+			switch (src.front)
+			{
+			case 'u':
+			case 'U':
+				if (foundU)
+					return;
+				switch (current.type)
+				{
+				case TokenType.intLiteral:
+					current.type = TokenType.uintLiteral;
+					nextCharNonLF();
+					break;
+				case TokenType.longLiteral:
+					current.type = TokenType.ulongLiteral;
+					nextCharNonLF();
+					break;
+				default:
+					return;
+				}
+				foundU = true;
+				break;
+			case 'L':
+				if (foundL)
+					return;
+				switch (current.type)
+				{
+				case TokenType.intLiteral:
+					current.type = TokenType.longLiteral;
+					nextCharNonLF();
+					break;
+				case TokenType.uintLiteral:
+					current.type = TokenType.ulongLiteral;
+					nextCharNonLF();
+					break;
+				default:
+					return;
+				}
+				foundL = true;
+				break;
+			default:
+				return;
+			}
+		}
+	}
+    
+    void lexExponent()
+	in
+	{
+		assert (src.front == 'e' || src.front == 'E' || src.front == 'p'
+			|| src.front == 'P');
+	}
+	body
+	{
+		nextCharNonLF();
+		bool foundSign = false;
+		while (!isEoF())
+		{
+			switch (src.front)
+			{
+			case '-':
+			case '+':
+				if (foundSign)
+					return;
+				foundSign = true;
+				nextCharNonLF();
+			case '0': .. case '9':
+			case '_':
+				nextCharNonLF();
+				break;
+			case 'L':
+			case 'f':
+			case 'F':
+			case 'i':
+				lexFloatSuffix();
+				return;
+			default:
+				return;
+			}
+		}
+	}
+    
+    void lexBinary()
+	{
+		current.type = TokenType.intLiteral;		
 		binaryLoop: while (!isEoF())
 		{
-			switch (currentElement())
+			switch (src.front)
 			{
 			case '0':
 			case '1':
 			case '_':
-				keepNonNewlineChar();
+				nextCharNonLF();
 				break;
 			case 'u':
 			case 'U':
 			case 'L':
 				lexIntSuffix();
-				return;
+				break binaryLoop;
 			default:
 				break binaryLoop;
 			}
 		}
+        setTokenValue();
 	}
 
 	void lexHex()
 	{
 		current.type = TokenType.intLiteral;
-		scope(exit) setTokenValue();
 		bool foundDot;
 		hexLoop: while (!isEoF())
 		{
-			switch (currentElement())
+			switch (src.front)
 			{
 			case 'a': .. case 'f':
 			case 'A': .. case 'F':
 			case '0': .. case '9':
 			case '_':
-				keepNonNewlineChar();
+				nextCharNonLF();
 				break;
 			case 'i':
 			case 'L':
 				if (foundDot)
 				{
 					lexFloatSuffix();
-					return;
+					break hexLoop;
 				}
 				else
 				{
 					lexIntSuffix();
-					return;
+					break hexLoop;
 				}
 			case 'p':
 			case 'P':
 				lexExponent();
 				return;
 			case '.':
-				static if (isArray!R)
-					auto r = range[index .. $];
-				else
-					auto r = range.save();
+                auto r = src.save(); //TODO: allocates with Fwd ranges
 				r.popFront();
+                //TODO: fix token type to '..' ??
 				if (!r.isRangeEoF() && r.front == '.')
-					break hexLoop; // slice expression
+					break hexLoop; // slice expression 
 				if (foundDot)
 					break hexLoop; // two dots with other characters between them
-				keepNonNewlineChar();
+				nextCharNonLF();
 				foundDot = true;
 				current.type = TokenType.doubleLiteral;
 				break;
@@ -1342,14 +1342,15 @@ private:
 				break hexLoop;
 			}
 		}
+        setTokenValue();
 	}
-
-	void lexStringSuffix()
+    
+    void lexStringSuffix()
 	{
 		current.type = TokenType.stringLiteral;
 		if (!isEoF())
 		{
-			switch (currentElement())
+			switch (src.front)
 			{
 			case 'w':
 				current.type = TokenType.wstringLiteral;
@@ -1358,7 +1359,7 @@ private:
 				current.type = TokenType.dstringLiteral;
 				goto case 'c';
 			case 'c':
-				keepNonNewlineChar();
+				nextCharNonLF();
 				break;
 			default:
 				break;
@@ -1369,61 +1370,80 @@ private:
 	void lexCharacterLiteral()
 	in
 	{
-		assert (currentElement() == '\'');
+		assert (src.front == '\'');
 	}
 	body
 	{
-		current.type = TokenType.characterLiteral;
-		scope (exit)
-		{
-			if (config.tokenStyle & TokenStyle.includeQuotes)
-				setTokenValue();
-			else
-				setTokenValue(1, bufferIndex - 1);
-		}
-		keepChar();
+		current.type = TokenType.characterLiteral;		
+		nextChar();
+        
 		if (isEoF())
 		{
 			errorMessage("Unterminated character literal");
-			return;
+			
 		}
-		switch (currentElement())
+		switch (src.front)
 		{
 			case '\'':
-				return;
+				break;
 			case '\\':
-				lexEscapeSequence();
+                if (config.tokenStyle & TokenStyle.notEscaped)
+                    skipEscapeSequence();
+                else
+                {
+                    // the only special path
+                    // 40 bytes is enough for 2 quotes 
+                    // and the longest character entity
+                    ubyte[40] utf8; 
+                    size_t len;
+                    if (config.tokenStyle & TokenStyle.includeQuotes)
+                    {
+                        utf8[0] = '\'';
+                        len = decodeEscapeSequence(utf8[1..$]);
+                        utf8[len++] = '\'';                        
+                    }   
+                    else
+                        len = decodeEscapeSequence(utf8[]);                    
+                    if (src.front != '\'')
+                    {
+                        errorMessage("Expected \"'\" to end character literal");
+                    }                     
+                    setTokenValue(utf8[0..len]);                    
+                    return; 
+                }
 				break;
 			default:
-				if (currentElement() & 0x80)
+				if (src.front & 0x80)
 				{
-					while (currentElement() & 0x80)
-						keepChar();
+					while (src.front & 0x80)
+						nextChar();
 					break;
 				}
 				else
 				{
-					keepChar();
+					nextChar();
 					break;
 				}
 		}
-		if (currentElement() != '\'')
-		{
+		if (src.front != '\'')
 			errorMessage("Expected \"'\" to end character literal");
-			return;
-		}
-		keepChar();
+		nextChar();
+        if (config.tokenStyle & TokenStyle.includeQuotes)
+            setTokenValue();
+        else
+            setTokenValue(1, -1);
 	}
 
 	void lexString()
 	in
 	{
-		assert (currentElement() == '"' || currentElement() == '`');
+		assert (src.front == '"' || src.front == '`');
 	}
 	body
 	{
 		current.type = TokenType.stringLiteral;
-		bool isWysiwyg = buffer[0] == 'r' || currentElement() == '`';
+        bool longWysiwg = src.front == 'r'; // 2 chars : r"
+		bool isWysiwyg = src.front == '`';
 
 		scope (exit)
 		{
@@ -1431,15 +1451,15 @@ private:
 				setTokenValue();
 			else
 			{
-				if (buffer[0] == 'r')
-					setTokenValue(2, bufferIndex - 1);
+				if (longWysiwg)
+					setTokenValue(2, -1);
 				else
-					setTokenValue(1, bufferIndex - 1);
+					setTokenValue(1, -1);
 			}
 		}
 
-		auto quote = currentElement();
-		keepChar();
+		auto quote = src.front;
+		nextChar();
 		while (true)
 		{
 			if (isEoF())
@@ -1447,232 +1467,44 @@ private:
 				errorMessage("Unterminated string literal");
 				return;
 			}
-			else if (currentElement() == '\\')
+			else if (src.front == '\\')
 			{
 				if (isWysiwyg)
-					keepChar();
-				else
-					lexEscapeSequence();
+					nextChar();
+				else if(config.tokenStyle & TokenStyle.notEscaped)
+                {
+					skipEscapeSequence();
+                }
+                else
+                    assert(0); //TODO!
 			}
-			else if (currentElement() == quote)
+			else if (src.front == quote)
 			{
-				keepNonNewlineChar();
+				nextCharNonLF();
 				break;
 			}
 			else
-				keepChar();
+				nextChar();
 		}
 		lexStringSuffix();
 	}
-
-	void lexEscapeSequence()
+    
+    void lexDelimitedString()
 	in
 	{
-		assert (currentElement() == '\\');
-	}
-	body
-	{
-		if (config.tokenStyle & TokenStyle.notEscaped)
-		{
-			keepChar();
-			switch (currentElement())
-			{
-			case '\'':
-			case '"':
-			case '?':
-			case '\\':
-			case 'a':
-			case 'b':
-			case 'f':
-			case 'n':
-			case 'r':
-			case 't':
-			case 'v':
-			case 0x0a:
-			case 0x00:
-				keepChar();
-				return;
-			case '0': .. case '7':
-				foreach(i; 0 .. 3)
-				{
-					keepChar();
-					if (currentElement() < '0' || currentElement() > '7') return;
-				}
-				return;
-			case 'x':
-				keepChar();
-				foreach(i; 0 .. 4)
-				{
-					if (!isHexDigit(currentElement()))
-					{
-						errorMessage("Expected hex digit");
-						return;
-					}
-					keepChar();
-				}
-				return;
-			case 'u':
-			case 'U':
-				uint digits = currentElement() == 'u' ? 4 : 8;
-				keepChar();
-				foreach (i; 0 .. digits)
-				{
-					if (!isHexDigit(currentElement()))
-					{
-						errorMessage("Expected hex digit instead of %s".format(
-							cast(char) currentElement()));
-						return;
-					}
-					keepChar();
-				}
-				return;
-			case '&':
-				while (!isEoF())
-				{
-					keepChar();
-					if (currentElement() == ';')
-						break;
-				}
-				return;
-			default:
-				errorMessage("Invalid escape sequence");
-				return;
-			}
-		}
-		else
-		{
-			advanceRange();
-			switch (currentElement())
-			{
-			case '\'': bufferChar('\''); advanceRange(); return;
-			case '"':  bufferChar('"');  advanceRange(); return;
-			case '?':  bufferChar('\?'); advanceRange(); return;
-			case '\\': bufferChar('\\'); advanceRange(); return;
-			case 'a':  bufferChar('\a'); advanceRange(); return;
-			case 'b':  bufferChar('\b'); advanceRange(); return;
-			case 'f':  bufferChar('\f'); advanceRange(); return;
-			case 'n':  bufferChar('\n'); advanceRange(); return;
-			case 'r':  bufferChar('\r'); advanceRange(); return;
-			case 't':  bufferChar('\t'); advanceRange(); return;
-			case 'v':  bufferChar('\v'); advanceRange(); return;
-			case 0x0a: bufferChar(0x0a); advanceRange(); return;
-			case 0x00: bufferChar(0x00); advanceRange(); return;
-			case '0': .. case '7':
-				ubyte[3] digits;
-				size_t i;
-				while(i < 3 && !isEoF())
-				{
-					digits[i++] = currentElement();
-					advanceRange();
-					if (currentElement() < '0' || currentElement() > '7') break;
-				}
-				decodeAndStore(digits, i, 8);
-				return;
-			case 'x':
-				ubyte[2] digits;
-				advanceRange();
-				foreach(i; 0 .. 2)
-				{
-					if (!isHexDigit(currentElement()))
-					{
-						errorMessage("Expected hex digit");
-						return;
-					}
-					digits[i] = currentElement();
-					advanceRange();
-				}
-				decodeAndStore(digits, 2, 16);
-				return;
-			case 'u':
-			case 'U':
-				uint digitCount = currentElement() == 'u' ? 4 : 8;
-				advanceRange();
-				ubyte[8] digits;
-				foreach (i; 0 .. digitCount)
-				{
-					if (!isHexDigit(currentElement()))
-					{
-						errorMessage("Expected hex digit");
-						return;
-					}
-					digits[i] = currentElement();
-					advanceRange();
-				}
-				decodeAndStore(digits, digitCount, 16);
-				return;
-			case '&':
-				advanceRange();
-				ubyte[] b;
-				while (!isEoF())
-				{
-					if (isAlpha(currentElement()))
-					{
-						b ~= currentElement();
-						advanceRange();
-					}
-					else if (currentElement() == ';')
-					{
-						advanceRange();
-						break;
-					}
-					else
-					{
-						errorMessage("Invalid character entity");
-						return;
-					}
-				}
-				auto entity = (cast(string) b) in characterEntities;
-				if (entity is null)
-				{
-					errorMessage("Invalid character entity \"&%s;\"".format(
-						cast(char[]) b));
-					return;
-				}
-				else
-				{
-					for (size_t i = 0; i < (*entity).length; i++)
-						bufferChar(cast(ubyte) (*entity)[i]);
-				}
-				return;
-			default:
-				errorMessage("Invalid escape sequence");
-				return;
-			}
-		}
-	}
-
-	void decodeAndStore(ubyte[] digits, size_t maxIndex, uint base)
-	{
-		scope(failure)
-		{
-			import std.stdio;
-			stderr.writeln("Failed on line ", lineNumber, " of file ",
-				config.fileName);
-		}
-		char[4] codeUnits;
-		auto source = cast(char[]) digits[0 .. maxIndex];
-		uint codePoint = parse!uint(source, base);
-		ulong unitCount = encode(codeUnits, codePoint);
-		foreach (i; 0 .. unitCount)
-			bufferChar(codeUnits[i]);
-	}
-
-	void lexDelimitedString()
-	in
-	{
-		assert(currentElement() == '"');
+		assert(src.front == '"');
 	}
 	body
 	{
 		current.type = TokenType.stringLiteral;
 
-		keepChar();
+		nextChar();
 
 		bool heredoc;
 		ubyte open;
 		ubyte close;
 
-		switch (currentElement())
+		switch (src.front)
 		{
 		case '[': open = '['; close = ']'; break;
 		case '{': open = '{'; close = '}'; break;
@@ -1685,71 +1517,66 @@ private:
 		else
 			lexNormalDelimitedString(open, close);
 	}
-
-	void lexNormalDelimitedString(ubyte open, ubyte close)
+    
+    void lexNormalDelimitedString(ubyte open, ubyte close)
 	in
 	{
-		assert(buffer[0 .. 2] == `q"`);
+		assert(src.slice[0 .. 2] == `q"`);
 	}
 	body
 	{
 		current.type = TokenType.stringLiteral;
 		int depth = 1;
-		keepChar();
-		scope (exit)
-		{
-			if (config.tokenStyle & TokenStyle.includeQuotes)
-				setTokenValue();
-			else
-				setTokenValue(3, bufferIndex - 2);
-		}
+		nextChar();
 		while (true)
 		{
 			if (isEoF())
+            {
 				errorMessage("Unterminated string literal");
-			if (currentElement() == open)
+                break;
+            }
+			if (src.front == open)
 			{
-				keepChar();
+				nextChar();
 				++depth;
 			}
-			else if (currentElement() == close)
+			else if (src.front == close)
 			{
-				keepChar();
+				nextChar();
 				--depth;
 				if (depth <= 0)
 				{
-					static if (isArray!R)
-						auto r = range[index .. $];
-					else
-						auto r = range.save();
+                    auto r = src.save(); //TODO: allocates for Fwd range
 					if (r.front == '"')
 					{
-						keepChar();
-						return;
+						nextChar();
+						break;
 					}
 					else
 					{
 						errorMessage("Expected \" after balanced "
 							~ cast(char) close ~ " but found "
 							~ cast(char) r.front ~ " instead.");
-						return;
+						break;;
 					}
 				}
 			}
 			else
-				keepChar();
+				nextChar();
 		}
-
+        if (config.tokenStyle & TokenStyle.includeQuotes)
+            setTokenValue();
+        else
+            setTokenValue(3, -2);
 	}
-
-	void lexHeredocString()
+    
+    void lexHeredocString()
 	in
 	{
-		assert (buffer[0 .. bufferIndex] == "q\"");
+		assert (src.slice.equal("q\""));
 	}
 	body
 	{
-		auto i = bufferIndex;
 		while (true)
 		{
 			if (isEoF())
@@ -1757,9 +1584,9 @@ private:
 				errorMessage("Unterminated string literal");
 				return;
 			}
-			else if (isNewline(currentElement()))
+			else if (isNewline(src.front))
 			{
-				keepChar();
+				nextChar();
 				break;
 			}
 			else if (isSeparating())
@@ -1768,66 +1595,66 @@ private:
 				return;
 			}
 			else
-				keepChar();
+				nextChar();
 		}
-		auto ident = buffer[i .. bufferIndex - 1];
-
-		scope(exit)
-		{
-			if (config.tokenStyle & TokenStyle.includeQuotes)
-				setTokenValue();
-			else
-			{
-				size_t b = 2 + ident.length;
-				if (buffer[b] == '\r') ++b;
-				if (buffer[b] == '\n') ++b;
-				size_t e = bufferIndex;
-				if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
-					--e;
-				setTokenValue(b, e);
-			}
-		}
-
+		auto ident = src.slice[0..$-1].dup; //TODO: remove this allocation
+        src.mark(); //TODO: recheck if I marked the right position here
 		while (true)
 		{
 			if (isEoF())
 			{
 				errorMessage("Unterminated string literal");
-				return;
+				break;
 			}
-			else if (buffer[bufferIndex - ident.length .. bufferIndex] == ident)
+			else if (src.slice.length > ident.length 
+                && src.slice[$-ident.length .. $].equal(ident))
 			{
-				if (currentElement() == '"')
+				if (src.front == '"')
 				{
-					keepChar();
+					nextChar();
 					lexStringSuffix();
-					return;
+					break;
 				}
 				else
 				{
 					errorMessage("Unterminated string literal");
-					return;
+					break;
 				}
 			}
 			else
-				keepChar();
+				nextChar();
 		}
+        
+        if (config.tokenStyle & TokenStyle.includeQuotes)
+            setTokenValue();
+        else
+        {
+            assert(0);  //TODO!          
+            /*size_t b = 2 + ident.length;
+            if (buffer[b] == '\r') ++b;
+            if (buffer[b] == '\n') ++b;
+            size_t e = bufferIndex;
+            if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
+                --e;
+            setTokenValue(b, e);*/
+        }
 	}
-
-	void lexTokenString()
+    
+    void lexTokenString()
 	in
 	{
-		assert (currentElement() == '{');
+		assert (src.front == '{');
 	}
 	body
 	{
-		current.type = TokenType.stringLiteral;
-		keepChar();
-		LexerConfig c = config;
+        assert(0); //TODO
+		/*current.type = TokenType.stringLiteral;
+		nextChar();
+		
+        LexerConfig c = config;
 		config.iterStyle = IterationStyle.everything;
 		config.tokenStyle = TokenStyle.source;
 		size_t bi;
-		ubyte[] b = uninitializedArray!(ubyte[])(1024 * 4);
 		int depth = 1;
 		while (!isEoF())
 		{
@@ -1856,20 +1683,18 @@ private:
 		else
 			setTokenValue(2, bufferIndex - 1);
 		lexStringSuffix();
+        */
 	}
-
-	void lexSpecialTokenSequence()
+    
+    void lexSpecialTokenSequence()
 	in
 	{
-		assert (currentElement() == '#');
+		assert (src.front == '#');
 	}
 	body
 	{
-		keepChar();
-		static if (isArray!R)
-			auto r = range[index .. $];
-		else
-			auto r = range.save();
+		nextChar();
+        auto r = src.save();
 		auto app = appender!(ubyte[])();
 		app.put('#');
 		while (true)
@@ -1895,13 +1720,12 @@ private:
 			current.value = (cast(char[]) app.data).idup;
 			column += app.data.length;
 			foreach (i; 0 .. app.data.length)
-				advanceRange();
+				src.popFront();
 			auto c = m.captures;
 			if (c["filespec"])
 				config.fileName = c["filespec"].idup;
 			auto l = c["line"];
 			lineNumber = parse!uint(l);
-
 		}
 		else
 		{
@@ -1909,97 +1733,214 @@ private:
 			current.value = getTokenValue(TokenType.hash);
 		}
 	}
-
-	void errorMessage(string s)
+    
+//=====================================================================
+//          Helpers for lexXYZ functions 
+//=====================================================================    
+    void skipEscapeSequence()
+    {
+        // no decoding, just minor sanity checks
+        nextChar();
+        switch (src.front)
+        {
+        case '\'':
+        case '"':
+        case '?':
+        case '\\':
+        case 'a':
+        case 'b':
+        case 'f':
+        case 'n':
+        case 'r':
+        case 't':
+        case 'v':
+        case 0x0a:
+        case 0x00:
+            nextChar();
+            return;
+        case '0': .. case '7':
+            foreach(i; 0 .. 3)
+            {
+                nextChar();
+                if (src.front < '0' || src.front > '7') return;
+            }
+            return;
+        case 'x':
+            nextChar();
+            foreach(i; 0 .. 4)
+            {
+                if (!isHexDigit(src.front))
+                {
+                    errorMessage("Expected hex digit");
+                    return;
+                }
+                nextChar();
+            }
+            return;
+        case 'u':
+        case 'U':
+            uint digits = src.front == 'u' ? 4 : 8;
+            nextChar();
+            foreach (i; 0 .. digits)
+            {
+                if (!isHexDigit(src.front))
+                {
+                    errorMessage("Expected hex digit instead of %s".format(
+                        cast(char) src.front));
+                    return;
+                }
+                nextChar();
+            }
+            return;
+        case '&':
+            while (!isEoF())
+            {
+                nextChar(); // should named entity span multiple lines ??
+                if (src.front == ';')
+                    break;
+            }
+            return;
+        default:
+            errorMessage("Invalid escape sequence");
+            return;
+        }
+    }
+    
+    size_t decodeEscapeSequence(ubyte[] dest)
+	in
 	{
-		import std.stdio;
-		if (config.errorFunc !is null)
-			config.errorFunc(config.fileName, current.startIndex,
-				current.line, current.column, s);
-		else
-			stderr.writefln("%s(%d:%d): %s", config.fileName, current.line,
-				current.column, s);
+		assert (src.front == '\\');
 	}
-
-	void keepNonNewlineChar()
-	{
-		if (bufferIndex >= buffer.length)
-			buffer.length += 1024;
-		static if (isArray!R)
-			buffer[bufferIndex++] = range[index++];
-		else
-		{
-			buffer[bufferIndex++] = currentElement();
-			advanceRange();
-		}
-		++column;
+	body
+	{    
+        static size_t reencodeNumeric(ubyte[] srcDest, int radix)
+        {
+            /*scope(failure) //TODO: get rid of std.stdio in lexer
+            {
+                import std.stdio;
+                ("Failed on line ", lineNumber, " of file ",
+                    config.fileName);
+            }*/
+            char[] chunk = cast(char[])srcDest;
+            char[4] utfBuf;
+            uint codepoint = parse!uint(chunk, radix);            
+            size_t len = encode(utfBuf, codepoint);
+            srcDest[0..len] = utfBuf[0..len].representation;
+            return len;
+        }        
+        src.popFront();
+        switch (src.front)
+        {
+        case '\'': 
+        case '"':  
+        case '?':  
+        case '\\': 
+            dest[0] = src.front;
+            src.popFront();
+            return 1;
+        case 'a':  dest[0] = '\a'; src.popFront(); return 1;
+        case 'b':  dest[0] = '\b'; src.popFront(); return 1;
+        case 'f':  dest[0] = '\f'; src.popFront(); return 1;
+        case 'n':  dest[0] = '\n'; src.popFront(); return 1;
+        case 'r':  dest[0] = '\r'; src.popFront(); return 1;
+        case 't':  dest[0] = '\t'; src.popFront(); return 1;
+        case 'v':  dest[0] = '\v'; src.popFront(); return 1;
+        case 0x0a: dest[0] = 0x0a; src.popFront(); return 1;
+        case 0x00: dest[0] = 0x00; src.popFront(); return 1;
+        case '0': .. case '7':
+            size_t idx = 0;
+            while(idx < 3 && !isEoF())
+            {
+                dest[idx++] = src.front;
+                src.popFront();
+                if (src.front < '0' || src.front > '7') break;
+            }
+            return reencodeNumeric(dest[0..idx], 8);
+        case 'x':
+            src.popFront();
+            foreach(i; 0 .. 2)
+            {
+                if (!isHexDigit(src.front))
+                {
+                    errorMessage("Expected hex digit");
+                    return 1;
+                }
+                dest[i] = src.front;
+                src.popFront();
+            }
+            return reencodeNumeric(dest[0..2], 16);
+        case 'u':
+        case 'U':
+            uint digitCount = src.front == 'u' ? 4 : 8;
+            src.popFront();
+            foreach (i; 0 .. digitCount)
+            {
+                if (!isHexDigit(src.front))
+                {
+                    errorMessage("Expected hex digit");
+                    return 1;
+                }
+                dest[i] = src.front;
+                src.popFront();
+            }
+            return reencodeNumeric(dest[0..digitCount], 16);
+        case '&':
+            src.popFront();
+            size_t idx = 0;
+            while (!isEoF())
+            {
+                if (isAlpha(src.front))
+                {
+                    dest[idx++] = src.front;
+                    src.popFront();
+                }
+                else if (src.front == ';')
+                {
+                    src.popFront();
+                    break;
+                }
+                else
+                {
+                    errorMessage("Invalid character entity");
+                    return idx;
+                }
+            }
+            auto chunk = dest[0..idx];
+            auto entity = cast(string)chunk in characterEntities;
+            if (entity is null)
+            {
+                errorMessage("Invalid character entity \"&%s;\""
+                    .format(cast(string) chunk));
+                return 1;
+            }
+            else
+            {
+                dest[0..entity.length] = (*entity)[0..$].representation;
+            }
+            return entity.length;
+        default:
+            errorMessage("Invalid escape sequence");
+            return 1;
+        }
 	}
-
-	void bufferChar(ubyte ch)
-	{
-		if (bufferIndex >= buffer.length)
-			buffer.length += 1024;
-		buffer[bufferIndex++] = ch;
-	}
-
-	void keepChar()
+    
+    // advances underlying mark-slice range and counts lines, cols
+    void nextChar() 
 	{
         bool foundNewline;
-        static if (slicingLexer)
-        {
-            if (range[index] == '\r')
-            {
-                index++;
-                foundNewLine = true;
-            }
-            if (range[index] == '\r')              
-                foundNewLine = true;
-            index++;
-            if (foundNewline)
-            {
-                column = true;
-                lines++;
-            }     
-            else
-                column++;
-        }
-		while (bufferIndex + 2 >= buffer.length)
-			buffer.length += 1024;
-		
-		if (currentElement() == '\r')
+		if (src.front == '\r')
 		{
-			
-			else
-			{
-				buffer[bufferIndex++] = currentElement();
-				advanceRange();
-			}
+            src.popFront();
 			foundNewline = true;
 		}
-		if (currentElement() == '\n')
+		if (src.front == '\n')
 		{
-			static if (isArray!R)
-			{
-				buffer[bufferIndex++] = range[index++];
-			}
-			else
-			{
-				buffer[bufferIndex++] = currentElement();
-				advanceRange();
-			}
+            src.popFront();			
 			foundNewline = true;
 		}
 		else
 		{
-			static if (isArray!R)
-			{
-				buffer[bufferIndex++] = range[index++];
-			}
-			else
-			{
-				buffer[bufferIndex++] = currentElement();
-				advanceRange();
-			}
+            src.popFront();
 			++column;
 		}
 		if (foundNewline)
@@ -2008,101 +1949,109 @@ private:
 			column = 0;
 		}
 	}
-
-	ElementType!R currentElement() const nothrow
+    
+    //same but don't bother for LF sequences
+    void nextCharNonLF()
+    {        
+        src.popFront();
+		++column;    
+    }
+    
+    void setTokenValue()()
+    {
+        current.value = cache.get(src.slice);
+    }
+    
+    void setTokenValue()(int startOffset, int endOffset)
+    in
+    {
+        assert(startOffset >= 0);
+        assert(endOffset <= 0);
+    }
+    body
 	{
-		assert (index < range.length);
-		static if (slicingLexer)
-			return range[index];
-		else
-			return range.front;
+        auto piece = src.slice;
+        // avoid unsigned arithmetic as endOffset is negative
+        int end = cast(int)piece.length + endOffset;
+		current.value = cache.get(src.slice[startOffset .. end]);
 	}
-
-	void skip()
-	{
-		static if (!slicingLexer)
-			range.popFront();
-		++index;
-	}
-
-	void setTokenValue(size_t startIndex = 0, size_t endIndex = 0)
-	{
-		if (endIndex == 0)
-			endIndex = bufferIndex;
-		current.value = cache.get(buffer[startIndex .. endIndex]);
-	}
+    
+    void setTokenValue(R)(R range)
+        if(isRandomAccessRange!R && is(ElementType!R : const(ubyte)))
+    {
+        current.value = cache.get(range);
+    }
 
 	bool isEoF() const
 	{
-		static if (isArray!R)
-		{
-			return index == range.length || range[index] == 0 || range[index] == 0x1a;
-		}
-		else
-			return range.empty || range.front == 0 || range.front == 0x1a;
+        return src.empty || src.front == 0 || src.front == 0x1a;
 	}
 
-	bool isSeparating() const nothrow
+	bool isSeparating()
 	{
-		auto ch = currentElement();
+		auto ch = src.front;
 		if (ch <= 0x2f) return true;
 		if (ch >= ':' && ch <= '@') return true;
 		if (ch >= '[' && ch <= '^') return true;
 		if (ch >= '{' && ch <= '~') return true;
 		if (ch == '`') return true;
-		if (isWhite()) return true;
+		if (isWhite()) return true; //TODO: test only long 'whites'
 		return false;
 	}
 
-	bool isWhite() const nothrow
+	bool isWhite()
 	{
-		auto c = currentElement();
+		auto c = src.front;
 		if (c & 0x80) // multi-byte utf-8
 		{
-			static if (bufferingLexer)
-			{
-				if (index + 2 >= range.length) return false;
-				if (range[index] != 0xe2) return false;
-				if (range[index + 1] != 0x80) return false;
-				if (range[index + 2] != 0xa8 && range[index + 2] != 0xa9) return false;
-			}
-			else
-			{
-				auto r = range.save();
-				if (r.front != 0xe2)
-					return false;
-				else
-					r.popFront();
-				if (r.empty || r.front != 0x80)
-					return false;
-				else
-					r.popFront();
-				if (r.empty || (r.front != 0xa8 && range.front != 0xa9))
-					return false;
-			}
+            //TODO: here and elsewhere we'd better have 
+            // some kind of lookahead in LexSource instead of .save
+            auto r = src.save();
+            if (r.front != 0xe2)
+                return false;
+            else
+                r.popFront();
+            if (r.empty || r.front != 0x80)
+                return false;
+            else
+                r.popFront();
+            if (r.empty || (r.front != 0xa8 && r.front != 0xa9))
+                return false;
 			return true;
 		}
 		else
 			return c == 0x20 || (c >= 0x09 && c <= 0x0d);
 	}
     
-	Token current;
-	uint lineNumber;
-    uint column;
-    // slicing lexer, copies directly to string cache on demand    
-    static if(slicingLexer) 
+    void errorMessage(string s)
+	{
+        import std.string: format;
+		if (config.errorFunc !is null)
+			config.errorFunc(config.fileName, current.startIndex,
+				current.line, current.column, s);
+		else
+			throw new Exception(format("%s(%d:%d): %s", 
+                config.fileName, current.line, current.column, s));
+	}
+    
+    this(LexSrc lex, LexerConfig cfg)
     {
-        size_t prevIndex; // previous index in the range (absolute)        
-    }    
-	size_t index; // index in the range, as calculated or natural	
-	R range;
-	bool _empty;
-	
-	LexerConfig config;
+        src = move(lex); // lex is rhs
+        lineNumber = 1;
+        column = 0;
+        _empty = false;
+        config = move(cfg);
+    }
+    
+    Token current;
+	uint lineNumber;
+    uint column;	
+    LexSrc src;
+    bool _empty;
+    LexerConfig config;
 	StringCache cache;
 }
-
-+/
+    
 
 /**
 * Returns: true if the token is an operator
@@ -2395,7 +2344,8 @@ enum TokenType: ushort
 // Implementation details follow
 private:
 
-pure nothrow bool isRangeEoF(R)(ref R range)
+// uses auto-detection for pure, safe nothrow
+bool isRangeEoF(R)(ref R range)
 {
 	return range.empty || range.front == 0 || range.front == 0x1a;
 }
@@ -2613,18 +2563,18 @@ private pure bool isNewline(ubyte ch)
 	return ch == '\n' || ch == '\r';
 }
 
-pure nothrow TokenType lookupTokenType(const const(char)[] input)
+pure nothrow TokenType lookupTokenType(R)(R input)
 {
 	switch(input.length)
 	{
 	case 2:
 		switch (input[0])
 		{
-		case 'd': if (input == "do") return TokenType.do_; else break;
+		case 'd': if (input[1] == 'o') return TokenType.do_; else break;
 		case 'i':
-			if (input == "if") return TokenType.if_;
-			else if (input == "in") return TokenType.in_;
-			else if (input == "is") return TokenType.is_;
+			if (input[1] == 'f') return TokenType.if_;
+			else if (input[1] == 'n') return TokenType.in_;
+			else if (input[1] == 's') return TokenType.is_;
 			else break;
 		default: break;
 		}
@@ -2632,80 +2582,80 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
 	case 3:
 		switch (input[0])
 		{
-		case 'a': if (input == "asm") return TokenType.asm_; else break;
-		case 'f': if (input == "for") return TokenType.for_; else break;
-		case 'i': if (input == "int") return TokenType.int_; else break;
-		case 'n': if (input == "new") return TokenType.new_; else break;
-		case 'o': if (input == "out") return TokenType.out_; else break;
-		case 'r': if (input == "ref") return TokenType.ref_; else break;
-		case 't': if (input == "try") return TokenType.try_; else break;
+		case 'a': if (input[1..$].equal("sm")) return TokenType.asm_; else break;
+		case 'f': if (input[1..$].equal("or")) return TokenType.for_; else break;
+		case 'i': if (input[1..$].equal("nt")) return TokenType.int_; else break;
+		case 'n': if (input[1..$].equal("ew")) return TokenType.new_; else break;
+		case 'o': if (input[1..$].equal("ut")) return TokenType.out_; else break;
+		case 'r': if (input[1..$].equal("ef")) return TokenType.ref_; else break;
+		case 't': if (input[1..$].equal("ry")) return TokenType.try_; else break;
 		default: break;
 		}
 		break;
 	case 4:
 		switch (input[0])
 		{
-		case 'a': if (input == "auto") return TokenType.auto_; else break;
-		case 'b': if (input == "body") return TokenType.body_;
-			else if (input == "bool") return TokenType.bool_;
-			else if (input == "byte") return TokenType.byte_;
+		case 'a': if (input[1..$].equal("uto")) return TokenType.auto_; else break;
+		case 'b': if (input[1..$].equal("ody")) return TokenType.body_;
+			else if (input[1..$].equal("ool")) return TokenType.bool_;
+			else if (input[1..$].equal("yte")) return TokenType.byte_;
 			else break;
-		case 'c': if (input == "case") return TokenType.case_;
-			else if (input == "cast") return TokenType.cast_;
-			else if (input == "cent") return TokenType.cent_;
-			else if (input == "char") return TokenType.char_;
+		case 'c': if (input[1..$].equal("ase")) return TokenType.case_;
+			else if (input[1..$].equal("ast")) return TokenType.cast_;
+			else if (input[1..$].equal("ent")) return TokenType.cent_;
+			else if (input[1..$].equal("har")) return TokenType.char_;
 			else break;
-		case 'e': if (input == "else") return TokenType.else_;
-			else if (input == "enum") return TokenType.enum_;
+		case 'e': if (input[1..$].equal("lse")) return TokenType.else_;
+			else if (input[1..$].equal("num")) return TokenType.enum_;
 			else break;
-		case 'g': if (input == "goto") return TokenType.goto_; else break;
-		case 'l': if (input == "lazy") return TokenType.lazy_;
-			else if (input == "long") return TokenType.long_;
+		case 'g': if (input[1..$].equal("oto")) return TokenType.goto_; else break;
+		case 'l': if (input[1..$].equal("azy")) return TokenType.lazy_;
+			else if (input[1..$].equal("ong")) return TokenType.long_;
 			else break;
-		case 'n': if (input == "null") return TokenType.null_; else break;
-		case 'p': if (input == "pure") return TokenType.pure_; else break;
-		case 'r': if (input == "real") return TokenType.real_; else break;
-		case 't': if (input == "this") return TokenType.this_;
-			else if (input == "true") return TokenType.true_;
+		case 'n': if (input[1..$].equal("ull")) return TokenType.null_; else break;
+		case 'p': if (input[1..$].equal("ure")) return TokenType.pure_; else break;
+		case 'r': if (input[1..$].equal("eal")) return TokenType.real_; else break;
+		case 't': if (input[1..$].equal("his")) return TokenType.this_;
+			else if (input[1..$].equal("rue")) return TokenType.true_;
 			else break;
-		case 'u': if (input == "uint") return TokenType.uint_; else break;
-		case 'v': if (input == "void") return TokenType.void_; else break;
-		case 'w': if (input == "with") return TokenType.with_; else break;
+		case 'u': if (input[1..$].equal("int")) return TokenType.uint_; else break;
+		case 'v': if (input[1..$].equal("oid")) return TokenType.void_; else break;
+		case 'w': if (input[1..$].equal("ith")) return TokenType.with_; else break;
 		default: break;
 		}
 		break;
 	case 5:
 		switch (input[0])
 		{
-		case 'a': if (input == "alias") return TokenType.alias_;
-			else if (input == "align") return TokenType.align_; else break;
-		case 'b': if (input == "break") return TokenType.break_; else break;
-		case 'c': if (input == "catch") return TokenType.catch_;
-			else if (input == "class") return TokenType.class_;
-			else if (input == "const") return TokenType.const_;
-			else if (input == "creal") return TokenType.creal_;
+		case 'a': if (input[1..$].equal("lias")) return TokenType.alias_;
+			else if (input[1..$].equal("lign")) return TokenType.align_; else break;
+		case 'b': if (input[1..$].equal("reak")) return TokenType.break_; else break;
+		case 'c': if (input[1..$].equal("atch")) return TokenType.catch_;
+			else if (input[1..$].equal("lass")) return TokenType.class_;
+			else if (input[1..$].equal("onst")) return TokenType.const_;
+			else if (input[1..$].equal("real")) return TokenType.creal_;
 			else break;
-		case 'd': if (input == "dchar") return TokenType.dchar_;
-			else if (input == "debug") return TokenType.debug_; else break;
-		case 'f': if (input == "false") return TokenType.false_;
-			else if (input == "final") return TokenType.final_;
-			else if (input == "float") return TokenType.float_;
+		case 'd': if (input[1..$].equal("char")) return TokenType.dchar_;
+			else if (input[1..$].equal("ebug")) return TokenType.debug_; else break;
+		case 'f': if (input[1..$].equal("alse")) return TokenType.false_;
+			else if (input[1..$].equal("inal")) return TokenType.final_;
+			else if (input[1..$].equal("loat")) return TokenType.float_;
 			else break;
-		case 'i': if (input == "inout") return TokenType.inout_;
-			else if (input == "ireal") return TokenType.ireal_; else break;
-		case 'm': if (input == "macro") return TokenType.macro_;
-			else if (input == "mixin") return TokenType.mixin_; else break;
-		case 's': if (input == "scope") return TokenType.scope_;
-			else if (input == "short") return TokenType.short_;
-			else if (input == "super") return TokenType.super_; else break;
-		case 't': if (input == "throw") return TokenType.throw_; else break;
-		case 'u': if (input == "ubyte") return TokenType.ubyte_;
-			else if (input == "ucent") return TokenType.ucent_;
-			else if (input == "ulong") return TokenType.ulong_;
-			else if (input == "union") return TokenType.union_;
+		case 'i': if (input[1..$].equal("nout")) return TokenType.inout_;
+			else if (input[1..$].equal("real")) return TokenType.ireal_; else break;
+		case 'm': if (input[1..$].equal("acro")) return TokenType.macro_;
+			else if (input[1..$].equal("ixin")) return TokenType.mixin_; else break;
+		case 's': if (input[1..$].equal("cope")) return TokenType.scope_;
+			else if (input[1..$].equal("hort")) return TokenType.short_;
+			else if (input[1..$].equal("uper")) return TokenType.super_; else break;
+		case 't': if (input[1..$].equal("hrow")) return TokenType.throw_; else break;
+		case 'u': if (input[1..$].equal("byte")) return TokenType.ubyte_;
+			else if (input[1..$].equal("cent")) return TokenType.ucent_;
+			else if (input[1..$].equal("long")) return TokenType.ulong_;
+			else if (input[1..$].equal("nion")) return TokenType.union_;
 			else break;
-		case 'w': if (input == "wchar") return TokenType.wchar_;
-			else if (input == "while") return TokenType.while_;
+		case 'w': if (input[1..$].equal("char")) return TokenType.wchar_;
+			else if (input[1..$].equal("hile")) return TokenType.while_;
 			else break;
 		default: break;
 		}
@@ -2713,97 +2663,97 @@ pure nothrow TokenType lookupTokenType(const const(char)[] input)
 	case 6:
 		switch (input[0])
 		{
-		case 'a': if (input == "assert") return TokenType.assert_; else break;
-		case 'c': if (input == "cfloat") return TokenType.cfloat_; else break;
-		case 'd': if (input == "delete") return TokenType.delete_;
-			else if (input == "double") return TokenType.double_; else break;
-		case 'e': if (input == "export") return TokenType.export_;
-			else if (input == "extern") return TokenType.extern_; else break;
-		case 'i': if (input == "ifloat") return TokenType.ifloat_;
-			else if (input == "import") return TokenType.import_; else break;
-		case 'm': if (input == "module") return TokenType.module_; else break;
-		case 'p': if (input == "pragma") return TokenType.pragma_;
-			else if (input == "public") return TokenType.public_; else break;
-		case 'r': if (input == "return") return TokenType.return_; else break;
-		case 's': if (input == "shared") return TokenType.shared_;
-			else if (input == "static") return TokenType.static_;
-			else if (input == "struct") return TokenType.struct_;
-			else if (input == "switch") return TokenType.switch_; else break;
-		case 't': if (input == "typeid") return TokenType.typeid_;
-			else if (input == "typeof") return TokenType.typeof_; else break;
-		case 'u': if (input == "ushort") return TokenType.ushort_; else break;
+		case 'a': if (input[1..$].equal("ssert")) return TokenType.assert_; else break;
+		case 'c': if (input[1..$].equal("float")) return TokenType.cfloat_; else break;
+		case 'd': if (input[1..$].equal("elete")) return TokenType.delete_;
+			else if (input[1..$].equal("ouble")) return TokenType.double_; else break;
+		case 'e': if (input[1..$].equal("xport")) return TokenType.export_;
+			else if (input[1..$].equal("xtern")) return TokenType.extern_; else break;
+		case 'i': if (input[1..$].equal("float")) return TokenType.ifloat_;
+			else if (input[1..$].equal("mport")) return TokenType.import_; else break;
+		case 'm': if (input[1..$].equal("odule")) return TokenType.module_; else break;
+		case 'p': if (input[1..$].equal("ragma")) return TokenType.pragma_;
+			else if (input[1..$].equal("ublic")) return TokenType.public_; else break;
+		case 'r': if (input[1..$].equal("eturn")) return TokenType.return_; else break;
+		case 's': if (input[1..$].equal("hared")) return TokenType.shared_;
+			else if (input[1..$].equal("tatic")) return TokenType.static_;
+			else if (input[1..$].equal("truct")) return TokenType.struct_;
+			else if (input[1..$].equal("witch")) return TokenType.switch_; else break;
+		case 't': if (input[1..$].equal("ypeid")) return TokenType.typeid_;
+			else if (input[1..$].equal("ypeof")) return TokenType.typeof_; else break;
+		case 'u': if (input[1..$].equal("short")) return TokenType.ushort_; else break;
 		default: break;
 		}
 		break;
 	case 7:
 		switch (input[0])
 		{
-		case '_': if (input == "__EOF__") return TokenType.eof; else break;
-		case 'c': if (input == "cdouble") return TokenType.cdouble_; else break;
-		case 'd': if (input == "default") return TokenType.default_; else break;
-		case 'f': if (input == "finally") return TokenType.finally_;
-			else if (input == "foreach") return TokenType.foreach_; else break;
-		case 'i': if (input == "idouble") return TokenType.idouble_; else break;
-		case 'n': if (input == "nothrow") return TokenType.nothrow_; else break;
-		case 'p': if (input == "package") return TokenType.package_;
-			else if (input == "private") return TokenType.private_; else break;
-		case 't': if (input == "typedef") return TokenType.typedef_; else break;
-		case 'v': if (input == "version") return TokenType.version_; else break;
+		case '_': if (input[1..$].equal("_EOF__")) return TokenType.eof; else break;
+		case 'c': if (input[1..$].equal("double")) return TokenType.cdouble_; else break;
+		case 'd': if (input[1..$].equal("efault")) return TokenType.default_; else break;
+		case 'f': if (input[1..$].equal("inally")) return TokenType.finally_;
+			else if (input[1..$].equal("oreach")) return TokenType.foreach_; else break;
+		case 'i': if (input[1..$].equal("double")) return TokenType.idouble_; else break;
+		case 'n': if (input[1..$].equal("othrow")) return TokenType.nothrow_; else break;
+		case 'p': if (input[1..$].equal("ackage")) return TokenType.package_;
+			else if (input[1..$].equal("rivate")) return TokenType.private_; else break;
+		case 't': if (input[1..$].equal("ypedef")) return TokenType.typedef_; else break;
+		case 'v': if (input[1..$].equal("ersion")) return TokenType.version_; else break;
 		default: break;
 		}
 		break;
 	case 8:
 		switch (input[0])
 		{
-		case '_': if (input == "__DATE__") return TokenType.date;
-			else if (input == "__FILE__") return TokenType.file;
-			else if (input == "__LINE__") return TokenType.line;
-			else if (input == "__TIME__") return TokenType.time;
-			else if (input == "__traits") return TokenType.traits; else break;
-		case 'a': if (input == "abstract") return TokenType.abstract_; else break;
-		case 'c': if (input == "continue") return TokenType.continue_; else break;
-		case 'd': if (input == "delegate") return TokenType.delegate_; else break;
-		case 'f': if (input == "function") return TokenType.function_; else break;
-		case 'o': if (input == "override") return TokenType.override_; else break;
-		case 't': if (input == "template") return TokenType.template_; else break;
-		case 'u': if (input == "unittest") return TokenType.unittest_; else break;
-		case 'v': if (input == "volatile") return TokenType.volatile_; else break;
+		case '_': if (input[1..$].equal("_DATE__")) return TokenType.date;
+			else if (input[1..$].equal("_FILE__")) return TokenType.file;
+			else if (input[1..$].equal("_LINE__")) return TokenType.line;
+			else if (input[1..$].equal("_TIME__")) return TokenType.time;
+			else if (input[1..$].equal("_traits")) return TokenType.traits; else break;
+		case 'a': if (input[1..$].equal("bstract")) return TokenType.abstract_; else break;
+		case 'c': if (input[1..$].equal("ontinue")) return TokenType.continue_; else break;
+		case 'd': if (input[1..$].equal("elegate")) return TokenType.delegate_; else break;
+		case 'f': if (input[1..$].equal("unction")) return TokenType.function_; else break;
+		case 'o': if (input[1..$].equal("verride")) return TokenType.override_; else break;
+		case 't': if (input[1..$].equal("emplate")) return TokenType.template_; else break;
+		case 'u': if (input[1..$].equal("nittest")) return TokenType.unittest_; else break;
+		case 'v': if (input[1..$].equal("olatile")) return TokenType.volatile_; else break;
 		default: break;
 		}
 		break;
 	case 9:
 		switch (input[0])
 		{
-		case '_': if (input == "__gshared") return TokenType.gshared; else break;
-		case 'i': if (input == "immutable") return TokenType.immutable_;
-			else if (input == "interface") return TokenType.interface_;
-			else if (input == "invariant") return TokenType.invariant_; else break;
-		case 'p': if (input == "protected") return TokenType.protected_; else break;
+		case '_': if (input[1..$].equal("_gshared")) return TokenType.gshared; else break;
+		case 'i': if (input[1..$].equal("mmutable")) return TokenType.immutable_;
+			else if (input[1..$].equal("nterface")) return TokenType.interface_;
+			else if (input[1..$].equal("nvariant")) return TokenType.invariant_; else break;
+		case 'p': if (input[1..$].equal("rotected")) return TokenType.protected_; else break;
 		default: break;
 		}
 		break;
 	case 10:
 		switch (input[0])
 		{
-		case 'd': if (input == "deprecated") return TokenType.deprecated_; else break;
-		case '_': if (input == "__VENDOR__") return TokenType.vendor; else break;
+		case 'd': if (input[1..$].equal("eprecated")) return TokenType.deprecated_; else break;
+		case '_': if (input[1..$].equal("_VENDOR__")) return TokenType.vendor; else break;
 		default: break;
 		}
 		break;
 	case 11:
-		if (input == "__VERSION__")
+		if (input[1..$].equal("_VERSION__"))
 			return TokenType.compilerVersion;
 		break;
 	case 12:
-		if (input == "synchronized")
+		if (input[1..$].equal("ynchronized"))
 			return TokenType.synchronized_;
 		break;
 	case 13:
-		if (input == "__TIMESTAMP__")
+		if (input[1..$].equal("_TIMESTAMP__"))
 			return TokenType.timestamp;
 		break;
 	case 15:
-		if (input == "foreach_reverse")
+		if (input[1..$].equal("oreach_reverse"))
 			return TokenType.foreach_reverse_;
 		break;
 	default: break;
@@ -2850,7 +2800,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 		caseStatement ~= k;
 		caseStatement ~= "':\n";
 		caseStatement ~= indentString;
-		caseStatement ~= "\tkeepNonNewlineChar();\n";
+		caseStatement ~= "\tnextCharNonLF();\n";
 		if (v.children.length > 0)
 		{
 			caseStatement ~= indentString;
@@ -2867,7 +2817,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
 			caseStatement ~= indentString;
 			caseStatement ~= "\t}\n";
 			caseStatement ~= indentString;
-			caseStatement ~= "\tswitch (currentElement())\n";
+			caseStatement ~= "\tswitch (src.front)\n";
 			caseStatement ~= indentString;
 			caseStatement ~= "\t{\n";
 			caseStatement ~= printCaseStatements(v, indentString ~ "\t");
