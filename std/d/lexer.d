@@ -439,14 +439,21 @@ private:
         size_t start, end;
         ubyte[] buffer;
     }
-    static assert(isRandomAccessRange!CircularRange);
+    
     @property auto mask(){ return accum.length-1; }
+    
     R range;
     bool _empty;
     ubyte[] accum; // accumulator buffer for non-RA ranges
     size_t savedAccumIdx;
     size_t accumIdx; // current index in accumulator
 }
+
+// TODO: make sure it's RandomAccess later
+/*static assert(isRandomAccessRange!(
+    LexSource!(typeof(filter!"true"(cast(ubyte[])null)))
+    .CircularRange)
+);*/
 
 //trivial pass-through for RA ranges
 private struct LexSource(R)
@@ -1557,7 +1564,7 @@ private:
 						errorMessage("Expected \" after balanced "
 							~ cast(char) close ~ " but found "
 							~ cast(char) r.front ~ " instead.");
-						break;;
+						break;
 					}
 				}
 			}
