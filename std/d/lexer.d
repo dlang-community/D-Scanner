@@ -411,6 +411,12 @@ struct TokenRange(R) if (isForwardRange!(R))
                 if (config.iterStyle & IterationStyle.includeSpecialTokens)
                     break loop;
                 break;
+            case TokenType.eof:
+                if (config.iterStyle & IterationStyle.ignoreEOF)
+                    break loop;
+                else
+                    _empty = true;
+                break;
             default:
                 break loop;
             }
@@ -515,7 +521,7 @@ private:
             "^=",              "TokenType.xorEquals",
         ));
         case '/':
-            keepNonNewlineChar();
+            keepChar();
             if (isEoF())
             {
                 current.type = TokenType.div;
@@ -543,7 +549,7 @@ private:
                 return;
             }
         case '.':
-            keepNonNewlineChar();
+            keepChar();
             if (isEoF())
             {
                 current.type = TokenType.dot;
@@ -557,11 +563,11 @@ private:
                 return;
             case '.':
                 current.type = TokenType.slice;
-                keepNonNewlineChar();
+                keepChar();
                 if (currentElement() == '.')
                 {
                     current.type = TokenType.vararg;
-                    keepNonNewlineChar();
+                    keepChar();
                 }
                 current.value = getTokenValue(current.type);
                 return;
@@ -571,7 +577,7 @@ private:
                 return;
             }
         case '0': .. case '9':
-            keepNonNewlineChar();
+            keepChar();
             lexNumber();
             return;
         case '\'':
@@ -582,7 +588,7 @@ private:
             lexString();
             return;
         case 'q':
-            keepNonNewlineChar();
+            keepChar();
             if (isEoF())
                 goto default;
             switch (currentElement())
@@ -598,7 +604,7 @@ private:
             }
             goto default;
         case 'r':
-            keepNonNewlineChar();
+            keepChar();
             if (isEoF())
                 goto default;
             else if (currentElement() == '"')
@@ -609,7 +615,7 @@ private:
             else
                 goto default;
         case 'x':
-            keepNonNewlineChar();
+            keepChar();
             if (isEoF())
                 goto default;
             else if (currentElement() == '"')
@@ -625,7 +631,7 @@ private:
         default:
             while(!isEoF() && !isSeparating())
             {
-                keepNonNewlineChar();
+                keepChar();
             }
 
             current.type = lookupTokenType(cast(char[]) buffer[0 .. bufferIndex]);
@@ -706,9 +712,9 @@ private:
         switch(currentElement())
         {
         case '/':
-            while (!isEoF() && !isNewline(currentElement()))
+            while (!isEoF() && !isNewline())
             {
-                static if (keep) keepNonNewlineChar();
+                static if (keep) keepChar();
                 else advanceRange();
             }
             break;
@@ -717,11 +723,11 @@ private:
             {
                 if (currentElement() == '*')
                 {
-                    static if (keep) keepNonNewlineChar();
+                    static if (keep) keepChar();
                     else advanceRange();
                     if (currentElement() == '/')
                     {
-                        static if (keep) keepNonNewlineChar();
+                        static if (keep) keepChar();
                         else advanceRange();
                         break;
                     }
@@ -736,22 +742,22 @@ private:
             {
                 if (currentElement() == '+')
                 {
-                    static if (keep) keepNonNewlineChar();
+                    static if (keep) keepChar();
                     else advanceRange();
                     if (currentElement() == '/')
                     {
-                        static if (keep) keepNonNewlineChar();
+                        static if (keep) keepChar();
                         else advanceRange();
                         --depth;
                     }
                 }
                 else if (currentElement() == '/')
                 {
-                    static if (keep) keepNonNewlineChar();
+                    static if (keep) keepChar();
                     else advanceRange();
                     if (currentElement() == '+')
                     {
-                        static if (keep) keepNonNewlineChar();
+                        static if (keep) keepChar();
                         else advanceRange();
                         ++depth;
                     }
@@ -784,7 +790,7 @@ private:
             }
             else if (isHexDigit(currentElement()))
             {
-                keepNonNewlineChar();
+                keepChar();
             }
             else if (isWhite() && (config.tokenStyle & TokenStyle.notEscaped))
             {
@@ -792,7 +798,7 @@ private:
             }
             else if (currentElement() == '"')
             {
-                keepNonNewlineChar();
+                keepChar();
                 break;
             }
             else
@@ -838,12 +844,12 @@ private:
             {
             case 'x':
             case 'X':
-                keepNonNewlineChar();
+                keepChar();
                 lexHex();
                 break;
             case 'b':
             case 'B':
-                keepNonNewlineChar();
+                keepChar();
                 lexBinary();
                 break;
             default:
@@ -858,12 +864,12 @@ private:
         switch (currentElement())
         {
         case 'L':
-            keepNonNewlineChar();
+            keepChar();
             current.type = TokenType.doubleLiteral;
             break;
         case 'f':
         case 'F':
-            keepNonNewlineChar();
+            keepChar();
             current.type = TokenType.floatLiteral;
             break;
         default:
@@ -871,7 +877,7 @@ private:
         }
         if (!isEoF() && currentElement() == 'i')
         {
-            keepNonNewlineChar();
+            keepChar();
             if (current.type == TokenType.floatLiteral)
                 current.type = TokenType.ifloatLiteral;
             else
@@ -895,11 +901,11 @@ private:
                 {
                 case TokenType.intLiteral:
                     current.type = TokenType.uintLiteral;
-                    keepNonNewlineChar();
+                    keepChar();
                     break;
                 case TokenType.longLiteral:
                     current.type = TokenType.ulongLiteral;
-                    keepNonNewlineChar();
+                    keepChar();
                     break;
                 default:
                     return;
@@ -913,11 +919,11 @@ private:
                 {
                 case TokenType.intLiteral:
                     current.type = TokenType.longLiteral;
-                    keepNonNewlineChar();
+                    keepChar();
                     break;
                 case TokenType.uintLiteral:
                     current.type = TokenType.ulongLiteral;
-                    keepNonNewlineChar();
+                    keepChar();
                     break;
                 default:
                     return;
@@ -938,7 +944,7 @@ private:
     }
     body
     {
-        keepNonNewlineChar();
+        keepChar();
         bool foundSign = false;
         bool foundDigit = false;
         while (!isEoF())
@@ -953,12 +959,12 @@ private:
                     return;
                 }
                 foundSign = true;
-                keepNonNewlineChar();
+                keepChar();
                 break;
             case '0': .. case '9':
             case '_':
                 foundDigit = true;
-                keepNonNewlineChar();
+                keepChar();
                 break;
             case 'L':
             case 'f':
@@ -990,7 +996,7 @@ private:
             {
             case '0': .. case '9':
             case '_':
-                keepNonNewlineChar();
+                keepChar();
                 break;
             case 'u':
             case 'U':
@@ -1035,7 +1041,7 @@ private:
                     break decimalLoop; // possibly slice expression
                 if (foundDot)
                     break decimalLoop; // two dots with other characters between them
-                keepNonNewlineChar();
+                keepChar();
                 foundDot = true;
                 current.type = TokenType.doubleLiteral;
                 break;
@@ -1057,7 +1063,7 @@ private:
             case '0':
             case '1':
             case '_':
-                keepNonNewlineChar();
+                keepChar();
                 break;
             case 'u':
             case 'U':
@@ -1083,7 +1089,7 @@ private:
             case 'A': .. case 'F':
             case '0': .. case '9':
             case '_':
-                keepNonNewlineChar();
+                keepChar();
                 break;
             case 'u':
             case 'U':
@@ -1118,7 +1124,7 @@ private:
                     break hexLoop; // slice expression
                 if (foundDot)
                     break hexLoop; // two dots with other characters between them
-                keepNonNewlineChar();
+                keepChar();
                 foundDot = true;
                 current.type = TokenType.doubleLiteral;
                 break;
@@ -1142,7 +1148,7 @@ private:
                 current.type = TokenType.dstringLiteral;
                 goto case 'c';
             case 'c':
-                keepNonNewlineChar();
+                keepChar();
                 break;
             default:
                 break;
@@ -1240,7 +1246,7 @@ private:
             }
             else if (currentElement() == quote)
             {
-                keepNonNewlineChar();
+                keepChar();
                 break;
             }
             else
@@ -1534,27 +1540,37 @@ private:
     body
     {
         auto i = bufferIndex;
-        while (true)
+        ubyte[] ident = void;
+        if (isSeparating())
         {
-            if (isEoF())
-            {
-                errorMessage("Unterminated string literal");
-                return;
-            }
-            else if (isNewline(currentElement()))
-            {
-                keepChar();
-                break;
-            }
-            else if (isSeparating())
-            {
-                errorMessage("Unterminated string literal - Separating");
-                return;
-            }
-            else
-                keepChar();
+            keepChar();
+            ident = buffer[i .. bufferIndex];
         }
-        auto ident = buffer[i .. bufferIndex - 1];
+        else
+        {
+            while (true)
+            {
+                if (isEoF())
+                {
+                    errorMessage("Unterminated string literal. End of file");
+                    return;
+                }
+                else if (isNewline())
+                {
+                    keepChar();
+                    break;
+                }
+                else if (isSeparating())
+                {
+                    errorMessage("Unterminated string literal. Expected newline");
+                    return;
+                }
+                else
+                    keepChar();
+            }
+            ident = buffer[i .. bufferIndex - 1];
+        }
+        assert (ident.length > 0);
 
         scope(exit)
         {
@@ -1562,15 +1578,19 @@ private:
                 setTokenValue();
             else
             {
-                size_t b = 2 + ident.length;
-                if (buffer[b] == '\r') ++b;
-                if (buffer[b] == '\n') ++b;
-                size_t e = bufferIndex;
-                if (buffer[e - 1] == 'c' || buffer[e - 1] == 'd' || buffer[e - 1] == 'w')
-                    --e;
-                setTokenValue(b, e);
+                size_t begin = 2 + ident.length;
+                if (buffer[begin] == '\r') ++begin;
+                if (buffer[begin] == '\n') ++begin;
+                size_t end = bufferIndex;
+                // ignore string suffix
+                if (buffer[end - 1] == 'c' || buffer[end - 1] == 'd' || buffer[end - 1] == 'w')
+                    --end;
+                // ignore delimeter and closing quote
+                setTokenValue(begin, end - ident.length - 1);
             }
         }
+
+        keepChar();
 
         while (true)
         {
@@ -1579,7 +1599,8 @@ private:
                 errorMessage("Unterminated string literal");
                 return;
             }
-            else if (buffer[bufferIndex - ident.length .. bufferIndex] == ident)
+            else if (bufferIndex > ident.length
+                && buffer[bufferIndex - ident.length .. bufferIndex] == ident)
             {
                 if (currentElement() == '"')
                 {
@@ -1589,7 +1610,8 @@ private:
                 }
                 else
                 {
-                    errorMessage("Unterminated string literal");
+                    errorMessage(cast(string) ("Unterminated string literal. Expected \" following "
+                        ~ cast(char[]) ident));
                     return;
                 }
             }
@@ -1608,13 +1630,35 @@ private:
         current.type = TokenType.stringLiteral;
         keepChar();
         LexerConfig c = config;
-        config.iterStyle = IterationStyle.everything;
+        config.iterStyle = IterationStyle.everything ^ IterationStyle.ignoreEOF;
+        assert (!(config.iterStyle & IterationStyle.ignoreEOF));
         config.tokenStyle = TokenStyle.source;
         size_t bi;
         ubyte[] b = uninitializedArray!(ubyte[])(1024 * 4);
         int depth = 1;
-        while (!isEoF())
+
+        scope(exit)
         {
+            config = c;
+            buffer[0] = 'q';
+            buffer[1] = '{';
+            buffer[2 .. bi + 2] = b[0 .. bi];
+            bi++;
+            buffer[bi++] = '}';
+            bufferIndex = bi;
+            if (config.tokenStyle & TokenStyle.includeQuotes)
+                setTokenValue();
+            else
+                setTokenValue(2, bufferIndex - 1);
+        }
+
+        while (true)
+        {
+            if (empty)
+            {
+                errorMessage("End of file in token string");
+                return;
+            }
             advance();
             while (bi + current.value.length >= b.length)
                 b.length += 1024 * 4;
@@ -1629,17 +1673,6 @@ private:
                     break;
             }
         }
-        config = c;
-        buffer[0] = 'q';
-        buffer[1] = '{';
-        buffer[2 .. bi + 2] = b[0 .. bi];
-        bi++;
-        buffer[bi++] = '}';
-        bufferIndex = bi;
-        if (config.tokenStyle & TokenStyle.includeQuotes)
-            setTokenValue();
-        else
-            setTokenValue(2, bufferIndex - 1);
         lexStringSuffix();
     }
 
@@ -1664,7 +1697,7 @@ private:
                 errorMessage("Found EOF when interpreting special token sequence");
                 return;
             }
-            else if (isNewline(r.front))
+            else if (r.front == '\r' || r.front == '\n')
                 break;
             else
             {
@@ -1706,18 +1739,64 @@ private:
                 current.column, s);
     }
 
-    void keepNonNewlineChar()
+    void keepChar()
     {
         if (bufferIndex >= buffer.length)
             buffer.length += 1024;
         static if (isArray!R)
-            buffer[bufferIndex++] = range[index++];
+        {
+            if (range[index] & ~0b1000_0000)
+            {
+                buffer[bufferIndex++] = range[index++];
+                ++column;
+            }
+            else if (range[index] & 0b1100_0000)
+            {
+                buffer[bufferIndex++] = range[index++];
+                buffer[bufferIndex++] = range[index++];
+                column += 2;
+            }
+            else if (range[index] & 0b1110_0000)
+            {
+                buffer[bufferIndex++] = range[index++];
+                buffer[bufferIndex++] = range[index++];
+                buffer[bufferIndex++] = range[index++];
+                column += 3;
+            }
+            else if (range[index] & 0b1111_0000)
+            {
+                buffer[bufferIndex++] = range[index++];
+                buffer[bufferIndex++] = range[index++];
+                buffer[bufferIndex++] = range[index++];
+                buffer[bufferIndex++] = range[index++];
+                column += 4;
+            }
+            else
+            {
+                errorMessage("Invalid UTF-8 code unit");
+                buffer[bufferIndex++] = range[index++];
+                ++column;
+            }
+        }
         else
         {
-            buffer[bufferIndex++] = currentElement();
-            advanceRange();
+            if (range[index] & 0x80)
+            {
+                while (range[index] & 0x80)
+                {
+                    buffer[bufferIndex++] = range[index++];
+                    advanceRange();
+                    ++column;
+                }
+            }
+            else
+            {
+                buffer[bufferIndex++] = currentElement();
+                advanceRange();
+                ++column;
+            }
         }
-        ++column;
+
     }
 
     void bufferChar(ubyte ch)
@@ -1727,50 +1806,12 @@ private:
         buffer[bufferIndex++] = ch;
     }
 
-    void keepChar()
+    void keepNewline()
     {
-        while (bufferIndex + 2 >= buffer.length)
+        while (bufferIndex + 4 >= buffer.length)
             buffer.length += 1024;
-        bool foundNewline;
-        if (currentElement() == '\r')
-        {
-            static if (isArray!R)
-            {
-                buffer[bufferIndex++] = range[index++];
-            }
-            else
-            {
-                buffer[bufferIndex++] = currentElement();
-                advanceRange();
-            }
-            foundNewline = true;
-        }
-        if (currentElement() == '\n')
-        {
-            static if (isArray!R)
-            {
-                buffer[bufferIndex++] = range[index++];
-            }
-            else
-            {
-                buffer[bufferIndex++] = currentElement();
-                advanceRange();
-            }
-            foundNewline = true;
-        }
-        else
-        {
-            static if (isArray!R)
-            {
-                buffer[bufferIndex++] = range[index++];
-            }
-            else
-            {
-                buffer[bufferIndex++] = currentElement();
-                advanceRange();
-            }
-            ++column;
-        }
+        bool foundNewline = isNewline();
+        keepChar();
         if (foundNewline)
         {
             ++lineNumber;
@@ -1798,6 +1839,7 @@ private:
     {
         if (endIndex == 0)
             endIndex = bufferIndex;
+        assert (endIndex > startIndex);
         current.value = cache.get(buffer[startIndex .. endIndex]);
     }
 
@@ -1823,36 +1865,44 @@ private:
         return false;
     }
 
-    bool isWhite() const nothrow
+    bool isNewline() const nothrow
     {
-        auto c = currentElement();
-        if (c & 0x80) // multi-byte utf-8
+        if (currentElement() == '\n') return true;
+        if (currentElement() == '\r') return true;
+        static if (isArray!R)
         {
-            static if (isArray!R)
-            {
-                if (index + 2 >= range.length) return false;
-                if (range[index] != 0xe2) return false;
-                if (range[index + 1] != 0x80) return false;
-                if (range[index + 2] != 0xa8 && range[index + 2] != 0xa9) return false;
-            }
-            else
-            {
-                auto r = range.save();
-                if (r.front != 0xe2)
-                    return false;
-                else
-                    r.popFront();
-                if (r.empty || r.front != 0x80)
-                    return false;
-                else
-                    r.popFront();
-                if (r.empty || (r.front != 0xa8 && range.front != 0xa9))
-                    return false;
-            }
+            if (index + 2 >= range.length) return false;
+            if (range[index] != 0xe2) return false;
+            if (range[index + 1] != 0x80) return false;
+            if (range[index + 2] != 0xa8 && range[index + 2] != 0xa9) return false;
             return true;
         }
         else
+        {
+            auto r = range.save();
+            if (r.front != 0xe2)
+                return false;
+            else
+                r.popFront();
+            if (r.empty || r.front != 0x80)
+                return false;
+            else
+                r.popFront();
+            if (r.empty || (r.front != 0xa8 && range.front != 0xa9))
+                return false;
+            return true;
+        }
+    }
+
+    bool isWhite() const nothrow
+    {
+        if (isNewline())
+            return true;
+        else
+        {
+            auto c = currentElement();
             return c == 0x20 || (c >= 0x09 && c <= 0x0d);
+        }
     }
 
     immutable bufferSize = 1024 * 8;
@@ -2694,7 +2744,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
         caseStatement ~= k;
         caseStatement ~= "':\n";
         caseStatement ~= indentString;
-        caseStatement ~= "\tkeepNonNewlineChar();\n";
+        caseStatement ~= "\tkeepChar();\n";
         if (v.children.length > 0)
         {
             caseStatement ~= indentString;
@@ -2983,7 +3033,7 @@ unittest
 
 unittest
 {
-    auto source = cast(ubyte[]) ("int #line 4\n double q{abcde}");
+    auto source = cast(ubyte[]) ("int #line 4\n double q{ab{cd}e}w");
     LexerConfig config;
     auto tokens = byToken(source, config);
     assert (tokens.front.line == 1);
@@ -2992,8 +3042,9 @@ unittest
     assert (isType(tokens.front));
     assert (tokens.front.value == "double");
     tokens.popFront();
-    assert (tokens.front.value == "abcde");
+    assert (tokens.front.value == "ab{cd}e");
     assert (isStringLiteral(tokens.front));
+    assert (tokens.front.type == TokenType.wstringLiteral);
 }
 
 unittest
@@ -3012,23 +3063,37 @@ unittest
 
 unittest
 {
-    auto source = cast(ubyte[]) ("import foo");
+    auto source = cast(ubyte[]) ("import\u2028foo\u2029;  "c);
     LexerConfig config;
     auto tokens = byToken(source, config);
     Token a = tokens.moveFront();
+    assert (a.type == TokenType.import_);
     Token b = tokens.moveFront();
+    writeln(b);
+    assert (a.type == TokenType.identifier);
     assert (a != b);
     assert (a != "foo");
     assert (a < b);
     assert (b > a);
     assert (!(a > a));
+    writeln(tokens.front);
+    assert (tokens.front.type == TokenType.semicolon);
+    tokens.popFront();
     assert (tokens.empty);
+    //assert (tokens.empty);
 }
 
 unittest
 {
-    auto source = cast(ubyte[]) ("import std.stdio; void main(){writeln(\"hello world\");}");
+    auto source = cast(ubyte[]) ("import std.stdio; void main(){"
+        ~ "writeln(\"hello world\");} q{ __EOF__ }");
+    int errCount = 0;
+    void errorFunction(string file, size_t index, uint line, uint col, string msg)
+    {
+        ++errCount;
+    }
     LexerConfig config;
+    config.errorFunc = &errorFunction;
     auto tokens = byToken(source, config);
     int tokenCount = 0;
     foreach (t; tokens)
@@ -3036,6 +3101,19 @@ unittest
         ++tokenCount;
     }
     assert (tokenCount == 16);
+    assert (errCount == 1);
+}
+
+unittest
+{
+    auto source = cast(ubyte[]) ("q\"abcd\nstring\nabcd\" q\"/abc/\" __EOF__ int");
+    LexerConfig config;
+    auto tokens = byToken(source, config);
+    assert (tokens.front.value == "string\n");
+    tokens.popFront();
+    assert (tokens.front.value == "abc");
+    tokens.popFront();
+    assert (tokens.empty);
 }
 
 
