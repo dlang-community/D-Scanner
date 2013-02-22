@@ -97,9 +97,9 @@ int main(string[] args)
 {
 	string[] importDirs;
 	bool sloc;
-	/+bool dotComplete;+/
-	/+bool json;+/
-	/+bool parenComplete;+/
+	bool dotComplete;
+	bool json;
+	bool parenComplete;
 	bool highlight;
 	bool ctags;
 	bool recursiveCtags;
@@ -110,8 +110,8 @@ int main(string[] args)
 
 	try
 	{
-		getopt(args, "I", &importDirs,/+ "dotComplete|d", &dotComplete,+/ "sloc|l", &sloc,
-			/+"json|j", &json,+/ /+"parenComplete|p", &parenComplete,+/ "highlight", &highlight,
+		getopt(args, "I", &importDirs, "dotComplete|d", &dotComplete, "sloc|l", &sloc,
+			"json|j", &json, "parenComplete|p", &parenComplete, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help,
 			"tokenCount", &tokenCount, "frequencyCount", &frequencyCount);
 	}

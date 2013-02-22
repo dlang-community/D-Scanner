@@ -2010,15 +2010,18 @@ private:
 						return idx;
 				}
 			}
-			auto chunk = buffer[0..idx];
-			auto entity = cast(string)chunk in characterEntities;
-			if (entity is null)
+            //TODO: avoid looking up as UTF string, use raw bytes
+			string chunk = cast(string)buffer[0..idx];
+            auto names = assumeSorted(map!"a.name"(characterEntities));
+            auto place = names.lowerBound(chunk).length;
+			if (place == names.length || names[place] != chunk)
 			{
 				errorMessage("Invalid character entity \"&%s;\""
 					.format(cast(string) chunk));
 				return 1;
 			}
-			dest.put(cast(ubyte[]) (*entity)[0..$]);
+            auto entity = characterEntities[place].value;
+			dest.put(cast(ubyte[]) entity);
 			return entity.length;
 		default:
 			errorMessage("Invalid escape sequence");
