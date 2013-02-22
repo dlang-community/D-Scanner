@@ -148,7 +148,10 @@ int main(string[] args)
 			config.fileName = arg;
 			uint count;
             auto f = File(arg);
-            ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
+            import core.stdc.stdlib;
+            ubyte[] buffer = (cast(ubyte*)malloc(f.size))[0..f.size];
+            scope(exit) free(buffer.ptr);
+            //uninitializedArray!(ubyte[])(f.size);
 			foreach (t; byToken(f.rawRead(buffer), config))
             {
                 if (tokenCount)
