@@ -149,7 +149,10 @@ int main(string[] args)
 			config.fileName = arg;
 			uint count;
             auto f = File(arg);
-            ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
+            import core.stdc.stdlib;
+            ubyte[] buffer = (cast(ubyte*)malloc(f.size))[0..f.size];
+            scope(exit) free(buffer.ptr);
+            //uninitializedArray!(ubyte[])(f.size);
 			foreach (t; byToken(f.rawRead(buffer), config))
             {
                 if (tokenCount)
@@ -182,8 +185,6 @@ void printHelp(string programName)
 	writefln(
 `
     Usage: %s options
-
-
 
 options:
     --help | -h
@@ -235,10 +236,7 @@ options:
         of a filename.
 
     --recursive | -R | -r directory
-        When used with --ctags or --highlight, dscanner will produce ctags/html
-        output for all .d and .di files contained within directory and its
-        sub-directories. When used with --imports, dscanner will output all
-        modules imported by the given file as well as any modules publically
-        imported by any imported modules.`,
+        When used with --ctags, dscanner will produce ctags output for all .d
+        and .di files contained within directory and its sub-directories.`,
         programName);
 }

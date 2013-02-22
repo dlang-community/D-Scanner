@@ -2010,15 +2010,18 @@ private:
 						return idx;
 				}
 			}
-			auto chunk = buffer[0..idx];
-			auto entity = cast(string)chunk in characterEntities;
-			if (entity is null)
+            //TODO: avoid looking up as UTF string, use raw bytes
+			string chunk = cast(string)buffer[0..idx];
+            auto names = assumeSorted(map!"a.name"(characterEntities));
+            auto place = names.lowerBound(chunk).length;
+			if (place == names.length || names[place] != chunk)
 			{
 				errorMessage("Invalid character entity \"&%s;\""
 					.format(cast(string) chunk));
 				return 1;
 			}
-			dest.put(cast(ubyte[]) (*entity)[0..$]);
+            auto entity = characterEntities[place].value;
+			dest.put(cast(ubyte[]) entity);
 			return entity.length;
 		default:
 			errorMessage("Invalid escape sequence");
@@ -3048,40 +3051,33 @@ struct StringCache
 		if(isRandomAccessRange!R
 			&& is(Unqual!(ElementType!R) : const(ubyte)))
 	{
-		size_t bucket;
-		hash_t h;
-		string* val = find(range, bucket, h);
-		if (val !is null)
+		
+		uint h = hash(range);
+		uint bucket = h % mapSize;
+        Slot *s = &index[bucket];
+        //1st slot not yet initialized?
+        if(s.value.ptr == null) 
+        {
+            *s = Slot(putIntoCache(range), null, h);
+            return s.value;
+        }
+        Slot* insSlot = s;
+		for(;;)
 		{
-			return *val;
-		}
-		else
-		{
-			auto s = putIntoCache(range);
-			index[bucket] ~= s;
-			return s;
-		}
+			if(s.hash == h && s.value.equal(range))
+                return s.value;
+            insSlot = s;
+            s = s.next;
+            if(s == null) break;
+		}		
+        string str = putIntoCache(range);
+        insertIntoSlot(insSlot, str, h);
+        return str;
 	}
 
 private:
 
-	import core.stdc.string;
-	string* find(R)(R data, out size_t bucket, out hash_t h)
-	{
-		h = hash(data);
-		bucket = h % mapSize;
-		foreach (i; 0 .. index[bucket].length)
-		{
-			if (equal(index[bucket][i], data))
-			{
-				return &index[bucket][i];
-			}
-		}
-		return null;
-	}
-
-	static hash_t hash(R)(R data)
-
+	static uint hash(R)(R data)
 	{
 		uint hash = 0;
 		foreach (b; data)
@@ -3093,28 +3089,54 @@ private:
 	}
 
 	enum mapSize = 2048;
-	string[][mapSize] index;
+    
+    struct Slot
+    {
+        string value;
+        Slot* next;
+        uint hash;
+    };
+	
+    void insertIntoSlot(Slot* tgt, string val, uint hash)
+    {
+        auto slice = allocateInCache(Slot.sizeof);
+        auto newSlot = cast(Slot*)slice.ptr;
+        *newSlot = Slot(val, null, hash);
+        tgt.next = newSlot;
+    }
+    
+    Slot[mapSize] index;
+    
 	// leave some slack for alloctors/GC meta-data
 	enum chunkSize = 16*1024 - size_t.sizeof*8;
 	ubyte*[] chunkS;
 	size_t next = chunkSize;
-
-	string putIntoCache(R)(R data)
-	{
-		import core.memory;
-
-		if(next + data.length > chunkSize)
+    
+    ubyte[] allocateInCache(size_t size)
+    {
+        import core.memory;
+        if(next + size > chunkSize)
 		{
-			// avoid huge strings
-			if(data.length > chunkSize/4)
-				return (cast(char[])data).idup;
+			// avoid huge allocations
+			if(size> chunkSize/4)
+            {
+                ubyte* p = cast(ubyte*)GC.malloc(size,
+                    GC.BlkAttr.NO_SCAN | GC.BlkAttr.NO_INTERIOR);
+                return p[0..size];
+            }
 			chunkS ~= cast(ubyte*)GC.malloc(chunkSize,
 				GC.BlkAttr.NO_SCAN | GC.BlkAttr.NO_INTERIOR);
 			next = 0;
 		}
-		auto slice = chunkS[$-1][next..next+data.length];
+        auto slice = chunkS[$-1][next..next+size];
+		next += size;
+        return slice;
+    }
+
+	string putIntoCache(R)(R data)
+	{
+        auto slice = allocateInCache(data.length);
 		slice[] = data[];
-		next += data.length;
 		return cast(string)slice;
 	}
 
