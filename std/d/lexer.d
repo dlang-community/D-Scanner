@@ -975,10 +975,10 @@ private:
 	void lexWhitespace(bool keep)()
 	{
 		current.type = TokenType.whitespace;
-		while (!isEoF() && isWhite())
+		do
 		{
 			nextChar();
-		}
+		}while (!isEoF() && isWhite());
 		static if (keep) setTokenValue();
 	}
 
@@ -2102,7 +2102,7 @@ private:
 		if (ch >= '[' && ch <= '^') return true;
 		if (ch >= '{' && ch <= '~') return true;
 		if (ch == '`') return true;
-		if (isWhite()) return true; //TODO: test only long 'whites'
+		if ((ch & 0x80) && isLongWhite()) return true;
 		return false;
 	}
 
@@ -2111,24 +2111,30 @@ private:
 		auto c = src.front;
 		if (c & 0x80) // multi-byte utf-8
 		{
-			//TODO: here and elsewhere we'd better have
-			// some kind of lookahead in LexSource instead of .save
-			auto r = src.save();
-				if (r.front != 0xe2)
-					return false;
-				else
-					r.popFront();
-				if (r.empty || r.front != 0x80)
-					return false;
-				else
-					r.popFront();
-			if (r.empty || (r.front != 0xa8 && r.front != 0xa9))
-					return false;
-			return true;
+			return isLongWhite();
 		}
 		else
 			return c == 0x20 || (c >= 0x09 && c <= 0x0d);
 	}
+    
+    bool isLongWhite()
+    {
+        assert(src.front & 0x80); // only non-ascii
+        //TODO: here and elsewhere we'd better have
+        // some kind of lookahead in LexSource instead of .save
+        auto r = src.save();
+        if (r.front != 0xe2)
+            return false;
+        else
+            r.popFront();
+        if (r.empty || r.front != 0x80)
+            return false;
+        else
+            r.popFront();
+        if (r.empty || (r.front != 0xa8 && r.front != 0xa9))
+                return false;
+        return true;
+    }
 
 	void errorMessage(string s)
 	{
