@@ -744,10 +744,10 @@ private:
 			"=",               "TokenType.assign",
 			"@",               "TokenType.at",
 			"&",               "TokenType.bitAnd",
-			"&=",              "TokenType.bitAndEquals",
+			"&=",              "TokenType.bitAndEqual",
 			"|",               "TokenType.bitOr",
-			"|=",              "TokenType.bitOrEquals",
-			"~=",              "TokenType.catEquals",
+			"|=",              "TokenType.bitOrEqual",
+			"~=",              "TokenType.catEqual",
 			":",               "TokenType.colon",
 			",",               "TokenType.comma",
 			"--",              "TokenType.decrement",
@@ -767,21 +767,21 @@ private:
 			"||",              "TokenType.logicOr",
 			"(",               "TokenType.lParen",
 			"-",               "TokenType.minus",
-			"-=",              "TokenType.minusEquals",
+			"-=",              "TokenType.minusEqual",
 			"%",               "TokenType.mod",
-			"%=",              "TokenType.modEquals",
-			"*=",              "TokenType.mulEquals",
+			"%=",              "TokenType.modEqual",
+			"*=",              "TokenType.mulEqual",
 			"!",               "TokenType.not",
-			"!=",              "TokenType.notEquals",
+			"!=",              "TokenType.notEqual",
 			"!>",              "TokenType.notGreater",
 			"!>=",             "TokenType.notGreaterEqual",
 			"!<",              "TokenType.notLess",
 			"!<=",             "TokenType.notLessEqual",
 			"!<>",             "TokenType.notLessEqualGreater",
 			"+",               "TokenType.plus",
-			"+=",              "TokenType.plusEquals",
+			"+=",              "TokenType.plusEqual",
 			"^^",              "TokenType.pow",
-			"^^=",             "TokenType.powEquals",
+			"^^=",             "TokenType.powEqual",
 			"}",               "TokenType.rBrace",
 			"]",               "TokenType.rBracket",
 			")",               "TokenType.rParen",
@@ -797,7 +797,7 @@ private:
 			">>>",             "TokenType.unsignedShiftRight",
 			">>>=",            "TokenType.unsignedShiftRightEqual",
 			"^",               "TokenType.xor",
-			"^=",              "TokenType.xorEquals",
+			"^=",              "TokenType.xorEqual",
 		));
 		case '/':
 			nextCharNonLF();
@@ -2325,10 +2325,10 @@ enum TokenType: ushort
 	assign, /// =
 	at, /// @
 	bitAnd, /// &
-	bitAndEquals, /// &=
+	bitAndEqual, /// &=
 	bitOr, /// |
-	bitOrEquals, /// |=
-	catEquals, /// ~=
+	bitOrEqual, /// |=
+	catEqual, /// ~=
 	colon, /// :
 	comma, /// ,
 	decrement, /// --
@@ -2352,21 +2352,21 @@ enum TokenType: ushort
 	logicOr, /// ||
 	lParen, /// $(LPAREN)
 	minus, /// -
-	minusEquals, /// -=
+	minusEqual, /// -=
 	mod, /// %
-	modEquals, /// %=
-	mulEquals, /// *=
+	modEqual, /// %=
+	mulEqual, /// *=
 	not, /// !
-	notEquals, /// !=
+	notEqual, /// !=
 	notGreater, /// !>
 	notGreaterEqual, /// !>=
 	notLess, /// !<
 	notLessEqual, /// !<=
 	notLessEqualGreater, /// !<>
 	plus, /// +
-	plusEquals, /// +=
+	plusEqual, /// +=
 	pow, /// ^^
-	powEquals, /// ^^=
+	powEqual, /// ^^=
 	rBrace, /// }
 	rBracket, /// ]
 	rParen, /// $(RPAREN)
@@ -2384,7 +2384,7 @@ enum TokenType: ushort
 	unsignedShiftRightEqual, /// >>>=
 	vararg, /// ...
 	xor, /// ^
-	xorEquals, /// ^=
+	xorEqual, /// ^=
 
 	bool_, /// $(D_KEYWORD bool)
 	byte_, /// $(D_KEYWORD byte)
@@ -2522,6 +2522,7 @@ enum TokenType: ushort
 	dstringLiteral, /// $(D_STRING "32-bit character string"d)
 	stringLiteral, /// $(D_STRING "an 8-bit string")
 	wstringLiteral, /// $(D_STRING "16-bit character string"w)
+	invalid, /// Not a valid token type
 }
 
 // Implementation details follow
@@ -2718,6 +2719,7 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	"__traits",
 	"__parameters",
 	"__vector",
+	null,
 	null,
 	null,
 	null,
