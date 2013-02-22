@@ -101,6 +101,7 @@ int main(string[] args)
 	bool parenComplete;
 	bool highlight;
 	bool ctags;
+    bool json;
     bool declaration;
 	bool recursive;
 	bool format;
