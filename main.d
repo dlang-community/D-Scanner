@@ -97,12 +97,13 @@ int main(string[] args)
 {
 	string[] importDirs;
 	bool sloc;
-	/+bool dotComplete;+/
-	/+bool json;+/
-	/+bool parenComplete;+/
+	bool dotComplete;
+	bool parenComplete;
 	bool highlight;
 	bool ctags;
-	bool recursiveCtags;
+    bool json;
+    bool declaration;
+	bool recursive;
 	bool format;
 	bool help;
 	bool tokenCount;
@@ -112,8 +113,9 @@ int main(string[] args)
 	{
 		getopt(args, "I", &importDirs,/+ "dotComplete|d", &dotComplete,+/ "sloc|l", &sloc,
 			/+"json|j", &json,+/ /+"parenComplete|p", &parenComplete,+/ "highlight", &highlight,
-			"ctags|c", &ctags, "recursive|r|R", &recursiveCtags, "help|h", &help,
-			"tokenCount", &tokenCount, "frequencyCount", &frequencyCount);
+			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
+			"tokenCount", &tokenCount, "frequencyCount", &frequencyCount,
+            "declaration|e", &declaration);
 	}
 	catch (Exception e)
 	{
@@ -148,7 +150,10 @@ int main(string[] args)
 			config.fileName = arg;
 			uint count;
             auto f = File(arg);
-            ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
+            import core.stdc.stdlib;
+            ubyte[] buffer = (cast(ubyte*)malloc(f.size))[0..f.size];
+            scope(exit) free(buffer.ptr);
+            //uninitializedArray!(ubyte[])(f.size);
 			foreach (t; byToken(f.rawRead(buffer), config))
             {
                 if (tokenCount)
@@ -210,8 +215,15 @@ options:
         and methods available in the current scope that begin with the text
         before the cursor position.
 
+    --declaration | -e [sourceFile] cursorPosition
+        Prints the absolute path to the file in which the symbol at the cursor
+        position was declared, as well as its line number.
+
     --highlight [sourceFile] - Syntax-highlight the given source file. The
         resulting HTML will be written to standard output.
+
+    --imports | -i [sourceFiles]
+        Prints modules imported by the given source file.
 
     -I includePath
         Include _includePath_ in the list of paths used to search for imports.
