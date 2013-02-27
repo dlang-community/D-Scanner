@@ -818,7 +818,7 @@ private:
 					lexComment!false();
 				return;
 			case '=':
-				current.type = TokenType.divEquals;
+				current.type = TokenType.divEqual;
 				current.value = "/=";
 				src.popFront();
 				return;
@@ -2116,7 +2116,7 @@ private:
 		else
 			return c == 0x20 || (c >= 0x09 && c <= 0x0d);
 	}
-    
+
     bool isLongWhite()
     {
         assert(src.front & 0x80); // only non-ascii
@@ -2170,7 +2170,7 @@ private:
 */
 pure nothrow bool isOperator(const TokenType t)
 {
-	return t >= TokenType.assign && t <= TokenType.xorEquals;
+	return t >= TokenType.assign && t <= TokenType.xorEqual;
 }
 
 /**
@@ -2342,7 +2342,7 @@ enum TokenType: ushort
 	comma, /// ,
 	decrement, /// --
 	div, /// /
-	divEquals, /// /=
+	divEqual, /// /=
 	dollar, /// $
 	dot, /// .
 	equals, /// ==
@@ -2403,6 +2403,7 @@ enum TokenType: ushort
 	char_, /// $(D_KEYWORD char)
 	creal_, /// $(D_KEYWORD creal)
 	dchar_, /// $(D_KEYWORD dchar)
+	delegate_, /// $(D_KEYWORD delegate)
 	double_, /// $(D_KEYWORD double)
 	float_, /// $(D_KEYWORD float)
 	function_, /// $(D_KEYWORD function)
@@ -2454,7 +2455,6 @@ enum TokenType: ushort
 	continue_, /// $(D_KEYWORD continue)
 	debug_, /// $(D_KEYWORD debug)
 	default_, /// $(D_KEYWORD default)
-	delegate_, /// $(D_KEYWORD delegate)
 	delete_, /// $(D_KEYWORD delete)
 	do_, /// $(D_KEYWORD do)
 	else_, /// $(D_KEYWORD else)
@@ -2619,6 +2619,7 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	"char",
 	"creal",
 	"dchar",
+	"delegate",
 	"double",
 	"float",
 	"function",
@@ -2668,7 +2669,6 @@ immutable(string[TokenType.max + 1]) tokenValues = [
 	"continue",
 	"debug",
 	"default",
-	"delegate",
 	"delete",
 	"do",
 	"else",
@@ -3059,12 +3059,12 @@ struct StringCache
 		if(isRandomAccessRange!R
 			&& is(Unqual!(ElementType!R) : const(ubyte)))
 	{
-		
+
 		uint h = hash(range);
 		uint bucket = h % mapSize;
         Slot *s = &index[bucket];
         //1st slot not yet initialized?
-        if(s.value.ptr == null) 
+        if(s.value.ptr == null)
         {
             *s = Slot(putIntoCache(range), null, h);
             return s.value;
@@ -3077,7 +3077,7 @@ struct StringCache
             insSlot = s;
             s = s.next;
             if(s == null) break;
-		}		
+		}
         string str = putIntoCache(range);
         insertIntoSlot(insSlot, str, h);
         return str;
@@ -3097,14 +3097,14 @@ private:
 	}
 
 	enum mapSize = 2048;
-    
+
     struct Slot
     {
         string value;
         Slot* next;
         uint hash;
     };
-	
+
     void insertIntoSlot(Slot* tgt, string val, uint hash)
     {
         auto slice = allocateInCache(Slot.sizeof);
@@ -3112,14 +3112,14 @@ private:
         *newSlot = Slot(val, null, hash);
         tgt.next = newSlot;
     }
-    
+
     Slot[mapSize] index;
-    
+
 	// leave some slack for alloctors/GC meta-data
 	enum chunkSize = 16*1024 - size_t.sizeof*8;
 	ubyte*[] chunkS;
 	size_t next = chunkSize;
-    
+
     ubyte[] allocateInCache(size_t size)
     {
         import core.memory;
