@@ -683,30 +683,7 @@ struct TokenRange(LexSrc)
 	*/
 	void popFront()
 	{
-		// Filter out tokens we don't care about
-		loop: while (true)
-		{
-			advance();
-			if(empty)
-				break loop;
-			switch (current.type)
-			{
-			case TokenType.whitespace:
-				if (config.iterStyle & IterationStyle.includeWhitespace)
-					break loop;
-				break;
-			case TokenType.comment:
-				if (config.iterStyle & IterationStyle.includeComments)
-					break loop;
-				break;
-			case TokenType.specialTokenSequence:
-				if (config.iterStyle & IterationStyle.includeSpecialTokens)
-					break loop;
-				break;
-			default:
-				break loop;
-			}
-		}
+        advance();
 	}
 
 private:
@@ -715,7 +692,8 @@ private:
 	* Advances the range to the next token
 	*/
 	void advance()
-	{				
+	{
+L_advance:
         if (src.empty)
         {
             _empty = true;
@@ -809,10 +787,10 @@ private:
 			case '*':
 			case '+':
 				if (config.iterStyle & IterationStyle.includeComments)
-					lexComment!true();
-				else
-					lexComment!false();
-				return;
+					return lexComment!true();
+                lexComment!false();
+                goto L_advance; // tail-recursion
+				
 			case '=':
 				current.type = TokenType.divEquals;
 				current.value = "/=";
@@ -900,21 +878,25 @@ private:
 			}
 			else
 				goto default;
-		case '#':
-			lexSpecialTokenSequence();
-			return;
+		case '#':            
+            lexSpecialTokenSequence();
+            if(config.iterStyle & IterationStyle.includeSpecialTokens)
+                return;
+            goto L_advance; // tail-recursion
         // "short" ASCII whites
         case 0x20:
         case 0x09: .. case 0x0d:
              if (config.iterStyle & IterationStyle.includeWhitespace)
                 return lexWhitespace!true();
-            return lexWhitespace!false();
+             lexWhitespace!false();
+             goto L_advance; // tail-recursion 
 		default:        
             if ((src.front & 0x80) && isLongWhite())
             {               
                 if (config.iterStyle & IterationStyle.includeWhitespace)
                     return lexWhitespace!true();
-                return lexWhitespace!false();
+                lexWhitespace!false();
+                goto L_advance; // tail-recursion
             }
 			for(;;)
 			{
@@ -936,48 +918,9 @@ private:
 				return;
 			}
 
-			if (!(config.iterStyle & TokenStyle.doNotReplaceSpecial))
+			if (config.iterStyle & TokenStyle.doNotReplaceSpecial)
 				return;
-
-			switch (current.type)
-			{
-			case TokenType.date:
-				current.type = TokenType.stringLiteral;
-				auto time = Clock.currTime();
-				current.value = format("%s %02d %04d", time.month, time.day, time.year);
-				return;
-			case TokenType.time:
-				auto time = Clock.currTime();
-				current.type = TokenType.stringLiteral;
-				current.value = (cast(TimeOfDay)(time)).toISOExtString();
-				return;
-			case TokenType.timestamp:
-				auto time = Clock.currTime();
-				auto dt = cast(DateTime) time;
-				current.type = TokenType.stringLiteral;
-				current.value = format("%s %s %02d %02d:%02d:%02d %04d",
-					dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
-					dt.second, dt.year);
-				return;
-			case TokenType.vendor:
-				current.type = TokenType.stringLiteral;
-				current.value = config.vendorString;
-				return;
-			case TokenType.compilerVersion:
-				current.type = TokenType.stringLiteral;
-				current.value = format("%d", config.versionNumber);
-				return;
-			case TokenType.line:
-				current.type = TokenType.intLiteral;
-				current.value = format("%d", current.line);
-				return;
-			case TokenType.file:
-				current.type = TokenType.stringLiteral;
-				current.value = config.fileName;
-				return;
-			default:
-				return;
-			}
+            expandSpecialToken();
 		}
 	}
 
@@ -2144,8 +2087,51 @@ private:
         else
             r.popFront();
         if (r.empty || (r.front != 0xa8 && r.front != 0xa9))
-                return false;
+            return false;
         return true;
+    }
+    
+    void expandSpecialToken()
+    {
+        switch (current.type)
+        {
+        case TokenType.date:
+            current.type = TokenType.stringLiteral;
+            auto time = Clock.currTime();
+            current.value = format("%s %02d %04d", time.month, time.day, time.year);
+            return;
+        case TokenType.time:
+            auto time = Clock.currTime();
+            current.type = TokenType.stringLiteral;
+            current.value = (cast(TimeOfDay)(time)).toISOExtString();
+            return;
+        case TokenType.timestamp:
+            auto time = Clock.currTime();
+            auto dt = cast(DateTime) time;
+            current.type = TokenType.stringLiteral;
+            current.value = format("%s %s %02d %02d:%02d:%02d %04d",
+                dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
+                dt.second, dt.year);
+            return;
+        case TokenType.vendor:
+            current.type = TokenType.stringLiteral;
+            current.value = config.vendorString;
+            return;
+        case TokenType.compilerVersion:
+            current.type = TokenType.stringLiteral;
+            current.value = format("%d", config.versionNumber);
+            return;
+        case TokenType.line:
+            current.type = TokenType.intLiteral;
+            current.value = format("%d", current.line);
+            return;
+        case TokenType.file:
+            current.type = TokenType.stringLiteral;
+            current.value = config.fileName;
+            return;
+        default:
+            return;
+        }
     }
 
 	void errorMessage(string s)
