@@ -715,30 +715,26 @@ private:
 	* Advances the range to the next token
 	*/
 	void advance()
-	{
-		if (isEoF())
-		{
-			_empty = true;
-			return;
-		}
-
-		src.mark(); // mark a start of a lexing "frame"
+	{				
+        if (src.empty)
+        {
+            _empty = true;
+            return;
+        }
+        src.mark(); // mark a start of a lexing "frame"
 		current.line = lineNumber;
 		current.startIndex = src.index;
 		current.column = column;
-		current.value = null;
-
-		if (isWhite())
-		{
-			if (config.iterStyle & IterationStyle.includeWhitespace)
-				lexWhitespace!true();
-			else
-				lexWhitespace!false();
-			return;
-		}
-
+		current.value = null;        
 		switch (src.front)
 		{
+        // handle sentenels for end of input
+        case 0: 
+        case 0x1a:
+            // TODO: check config flags, it's cheap 
+            // since this branch at most is taken once per file 
+            _empty = true;
+            return;        
 //        pragma(msg, generateCaseTrie(
 		mixin(generateCaseTrie(
 			"=",               "TokenType.assign",
@@ -907,10 +903,26 @@ private:
 		case '#':
 			lexSpecialTokenSequence();
 			return;
-		default:
-			while(!isEoF() && !isSeparating())
+        // "short" ASCII whites
+        case 0x20:
+        case 0x09: .. case 0x0d:
+             if (config.iterStyle & IterationStyle.includeWhitespace)
+                return lexWhitespace!true();
+            return lexWhitespace!false();
+		default:        
+            if ((src.front & 0x80) && isLongWhite())
+            {               
+                if (config.iterStyle & IterationStyle.includeWhitespace)
+                    return lexWhitespace!true();
+                return lexWhitespace!false();
+            }
+			for(;;)
 			{
+                if(isSeparating())
+                    break;
 				nextCharNonLF();
+                if(isEoF())
+                    break;
 			}
 
 			current.type = lookupTokenType(src.slice);
@@ -1552,7 +1564,7 @@ private:
 		import std.stdio;
 		if(unescaped != Appender!(ubyte[]).init)
 		{
-			//stuff in the last slice and used buffered data
+			//stuff in the last slice and use buffered data
 			unescaped.put(src.slice);
 			setData(unescaped.data);
 		}
