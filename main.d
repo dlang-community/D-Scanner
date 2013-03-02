@@ -19,23 +19,8 @@ import std.range;
 import std.d.lexer;
 
 import highlighter;
-
-pure nothrow bool isLineOfCode(TokenType t)
-{
-	switch(t)
-	{
-	case TokenType.semicolon:
-	case TokenType.while_:
-	case TokenType.if_:
-	case TokenType.for_:
-	case TokenType.foreach_:
-	case TokenType.foreach_reverse_:
-	case TokenType.case_:
-		return true;
-	default:
-		return false;
-	}
-}
+import autocomplete;
+import stats;
 
 /**
  * Loads any import directories specified in /etc/dmd.conf.
@@ -140,33 +125,7 @@ int main(string[] args)
         return 1;
     }
 
-	if (tokenCount || sloc)
-	{
-		LexerConfig config;
-        config.tokenStyle = TokenStyle.doNotReplaceSpecial;
-		ulong[] counts = new ulong[args.length - 1];
-		foreach (i, arg; parallel(args[1..$]))
-		{
-			config.fileName = arg;
-			uint count;
-            auto f = File(arg);
-            import core.stdc.stdlib;
-            ubyte[] buffer = (cast(ubyte*)malloc(f.size))[0..f.size];
-            scope(exit) free(buffer.ptr);
-            //uninitializedArray!(ubyte[])(f.size);
-			foreach (t; byToken(f.rawRead(buffer), config))
-            {
-                if (tokenCount)
-                    ++counts[i];
-                else if (isLineOfCode(t.type))
-                    ++counts[i];
-            }
-
-		}
-		foreach(i; 0 .. counts.length)
-			writefln("%s: %d", args[i + 1], counts[i]);
-	}
-    else if (highlight)
+    if (highlight)
 	{
 		LexerConfig config;
 		config.iterStyle = IterationStyle.everything;
@@ -176,6 +135,36 @@ int main(string[] args)
         highlighter.highlight(byToken(f.rawRead(buffer), config),
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
+	}
+	else
+	{
+		LexerConfig config;
+
+		bool usingStdin = args.length == 3;
+		config.fileName = usingStdin ? "stdin" : args[1];
+		File f = usingStdin ? stdin : File(args[1]);
+		auto bytes = usingStdin ? cast(ubyte[]) [] : uninitializedArray!(ubyte[])(f.size);
+
+		f.rawRead(bytes);
+
+		auto tokens = byToken(bytes, config);
+		if (sloc)
+		{
+			printLineCount(stdout, tokens);
+		}
+		else if (tokenCount)
+		{
+			printTokenCount(stdout, tokens);
+		}
+		else if (dotComplete)
+		{
+		}
+		else if (parenComplete)
+		{
+		}
+		else if (symbolComplete)
+		{
+		}
 	}
 
 	return 0;
