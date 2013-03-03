@@ -25,7 +25,7 @@ pure nothrow bool isLineOfCode(TokenType t)
 	}
 }
 
-void printTokenCount(Tokens)(File output, ref Tokens tokens)
+void printTokenCount(Tokens)(File output, ref Tokens tokens, size_t fileSize)
 {
 	ulong count;
 	while(!tokens.empty)
@@ -33,7 +33,8 @@ void printTokenCount(Tokens)(File output, ref Tokens tokens)
 		tokens.popFront();
 		++count;
 	}
-	output.writefln("%d", count);
+	output.writefln("%f", cast(float) fileSize / cast(float) count);
+	//output.writefln("%d", count);
 }
 
 void printLineCount(Tokens)(File output, ref Tokens tokens)

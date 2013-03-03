@@ -84,6 +84,7 @@ int main(string[] args)
 	bool sloc;
 	bool dotComplete;
 	bool parenComplete;
+	bool symbolComplete;
 	bool highlight;
 	bool ctags;
     bool json;
@@ -92,15 +93,14 @@ int main(string[] args)
 	bool format;
 	bool help;
 	bool tokenCount;
-    bool frequencyCount;
 
 	try
 	{
-		getopt(args, "I", &importDirs,/+ "dotComplete|d", &dotComplete,+/ "sloc|l", &sloc,
-			/+"json|j", &json,+/ /+"parenComplete|p", &parenComplete,+/ "highlight", &highlight,
+		getopt(args, "I", &importDirs, "dotComplete|d", &dotComplete, "sloc|l", &sloc,
+			"json|j", &json, "parenComplete|p", &parenComplete, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount", &tokenCount, "frequencyCount", &frequencyCount,
-            "declaration|e", &declaration);
+			"tokenCount", &tokenCount,
+            "declaration|e", &declaration, "symbolComplete|s", &symbolComplete);
 	}
 	catch (Exception e)
 	{
@@ -144,7 +144,7 @@ int main(string[] args)
 		config.fileName = usingStdin ? "stdin" : args[1];
 		File f = usingStdin ? stdin : File(args[1]);
 		auto bytes = usingStdin ? cast(ubyte[]) [] : uninitializedArray!(ubyte[])(f.size);
-
+		auto byteCount = f.size;
 		f.rawRead(bytes);
 
 		auto tokens = byToken(bytes, config);
@@ -154,16 +154,24 @@ int main(string[] args)
 		}
 		else if (tokenCount)
 		{
-			printTokenCount(stdout, tokens);
+			printTokenCount(stdout, tokens, f.size);
 		}
-		else if (dotComplete)
+		else if (dotComplete || parenComplete || symbolComplete)
 		{
-		}
-		else if (parenComplete)
-		{
-		}
-		else if (symbolComplete)
-		{
+			auto app = appender!Token();
+			app.reserve(byteCount / 13);
+			while (!tokens.empty)
+				app.put(tokensn.moveFront());
+			Token[] tokenArr = app.data;
+			else if (dotComplete)
+			{
+			}
+			else if (parenComplete)
+			{
+			}
+			else if (symbolComplete)
+			{
+			}
 		}
 	}
 
