@@ -14,18 +14,18 @@ struct Parser
 {
 public:
 
-	Module parseModule(Token[] tokens)
+	Module parseModule()
 	{
 		Module m = new Module;
-		while (!tokens.empty)
+		while (index < tokens.length)
 		{
-			switch (tokens[i].type)
+			switch (tokens[index].type)
 			{
 			case TokenType.module_:
 				if (m.declaration !is null)
-					m.declaration = parseModuleDeclaration(tokens);
+					m.declaration = parseModuleDeclaration();
 				else
-					error(tokens, "Only one module declaration is allowed per module");
+					error("Only one module declaration is allowed per module");
 				break;
 			default:
 				m.declDefs.insert(parseDeclDef());
@@ -33,6 +33,8 @@ public:
 		}
 		return m;
 	}
+
+private:
 
 	ModuleDeclaration parseModuleDeclaration()
 	in
@@ -43,37 +45,92 @@ public:
 	{
 		ModuleDeclaration declaration = new ModuleDeclaration;
 		string recent;
-		loop: while (!tokens.empty)
+		loop: while (index < tokens.length)
 		{
 			if (tokens[index].type == TokenType.identifier)
 			{
-				recent = tokens.moveFront().value;
-				switch (tokens[i].type)
+				recent = tokens[index++].value;
+				switch (tokens[index].type)
 				{
 				case TokenType.dot:
 					declaration.packageName ~= recent;
-					tokens.popFront();
+					index++;
 					break;
 				case TokenType.semicolon:
 					declaration.moduleName = recent;
-					tokens.popFront();
+					index++;
 					break loop;
 				default:
 					break;
 				}
 			}
 			else
-				error(tokens, "Identifier expected");
+				error("Identifier expected");
 		}
 		return declaration;
 	}
 
-private:
+	DeclDef parseDeclDef()
+	{
+		switch (tokens[index].type)
+		{
+//			case TokenType.identifier:
+//				if (nextIs(TokenType.colon))
+//					return parseLabeledStatement();
+//				break;
+//			case TokenType.this_:
+//				return parseConstructor();
+//			case TokenType.tilde:
+//				if (nextIs(TokenType.this_))
+//					return parseDestructor();
+//				break;
+			default:
+				return null;
+		}
+	}
+
+//	LabeledStatement parseLabeledStatement()
+//	in
+//	{
+//		assert (tokens[index].type == TokenType.identifier);
+//	}
+//	body
+//	{
+//		auto ls = new LabeledStatement;
+//		ls.label = tokens[index++].value;
+//		ls.statement = parseNoScopeStatement();
+//		return ls;
+//	}
+
+//	NoScopeStatement parseNoScopeStatement()
+//	{
+//		switch (tokens[index].type)
+//		{
+//		case TokenType.semicolon:
+//			return new EmptyStatement;
+//		case TokenType.lBrace:
+//			return parseBlockStatement();
+//		default:
+//			return parseNonEmptyStatement();
+//		}
+//	}
+
+	void error(string message)
+	{
+		import std.stdio;
+		stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
+			tokens[index].column, message);
+		while (index < tokens.length)
+		{
+			if (tokens[++index].type == TokenType.semicolon)
+				break;
+		}
+	}
 
 	Token* peekPast(alias O, alias C)()
 	in
 	{
-		assert (tokens[index].type == T);
+		assert (tokens[index].type == O);
 	}
 	body
 	{
@@ -84,7 +141,7 @@ private:
 		{
 			if (tokens[i] == O)
 				++depth;
-			else (tokens[i] == C)
+			else if (tokens[i] == C)
 			{
 				--depth;
 				++i;
@@ -114,297 +171,255 @@ private:
 	Token* expect(TokenType type)
 	{
 		if (tokens[index].type == type)
-			return tokens[index++];
+			return &tokens[index++];
 		else
 			return null;
 	}
 
-	bool peekIs(TokenType t)
+	Token* peek()
+	{
+		return index + 1 < tokens.length ? &tokens[index + 1] : null;
+	}
+
+	bool nextIs(TokenType t)
 	{
 		return peek() && peek().type == t;
 	}
 
+	bool moreTokens()
+	{
+		return index < tokens.length;
+	}
+
 	Token[] tokens;
 	size_t index;
+	string fileName;
 }
 
-
-
-
-
-unittest
-{
-	auto a = cast(ubyte[]) q{/** */ module a.b.c;};
-	LexerConfig config;
-	auto ta = byToken(a, config);
-	auto moda = parseModuleDeclaration(ta);
-	assert (moda.packageName == ["a", "b"]);
-	assert (moda.moduleName == "c");
-
-	auto b = cast(ubyte[]) q{module a;};
-	auto tb = byToken(b, config);
-	auto modb = parseModuleDeclaration(tb);
-	assert (modb.packageName.length == 0);
-	assert (modb.moduleName == "a");
-}
-
-DeclDef parseDeclDef(Token[] tokens)
-{
-	switch (tokens[i].type)
-	{
-		case TokenType.identifier:
-			if (tokens.canPeek && tokens.peek.type == TokenType.colon)
-				return parseLabeledStatement(tokens);
-			break;
-		default:
-			break;
-	}
-}
-
-LabeledStatement parseLabeledStatement(Token[] tokens)
-in
-{
-	assert (tokens[i].type == TokenType.identifier);
-}
-body
-{
-	auto ls = new LabeledStatement;
-	ls.label = tokens.moveFront().value;
-	ls.statement = parseNoScopeStatement(tokens);
-	return ls;
-}
-
-NoScopeStatement parseNoScopeStatement(Token[] tokens)
-{
-	switch (tokens[i].type)
-	{
-	case TokenType.semicolon:
-		return new EmptyStatement;
-	case TokenType.lBrace:
-		return parseBlockStatement(tokens);
-	default:
-		return parseNonEmptyStatement(tokens);
-	}
-}
-
-NonEmptyStatement parseNonEmptyStatement(Token[] tokens)
-{
-	switch (tokens[i].type)
-	{
-		case TokenType.case_:
-			return null;
-		case TokenType.default_:
-			return parseDefaultStatement(tokens);
-		default:
-			return parseNonEmptyStatementNoCaseNoDefault(tokens);
-	}
-}
-
-NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault(Token[] tokens)
-{
-	switch (tokens[i].type)
-	{
-	case TokenType.identifier:
-	case TokenType.if_:
-		return parseIfStatement(tokens);
-	case TokenType.while_:
-		return parseWhileStatement(tokens);
-	case TokenType.do_:
-		return parseDoStatement(tokens);
-	case TokenType.for_:
-		return parseForStatement(tokens);
-	case TokenType.foreach_:
-		return parseForeachStatement(tokens);
-	case TokenType.switch_:
-		return parseSwitchStatement(tokens);
-	case TokenType.final_:
-		if (tokens.peek(1).type == TokenType.switch_)
-			return parseFinalSwitchStatement(tokens);
-		else
-			goto default;
-	case TokenType.continue_:
-		return parseContinueStatement(tokens);
-	case TokenType.break_:
-		return parseBreakStatement(tokens);
-	case TokenType.return_:
-		return parseReturnStatement(tokens);
-	case TokenType.goto_:
-		return parseGotoStatement(tokens);
-	case TokenType.with_:
-		return parseWithStatement(tokens);
-	case TokenType.synchronized_:
-		return parseSynchronizedStatement(tokens);
-	case TokenType.try_:
-		return parseTryStatement(tokens);
-	case TokenType.scope_:
-		return parseScopeGuardStatement(tokens);
-	case TokenType.throw_:
-		return parseThrowStatement(tokens);
-	case TokenType.asm_:
-		return parseAsmStatement(tokens);
-	case TokenType.pragma_:
-		return parsePragmaStatement(tokens);
-	case TokenType.mixin_:
-		if (tokens.peek(1).type == TokenType.lParen)
-			return parseMixinStatement(tokens);
-		else if (tokens.peek(1).type == TokenType.identifier)
-			return parseTemplateMixinStatement(tokens);
-		else
-		{
-			error(tokens, "Expected identifier or ( following \"mixin\"");
-			return null;
-		}
-	case TokenType.version_:
-		if (tokens.peek(1).type == TokenType.lParen)
-			return parseConditionalStatement(tokens);
-		else
-		{
-			error(tokens, "Expected ( following \"version\"");
-			return null;
-		}
-	case TokenType.debug_:
-		return parseConditionalStatement(tokens);
-	case TokenType.static_:
-		if (tokens.peek(1).type == TokenType.if_)
-			return parseConditionalStatement(tokens);
-		else if (tokens.peek(1).type == TokenType.assert_)
-			return parseStaticAssert(tokens);
-		else
-		{
-			error(tokens, "Expected \"if\" or \"assert\" following \"static\"");
-			return null;
-		}
-	case TokenType.import_:
-		return parseImportDeclaration(tokens);
-	default:
-		auto d = parseDeclarationStatement(tokens);
-		if (d is null)
-		{
-			auto e = parseExpressionStatement(tokens);
-			if (e is null)
-			{
-				error(tokens, "OMGWTF");
-				return null;
-			}
-			else
-				return e;
-		}
-		else
-			return d;
-	}
-}
-
-GotoStatement parseGotoStatement(Token[] tokens)
-in
-{
-	assert (tokens[i] == TokenType.goto_);
-}
-body
-{
-	tokens.popFront();
-	auto g = new GotoExpression;
-	switch (tokens[i].type)
-	{
-	case TokenType.identifier:
-		g.type = GotoStatement.GotoType.identifier;
-		g.identifier = tokens.moveFront().value;
-		break;
-	case TokenType.default_:
-		tokens.popFront();
-		g.type = GotoStatement.GotoType.break_;
-	case TokenType.case_:
-		g.type = GotoStatement.GotoType.case_;
-		tokens.popFront();
-	default:
-		error(tokens, "Expected an identifier, \"default\", or \"case\" following \"goto\"");
-		return null;
-	}
-}
-
-ContinueStatement parseContinueStatement(Token[] tokens)
-in
-{
-	assert (tokens[i] == TokenType.continue_);
-}
-body
-{
-	return parseContinueBreakStatement!(R, ContinueStatement)(tokens);
-}
-
-BreakStatement parseBreakStatement(Token[] tokens)
-in
-{
-	assert (tokens[i] == TokenType.break_);
-}
-body
-{
-	return parseBreakStatement!(R, BreakStatement)(tokens);
-}
-
-statementType parseContinueBreakStatement(R, alias statementType)(ref R tokens)
-{
-	tokens.popFront();
-	auto c = new statementType;
-	switch (tokens[i].type)
-	{
-		case TokenType.identifier:
-			c.identifier = tokens.moveFront().value;
-			goto case;
-		case TokenType.semicolon:
-			return c;
-		default:
-			error(tokens, "Identifier or semicolon expected");
-			return null;
-	}
-
-}
-
-void error(R)(ref TokenRange!R range, string message)
-{
-	import std.stdio;
-	stderr.writefln("%s(%d:%d): %s", range.fileName, range[i].line,
-		range[i].column, message);
-	while (!range.empty)
-	{
-		if (range.moveFront().type == TokenType.semicolon)
-			break;
-	}
-}
-
-T parseSingleTokenExpression(TokType, AstType, R)(ref R range)
-{
-	auto node = new AstType;
-	node.token = range.moveFront();
-	return node;
-}
-
-AssignExpression parseAssignExpression(Tokens)(ref Tokens tokens)
-{
-	auto expr = new AssignExpression;
-	expr.left = parseConditionalExpression(tokens);
-	switch (tokens[i].type)
-	{
-		case TokenType.assign:
-		case TokenType.plusEqual:
-		case TokenType.minusEqual:
-		case TokenType.mulEqual:
-		case TokenType.divEqual:
-		case TokenType.modEqual:
-		case TokenType.bitAndEqual:
-		case TokenType.bitOrEqual:
-		case TokenType.xorEqual:
-		case TokenType.catEqual:
-		case TokenType.shiftLeftEqual:
-		case TokenType.shiftRightEqual:
-		case TokenType.unsignedShiftRightEqual:
-		case TokenType.powEqual:
-			expr.operator = tokens.moveFront().type;
-			expr.right = parseAssignExpression();
-		default:
-			break;
-	}
-	return expr;
-}
+//
+//unittest
+//{
+//	auto a = cast(ubyte[]) q{/** */ module a.b.c;};
+//	LexerConfig config;
+//	auto ta = byToken(a, config);
+//	auto moda = parseModuleDeclaration(ta);
+//	assert (moda.packageName == ["a", "b"]);
+//	assert (moda.moduleName == "c");
+//
+//	auto b = cast(ubyte[]) q{module a;};
+//	auto tb = byToken(b, config);
+//	auto modb = parseModuleDeclaration(tb);
+//	assert (modb.packageName.length == 0);
+//	assert (modb.moduleName == "a");
+//}
+//
+//NonEmptyStatement parseNonEmptyStatement(Token[] tokens)
+//{
+//	switch (tokens[i].type)
+//	{
+//		case TokenType.case_:
+//			return null;
+//		case TokenType.default_:
+//			return parseDefaultStatement(tokens);
+//		default:
+//			return parseNonEmptyStatementNoCaseNoDefault(tokens);
+//	}
+//}
+//
+//NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault(Token[] tokens)
+//{
+//	switch (tokens[i].type)
+//	{
+//	case TokenType.identifier:
+//	case TokenType.if_:
+//		return parseIfStatement(tokens);
+//	case TokenType.while_:
+//		return parseWhileStatement(tokens);
+//	case TokenType.do_:
+//		return parseDoStatement(tokens);
+//	case TokenType.for_:
+//		return parseForStatement(tokens);
+//	case TokenType.foreach_:
+//		return parseForeachStatement(tokens);
+//	case TokenType.switch_:
+//		return parseSwitchStatement(tokens);
+//	case TokenType.final_:
+//		if (tokens.peek(1).type == TokenType.switch_)
+//			return parseFinalSwitchStatement(tokens);
+//		else
+//			goto default;
+//	case TokenType.continue_:
+//		return parseContinueStatement(tokens);
+//	case TokenType.break_:
+//		return parseBreakStatement(tokens);
+//	case TokenType.return_:
+//		return parseReturnStatement(tokens);
+//	case TokenType.goto_:
+//		return parseGotoStatement(tokens);
+//	case TokenType.with_:
+//		return parseWithStatement(tokens);
+//	case TokenType.synchronized_:
+//		return parseSynchronizedStatement(tokens);
+//	case TokenType.try_:
+//		return parseTryStatement(tokens);
+//	case TokenType.scope_:
+//		return parseScopeGuardStatement(tokens);
+//	case TokenType.throw_:
+//		return parseThrowStatement(tokens);
+//	case TokenType.asm_:
+//		return parseAsmStatement(tokens);
+//	case TokenType.pragma_:
+//		return parsePragmaStatement(tokens);
+//	case TokenType.mixin_:
+//		if (tokens.peek(1).type == TokenType.lParen)
+//			return parseMixinStatement(tokens);
+//		else if (tokens.peek(1).type == TokenType.identifier)
+//			return parseTemplateMixinStatement(tokens);
+//		else
+//		{
+//			error(tokens, "Expected identifier or ( following \"mixin\"");
+//			return null;
+//		}
+//	case TokenType.version_:
+//		if (tokens.peek(1).type == TokenType.lParen)
+//			return parseConditionalStatement(tokens);
+//		else
+//		{
+//			error(tokens, "Expected ( following \"version\"");
+//			return null;
+//		}
+//	case TokenType.debug_:
+//		return parseConditionalStatement(tokens);
+//	case TokenType.static_:
+//		if (tokens.peek(1).type == TokenType.if_)
+//			return parseConditionalStatement(tokens);
+//		else if (tokens.peek(1).type == TokenType.assert_)
+//			return parseStaticAssert(tokens);
+//		else
+//		{
+//			error(tokens, "Expected \"if\" or \"assert\" following \"static\"");
+//			return null;
+//		}
+//	case TokenType.import_:
+//		return parseImportDeclaration(tokens);
+//	default:
+//		auto d = parseDeclarationStatement(tokens);
+//		if (d is null)
+//		{
+//			auto e = parseExpressionStatement(tokens);
+//			if (e is null)
+//			{
+//				error(tokens, "OMGWTF");
+//				return null;
+//			}
+//			else
+//				return e;
+//		}
+//		else
+//			return d;
+//	}
+//}
+//
+//GotoStatement parseGotoStatement(Token[] tokens)
+//in
+//{
+//	assert (tokens[i] == TokenType.goto_);
+//}
+//body
+//{
+//	tokens.popFront();
+//	auto g = new GotoExpression;
+//	switch (tokens[i].type)
+//	{
+//	case TokenType.identifier:
+//		g.type = GotoStatement.GotoType.identifier;
+//		g.identifier = tokens.moveFront().value;
+//		break;
+//	case TokenType.default_:
+//		tokens.popFront();
+//		g.type = GotoStatement.GotoType.break_;
+//	case TokenType.case_:
+//		g.type = GotoStatement.GotoType.case_;
+//		tokens.popFront();
+//	default:
+//		error(tokens, "Expected an identifier, \"default\", or \"case\" following \"goto\"");
+//		return null;
+//	}
+//}
+//
+//ContinueStatement parseContinueStatement(Token[] tokens)
+//in
+//{
+//	assert (tokens[i] == TokenType.continue_);
+//}
+//body
+//{
+//	return parseContinueBreakStatement!(R, ContinueStatement)(tokens);
+//}
+//
+//BreakStatement parseBreakStatement(Token[] tokens)
+//in
+//{
+//	assert (tokens[i] == TokenType.break_);
+//}
+//body
+//{
+//	return parseBreakStatement!(R, BreakStatement)(tokens);
+//}
+//
+//statementType parseContinueBreakStatement(R, alias statementType)(ref R tokens)
+//{
+//	tokens.popFront();
+//	auto c = new statementType;
+//	switch (tokens[i].type)
+//	{
+//		case TokenType.identifier:
+//			c.identifier = tokens.moveFront().value;
+//			goto case;
+//		case TokenType.semicolon:
+//			return c;
+//		default:
+//			error(tokens, "Identifier or semicolon expected");
+//			return null;
+//	}
+//
+//}
+//
+//
+//T parseSingleTokenExpression(TokType, AstType, R)(ref R range)
+//{
+//	auto node = new AstType;
+//	node.token = range.moveFront();
+//	return node;
+//}
+//
+//AssignExpression parseAssignExpression(Tokens)(ref Tokens tokens)
+//{
+//	auto expr = new AssignExpression;
+//	expr.left = parseConditionalExpression(tokens);
+//	switch (tokens[i].type)
+//	{
+//		case TokenType.assign:
+//		case TokenType.plusEqual:
+//		case TokenType.minusEqual:
+//		case TokenType.mulEqual:
+//		case TokenType.divEqual:
+//		case TokenType.modEqual:
+//		case TokenType.bitAndEqual:
+//		case TokenType.bitOrEqual:
+//		case TokenType.xorEqual:
+//		case TokenType.catEqual:
+//		case TokenType.shiftLeftEqual:
+//		case TokenType.shiftRightEqual:
+//		case TokenType.unsignedShiftRightEqual:
+//		case TokenType.powEqual:
+//			expr.operator = tokens.moveFront().type;
+//			expr.right = parseAssignExpression();
+//		default:
+//			break;
+//	}
+//	return expr;
+//}
 
 //void main(string[] args) {}
 

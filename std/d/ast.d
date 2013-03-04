@@ -10,8 +10,27 @@ import std.container;
 import std.d.lexer;
 
 interface ASTNode {}
+interface DeclDef : ASTNode {}
+interface AttributeSpecifier : DeclDef {}
+interface EnumDeclaration : DeclDef {}
+interface ClassDeclaration : DeclDef {}
+interface InterfaceDeclaration : DeclDef {}
+interface AggregateDeclaration : DeclDef {}
+interface Declaration : DeclDef {}
+interface Constructor : DeclDef {}
+interface Destructor : DeclDef {}
+interface UnitTest : DeclDef {}
+interface StaticConstructor : DeclDef {}
+interface StaticDestructor : DeclDef {}
+interface SharedStaticConstructor : DeclDef {}
+interface SharedStaticDestructor : DeclDef {}
+interface ConditionalDeclaration : DeclDef {}
+interface DebugSpecification : DeclDef {}
+interface VersionSpecification : DeclDef {}
+interface TemplateDeclaration : DeclDef {}
+interface TemplateMixinDeclaration : DeclDef {}
+interface MixinDeclaration : DeclDef {}
 
-class DeclDef : ASTNode {}
 
 class Module : ASTNode
 {
@@ -113,9 +132,9 @@ class PragmaStatement : NonEmptyStatementNoCaseNoDefault {}
 class MixinStatement : NonEmptyStatementNoCaseNoDefault {}
 class ForeachRangeStatement : NonEmptyStatementNoCaseNoDefault {}
 class ConditionalStatement : NonEmptyStatementNoCaseNoDefault {}
-class StaticAssert : NonEmptyStatementNoCaseNoDefault {}
-class TemplateMixin : NonEmptyStatementNoCaseNoDefault {}
-class ImportDeclaration : NonEmptyStatementNoCaseNoDefault
+class StaticAssert : NonEmptyStatementNoCaseNoDefault, DeclDef {}
+class TemplateMixin : NonEmptyStatementNoCaseNoDefault, DeclDef {}
+class ImportDeclaration : NonEmptyStatementNoCaseNoDefault, DeclDef
 {
 	bool isStatic;
 	Import[] importList;

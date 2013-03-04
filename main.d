@@ -158,12 +158,12 @@ int main(string[] args)
 		}
 		else if (dotComplete || parenComplete || symbolComplete)
 		{
-			auto app = appender!Token();
+			auto app = appender!(Token[])();
 			app.reserve(byteCount / 13);
 			while (!tokens.empty)
-				app.put(tokensn.moveFront());
+				app.put(tokens.moveFront());
 			Token[] tokenArr = app.data;
-			else if (dotComplete)
+			if (dotComplete)
 			{
 			}
 			else if (parenComplete)
