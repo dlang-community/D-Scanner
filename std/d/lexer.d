@@ -102,7 +102,7 @@
 *
 * Copyright: Brian Schott 2013
 * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
- * Authors: Brian Schott, Dmitry Olshansky
+* Authors: Brian Schott, Dmitry Olshansky
 * Source: $(PHOBOSSRC std/d/_lexer.d)
 */
 
@@ -357,40 +357,7 @@ struct TokenRange(LexSrc)
         popFront();
         return r;
     }
-
-    /**
-    * Foreach operation
-    */
-    int opApply(int delegate(Token) dg)
-    {
-        int result = 0;
-        while (!empty)
-        {
-            result = dg(front);
-            if (result)
-                break;
-            popFront();
-        }
-        return result;
-    }
-
-    /**
-    * Foreach operation
-    */
-    int opApply(int delegate(size_t, Token) dg)
-    {
-        int result = 0;
-        int i = 0;
-        while (!empty)
-        {
-            result = dg(i, front);
-            if (result)
-                break;
-            popFront();
-        }
-        return result;
-    }
-
+    
     /**
     * Removes the current token from the range
     */
