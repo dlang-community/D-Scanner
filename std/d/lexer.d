@@ -3082,11 +3082,11 @@ private:
             if(size> chunkSize/4)
             {
                 ubyte* p = cast(ubyte*)GC.malloc(size,
-                    GC.BlkAttr.NO_SCAN | GC.BlkAttr.NO_INTERIOR);
+                    GC.BlkAttr.NO_SCAN);
                 return p[0..size];
             }
             chunkS ~= cast(ubyte*)GC.malloc(chunkSize,
-                GC.BlkAttr.NO_SCAN | GC.BlkAttr.NO_INTERIOR);
+                GC.BlkAttr.NO_SCAN);
             next = 0;
         }
         auto slice = chunkS[$-1][next..next+size];
