@@ -586,12 +586,11 @@ L_advance:
                 if(isEoF())
                     break;
             }
-
+            
             current.type = lookupTokenType(src.slice);
             current.value = getTokenValue(current.type);
             if (current.value is null)
                 setTokenValue();
-
             if (!(config.iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.eof)
             {
                 _empty = true;
@@ -1130,7 +1129,7 @@ L_advance:
     void lexString()
     in
     {
-        assert (src.front == '"');
+        //assert (src.front == '"');
     }
     body
     {
@@ -1831,9 +1830,10 @@ L_advance:
         lineNumber = 1;
         column = 0;
         _empty = false;
-        config = move(cfg);
+        config = move(cfg);        
+        cache = StringCache(initialTableSize);
     }
-
+    enum initialTableSize = 1024;
     Token current;
     uint lineNumber;
     uint column;
@@ -3008,35 +3008,44 @@ string generateCaseTrie(string[] args ...)
 
 struct StringCache
 {
+    this(size_t startSize)
+    {
+        assert((startSize & (startSize-1)) == 0);
+        index = new Slot*[startSize];
+    }
+    
     string get(R)(R range)
         if(isRandomAccessRange!R
             && is(Unqual!(ElementType!R) : const(ubyte)))
     {
-
         uint h = hash(range);
-        uint bucket = h % mapSize;
-        Slot *s = &index[bucket];
-        //1st slot not yet initialized?
-        if (s.value.ptr == null)
+        uint bucket = h % index.length;
+        Slot *s = index[bucket];
+        if(s == null) 
         {
-            *s = Slot(putIntoCache(range), null, h);
-            return s.value;
+            string str = putIntoCache(range);
+            index[bucket] = allocateSlot(str, h);
+            uniqueSlots++;
+            return str;
         }
-        Slot* insSlot = s;
         for(;;)
         {
             if(s.hash == h && s.value.equal(range))
-                return s.value;
-            insSlot = s;
+                return s.value;      
+            if(s.next == null) break;
             s = s.next;
-            if(s == null) break;
         }
         string str = putIntoCache(range);
-        insertIntoSlot(insSlot, str, h);
+        s.next = allocateSlot(str, h);     
+        uniqueSlots++;
+        // had at least 1 item in this bucket
+        // and inserted another one - check load factor
+        if(uniqueSlots*loadDenom > index.length*loadQuot)
+            rehash();
         return str;
     }
-
-private:
+   
+private:   
 
     static uint hash(R)(R data)
     {
@@ -3049,33 +3058,108 @@ private:
         return hash;
     }
 
-    enum mapSize = 2048;
-
     struct Slot
     {
         string value;
         Slot* next;
         uint hash;
     };
+    
+    void printLoadFactor()
+    {
+        size_t cnt = 0, maxChain = 0;
+        foreach(Slot* s; index)
+        {
+            size_t chain = 0;
+            for(Slot* p = s; p; p = p.next)
+            {
+                chain++;
+            }
+            maxChain = max(chain, maxChain);
+            cnt += chain;
+        }
+        import std.stdio;
+        assert(cnt == uniqueSlots);
+        writefln("Load factor: %.3f; max bucket %d", 
+            cast(double)cnt/index.length, 
+                maxChain);
+    }
 
-    void insertIntoSlot(Slot* tgt, string val, uint hash)
+    void rehash()
+    {
+        //writefln("BEFORE (size = %d):", index.length);
+        //printLoadFactor();
+        size_t oldLen = index.length;
+        index.length *= 2;
+        for (size_t i = 0; i < oldLen; i++)
+        {
+            Slot* cur = index[i], prev;
+            while(cur)
+            {                
+                //has extra bit set - move it out
+                if(cur.hash & oldLen) 
+                {
+                    if(prev == null)
+                    {
+                        Slot* r = cur;
+                        index[i] = cur.next;
+                        cur = cur.next;
+                        insertIntoBucket(r, i + oldLen);
+                    }
+                    else
+                    {
+                        Slot* r = removeLink(cur, prev);
+                        insertIntoBucket(r, i + oldLen);
+                    }
+                }
+                else
+                {
+                    prev = cur;
+                    cur = cur.next;
+                }
+            }
+        }
+        //writefln("AFTER (size = %d):", index.length);
+        //printLoadFactor();
+    }
+    
+    static Slot* removeLink(ref Slot* cur, Slot* prev)
+    {
+        prev.next = cur.next;
+        Slot* r = cur;
+        cur = cur.next;
+        return r;
+    }
+    
+    //insert at front of bucket
+    void insertIntoBucket(Slot* what, size_t bucket)
+    {
+        what.next = null;
+        Slot* p = index[bucket];
+        what.next = p;
+        index[bucket] = what;        
+    }
+    
+    Slot* allocateSlot(string val, uint hash)
     {
         auto slice = allocateInCache(Slot.sizeof);
         auto newSlot = cast(Slot*)slice.ptr;
         *newSlot = Slot(val, null, hash);
-        tgt.next = newSlot;
+        return newSlot;
     }
 
-    Slot[mapSize] index;
+    Slot*[] index;
+    size_t uniqueSlots;
+    enum loadQuot = 1, loadDenom = 3;
 
     // leave some slack for alloctors/GC meta-data
     enum chunkSize = 16*1024 - size_t.sizeof*8;
     ubyte*[] chunkS;
     size_t next = chunkSize;
-
+    //TODO: add aligned variant that allocates at word boundary
     ubyte[] allocateInCache(size_t size)
     {
-        import core.memory;
+        import core.memory;        
         if(next + size > chunkSize)
         {
             // avoid huge allocations
