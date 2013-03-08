@@ -1826,14 +1826,14 @@ L_advance:
 
     this(LexSrc lex, LexerConfig cfg)
     {
-        src = move(lex); // lex is rhs
+        src = move(lex); // lex is r-value
         lineNumber = 1;
         column = 0;
         _empty = false;
-        config = move(cfg);        
+        config = move(cfg); // ditto with cfg
         cache = StringCache(initialTableSize);
     }
-    enum initialTableSize = 1024;
+    enum initialTableSize = 2048;
     Token current;
     uint lineNumber;
     uint column;
@@ -3150,7 +3150,7 @@ private:
 
     Slot*[] index;
     size_t uniqueSlots;
-    enum loadQuot = 1, loadDenom = 2;
+    enum loadQuot = 2, loadDenom = 3;
 
     // leave some slack for alloctors/GC meta-data
     enum chunkSize = 16*1024 - size_t.sizeof*8;
