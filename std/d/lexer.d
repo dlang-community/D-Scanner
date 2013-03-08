@@ -102,7 +102,7 @@
 *
 * Copyright: Brian Schott 2013
 * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
- * Authors: Brian Schott, Dmitry Olshansky
+* Authors: Brian Schott, Dmitry Olshansky
 * Source: $(PHOBOSSRC std/d/_lexer.d)
 */
 
@@ -357,40 +357,7 @@ struct TokenRange(LexSrc)
         popFront();
         return r;
     }
-
-    /**
-    * Foreach operation
-    */
-    int opApply(int delegate(Token) dg)
-    {
-        int result = 0;
-        while (!empty)
-        {
-            result = dg(front);
-            if (result)
-                break;
-            popFront();
-        }
-        return result;
-    }
-
-    /**
-    * Foreach operation
-    */
-    int opApply(int delegate(size_t, Token) dg)
-    {
-        int result = 0;
-        int i = 0;
-        while (!empty)
-        {
-            result = dg(i, front);
-            if (result)
-                break;
-            popFront();
-        }
-        return result;
-    }
-
+    
     /**
     * Removes the current token from the range
     */
@@ -619,12 +586,11 @@ L_advance:
                 if(isEoF())
                     break;
             }
-
+            
             current.type = lookupTokenType(src.slice);
             current.value = getTokenValue(current.type);
             if (current.value is null)
                 setTokenValue();
-
             if (!(config.iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.eof)
             {
                 _empty = true;
@@ -1163,7 +1129,7 @@ L_advance:
     void lexString()
     in
     {
-        assert (src.front == '"');
+        //assert (src.front == '"');
     }
     body
     {
@@ -1860,13 +1826,14 @@ L_advance:
 
     this(LexSrc lex, LexerConfig cfg)
     {
-        src = move(lex); // lex is rhs
+        src = move(lex); // lex is r-value
         lineNumber = 1;
         column = 0;
         _empty = false;
-        config = move(cfg);
+        config = move(cfg); // ditto with cfg
+        cache = StringCache(initialTableSize);
     }
-
+    enum initialTableSize = 2048;
     Token current;
     uint lineNumber;
     uint column;
@@ -3041,35 +3008,44 @@ string generateCaseTrie(string[] args ...)
 
 struct StringCache
 {
+    this(size_t startSize)
+    {
+        assert((startSize & (startSize-1)) == 0);
+        index = new Slot*[startSize];
+    }
+    
     string get(R)(R range)
         if(isRandomAccessRange!R
             && is(Unqual!(ElementType!R) : const(ubyte)))
     {
-
         uint h = hash(range);
-        uint bucket = h % mapSize;
-        Slot *s = &index[bucket];
-        //1st slot not yet initialized?
-        if (s.value.ptr == null)
+        uint bucket = h & (index.length-1);
+        Slot *s = index[bucket];
+        if(s == null) 
         {
-            *s = Slot(putIntoCache(range), null, h);
-            return s.value;
+            string str = putIntoCache(range);
+            index[bucket] = allocateSlot(str, h);
+            uniqueSlots++;
+            return str;
         }
-        Slot* insSlot = s;
         for(;;)
         {
             if(s.hash == h && s.value.equal(range))
-                return s.value;
-            insSlot = s;
+                return s.value;      
+            if(s.next == null) break;
             s = s.next;
-            if(s == null) break;
         }
         string str = putIntoCache(range);
-        insertIntoSlot(insSlot, str, h);
+        s.next = allocateSlot(str, h);     
+        uniqueSlots++;
+        // had at least 1 item in this bucket
+        // and inserted another one - check load factor
+        if(uniqueSlots*loadDenom > index.length*loadQuot)
+            rehash();
         return str;
     }
-
-private:
+   
+private:   
 
     static uint hash(R)(R data)
     {
@@ -3082,44 +3058,119 @@ private:
         return hash;
     }
 
-    enum mapSize = 2048;
-
     struct Slot
     {
         string value;
         Slot* next;
         uint hash;
     };
+    
+    void printLoadFactor()
+    {
+        size_t cnt = 0, maxChain = 0;
+        foreach(Slot* s; index)
+        {
+            size_t chain = 0;
+            for(Slot* p = s; p; p = p.next)
+            {
+                chain++;
+            }
+            maxChain = max(chain, maxChain);
+            cnt += chain;
+        }
+        import std.stdio;
+        assert(cnt == uniqueSlots);
+        writefln("Load factor: %.3f; max bucket %d", 
+            cast(double)cnt/index.length, 
+                maxChain);
+    }
 
-    void insertIntoSlot(Slot* tgt, string val, uint hash)
+    void rehash()
+    {
+        //writefln("BEFORE (size = %d):", index.length);
+        //printLoadFactor();
+        size_t oldLen = index.length;
+        index.length *= 2;
+        for (size_t i = 0; i < oldLen; i++)
+        {
+            Slot* cur = index[i], prev;
+            while(cur)
+            {                
+                //has extra bit set - move it out
+                if(cur.hash & oldLen) 
+                {
+                    if(prev == null)
+                    {
+                        Slot* r = cur;
+                        index[i] = cur.next;
+                        cur = cur.next;
+                        insertIntoBucket(r, i + oldLen);
+                    }
+                    else
+                    {
+                        Slot* r = removeLink(cur, prev);
+                        insertIntoBucket(r, i + oldLen);
+                    }
+                }
+                else
+                {
+                    prev = cur;
+                    cur = cur.next;
+                }
+            }
+        }
+        //writefln("AFTER (size = %d):", index.length);
+        //printLoadFactor();
+    }
+    
+    static Slot* removeLink(ref Slot* cur, Slot* prev)
+    {
+        prev.next = cur.next;
+        Slot* r = cur;
+        cur = cur.next;
+        return r;
+    }
+    
+    //insert at front of bucket
+    void insertIntoBucket(Slot* what, size_t bucket)
+    {
+        what.next = null;
+        Slot* p = index[bucket];
+        what.next = p;
+        index[bucket] = what;        
+    }
+    
+    Slot* allocateSlot(string val, uint hash)
     {
         auto slice = allocateInCache(Slot.sizeof);
         auto newSlot = cast(Slot*)slice.ptr;
         *newSlot = Slot(val, null, hash);
-        tgt.next = newSlot;
+        return newSlot;
     }
 
-    Slot[mapSize] index;
+    Slot*[] index;
+    size_t uniqueSlots;
+    enum loadQuot = 2, loadDenom = 3;
 
     // leave some slack for alloctors/GC meta-data
     enum chunkSize = 16*1024 - size_t.sizeof*8;
     ubyte*[] chunkS;
     size_t next = chunkSize;
-
+    //TODO: add aligned variant that allocates at word boundary
     ubyte[] allocateInCache(size_t size)
     {
-        import core.memory;
+        import core.memory;        
         if(next + size > chunkSize)
         {
             // avoid huge allocations
             if(size> chunkSize/4)
             {
                 ubyte* p = cast(ubyte*)GC.malloc(size,
-                    GC.BlkAttr.NO_SCAN | GC.BlkAttr.NO_INTERIOR);
+                    GC.BlkAttr.NO_SCAN);
                 return p[0..size];
             }
             chunkS ~= cast(ubyte*)GC.malloc(chunkSize,
-                GC.BlkAttr.NO_SCAN | GC.BlkAttr.NO_INTERIOR);
+                GC.BlkAttr.NO_SCAN);
             next = 0;
         }
         auto slice = chunkS[$-1][next..next+size];

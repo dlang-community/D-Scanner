@@ -163,19 +163,19 @@ class AssignExpression
 	{
 		assert (
 			operator == TokenType.assign
-			|| operator == TokenType.plusEqual
-			|| operator == TokenType.minusEqual
-			|| operator == TokenType.mulEqual
-			|| operator == TokenType.divEqual
-			|| operator == TokenType.modEqual
-			|| operator == TokenType.bitAndEqual
-			|| operator == TokenType.bitOrEqual
-			|| operator == TokenType.xorEqual
-			|| operator == TokenType.catEqual
+			|| operator == TokenType.plusEquals
+			|| operator == TokenType.minusEquals
+			|| operator == TokenType.mulEquals
+			|| operator == TokenType.divEquals
+			|| operator == TokenType.modEquals
+			|| operator == TokenType.bitAndEquals
+			|| operator == TokenType.bitOrEquals
+			|| operator == TokenType.xorEquals
+			|| operator == TokenType.catEquals
 			|| operator == TokenType.shiftLeftEqual
 			|| operator == TokenType.shiftRightEqual
 			|| operator == TokenType.unsignedShiftRightEqual
-			|| operator == TokenType.powEqual
+			|| operator == TokenType.powEquals
 		);
 	}
 }
