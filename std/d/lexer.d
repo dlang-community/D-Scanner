@@ -3019,7 +3019,7 @@ struct StringCache
             && is(Unqual!(ElementType!R) : const(ubyte)))
     {
         uint h = hash(range);
-        uint bucket = h % index.length;
+        uint bucket = h & (index.length-1);
         Slot *s = index[bucket];
         if(s == null) 
         {
@@ -3150,7 +3150,7 @@ private:
 
     Slot*[] index;
     size_t uniqueSlots;
-    enum loadQuot = 1, loadDenom = 3;
+    enum loadQuot = 1, loadDenom = 2;
 
     // leave some slack for alloctors/GC meta-data
     enum chunkSize = 16*1024 - size_t.sizeof*8;
