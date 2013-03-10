@@ -4,7 +4,7 @@
 * This module contains a range-based _lexer for the D programming language.
 *
 * For performance reasons the _lexer contained in this module operates only on
-* ASCII and UTF-8 encoded source code. If the use of other encodings is
+* ASCII or UTF-8 encoded source code. If the use of other encodings is
 * desired, the source code must be converted to UTF-8 before passing it to this
 * _lexer.
 *
@@ -125,60 +125,60 @@ version (unittest) import std.stdio;
 public:
 
 /**
-* Represents a D token
-*/
+ * Represents a D token
+ */
 struct Token
 {
     /**
-    * The token type.
-    */
+     * The token type.
+     */
     TokenType type;
 
     /**
-    * The representation of the token in the original source code.
-    */
+     * The representation of the token in the original source code.
+     */
     string value;
 
     /**
-    * The number of the line the token is on.
-    */
+     * The number of the line the token is on.
+     */
     uint line;
 
     /**
-    * The column number of the start of the token in the original source.
-    * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
-    */
+     * The column number of the start of the token in the original source.
+     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+     */
     uint column;
 
     /**
-    * The index of the start of the token in the original source.
-    * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
-    */
+     * The index of the start of the token in the original source.
+     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+     */
     size_t startIndex;
 
     /**
-    * Check to see if the token is of the same type and has the same string
-    * representation as the given token.
-    */
+     * Check to see if the token is of the same type and has the same string
+     * representation as the given token.
+     */
     bool opEquals(ref const(Token) other) const
     {
         return other.type == type && other.value == value;
     }
 
     /**
-    * Checks to see if the token's string representation is equal to the given
-    * string.
-    */
+     * Checks to see if the token's string representation is equal to the given
+     * string.
+     */
     bool opEquals(string value) const { return this.value == value; }
 
     /**
-    * Checks to see if the token is of the given type.
-    */
+     * Checks to see if the token is of the given type.
+     */
     bool opEquals(TokenType type) const { return type == type; }
 
     /**
-    * Comparison operator orders tokens by start index.
-    */
+     * Comparison operator orders tokens by start index.
+     */
     int opCmp(ref const(Token) other) const
     {
         if (startIndex < other.startIndex) return -1;
@@ -188,9 +188,9 @@ struct Token
 }
 
 /**
-* Configure the behavior of the byToken() function. These flags may be
-* combined using a bitwise or.
-*/
+ * Configure the behavior of the byToken() function. These flags may be
+ * combined using a bitwise or.
+ */
 enum IterationStyle
 {
     /// Only include code, not whitespace or comments
@@ -208,98 +208,98 @@ enum IterationStyle
 }
 
 /**
-* Configuration of the token lexing style. These flags may be combined with a
-* bitwise or.
-*/
+ * Configuration of the token lexing style. These flags may be combined with a
+ * bitwise or.
+ */
 enum TokenStyle : uint
 {
     /**
-    * Escape sequences will be replaced with their equivalent characters,
-    * enclosing quote characters will not be included. Special tokens such as
-    * __VENDOR__ will be replaced with their equivalent strings. Useful for
-    * creating a compiler or interpreter.
-    */
+     * Escape sequences will be replaced with their equivalent characters,
+     * enclosing quote characters will not be included. Special tokens such as
+     * __VENDOR__ will be replaced with their equivalent strings. Useful for
+     * creating a compiler or interpreter.
+     */
     default_ = 0b0000,
 
     /**
-    * Escape sequences will not be processed. An escaped quote character will
-    * not terminate string lexing, but it will not be replaced with the quote
-    * character in the token.
-    */
+     * Escape sequences will not be processed. An escaped quote character will
+     * not terminate string lexing, but it will not be replaced with the quote
+     * character in the token.
+     */
     notEscaped = 0b0001,
 
     /**
-    * Strings will include their opening and closing quote characters as well
-    * as any prefixes or suffixes $(LPAREN)e.g.: $(D_STRING "abcde"w) will
-    * include the $(D_STRING 'w') character as well as the opening and closing
-    * quotes$(RPAREN)
-    */
+     * Strings will include their opening and closing quote characters as well
+     * as any prefixes or suffixes $(LPAREN)e.g.: $(D_STRING "abcde"w) will
+     * include the $(D_STRING 'w') character as well as the opening and closing
+     * quotes$(RPAREN)
+     */
     includeQuotes = 0b0010,
 
     /**
-    * Do not replace the value field of the special tokens such as ___DATE__
-    * with their string equivalents.
-    */
+     * Do not replace the value field of the special tokens such as ___DATE__
+     * with their string equivalents.
+     */
     doNotReplaceSpecial = 0b0100,
 
     /**
-    * Strings will be read exactly as they appeared in the source, including
-    * their opening and closing quote characters. Useful for syntax
-    * highlighting.
-    */
+     * Strings will be read exactly as they appeared in the source, including
+     * their opening and closing quote characters. Useful for syntax
+     * highlighting.
+     */
     source = notEscaped | includeQuotes | doNotReplaceSpecial
 }
 
 /**
-* Lexer configuration
-*/
+ * Lexer configuration
+ */
 struct LexerConfig
 {
     /**
-    * Iteration style
-    */
+     * Iteration style
+     */
     IterationStyle iterStyle = IterationStyle.codeOnly;
 
     /**
-    * Token style
-    */
+     * Token style
+     */
     TokenStyle tokenStyle = tokenStyle.default_;
 
     /**
      * Replacement for the ___VERSION__ token. Defaults to 100.
-    */
+     */
     uint versionNumber = 100;
 
     /**
-    * Replacement for the ___VENDOR__ token. Defaults to $(D_STRING "std.d.lexer")
-    */
+     * Replacement for the ___VENDOR__ token. Defaults to $(D_STRING "std.d.lexer")
+     */
     string vendorString = "std.d.lexer";
 
     /**
-    * Name used when creating error messages that are sent to errorFunc. This
-    * is needed because the lexer operates on any forwarad range of ASCII
-    * characters or UTF-8 code units and does not know what to call its input
-    * source. Defaults to the empty string.
-    */
+     * Name used when creating error messages that are sent to errorFunc. This
+     * is needed because the lexer operates on any forwarad range of ASCII
+     * characters or UTF-8 code units and does not know what to call its input
+     * source. Defaults to the empty string.
+     */
     string fileName = "";
 
     /**
-    * This function is called when an error is encountered during lexing.
-    * Parameters are file name, code uint index, line number, column,
-    * and error messsage.
-    */
+     * This function is called when an error is encountered during lexing.
+     * Parameters are file name, code uint index, line number, column,
+     * and error messsage.
+     */
     void delegate(string, size_t, uint, uint, string) errorFunc;
 }
 
 /**
-* Iterate over the given range of characters by D tokens.
-* Params:
-*     range = the range of characters
-*     config = the lexer configuration
-*     bufferSize = initial size of internal circular buffer
-* Returns:
-*     an input range of tokens
-*/
+ * Iterate over the given range of characters by D tokens.
+ * Params:
+ *     range = the range of characters
+ *     config = the lexer configuration
+ *     bufferSize = initial size of internal circular buffer
+ * Returns:
+ *     an input range of tokens
+ */
 auto byToken(R)(R range, LexerConfig config, size_t bufferSize = 4*1024)
     if (isForwardRange!(R) && !isRandomAccessRange!(R)
         && is(ElementType!R : const(ubyte)))
@@ -326,22 +326,22 @@ auto byToken(R)(R range, LexerConfig config)
 }
 
 /**
-* Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
-*/
+ * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
+ */
 struct TokenRange(LexSrc)
     //if ( is(LexSrc : LexSource!(U...), U...)) //check for LexSource
 {
     /**
-    * Returns: true if the range is empty
-    */
+     * Returns: true if the range is empty
+     */
     bool empty() const @property
     {
         return _empty;
     }
 
     /**
-    * Returns: the current token
-    */
+     * Returns: the current token
+     */
     ref const(Token) front() const @property
     {
         assert(!empty, "trying to get front of an empty token range");
@@ -349,8 +349,8 @@ struct TokenRange(LexSrc)
     }
 
     /**
-    * Returns the current token and then removes it from the range
-    */
+     * Returns the current token and then removes it from the range
+     */
     Token moveFront()
     {
         auto r = move(current);
@@ -359,8 +359,8 @@ struct TokenRange(LexSrc)
     }
 
     /**
-    * Foreach operation
-    */
+     * Foreach operation
+     */
     int opApply(int delegate(Token) dg)
     {
         int result = 0;
@@ -375,8 +375,8 @@ struct TokenRange(LexSrc)
     }
 
     /**
-    * Foreach operation
-    */
+     * Foreach operation
+     */
     int opApply(int delegate(size_t, Token) dg)
     {
         int result = 0;
@@ -392,8 +392,8 @@ struct TokenRange(LexSrc)
     }
 
     /**
-    * Removes the current token from the range
-    */
+     * Removes the current token from the range
+     */
     void popFront()
     {
         advance();
@@ -402,8 +402,8 @@ struct TokenRange(LexSrc)
 private:
 
     /*
-    * Advances the range to the next token
-    */
+     * Advances the range to the next token
+     */
     void advance()
     {
 L_advance:
@@ -431,15 +431,15 @@ L_advance:
             "=",               "TokenType.assign",
             "@",               "TokenType.at",
             "&",               "TokenType.bitAnd",
-            "&=",              "TokenType.bitAndEquals",
+            "&=",              "TokenType.bitAndEqual",
             "|",               "TokenType.bitOr",
-            "|=",              "TokenType.bitOrEquals",
-            "~=",              "TokenType.catEquals",
+            "|=",              "TokenType.bitOrEqual",
+            "~=",              "TokenType.catEqual",
             ":",               "TokenType.colon",
             ",",               "TokenType.comma",
             "--",              "TokenType.decrement",
             "$",               "TokenType.dollar",
-            "==",              "TokenType.equals",
+            "==",              "TokenType.equal",
             "=>",              "TokenType.goesTo",
             ">",               "TokenType.greater",
             ">=",              "TokenType.greaterEqual",
@@ -454,21 +454,21 @@ L_advance:
             "||",              "TokenType.logicOr",
             "(",               "TokenType.lParen",
             "-",               "TokenType.minus",
-            "-=",              "TokenType.minusEquals",
+            "-=",              "TokenType.minusEqual",
             "%",               "TokenType.mod",
-            "%=",              "TokenType.modEquals",
-            "*=",              "TokenType.mulEquals",
+            "%=",              "TokenType.modEqual",
+            "*=",              "TokenType.mulEqual",
             "!",               "TokenType.not",
-            "!=",              "TokenType.notEquals",
+            "!=",              "TokenType.notEqual",
             "!>",              "TokenType.notGreater",
             "!>=",             "TokenType.notGreaterEqual",
             "!<",              "TokenType.notLess",
             "!<=",             "TokenType.notLessEqual",
             "!<>",             "TokenType.notLessEqualGreater",
             "+",               "TokenType.plus",
-            "+=",              "TokenType.plusEquals",
+            "+=",              "TokenType.plusEqual",
             "^^",              "TokenType.pow",
-            "^^=",             "TokenType.powEquals",
+            "^^=",             "TokenType.powEqual",
             "}",               "TokenType.rBrace",
             "]",               "TokenType.rBracket",
             ")",               "TokenType.rParen",
@@ -484,7 +484,7 @@ L_advance:
             ">>>",             "TokenType.unsignedShiftRight",
             ">>>=",            "TokenType.unsignedShiftRightEqual",
             "^",               "TokenType.xor",
-            "^=",              "TokenType.xorEquals",
+            "^=",              "TokenType.xorEqual",
         ));
         case '/':
             nextCharNonLF();
@@ -505,7 +505,7 @@ L_advance:
                 goto L_advance; // tail-recursion
 
             case '=':
-                current.type = TokenType.divEquals;
+                current.type = TokenType.divEqual;
                 current.value = "/=";
                 src.popFront();
                 return;
@@ -1201,7 +1201,7 @@ L_advance:
             else if (src.front == quote)
             {
                 nextCharNonLF();
-                        break;
+                break;
             }
             else
                 nextChar();
@@ -1877,186 +1877,186 @@ L_advance:
 }
 
 /**
-* Returns: true if the token is an operator
-*/
+ * Returns: true if the token is an operator
+ */
 pure nothrow bool isOperator(const TokenType t)
 {
-    return t >= TokenType.assign && t <= TokenType.xorEquals;
+    return t >= TokenType.assign && t <= TokenType.xorEqual;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isOperator(ref const Token t)
 {
     return isOperator(t.type);
 }
 
 /**
-* Returns: true if the token is a keyword
-*/
+ * Returns: true if the token is a keyword
+ */
 pure nothrow bool isKeyword(const TokenType t)
 {
     return t >= TokenType.bool_ && t <= TokenType.with_;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isKeyword(ref const Token t)
 {
     return isKeyword(t.type);
 }
 
 /**
-* Returns: true if the token is a built-in type
-*/
+ * Returns: true if the token is a built-in type
+ */
 pure nothrow bool isType(const TokenType t)
 {
     return t >= TokenType.bool_ && t <= TokenType.wchar_;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isType(ref const Token t)
 {
     return isType(t.type);
 }
 
 /**
-* Returns: true if the token is an attribute
-*/
+ * Returns: true if the token is an attribute
+ */
 pure nothrow bool isAttribute(const TokenType t)
 {
     return t >= TokenType.align_ && t <= TokenType.static_;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isAttribute(ref const Token t)
 {
     return isAttribute(t.type);
 }
 
 /**
-* Returns: true if the token is a protection attribute
-*/
+ * Returns: true if the token is a protection attribute
+ */
 pure nothrow bool isProtection(const TokenType t)
 {
     return t >= TokenType.export_ && t <= TokenType.public_;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isProtection(ref const Token t)
 {
     return isProtection(t.type);
 }
 
 /**
-* Returns: true if the token is a compile-time constant such as ___DATE__
-*/
+ * Returns: true if the token is a compile-time constant such as ___DATE__
+ */
 pure nothrow bool isConstant(const TokenType t)
 {
     return t >= TokenType.date && t <= TokenType.traits;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isConstant(ref const Token t)
 {
     return isConstant(t.type);
 }
 
 /**
-* Returns: true if the token is a string or number literal
-*/
+ * Returns: true if the token is a string or number literal
+ */
 pure nothrow bool isLiteral(const TokenType t)
 {
     return t >= TokenType.doubleLiteral && t <= TokenType.wstringLiteral;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isLiteral(ref const Token t)
 {
     return isLiteral(t.type);
 }
 
 /**
-* Returns: true if the token is a number literal
-*/
+ * Returns: true if the token is a number literal
+ */
 pure nothrow bool isNumberLiteral(const TokenType t)
 {
     return t >= TokenType.doubleLiteral && t <= TokenType.ulongLiteral;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isNumberLiteral(ref const Token t)
 {
     return isNumberLiteral(t.type);
 }
 
 /**
-* Returns: true if the token is a string literal
-*/
+ * Returns: true if the token is a string literal
+ */
 pure nothrow bool isStringLiteral(const TokenType t)
 {
     return t >= TokenType.dstringLiteral && t <= TokenType.wstringLiteral;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isStringLiteral(ref const Token t)
 {
     return isStringLiteral(t.type);
 }
 
 /**
-* Returns: true if the token is whitespace, a commemnt, a special token
-*     sequence, or an identifier
-*/
+ * Returns: true if the token is whitespace, a commemnt, a special token
+ *     sequence, or an identifier
+ */
 pure nothrow bool isMisc(const TokenType t)
 {
     return t >= TokenType.comment && t <= TokenType.specialTokenSequence;
 }
 
 /**
-* ditto
-*/
+ * ditto
+ */
 pure nothrow bool isMisc(ref const Token t)
 {
     return isMisc(t.type);
 }
 
 /**
-* Listing of all the tokens in the D language.
-*/
+ * Listing of all the tokens in the D language.
+ */
 enum TokenType: ushort
 {
     assign, /// =
     at, /// @
     bitAnd, /// &
-    bitAndEquals, /// &=
+    bitAndEqual, /// &=
     bitOr, /// |
-    bitOrEquals, /// |=
-    catEquals, /// ~=
+    bitOrEqual, /// |=
+    catEqual, /// ~=
     colon, /// :
     comma, /// ,
     decrement, /// --
     div, /// /
-    divEquals, /// /=
+    divEqual, /// /=
     dollar, /// $
     dot, /// .
-    equals, /// ==
+    equal, /// ==
     goesTo, /// =>
     greater, /// >
     greaterEqual, /// >=
@@ -2072,21 +2072,21 @@ enum TokenType: ushort
     logicOr, /// ||
     lParen, /// $(LPAREN)
     minus, /// -
-    minusEquals, /// -=
+    minusEqual, /// -=
     mod, /// %
-    modEquals, /// %=
-    mulEquals, /// *=
+    modEqual, /// %=
+    mulEqual, /// *=
     not, /// !
-    notEquals, /// !=
+    notEqual, /// !=
     notGreater, /// !>
     notGreaterEqual, /// !>=
     notLess, /// !<
     notLessEqual, /// !<=
     notLessEqualGreater, /// !<>
     plus, /// +
-    plusEquals, /// +=
+    plusEqual, /// +=
     pow, /// ^^
-    powEquals, /// ^^=
+    powEqual, /// ^^=
     rBrace, /// }
     rBracket, /// ]
     rParen, /// $(RPAREN)
@@ -2104,7 +2104,7 @@ enum TokenType: ushort
     unsignedShiftRightEqual, /// >>>=
     vararg, /// ...
     xor, /// ^
-    xorEquals, /// ^=
+    xorEqual, /// ^=
 
     bool_, /// $(D_KEYWORD bool)
     byte_, /// $(D_KEYWORD byte)
