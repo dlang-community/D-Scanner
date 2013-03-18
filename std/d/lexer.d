@@ -393,7 +393,6 @@ L_advance:
             // since this branch at most is taken once per file
             _empty = true;
             return;
-//        pragma(msg, generateCaseTrie(
         mixin(generateCaseTrie(
             "=",               "TokenType.assign",
             "@",               "TokenType.at",
@@ -2962,7 +2961,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= indentString;
             caseStatement ~= "\t{\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\t\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= "\t\tcurrent.value = tokenValue!("~node.children[k].value~");\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t\tcurrent.type = " ~ node.children[k].value;
             caseStatement ~= ";\n";
