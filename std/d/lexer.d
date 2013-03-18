@@ -485,7 +485,7 @@ L_advance:
             if (!src.canPeek())
             {
                 current.type = TokenType.dot;
-                current.value = getTokenValue(TokenType.dot);
+                current.value = tokenValue!(TokenType.dot);
                 return;
             }
             switch (src.peek())
@@ -501,13 +501,15 @@ L_advance:
                 {
                     current.type = TokenType.vararg;
                     nextCharNonLF();
+                    current.value = tokenValue!(TokenType.vararg);
                 }
-                current.value = getTokenValue(current.type);
+                else
+                    current.value = tokenValue!(TokenType.slice);
                 return;
             default:
                 nextCharNonLF();
                 current.type = TokenType.dot;
-                current.value = getTokenValue(TokenType.dot);
+                current.value = tokenValue!(TokenType.dot);
                 return;
             }
         case '0': .. case '9':
@@ -1464,7 +1466,7 @@ L_advance:
         else
         {
             current.type = TokenType.hash;
-            current.value = getTokenValue(TokenType.hash);
+            current.value = tokenValue!(TokenType.hash);
         }
     }
 
@@ -2705,6 +2707,11 @@ pure string getTokenValue(const TokenType type)
     return tokenValues[type];
 }
 
+template tokenValue(TokenType val)
+{
+    enum tokenValue = getTokenValue(val);
+}
+
 private pure bool isNewline(ubyte ch)
 {
     return ch == '\n' || ch == '\r';
@@ -2975,7 +2982,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= v.value;
             caseStatement ~= ";\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\t\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= "\t\tcurrent.value = tokenValue!("~v.value~");\n";
             caseStatement ~= indentString;
             caseStatement ~= "\t\treturn;\n";
             caseStatement ~= indentString;
@@ -2988,7 +2995,7 @@ string printCaseStatements(K, V)(TrieNode!(K,V) node, string indentString)
             caseStatement ~= v.value;
             caseStatement ~= ";\n";
             caseStatement ~= indentString;
-            caseStatement ~= "\tcurrent.value = getTokenValue(current.type);\n";
+            caseStatement ~= "\tcurrent.value = tokenValue!("~v.value~");\n";
             caseStatement ~= indentString;
             caseStatement ~= "\treturn;\n";
         }
