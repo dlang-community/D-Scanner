@@ -174,7 +174,7 @@ struct Token
     /**
      * Checks to see if the token is of the given type.
      */
-    bool opEquals(TokenType type) const { return type == type; }
+    bool opEquals(TokenType type) const { return this.type == type; }
 
     /**
      * Comparison operator orders tokens by start index.
