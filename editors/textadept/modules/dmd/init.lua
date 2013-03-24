@@ -316,7 +316,7 @@ local keywords = {
 
 -- For this module to work the dscanner program must be installed. Configure the
 -- path to the executable here
-M.PATH_TO_DSCANNER = "dscanner"
+M.PATH_TO_DSCANNER = "/home/alaran/src/dscanner-master/dscanner"
 
 _M.textadept.editing.comment_string.dmd = '//'
 _M.textadept.run.compile_command.dmd = 'dmd -c -o- %(filename)'
@@ -367,34 +367,34 @@ local function showCompletionList(r)
 	buffer.auto_c_choose_single = setting
 end
 
---events.connect(events.CHAR_ADDED, function(ch)
---	if buffer:get_lexer() ~= "dmd" then return end
---	if ch > 255 then return end
---	local character = string.char(ch)
---	if character == "." or character == "(" then
---		local fileName = os.tmpname()
---		local tmpFile = io.open(fileName, "w")
---		tmpFile:write(buffer:get_text())
---		local command = M.PATH_TO_DSCANNER
---			.. (character == "." and " --dotComplete " or " --parenComplete ")
---			.. fileName .. " " .. buffer.current_pos .. " -I" .. buffer.filename:match(".+[\\/]")
---		local p = io.popen(command)
---		local r = p:read("*a")
---		if r ~= "\n" then
---			if character == "." then
---				showCompletionList(r)
---			elseif character == "(" then
---				if r:find("^completions\n") then
---					showCompletionList(r)
---				elseif r:find("^calltips\n.*") then
---					r = r:gsub("^calltips\n", "")
---					buffer:call_tip_show(buffer.current_pos, r:gsub("\\n", "\n"):gsub("\\t", "\t"):match("(.*)%s+$"))
---				end
---			end
---		end
---		os.remove(fileName)
---	end
---end)
+events.connect(events.CHAR_ADDED, function(ch)
+	if buffer:get_lexer() ~= "dmd" then return end
+	if ch > 255 then return end
+	local character = string.char(ch)
+	if character == "." or character == "(" then
+		local fileName = os.tmpname()
+		local tmpFile = io.open(fileName, "w")
+		tmpFile:write(buffer:get_text())
+		local command = M.PATH_TO_DSCANNER
+			.. (character == "." and " --dotComplete " or " --parenComplete ")
+			.. fileName .. " " .. buffer.current_pos .. " -I" .. buffer.filename:match(".+[\\/]")
+		local p = io.popen(command)
+		local r = p:read("*a")
+		if r ~= "\n" then
+			if character == "." then
+				showCompletionList(r)
+			elseif character == "(" then
+				if r:find("^completions\n") then
+					showCompletionList(r)
+				elseif r:find("^calltips\n.*") then
+					r = r:gsub("^calltips\n", "")
+					buffer:call_tip_show(buffer.current_pos, r:gsub("\\n", "\n"):gsub("\\t", "\t"):match("(.*)%s+$"))
+				end
+			end
+		end
+		os.remove(fileName)
+	end
+end)
 
 
 local function autocomplete()

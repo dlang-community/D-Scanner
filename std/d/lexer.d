@@ -1,110 +1,110 @@
 // Written in the D programming language
 
 /**
-* This module contains a range-based _lexer for the D programming language.
-*
-* For performance reasons the _lexer contained in this module operates only on
-* ASCII or UTF-8 encoded source code. If the use of other encodings is
-* desired, the source code must be converted to UTF-8 before passing it to this
-* _lexer.
-*
-* To use the _lexer, create a LexerConfig struct
-* ---
-* LexerConfig config;
-* config.iterStyle = IterationStyle.everything;
-* config.tokenStyle = IterationStyle.source;
-* config.versionNumber = 2061;
-* config.vendorString = "Lexer Example";
-* ---
-* Once you have configured the _lexer, call byToken$(LPAREN)$(RPAREN) on your
-* source code, passing in the configuration.
-* ---
-* auto source = "import std.stdio;"c;
-* auto tokens = byToken(source, config);
-* ---
-* The result of byToken$(LPAREN)$(RPAREN) is a forward range of tokens that can
-* be used easily with the algorithms from std.algorithm or iterated over with
-* $(D_KEYWORD foreach)
-* ---
-* assert (tokens.front.type == TokenType.import_);
-* assert (tokens.front.value == "import");
-* assert (tokens.front.line == 1);
-* assert (tokens.front.startIndex == 0);
-* ---
-*
-* Examples:
-*
-* Generate HTML markup of D code.
-* ---
-* module highlighter;
-*
-* import std.stdio;
-* import std.array;
-* import std.d.lexer;
-*
-* void writeSpan(string cssClass, string value)
-* {
-*     stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
-* }
-*
-*
-* // http://ethanschoonover.com/solarized
-* void highlight(R)(R tokens)
-* {
-*     stdout.writeln(q"[<!DOCTYPE html>
-* <html>
-* <head>
-* <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
-* </head>
-* <body>
-* <style type="text/css">
-* html  { background-color: #fdf6e3; color: #002b36; }
-* .kwrd { color: #b58900; font-weight: bold;  }
-* .com  { color: #93a1a1; font-style: italic; }
-* .num  { color: #dc322f; font-weigth: bold;  }
-* .str  { color: #2aa198; font-style: italic; }
-* .op   { color: #586e75; font-weight: bold;  }
-* .type { color: #268bd2; font-weight: bold;  }
-* .cons { color: #859900; font-weight: bold;  }
-* </style>
-* <pre>]");
-*
-*     foreach (Token t; tokens)
-*     {
-*         if (isType(t.type))
-*             writeSpan("type", t.value);
-*         else if (isKeyword(t.type))
-*             writeSpan("kwrd", t.value);
-*         else if (t.type == TokenType.comment)
-*             writeSpan("com", t.value);
-*         else if (isStringLiteral(t.type))
-*             writeSpan("str", t.value);
-*         else if (isNumberLiteral(t.type))
-*             writeSpan("num", t.value);
-*         else if (isOperator(t.type))
-*             writeSpan("op", t.value);
-*         else
-*             stdout.write(t.value.replace("<", "&lt;"));
-*     }
-*     stdout.writeln("</pre>\n</body></html>");
-* }
-*
-* void main(string[] args)
-* {
-*     LexerConfig config;
-*     config.tokenStyle = TokenStyle.source;
-*     config.iterStyle = IterationStyle.everything;
-*     config.fileName = args[1];
-*     auto f = File(args[1]);
-*     (cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
-* }
-* ---
-*
-* Copyright: Brian Schott 2013
-* License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
-* Authors: Brian Schott, Dmitry Olshansky
-* Source: $(PHOBOSSRC std/d/_lexer.d)
-*/
+ * This module contains a range-based _lexer for the D programming language.
+ *
+ * For performance reasons the _lexer contained in this module operates only on
+ * ASCII or UTF-8 encoded source code. If the use of other encodings is
+ * desired, the source code must be converted to UTF-8 before passing it to this
+ * _lexer.
+ *
+ * To use the _lexer, create a LexerConfig struct
+ * ---
+ * LexerConfig config;
+ * config.iterStyle = IterationStyle.everything;
+ * config.tokenStyle = IterationStyle.source;
+ * config.versionNumber = 2061;
+ * config.vendorString = "Lexer Example";
+ * ---
+ * Once you have configured the _lexer, call byToken$(LPAREN)$(RPAREN) on your
+ * source code, passing in the configuration.
+ * ---
+ * auto source = "import std.stdio;"c;
+ * auto tokens = byToken(source, config);
+ * ---
+ * The result of byToken$(LPAREN)$(RPAREN) is a forward range of tokens that can
+ * be used easily with the algorithms from std.algorithm or iterated over with
+ * $(D_KEYWORD foreach)
+ * ---
+ * assert (tokens.front.type == TokenType.import_);
+ * assert (tokens.front.value == "import");
+ * assert (tokens.front.line == 1);
+ * assert (tokens.front.startIndex == 0);
+ * ---
+ *
+ * Examples:
+ *
+ * Generate HTML markup of D code.
+ * ---
+ * module highlighter;
+ *
+ * import std.stdio;
+ * import std.array;
+ * import std.d.lexer;
+ *
+ * void writeSpan(string cssClass, string value)
+ * {
+ *     stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
+ * }
+ *
+ *
+ * // http://ethanschoonover.com/solarized
+ * void highlight(R)(R tokens)
+ * {
+ *     stdout.writeln(q"[<!DOCTYPE html>
+ * <html>
+ * <head>
+ * <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+ * </head>
+ * <body>
+ * <style type="text/css">
+ * html  { background-color: #fdf6e3; color: #002b36; }
+ * .kwrd { color: #b58900; font-weight: bold;  }
+ * .com  { color: #93a1a1; font-style: italic; }
+ * .num  { color: #dc322f; font-weigth: bold;  }
+ * .str  { color: #2aa198; font-style: italic; }
+ * .op   { color: #586e75; font-weight: bold;  }
+ * .type { color: #268bd2; font-weight: bold;  }
+ * .cons { color: #859900; font-weight: bold;  }
+ * </style>
+ * <pre>]");
+ *
+ *     foreach (Token t; tokens)
+ *     {
+ *         if (isType(t.type))
+ *             writeSpan("type", t.value);
+ *         else if (isKeyword(t.type))
+ *             writeSpan("kwrd", t.value);
+ *         else if (t.type == TokenType.comment)
+ *             writeSpan("com", t.value);
+ *         else if (isStringLiteral(t.type))
+ *             writeSpan("str", t.value);
+ *         else if (isNumberLiteral(t.type))
+ *             writeSpan("num", t.value);
+ *         else if (isOperator(t.type))
+ *             writeSpan("op", t.value);
+ *         else
+ *             stdout.write(t.value.replace("<", "&lt;"));
+ *     }
+ *     stdout.writeln("</pre>\n</body></html>");
+ * }
+ *
+ * void main(string[] args)
+ * {
+ *     LexerConfig config;
+ *     config.tokenStyle = TokenStyle.source;
+ *     config.iterStyle = IterationStyle.everything;
+ *     config.fileName = args[1];
+ *     auto f = File(args[1]);
+ *     (cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
+ * }
+ * ---
+ *
+ * Copyright: Brian Schott 2013
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
+ * Authors: Brian Schott, Dmitry Olshansky
+ * Source: $(PHOBOSSRC std/d/_lexer.d)
+ */
 
 module std.d.lexer;
 
@@ -357,7 +357,7 @@ struct TokenRange(LexSrc)
         popFront();
         return r;
     }
-    
+
     /**
      * Removes the current token from the range
      */
@@ -3013,7 +3013,7 @@ struct StringCache
         assert((startSize & (startSize-1)) == 0);
         index = new Slot*[startSize];
     }
-    
+
     string get(R)(R range)
         if(isRandomAccessRange!R
             && is(Unqual!(ElementType!R) : const(ubyte)))
@@ -3021,7 +3021,7 @@ struct StringCache
         uint h = hash(range);
         uint bucket = h & (index.length-1);
         Slot *s = index[bucket];
-        if(s == null) 
+        if(s == null)
         {
             string str = putIntoCache(range);
             index[bucket] = allocateSlot(str, h);
@@ -3031,12 +3031,12 @@ struct StringCache
         for(;;)
         {
             if(s.hash == h && s.value.equal(range))
-                return s.value;      
+                return s.value;
             if(s.next == null) break;
             s = s.next;
         }
         string str = putIntoCache(range);
-        s.next = allocateSlot(str, h);     
+        s.next = allocateSlot(str, h);
         uniqueSlots++;
         // had at least 1 item in this bucket
         // and inserted another one - check load factor
@@ -3044,8 +3044,8 @@ struct StringCache
             rehash();
         return str;
     }
-   
-private:   
+
+private:
 
     static uint hash(R)(R data)
     {
@@ -3064,7 +3064,7 @@ private:
         Slot* next;
         uint hash;
     };
-    
+
     void printLoadFactor()
     {
         size_t cnt = 0, maxChain = 0;
@@ -3080,8 +3080,8 @@ private:
         }
         import std.stdio;
         assert(cnt == uniqueSlots);
-        writefln("Load factor: %.3f; max bucket %d", 
-            cast(double)cnt/index.length, 
+        writefln("Load factor: %.3f; max bucket %d",
+            cast(double)cnt/index.length,
                 maxChain);
     }
 
@@ -3095,9 +3095,9 @@ private:
         {
             Slot* cur = index[i], prev;
             while(cur)
-            {                
+            {
                 //has extra bit set - move it out
-                if(cur.hash & oldLen) 
+                if(cur.hash & oldLen)
                 {
                     if(prev == null)
                     {
@@ -3122,7 +3122,7 @@ private:
         //writefln("AFTER (size = %d):", index.length);
         //printLoadFactor();
     }
-    
+
     static Slot* removeLink(ref Slot* cur, Slot* prev)
     {
         prev.next = cur.next;
@@ -3130,16 +3130,16 @@ private:
         cur = cur.next;
         return r;
     }
-    
+
     //insert at front of bucket
     void insertIntoBucket(Slot* what, size_t bucket)
     {
         what.next = null;
         Slot* p = index[bucket];
         what.next = p;
-        index[bucket] = what;        
+        index[bucket] = what;
     }
-    
+
     Slot* allocateSlot(string val, uint hash)
     {
         auto slice = allocateInCache(Slot.sizeof);
@@ -3159,7 +3159,7 @@ private:
     //TODO: add aligned variant that allocates at word boundary
     ubyte[] allocateInCache(size_t size)
     {
-        import core.memory;        
+        import core.memory;
         if(next + size > chunkSize)
         {
             // avoid huge allocations
