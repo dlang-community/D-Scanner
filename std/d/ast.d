@@ -74,6 +74,8 @@ class LabeledStatement : NonEmptyStatementNoCaseNoDefault
 interface ExpressionStatement : NonEmptyStatementNoCaseNoDefault {}
 interface DeclarationStatement : NonEmptyStatementNoCaseNoDefault {}
 
+/+
+
 /**
  * $(LINK2 http://dlang.org/statement.html#IfStatement)
  */
@@ -394,4 +396,7 @@ class Inherits : DeclDef
 {
 	//FunctionDeclaration[] functions;
 }
++/
+
+
 +/
