@@ -220,7 +220,7 @@ public:
 		app.put(format("%s\t%s\t%d;\"\ts", name, fileName, line));
 		foreach (Function f; functions)
 		{
-			app.put(format("%s\t%s\t%d;\"\tf\tarity:%d\tstruct:", f.name, fileName,
+			app.put(format("%s\t%s\t%d;\"\tf\tarity:%d\tstruct:%s", f.name, fileName,
 				f.line, f.parameters.length, name));
 		}
 		foreach (Variable v; variables)
@@ -333,7 +333,7 @@ public:
 			array(baseClasses.joiner(","))));
 		foreach (Function f; functions)
 		{
-			app.put(format("%s\t%s\t%d;\"\tf\tarity:%d\tstruct:", f.name, fileName,
+			app.put(format("%s\t%s\t%d;\"\tf\tarity:%d\tstruct:%s", f.name, fileName,
 				f.line, f.parameters.length, name));
 		}
 		foreach (Variable v; variables)
