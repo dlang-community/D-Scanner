@@ -1879,7 +1879,7 @@ pure nothrow bool isKeyword(ref const Token t)
 /**
  * Returns: true if the token is a built-in type
  */
-pure nothrow bool isType(const TokenType t)
+pure nothrow bool isBasicType(const TokenType t)
 {
     return t >= TokenType.bool_ && t <= TokenType.wchar_;
 }
@@ -1887,7 +1887,7 @@ pure nothrow bool isType(const TokenType t)
 /**
  * ditto
  */
-pure nothrow bool isType(ref const Token t)
+pure nothrow bool isBasicType(ref const Token t)
 {
     return isType(t.type);
 }
@@ -2114,10 +2114,10 @@ enum TokenType: ushort
     const_, /// $(D_KEYWORD const)
     final_, /// $(D_KEYWORD final)
     gshared, /// $(D_KEYWORD __gshared)
-    immutable_, // immutable
-    inout_, // inout
+    immutable_, /// $(D_KEYWORD immutable)
+    inout_, /// $(D_KEYWORD inout)
     scope_, /// $(D_KEYWORD scope)
-    shared_, // shared
+    shared_, /// $(D_KEYWORD shared)
     static_, /// $(D_KEYWORD static)
 
     synchronized_, /// $(D_KEYWORD synchronized)
@@ -2190,7 +2190,7 @@ enum TokenType: ushort
     line, /// $(D_KEYWORD ___LINE__)
     comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
     identifier, /// anything else
-    scriptLine, // Line at the beginning of source file that starts from #!
+    scriptLine, /// Line at the beginning of source file that starts from #!
     traits, /// $(D_KEYWORD ___traits)
     parameters, /// $(D_KEYWORD ___parameters)
     vector, /// $(D_KEYWORD ___vector)

@@ -10,10 +10,17 @@ import std.d.lexer;
 import std.d.ast;
 version(unittest) import std.stdio;
 
+Module parseModule(R)(R tokens) if (is (ElementType!R == Token))
+{
+	auto parser = new Parser();
+	parser.tokens = tokens.array();
+	return parser.parseModule();
+}
+
+private:
+
 struct Parser
 {
-public:
-
     Module parseModule()
     {
         Module m = new Module;
@@ -33,8 +40,6 @@ public:
         }
         return m;
     }
-
-private:
 
     ModuleDeclaration parseModuleDeclaration()
     in
@@ -74,46 +79,239 @@ private:
     {
         switch (tokens[index].type)
         {
-//			case TokenType.identifier:
-//				if (nextIs(TokenType.colon))
-//					return parseLabeledStatement();
-//				break;
-//			case TokenType.this_:
-//				return parseConstructor();
-//			case TokenType.tilde:
-//				if (nextIs(TokenType.this_))
-//					return parseDestructor();
-//				break;
             default:
                 return null;
         }
     }
 
-//	LabeledStatement parseLabeledStatement()
-//	in
-//	{
-//		assert (tokens[index].type == TokenType.identifier);
-//	}
-//	body
-//	{
-//		auto ls = new LabeledStatement;
-//		ls.label = tokens[index++].value;
-//		ls.statement = parseNoScopeStatement();
-//		return ls;
-//	}
 
-//	NoScopeStatement parseNoScopeStatement()
-//	{
-//		switch (tokens[index].type)
-//		{
-//		case TokenType.semicolon:
-//			return new EmptyStatement;
-//		case TokenType.lBrace:
-//			return parseBlockStatement();
-//		default:
-//			return parseNonEmptyStatement();
-//		}
-//	}
+
+	LabeledStatement parseLabeledStatement()
+	in
+	{
+		assert (tokens[index].type == TokenType.identifier);
+	}
+	body
+	{
+		auto ls = new LabeledStatement;
+		ls.label = tokens[index++].value;
+		ls.statement = parseNoScopeStatement();
+		return ls;
+	}
+
+	NoScopeStatement parseNoScopeStatement()
+	{
+		switch (tokens[index].type)
+		{
+		case TokenType.semicolon:
+			return new EmptyStatement;
+		case TokenType.lBrace:
+			return parseBlockStatement();
+		default:
+			return parseNonEmptyStatement();
+		}
+	}
+
+	NonEmptyStatement parseNonEmptyStatement()
+	{
+		switch (tokens[index].type)
+		{
+		case TokenType.case_:
+			return parseCaseStatement();
+		case TokenType.default_:
+			return parseDefaultStatement();
+		default:
+			return null;
+		}
+	}
+
+	CaseStatement parseCaseStatement()
+	{
+		return null;
+	}
+
+	DefaultStatement parseDefaultStatement()
+	{
+		return null;
+	}
+
+	Statement parseStatement()
+	{
+		return null;
+	}
+
+	BlockStatement parseBlockStatement()
+	{
+		auto statement = new BlockStatement();
+		expect(TokenType.lBrace);
+		switch (tokens[index].type)
+		{
+		case TokenType.rBrace:
+			break;
+		default:
+			statement.statements ~= parseStatement();
+		}
+		return statement;
+	}
+
+	GotoStatement parseGotoStatement()
+	{
+		expect(TokenType.goto_);
+		auto g = new GotoStatement;
+		switch (tokens[index].type)
+		{
+		case TokenType.identifier:
+			g.type = GotoStatement.GotoType.identifier;
+			g.identifier = tokens[index++].value;
+			break;
+		case TokenType.default_:
+			index++;
+			g.type = GotoStatement.GotoType.default_;
+			break;
+		case TokenType.case_:
+			g.type = GotoStatement.GotoType.case_;
+			index++;
+			break;
+		default:
+			error("Expected an identifier, \"default\", or \"case\" following \"goto\"");
+			return null;
+		}
+		return g;
+	}
+
+	ContinueStatement parseContinueStatement()
+	{
+		expect(TokenType.continue_);
+		return parseContinueBreakStatement!(ContinueStatement)();
+	}
+
+	BreakStatement parseBreakStatement()
+	{
+		expect(TokenType.break_);
+		return parseContinueBreakStatement!(BreakStatement)();
+	}
+
+	statementType parseContinueBreakStatement(alias statementType)()
+	{
+		index++;
+		auto c = new statementType;
+		switch (tokens[index].type)
+		{
+			case TokenType.identifier:
+				c.identifier = tokens[index++].value;
+				goto case;
+			case TokenType.semicolon:
+				return c;
+			default:
+				error("Identifier or semicolon expected");
+				return null;
+		}
+
+	}
+
+	ImportDeclaration parseImportDeclaration(Tokens)(ref Tokens tokens)
+	in
+	{
+		assert(tokens[i] == TokenType.import_);
+	}
+	body
+	{
+		auto declaration = new ImportDeclaration;
+		tokens.popFront();
+		Import im;
+
+		if (tokens[i].type != TokenType.identifier)
+		{
+			tokens.skipPastSemicolon();
+			return declaration;
+		}
+
+		void completeImport()
+		{
+			im.moduleName = tokens.moveFront().value;
+			tokens.popFront();
+			declaration.imports ~= im;
+		}
+
+		void parseImportBindings()
+		{
+			loop: while (!tokens.empty)
+			{
+				if (tokens[i].type != TokenType.identifier)
+					break;
+				switch (tokens.peek().type)
+				{
+				case TokenType.assign:
+					Import.ImportSymbol s;
+					s.alias_ = tokens.moveFront().value;
+					tokens.popFront();
+					if (tokens.empty || tokens[i].type != TokenType.identifier)
+						break loop;
+					s.symbolName = tokens.moveFront().value;
+					im.symbols ~= s;
+					if (!tokens.empty())
+					{
+						if (tokens[i].type == TokenType.comma)
+							tokens.popFront();
+						if (tokens[i].type == TokenType.semicolon)
+						{
+							tokens.popFront();
+							declaration.imports ~= im;
+							break loop;
+						}
+					}
+					break;
+				case TokenType.comma:
+					Import.ImportSymbol s;
+					s.symbolName = tokens.moveFront().value;
+					tokens.popFront();
+					im.symbols ~= s;
+					break;
+				case TokenType.semicolon:
+					Import.ImportSymbol s;
+					s.symbolName = tokens.moveFront().value;
+					tokens.popFront();
+					im.symbols ~= s;
+					declaration.imports ~= im;
+					break loop;
+				default:
+					break loop;
+				}
+			}
+		}
+
+		loop: while (!tokens.empty)
+		{
+			switch  (tokens.peek().type)
+			{
+			case TokenType.dot:
+				im.packageParts ~= tokens.moveFront().value;
+				tokens.popFront();
+				break;
+			case TokenType.comma:
+				completeImport();
+				im = Import.init;
+				break;
+			case TokenType.semicolon:
+				completeImport();
+				break loop;
+			case TokenType.colon:
+				im.moduleName = tokens.moveFront().value;
+				tokens.popFront();
+				parseImportBindings();
+				break loop;
+			case TokenType.assign:
+				im.alias_ = tokens.moveFront().value;
+				tokens.popFront();
+				break;
+			default:
+				tokens.popFront();
+				break;
+			}
+		}
+
+		return declaration;
+	}
 
     void error(string message)
     {
@@ -186,6 +384,16 @@ private:
         return peek() && peek().type == t;
     }
 
+    bool startsWith(TokenType types...)
+    {
+        for (size_t i = 0; i != types.length; ++i)
+        {
+            if (tokens[index + i].type != types[i])
+                return false;
+        }
+        return true;
+    }
+
     bool moreTokens()
     {
         return index < tokens.length;
@@ -195,6 +403,57 @@ private:
     size_t index;
     string fileName;
 }
+
+unittest
+{
+	auto source = cast(ubyte[]) q{import std.stdio;
+		import std.ascii: hexDigits;
+		import r = std.range;
+		import foo, bar;
+		import std.stdio : writefln, foo = writef;}c;
+
+	LexerConfig config;
+	auto tokens = source.byToken(config).circularBuffer(4);
+	assert (tokens[i] == "import");
+
+	auto decl = parseImportDeclaration(tokens);
+	assert (decl.imports.length == 1);
+	assert (decl.imports[0].packageParts == ["std"]);
+	assert (decl.imports[0].moduleName == "stdio");
+	assert (tokens[i].value == "import", tokens.front.value);
+	assert (tokens.peek(3).value == "ascii", tokens.front.value);
+
+	decl = parseImportDeclaration(tokens);
+	assert (decl.imports.length == 1, "%d".format(decl.imports.length));
+	assert (decl.imports[0].packageParts == ["std"]);
+	assert (decl.imports[0].moduleName == "ascii", decl.imports[0].moduleName);
+	assert (decl.imports[0].symbols[0].symbolName == "hexDigits", decl.imports[0].symbols[0].symbolName);
+	assert (decl.imports[0].symbols[0].alias_.length == 0);
+
+	decl = parseImportDeclaration(tokens);
+	assert (decl.imports.length == 1, "%s".format(decl.imports.length));
+	assert (decl.imports[0].moduleName == "range");
+	assert (decl.imports[0].packageParts == ["std"]);
+	assert (decl.imports[0].alias_ == "r");
+
+	decl = parseImportDeclaration(tokens);
+	assert (decl.imports.length == 2);
+	assert (decl.imports[0].packageParts.length == 0);
+	assert (decl.imports[0].moduleName == "foo");
+	assert (decl.imports[1].packageParts.length == 0);
+	assert (decl.imports[1].moduleName == "bar");
+
+	decl = parseImportDeclaration(tokens);
+	assert (decl.imports.length == 1, "%s".format(decl.imports.length));
+	assert (decl.imports[0].packageParts == ["std"]);
+	assert (decl.imports[0].moduleName == "stdio");
+	assert (decl.imports[0].symbols.length == 2);
+	assert (decl.imports[0].symbols[0].symbolName == "writefln");
+	assert (decl.imports[0].symbols[1].symbolName == "writef");
+	assert (decl.imports[0].symbols[1].alias_ == "foo");
+}
+
+
 
 //
 //unittest
@@ -320,70 +579,7 @@ private:
 //	}
 //}
 //
-//GotoStatement parseGotoStatement(Token[] tokens)
-//in
-//{
-//	assert (tokens[i] == TokenType.goto_);
-//}
-//body
-//{
-//	tokens.popFront();
-//	auto g = new GotoExpression;
-//	switch (tokens[i].type)
-//	{
-//	case TokenType.identifier:
-//		g.type = GotoStatement.GotoType.identifier;
-//		g.identifier = tokens.moveFront().value;
-//		break;
-//	case TokenType.default_:
-//		tokens.popFront();
-//		g.type = GotoStatement.GotoType.break_;
-//	case TokenType.case_:
-//		g.type = GotoStatement.GotoType.case_;
-//		tokens.popFront();
-//	default:
-//		error(tokens, "Expected an identifier, \"default\", or \"case\" following \"goto\"");
-//		return null;
-//	}
-//}
-//
-//ContinueStatement parseContinueStatement(Token[] tokens)
-//in
-//{
-//	assert (tokens[i] == TokenType.continue_);
-//}
-//body
-//{
-//	return parseContinueBreakStatement!(R, ContinueStatement)(tokens);
-//}
-//
-//BreakStatement parseBreakStatement(Token[] tokens)
-//in
-//{
-//	assert (tokens[i] == TokenType.break_);
-//}
-//body
-//{
-//	return parseBreakStatement!(R, BreakStatement)(tokens);
-//}
-//
-//statementType parseContinueBreakStatement(R, alias statementType)(ref R tokens)
-//{
-//	tokens.popFront();
-//	auto c = new statementType;
-//	switch (tokens[i].type)
-//	{
-//		case TokenType.identifier:
-//			c.identifier = tokens.moveFront().value;
-//			goto case;
-//		case TokenType.semicolon:
-//			return c;
-//		default:
-//			error(tokens, "Identifier or semicolon expected");
-//			return null;
-//	}
-//
-//}
+
 //
 //
 //T parseSingleTokenExpression(TokType, AstType, R)(ref R range)
@@ -421,278 +617,15 @@ private:
 //	return expr;
 //}
 
-//void main(string[] args) {}
-
 /+
-//          Copyright Brian Schott (Sir Alaran) 2012.
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
 
-module parser;
-
-import std.d.lexer;
-import std.range;
-import basicast;
-version (unittest) import std.stdio;
-version (unittest) import std.string;
-
-void skipPastSemicolon(Tokens)(ref Tokens tokens)
-{
-    while (!tokens.empty)
-    {
-        if (tokens[i].type == TokenType.semicolon)
-        {
-            tokens.popFront();
-            return;
-        }
-        else
-            tokens.popFront();
-    }
-}
-
-void skipDelimited(Tokens, alias O, alias C)(ref Tokens tokens)
-in
-{
-    assert (tokens[i].type == O);
-}
-body
-{
-    tokens.popFront();
-    int depth = 1;
-    while (!tokens.empty)
-    {
-        switch (tokens[i].type)
-        {
-        case C:
-            --depth;
-            if (depth > 0)
-                goto default;
-            tokens.popFront();
-            return;
-        case O:
-            ++depth;
-            goto default;
-        default:
-            tokens.popFront();
-            break;
-        }
-    }
-}
-
-void skipBraces(Tokens)(ref Tokens tokens)
-{
-    return skipDelimited!(Tokens, TokenType.lBrace, TokenType.rBrace)(tokens);
-}
-
-void skipParens(Tokens)(ref Tokens tokens)
-{
-    return skipDelimited!(Tokens, TokenType.lParen, TokenType.rParen)(tokens);
-}
-
-void skipBrackets(Tokens)(ref Tokens tokens)
-{
-    return skipDelimited!(Tokens, TokenType.lBracket, TokenType.rBracket)(tokens);
-}
-
-string delimiterContent(Tokens, alias O, alias C)(ref Tokens tokens)
-{
-    tokens.popFront();
-    int depth = 1;
-    auto app = appender!(char[])();
-    loop: while (!tokens.empty)
-    {
-        switch (tokens[i].type)
-        {
-        case C:
-            --depth;
-            if (depth > 0)
-                goto default;
-            tokens.popFront();
-            break loop;
-        case O:
-            ++depth;
-            goto default;
-        default:
-            app.put(tokens.moveFront().value);
-            break;
-        }
-    }
-    return cast(string) app.data;
-}
-
-string bracketContent(Tokens)(ref Tokens tokens)
-{
-    return "[" ~ delimiterContent!(Tokens, TokenType.lBracket, TokenType.rBracket)(tokens) ~ "]";
-}
-
-string parenContent(Tokens)(ref Tokens tokens)
-{
-    return "(" ~ delimiterContent!(Tokens, TokenType.lParen, TokenType.rParen)(tokens) ~ ")";
-}
-
-string braceContent(Tokens)(ref Tokens tokens)
-{
-    return "{" ~ delimiterContent!(Tokens, TokenType.lBrace, TokenType.rBrace)(tokens) ~ "}";
-}
 
 bool isIdentifierOrBasicType(const TokenType type)
 {
     return isType(type) || type == TokenType.identifier;
 }
 
-ImportDeclaration parseImportDeclaration(Tokens)(ref Tokens tokens)
-in
-{
-    assert(tokens[i] == TokenType.import_);
-}
-body
-{
-    auto declaration = new ImportDeclaration;
-    tokens.popFront();
-    Import im;
 
-    if (tokens[i].type != TokenType.identifier)
-    {
-        tokens.skipPastSemicolon();
-        return declaration;
-    }
-
-    void completeImport()
-    {
-        im.moduleName = tokens.moveFront().value;
-        tokens.popFront();
-        declaration.imports ~= im;
-    }
-
-    void parseImportBindings()
-    {
-        loop: while (!tokens.empty)
-        {
-            if (tokens[i].type != TokenType.identifier)
-                break;
-            switch (tokens.peek().type)
-            {
-            case TokenType.assign:
-                Import.ImportSymbol s;
-                s.alias_ = tokens.moveFront().value;
-                tokens.popFront();
-                if (tokens.empty || tokens[i].type != TokenType.identifier)
-                    break loop;
-                s.symbolName = tokens.moveFront().value;
-                im.symbols ~= s;
-                if (!tokens.empty())
-                {
-                    if (tokens[i].type == TokenType.comma)
-                        tokens.popFront();
-                    if (tokens[i].type == TokenType.semicolon)
-                    {
-                        tokens.popFront();
-                        declaration.imports ~= im;
-                        break loop;
-                    }
-                }
-                break;
-            case TokenType.comma:
-                Import.ImportSymbol s;
-                s.symbolName = tokens.moveFront().value;
-                tokens.popFront();
-                im.symbols ~= s;
-                break;
-            case TokenType.semicolon:
-                Import.ImportSymbol s;
-                s.symbolName = tokens.moveFront().value;
-                tokens.popFront();
-                im.symbols ~= s;
-                declaration.imports ~= im;
-                break loop;
-            default:
-                break loop;
-            }
-        }
-    }
-
-    loop: while (!tokens.empty)
-    {
-        switch  (tokens.peek().type)
-        {
-        case TokenType.dot:
-            im.packageParts ~= tokens.moveFront().value;
-            tokens.popFront();
-            break;
-        case TokenType.comma:
-            completeImport();
-            im = Import.init;
-            break;
-        case TokenType.semicolon:
-            completeImport();
-            break loop;
-        case TokenType.colon:
-            im.moduleName = tokens.moveFront().value;
-            tokens.popFront();
-            parseImportBindings();
-            break loop;
-        case TokenType.assign:
-            im.alias_ = tokens.moveFront().value;
-            tokens.popFront();
-            break;
-        default:
-            tokens.popFront();
-            break;
-        }
-    }
-
-    return declaration;
-}
-
-unittest
-{
-    auto source = cast(ubyte[]) q{import std.stdio;
-        import std.ascii: hexDigits;
-        import r = std.range;
-        import foo, bar;
-        import std.stdio : writefln, foo = writef;}c;
-
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(4);
-    assert (tokens[i] == "import");
-
-    auto decl = parseImportDeclaration(tokens);
-    assert (decl.imports.length == 1);
-    assert (decl.imports[0].packageParts == ["std"]);
-    assert (decl.imports[0].moduleName == "stdio");
-    assert (tokens[i].value == "import", tokens.front.value);
-    assert (tokens.peek(3).value == "ascii", tokens.front.value);
-
-    decl = parseImportDeclaration(tokens);
-    assert (decl.imports.length == 1, "%d".format(decl.imports.length));
-    assert (decl.imports[0].packageParts == ["std"]);
-    assert (decl.imports[0].moduleName == "ascii", decl.imports[0].moduleName);
-    assert (decl.imports[0].symbols[0].symbolName == "hexDigits", decl.imports[0].symbols[0].symbolName);
-    assert (decl.imports[0].symbols[0].alias_.length == 0);
-
-    decl = parseImportDeclaration(tokens);
-    assert (decl.imports.length == 1, "%s".format(decl.imports.length));
-    assert (decl.imports[0].moduleName == "range");
-    assert (decl.imports[0].packageParts == ["std"]);
-    assert (decl.imports[0].alias_ == "r");
-
-    decl = parseImportDeclaration(tokens);
-    assert (decl.imports.length == 2);
-    assert (decl.imports[0].packageParts.length == 0);
-    assert (decl.imports[0].moduleName == "foo");
-    assert (decl.imports[1].packageParts.length == 0);
-    assert (decl.imports[1].moduleName == "bar");
-
-    decl = parseImportDeclaration(tokens);
-    assert (decl.imports.length == 1, "%s".format(decl.imports.length));
-    assert (decl.imports[0].packageParts == ["std"]);
-    assert (decl.imports[0].moduleName == "stdio");
-    assert (decl.imports[0].symbols.length == 2);
-    assert (decl.imports[0].symbols[0].symbolName == "writefln");
-    assert (decl.imports[0].symbols[1].symbolName == "writef");
-    assert (decl.imports[0].symbols[1].alias_ == "foo");
-}
 
 string parseType(Tokens)(ref Tokens tokens)
 {
@@ -1096,9 +1029,8 @@ body
 
     return decl;
 }
++/
 
 void main(string[] args)
 {
 }
-
-+/
