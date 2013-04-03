@@ -9,7 +9,7 @@
 %token colon ":"
 %token comma ","
 %token decrement "--"
-%token div "/"
+%token div_ "/"
 %token divEqual "/="
 %token dollar "$"
 %token dot "."
@@ -173,7 +173,6 @@
 %token compilerVersion "__VERSION__"
 %token file "__FILE__"
 %token line "__LINE__"
-%token comment
 %token identifier
 %token scriptLine
 %token traits
@@ -196,37 +195,14 @@
 %token stringLiteral
 %token wstringLiteral
 
+
+%{
+#include <stdio.h>
+%}
+
 %%
-Module: ModuleDeclaration DeclDefs
-	| DeclDefs
-
-DeclDefs: DeclDef
-	| DeclDef DeclDefs
-
-DeclDef:
-	AttributeSpecifier
-	| ImportDeclaration
-	| EnumDeclaration
-	| ClassDeclaration
-	| InterfaceDeclaration
-	| AggregateDeclaration
-	| Declaration
-	| Constructor
-	| Destructor
-	| UnitTest
-	| StaticConstructor
-	| StaticDestructor
- 	| SharedStaticConstructor
-	| SharedStaticDestructor
-	| ConditionalDeclaration
-	| DebugSpecification
-	| VersionSpecification
-	| StaticAssert
-	| TemplateDeclaration
-	| TemplateMixinDeclaration
-	| TemplateMixin
-	| MixinDeclaration
-	| ";"
+Module: ModuleDeclaration Declarations
+	| Declarations
     ;
 
 ModuleDeclaration: "module" ModuleFullyQualifiedName
@@ -256,11 +232,10 @@ ImportList: Import
     ;
 
 Import: ModuleFullyQualifiedName
-	| ModuleAliasIdentifier "=" ModuleFullyQualifiedName
+	| identifier "=" ModuleFullyQualifiedName
     ;
 
-ImportBindings:
-	Import : ImportBindList
+ImportBindings: Import ":" ImportBindList
     ;
 
 ImportBindList: ImportBind
@@ -268,65 +243,79 @@ ImportBindList: ImportBind
     ;
 
 ImportBind: identifier
-	| identifier "=" identifier;
-
-ModuleAliasIdentifier:
-	identifier
+	| identifier "=" identifier
     ;
 
-MixinDeclaration: "mixin" "(" AssignExpression ")" ";"
+Declarations: Declaration
+	| Declaration Declarations
     ;
 
-Declaration: AliasDeclaration
-    | AliasThisDeclaration
-    | Decl
+Declaration: ImportDeclaration
+    | FunctionDeclaration
+    | VariableDeclaration
+	| ";"
     ;
 
-AliasDeclaration: "alias" BasicType Declarator
-    | "alias" AliasInitializerList
+Statements: Statement
+    | Statement Statements
     ;
 
-AliasInitializerList: AliasInitializer
-    | AliasInitializer "," AliasInitializerList
+Statement: IfStatement
+    | WhileStatement
+    | DoStatement
+    | BlockStatement
+    | ScopeStatement
     ;
 
-AliasInitializer: identifier "=" Type
+IfStatement: "if" "(" IfCondition ")" ScopeStatement
+    | "if" "(" IfCondition ")" ScopeStatement "else" ScopeStatement
     ;
 
-AliasThisDeclaration: "alias" identifier "this"
+IfCondition: Expression
+    | "auto" identifier "=" Expression
+    | BasicType Declarator "=" Expression
     ;
 
-Decl: StorageClasses Decl
-    | BasicType Declarators ";"
-    | BasicType Declarator FunctionBody
-    | AutoDeclaration
+WhileStatement: "while" "(" Expression ")" ScopeStatement
     ;
 
-Declarators: DeclaratorInitializer
-    | DeclaratorInitializer "," DeclaratorIdentifierList
+DoStatement: "do" ScopeStatement "while" "(" Expression ")" ";"
     ;
 
-DeclaratorInitializer: Declarator
-    | Declarator "=" Initializer
+ScopeStatement: BlockStatement
     ;
 
-DeclaratorIdentifierList: DeclaratorIdentifier
-    | DeclaratorIdentifier "," DeclaratorIdentifierList
+BlockStatement: "{" "}"
     ;
 
-DeclaratorIdentifier: identifier
-    | identifier "=" Initializer
+FunctionDeclaration: Type Name ParameterList FunctionBody
+    | Type Name ParameterList ";"
     ;
 
-BasicType: BasicTypeX
-    | "." IdentifierList
-    | IdentifierList
-    | Typeof
-    | Typeof "." IdentifierList
-    | "const" "(" Type ")"
-    | "immutable" "(" Type ")"
-    | "shared" "(" Type ")"
-    | "inout" "(" Type ")"
+Name: identifier
+    ;
+
+Type: identifier
+    | identifier TypeSuffix
+    | BasicTypeX
+    | BasicTypeX TypeSuffix
+    ;
+
+TypeSuffix: "*"
+    | "[" "]"
+    | "[" Type "]"
+    ;
+
+ParameterList: "(" ")"
+    | "(" Parameters ")"
+    ;
+
+Parameters: Type identifier
+    | Type identifier "," Parameters
+    ;
+
+FunctionBody: "{" "}"
+    | "{" Declarations "}"
     ;
 
 BasicTypeX: "bool"
@@ -353,6 +342,38 @@ BasicTypeX: "bool"
     | "void"
     ;
 
+LinkageAttribute: "extern" "(" identifier ")"
+    ;
+
+AliasDeclaration: "alias" AliasInitializerList
+    /* | "alias" BasicType Declarator */
+    ;
+
+AliasInitializerList: AliasInitializer
+    | AliasInitializer "," AliasInitializerList
+    ;
+
+AliasInitializer: identifier "=" Type
+    ;
+
+VariableDeclaration: Type Names ";"
+    ;
+
+Names: identifier
+    | identifier "," Names
+    ;
+
+BasicType: BasicTypeX
+    | "." IdentifierList
+    | IdentifierList
+    | Typeof
+    | Typeof "." IdentifierList
+    | "const" "(" Type ")"
+    | "immutable" "(" Type ")"
+    | "shared" "(" Type ")"
+    | "inout" "(" Type ")"
+    ;
+
 BasicType2: "*"
     | "[" "]"
     | "[" AssignExpression "]"
@@ -362,6 +383,51 @@ BasicType2: "*"
     | "delegate" Parameters MemberFunctionAttributes
     | "function" Parameters
     | "function" Parameters FunctionAttributes
+    ;
+
+/*MixinDeclaration: "mixin" "(" AssignExpression ")" ";"
+    ;*/
+
+CastQual: "const"
+    | "const" "shared"
+    | "shared" "const"
+    | "inout"
+    | "inout" "shared"
+    | "shared" "inout"
+    | "immutable"
+    | "shared"
+    ;
+
+/*
+
+Declaration: AliasDeclaration
+    | AliasThisDeclaration
+    | Decl
+    ;
+
+AliasThisDeclaration: "alias" identifier "this"
+    ;
+
+Decl: StorageClasses Decl
+    | BasicType Declarators ";"
+    | BasicType Declarator FunctionBody
+    | AutoDeclaration
+    ;
+
+Declarators: DeclaratorInitializer
+    | DeclaratorInitializer "," DeclaratorIdentifierList
+    ;
+
+DeclaratorInitializer: Declarator
+    | Declarator "=" Initializer
+    ;
+
+DeclaratorIdentifierList: DeclaratorIdentifier
+    | DeclaratorIdentifier "," DeclaratorIdentifierList
+    ;
+
+DeclaratorIdentifier: identifier
+    | identifier "=" Initializer
     ;
 
 Declarator: "(" Declarator ")"
@@ -415,9 +481,6 @@ StorageClass: "abstract"
     | "scope"
     | "static"
     | "synchronized"
-    ;
-
-Property: "@" PropertyIdentifier
     ;
 
 PropertyIdentifier: "property"
@@ -593,9 +656,6 @@ DeclarationBlock: DeclDef
     | "{" DeclDefs "}"
     ;
 
-LinkageAttribute: "extern" "(" LinkageType ")"
-    ;
-
 LinkageType: "C"
     | "C++"
     | "D"
@@ -619,7 +679,7 @@ StorageClass: UserDefinedAttribute
     ;
 
 UserDefinedAttribute: "@" "(" "ArgumentList" ")"
-    | "@" identifier /* BUG: Should be CallExpression but CallExpression is not defined by the grammar */
+    | "@" identifier
     ;
 
 Pragma: "pragma" "(" identifier ")"
@@ -776,16 +836,6 @@ CastExpression: "cast" "(" Type ")" UnaryExpression
     | "cast" "(" ")" UnaryExpression
     ;
 
-CastQual: "const"
-    | "const" "shared"
-    | "shared" "const"
-    | "inout"
-    | "inout" "shared"
-    | "shared" "inout"
-    | "immutable"
-    | "shared"
-    ;
-
 PowExpression: PostfixExpression
     | PostfixExpression "^^" UnaryExpression
     ;
@@ -831,9 +881,7 @@ PrimaryExpression: identifier
     | intLiteral
     | floatLiteral
     | characterLiteral
-    | stringLiteral
-    | wstringLiteral
-    | dstringLiteral
+    | StringLiterals
     | ArrayLiteral
     | AssocArrayLiteral
     | Lambda
@@ -1168,9 +1216,9 @@ ScopeGuardStatement: "scope" "(" "exit" ")" NonEmptyOrScopeBlockStatement
     ;
 
 AsmStatement: "asm" "{" "}"
-/* asm { AsmInstructionList }
+asm { AsmInstructionList }
 AsmInstructionList: AsmInstruction ";"
-    AsmInstruction ";" AsmInstructionList*/
+    AsmInstruction ";" AsmInstructionList
 
 PragmaStatement: Pragma NoScopeStatement
     ;
@@ -1303,7 +1351,7 @@ InterfaceDeclaration: "interface" identifier InterfaceBody
 	| InterfaceTemplateDeclaration
     ;
 
-BaseInterfaceList: ":" Interfaces /* BUG: Spec uses InterfaceClasses here */
+BaseInterfaceList: ":" Interfaces
     ;
 
 InterfaceBody: "{" "}"
@@ -1587,41 +1635,6 @@ StaticAssert: "static" "assert" "(" AssignExpression ")" ";"
 
 TraitsExpression: "__traits" "(" TraitsKeyword "," TraitsArguments ")"
 
-TraitsKeyword: "isAbstractClass"
-    | "isArithmetic"
-    | "isAssociativeArray"
-    | "isFinalClass"
-    | "isPOD"
-    | "isNested"
-    | "isFloating"
-    | "isIntegral"
-    | "isScalar"
-    | "isStaticArray"
-    | "isUnsigned"
-    | "isVirtualFunction"
-    | "isVirtualMethod"
-    | "isAbstractFunction"
-    | "isFinalFunction"
-    | "isStaticFunction"
-    | "isRef"
-    | "isOut"
-    | "isLazy"
-    | "hasMember"
-    | "identifier"
-    | "getAttributes"
-    | "getMember"
-    | "getOverloads"
-    | "getProtection"
-    | "getVirtualFunctions"
-    | "getVirtualMethods"
-    | "parent"
-    | "classInstanceSize"
-    | "allMembers"
-    | "derivedMembers"
-    | "isSame"
-    | "compiles"
-    ;
-
 TraitsArguments: TraitsArgument
     TraitsArgument "," TraitsArguments
     ;
@@ -1630,13 +1643,9 @@ TraitsArgument: AssignExpression
     | Type
     ;
 
-SpecialKeywords: "__FILE__"
-    | "__MODULE__"
-    | "__LINE__"
-    | "__FUNCTION__"
-    | "    __PRETTY_FUNCTION__"
-    ;
-
 UnitTest: "unittest" FunctionBody
     ;
+
+*/
 %%
+

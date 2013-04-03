@@ -1,0 +1,286 @@
+%option noyywrap
+%{
+#include "d.tab.h"
+%}
+
+
+ident [_[:alpha:]]*
+whitespace [\n\t\r ]
+
+assign "="
+at "@"
+bitAnd "&"
+bitAndEqual "&="
+bitOr "\|"
+bitOrEqual "\|="
+catEqual "~="
+colon ":"
+comma ","
+decrement "--"
+div_ "\/"
+divEqual "\/="
+dollar "\$"
+dot "\."
+equal "=="
+goesTo "=>"
+greater ">"
+greaterEqual ">="
+hash "#"
+increment "++"
+lBrace "{"
+lBracket "["
+less "<"
+lessEqual "<="
+lessEqualGreater "<>="
+lessOrGreater "<>"
+logicAnd "&&"
+logicOr "||"
+lParen "("
+minus "-"
+minusEqual "-="
+mod "%"
+modEqual "%="
+mulEqual "*="
+not "!"
+notEqual "!="
+notGreater "!>"
+notGreaterEqual "!>="
+notLess "!<"
+notLessEqual "!<="
+notLessEqualGreater "!<>"
+plus "+"
+plusEqual "+="
+pow "^^"
+powEqual "^^="
+rBrace "}"
+rBracket "]"
+rParen ")"
+semicolon ";"
+shiftLeft "<<"
+shiftLeftEqual "<<="
+shiftRight ">>"
+shiftRightEqual ">>="
+slice ".."
+star "*"
+ternary "?"
+tilde "~"
+unordered "!<>="
+unsignedShiftRight ">>>"
+unsignedShiftRightEqual ">>>="
+vararg "..."
+xor "^"
+xorEqual "^="
+bool bool
+byte byte
+cdouble cdouble
+cent cent
+cfloat cfloat
+char char
+creal creal
+dchar dchar
+double double
+float float
+function function
+idouble idouble
+ifloat ifloat
+int int
+ireal ireal
+long long
+real real
+short short
+ubyte ubyte
+ucent ucent
+uint uint
+ulong ulong
+ushort ushort
+void void
+wchar wchar
+align align
+deprecated deprecated
+extern extern
+pragma pragma
+export export
+package package
+private private
+protected protected
+public public
+abstract abstract
+auto auto
+const const
+final final
+gshared __gshared
+immutable immutable
+inout inout
+scope scope
+shared shared
+static static
+synchronized synchronized
+alias alias
+asm asm
+assert assert
+body body
+break break
+case case
+cast cast
+catch catch
+class class
+continue continue
+debug debug
+default default
+delegate delegate
+delete delete
+do do
+else else
+enum enum
+false false
+finally finally
+foreach foreach
+foreach_reverse foreach_reverse
+for for
+goto goto
+if if
+import import
+in in
+interface interface
+invariant invariant
+is is
+lazy lazy
+macro macro
+mixin mixin
+module module
+new new
+nothrow nothrow
+null null
+out out
+override override
+pure pure
+ref ref
+return return
+struct struct
+super super
+switch switch
+template template
+this this
+throw throw
+true true
+try try
+typedef typedef
+typeid typeid
+typeof typeof
+union union
+unittest unittest
+version version
+volatile volatile
+while while
+with with
+date __DATE__
+eof __EOF__
+time __TIME__
+timestamp __TIMESTAMP__
+vendor __VENDOR__
+compilerVersion __VERSION__
+file __FILE__
+line __LINE__
+
+%%
+{import} return import_;
+{static} return static_;
+{bool} return bool_;
+{byte} return byte_;
+{ubyte} return ubyte_;
+{short} return short_;
+{ushort} return ushort_;
+{int} return int_;
+{uint} return uint_;
+{long} return long_;
+{ulong} return ulong_;
+{char} return char_;
+{wchar} return wchar_;
+{dchar} return dchar_;
+{float} return float_;
+{double} return double_;
+{real} return real_;
+{ifloat} return ifloat_;
+{idouble} return idouble_;
+{ireal} return ireal_;
+{cfloat} return cfloat_;
+{cdouble} return cdouble_;
+{creal} return creal_;
+{void} return void_;
+{ident} return identifier;
+{whitespace} ;
+{assign} return assign;
+{at} return at;
+{bitAnd} return bitAnd;
+{bitAndEqual} return bitAndEqual;
+{bitOr} return bitOr;
+{bitOrEqual} return bitOrEqual;
+{catEqual} return catEqual;
+{colon} return colon;
+{comma} return comma;
+{decrement} return decrement;
+{div_} return div_;
+{divEqual} return divEqual;
+{dollar} return dollar;
+{dot} return dot;
+{equal} return equal;
+{goesTo} return goesTo;
+{greater} return greater;
+{greaterEqual} return greaterEqual;
+{hash} return hash;
+{increment} return increment;
+{lBrace} return lBrace;
+{lBracket} return lBracket;
+{less} return less;
+{lessEqual} return lessEqual;
+{lessEqualGreater} return lessEqualGreater;
+{lessOrGreater} return lessOrGreater;
+{logicAnd} return logicAnd;
+{logicOr} return logicOr;
+{lParen} return lParen;
+{minus} return minus;
+{minusEqual} return minusEqual;
+{mod} return mod;
+{modEqual} return modEqual;
+{mulEqual} return mulEqual;
+{not} return not;
+{notEqual} return notEqual;
+{notGreater} return notGreater;
+{notGreaterEqual} return notGreaterEqual;
+{notLess} return notLess;
+{notLessEqual} return notLessEqual;
+{notLessEqualGreater} return notLessEqualGreater;
+{plus} return plus;
+{plusEqual} return plusEqual;
+{pow} return pow;
+{powEqual} return powEqual;
+{rBrace} return rBrace;
+{rBracket} return rBracket;
+{rParen} return rParen;
+{semicolon} return semicolon;
+{shiftLeft} return shiftLeft;
+{shiftLeftEqual} return shiftLeftEqual;
+{shiftRight} return shiftRight;
+{shiftRightEqual} return shiftRightEqual;
+{slice} return slice;
+{star} return star;
+{ternary} return ternary;
+{tilde} return tilde;
+{unordered} return unordered;
+{unsignedShiftRight} return unsignedShiftRight;
+{unsignedShiftRightEqual} return unsignedShiftRightEqual;
+{vararg} return vararg;
+{xor} return xor;
+{xorEqual} return xorEqual;
+%%
+
+int main()
+{
+    yyparse();
+    return 0;
+}
+
+int yyerror(char* err)
+{
+    fprintf(stderr, "%s\n", err);
+}
