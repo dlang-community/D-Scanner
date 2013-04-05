@@ -3,10 +3,10 @@
 #include "d.tab.h"
 %}
 
-
-ident [_[:alpha:]]*
-whitespace [\n\t\r ]
-
+ident [_[:alpha:]][_[:alnum:]]*
+whitespace [:blank:]
+linecomment "//".*
+blockcomment "/*"[^"*/"]*"*/"
 assign "="
 at "@"
 bitAnd "&"
@@ -183,6 +183,9 @@ file __FILE__
 line __LINE__
 
 %%
+{whitespace} ;
+{linecomment} ;
+{blockcomment} ;
 {import} return import_;
 {static} return static_;
 {bool} return bool_;
@@ -207,8 +210,8 @@ line __LINE__
 {cdouble} return cdouble_;
 {creal} return creal_;
 {void} return void_;
+{class} return class_;
 {ident} return identifier;
-{whitespace} ;
 {assign} return assign;
 {at} return at;
 {bitAnd} return bitAnd;

@@ -246,6 +246,12 @@ ImportBind: identifier
 	| identifier "=" identifier
     ;
 
+DeclarationsAndStatements: Declaration
+    | Statement
+    | Declaration DeclarationsAndStatements
+    | Statement DeclarationsAndStatements
+    ;
+
 Declarations: Declaration
 	| Declaration Declarations
     ;
@@ -253,7 +259,19 @@ Declarations: Declaration
 Declaration: ImportDeclaration
     | FunctionDeclaration
     | VariableDeclaration
+    | AliasThisDeclaration
+    | ClassDeclaration
 	| ";"
+    ;
+
+AliasThisDeclaration: "alias" identifier "this"
+    ;
+
+ClassDeclaration: "class" Name ClassBody
+    | "class" Name ":" IdentifierList ClassBody
+    ;
+
+ClassBody: "{" Declarations "}"
     ;
 
 Statements: Statement
@@ -267,13 +285,13 @@ Statement: IfStatement
     | ScopeStatement
     ;
 
-IfStatement: "if" "(" IfCondition ")" ScopeStatement
-    | "if" "(" IfCondition ")" ScopeStatement "else" ScopeStatement
+IfStatement: "if" "(" Expression ")" ScopeStatement
+    | "if" "(" Expression ")" ScopeStatement "else" ScopeStatement
     ;
 
-IfCondition: Expression
-    | "auto" identifier "=" Expression
-    | BasicType Declarator "=" Expression
+Expression: UnaryExpression
+    | BinaryExpression
+    | TernaryExpression
     ;
 
 WhileStatement: "while" "(" Expression ")" ScopeStatement
@@ -311,6 +329,7 @@ ParameterList: "(" ")"
     ;
 
 Parameters: Type identifier
+    | Type identifier "..."
     | Type identifier "," Parameters
     ;
 
@@ -357,6 +376,7 @@ AliasInitializer: identifier "=" Type
     ;
 
 VariableDeclaration: Type Names ";"
+    | Type identifier "=" Expression ";"
     ;
 
 Names: identifier
@@ -364,10 +384,10 @@ Names: identifier
     ;
 
 BasicType: BasicTypeX
-    | "." IdentifierList
-    | IdentifierList
-    | Typeof
-    | Typeof "." IdentifierList
+    /*| "." IdentifierList*/
+    /*| IdentifierList*/
+    /*| Typeof*/
+    /*| Typeof "." IdentifierList*/
     | "const" "(" Type ")"
     | "immutable" "(" Type ")"
     | "shared" "(" Type ")"
@@ -376,13 +396,13 @@ BasicType: BasicTypeX
 
 BasicType2: "*"
     | "[" "]"
-    | "[" AssignExpression "]"
-    | "[" AssignExpression ".." AssignExpression "]"
+    /*| "[" AssignExpression "]"*/
+    /*| "[" AssignExpression ".." AssignExpression "]"*/
     | "[" Type "]"
     | "delegate" Parameters
-    | "delegate" Parameters MemberFunctionAttributes
+    /*| "delegate" Parameters MemberFunctionAttributes*/
     | "function" Parameters
-    | "function" Parameters FunctionAttributes
+    /*| "function" Parameters FunctionAttributes*/
     ;
 
 /*MixinDeclaration: "mixin" "(" AssignExpression ")" ";"
@@ -398,6 +418,75 @@ CastQual: "const"
     | "shared"
     ;
 
+UnaryExpression: "++" Expression
+    | "--" Expression
+    | "&" Expression
+    | "!" Expression
+    | "*" Expression
+    | "+" Expression
+    | "-" Expression
+    | "(" Expression ")"
+    ;
+
+BinaryExpression: Expression BinaryOperator Expression
+    ;
+
+TernaryExpression: Expression "?" Expression ":" Expression
+    ;
+
+BinaryOperator: CalcOperator
+    | ComparisonOperator
+    | AssignOperator
+    ;
+
+CalcOperator: "+"
+    | "-"
+    | "/"
+    | "*"
+    | "^"
+    | "&"
+    | "&&"
+    | "|"
+    | "||"
+    | ">>"
+    | ">>>"
+    | "<<"
+    ;
+
+AssignOperator: "="
+    | ">>>="
+    | ">>="
+    | "<<="
+    | "+="
+    | "-="
+    | "*="
+    | "/="
+    | "^="
+    | "^^="
+    | "&="
+    | "|="
+    | "~="
+    ;
+
+ComparisonOperator: "<"
+    | ">"
+    | ">="
+    | "<="
+    | "=="
+    | "!="
+    | "!<>="
+    | "is"
+    | "!is"
+    ;
+
+IdentifierList: identifier
+    | identifier "," IdentifierList
+    ;
+
+IdentifierChain: identifier
+    | identifier "." IdentifierList
+    ;
+
 /*
 
 Declaration: AliasDeclaration
@@ -405,8 +494,7 @@ Declaration: AliasDeclaration
     | Decl
     ;
 
-AliasThisDeclaration: "alias" identifier "this"
-    ;
+
 
 Decl: StorageClasses Decl
     | BasicType Declarators ";"
