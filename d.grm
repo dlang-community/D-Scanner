@@ -117,7 +117,16 @@ intLiteral = {Digit}+
 <Statements> ::= <Statement>
     | <Statement> <Statements>
 
-<Statement> ::= <IfStatement>
+<Statement> ::= ';'
+    | <NonEmptyStatement>
+    | <BlockStatement>
+
+<NonEmptyStatement> ::= <NonEmptyStatementNoCaseNoDefault>
+    | <CaseStatement>
+    | <CaseRangeStatement>
+    | <DefaultStatement>
+
+<NonEmptyStatementNoCaseNoDefault> ::= <IfStatement>
     | <WhileStatement>
     | <DoStatement>
     | <ScopeStatement>
@@ -127,9 +136,6 @@ intLiteral = {Digit}+
     | <ReturnStatement>
     | <SwitchStatement>
     | <FinalSwitchStatement>
-    | <CaseStatement>
-    | <CaseRangeStatement>
-    | <DefaultStatement>
     | <ContinueStatement>
     | <BreakStatement>
     | <GotoStatement>
@@ -141,11 +147,18 @@ intLiteral = {Digit}+
 
 <FinalSwitchStatement> ::= 'final' <SwitchStatement>
 
-<CaseStatement> ::= 'case' <ArgumentList> ':' <ScopeStatementList>
+<CaseStatement> ::= 'case' <ArgumentList> ':' <StatementListNoCaseNoDefault>
 
-<CaseRangeStatement> ::= 'case' <AssignExpression> ':' '...' 'case' <AssignExpression> ':' <ScopeStatementList>
+<CaseRangeStatement> ::= 'case' <AssignExpression> ':' '...' 'case' <AssignExpression> ':' <StatementListNoCaseNoDefault>
 
-<DefaultStatement> ::= 'default' ':' <ScopeStatementList>
+<DefaultStatement> ::= 'default' ':' <StatementListNoCaseNoDefault>
+
+<StatementListNoCaseNoDefault> ::= <StatementNoCaseNoDefault>
+    | <StatementNoCaseNoDefault> <StatementListNoCaseNoDefault>
+
+<StatementNoCaseNoDefault> ::= ';'
+    | <NonEmptyStatementNoCaseNoDefault>
+    | <BlockStatement>
 
 <ContinueStatement> ::= 'continue' identifier ';'
     | 'continue' ';'
@@ -220,6 +233,45 @@ intLiteral = {Digit}+
     | 'is' '(' <Type> identifier '==' <TypeSpecialization> ')'
     | 'is' '(' <Type> identifier ':' <TypeSpecialization> ',' <TemplateParameterList> ')'
     | 'is' '(' <Type> identifier '==' <TypeSpecialization> ',' <TemplateParameterList> ')'
+
+<TemplateParameterList> ::= <TemplateParameter>
+    | <TemplateParameter> ','
+    | <TemplateParameter> ',' <TemplateParameterList>
+
+<TemplateParameter> ::= <TemplateTypeParameter>
+    | <TemplateValueParameter>
+    | <TemplateAliasParameter>
+    | <TemplateTupleParameter>
+    | <TemplateThisParameter>
+
+<TemplateTypeParameter> ::= identifier
+    | identifier <TemplateTypeParameterSpecialization>
+    | identifier <TemplateTypeParameterDefault>
+    | identifier <TemplateTypeParameterSpecialization> <TemplateTypeParameterDefault>
+
+<TemplateTypeParameterSpecialization> ::= ':' <Type>
+
+<TemplateTypeParameterDefault> ::= '=' <Type>
+
+<TemplateValueParameter> ::=  <BasicType> <Declarator>
+    | <BasicType> <Declarator> <TemplateValueParameterSpecialization>
+    | <BasicType> <Declarator> <TemplateValueParameterDefault>
+    | <TemplateValueParameterDefault>
+
+<TemplateValueParameterSpecialization> ::= ':' <ConditionalExpression>
+
+<TemplateValueParameterDefault> ::=  '=' '__FILE__'
+    | '=' '__MODULE__'
+    | '=' '__LINE__'
+    | '=' '__FUNCTION__'
+    | '=' '__PRETTY_FUNCTION__'
+    | '=' <AssignExpression>
+
+<TemplateAliasParameter>::= 'alias' identifier <TemplateAliasParameterSpecializationopt>
+
+<TemplateAliasParameterDefaultopt> alias <BasicType> <Declarator> <TemplateAliasParameterSpecializationopt> <TemplateAliasParameterDefaultopt> <TemplateAliasParameterSpecialization>::= : <Type> : <ConditionalExpression> <TemplateAliasParameterDefault>: = <Type> = <ConditionalExpression>
+
+<TemplateThisParameter> ::= 'this' <TemplateTypeParameter>
 
 <TypeSpecialization> ::= <Type>
     | 'struct'
