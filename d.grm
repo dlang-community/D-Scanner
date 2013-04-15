@@ -1,0 +1,511 @@
+"Name" = 'D'
+"Case Sensitive" = True
+"Start Symbol" = <Module>
+
+whitespace = {Whitespace}+
+Comment Line  = '//'
+Comment Start = '/*'
+Comment End   = '*/'
+
+! Nested comments not yet supported by Goldie
+NestedCommentStart = '/+'
+NestedCommentEnd   = '+/'
+
+! Token Strings need to be lexed just like ordinary code,
+! so there's no special terminal for them other than 'q{'
+
+identifier = ({Letter} | '_') ({AlphaNumeric} | '_')*
+
+!{NonZeroDigit} = {Number} - [0]
+!{DecimalDigit} = {Number} + [_]
+!{BinaryDigit}  = [_01]
+!{OctalDigit}   = [_01234567]
+!{HexDigit}     = {Number} + [_abcdefABCDEF]
+!{Decimal}     = ( '0' | ({NonZeroDigit} ({Number}|'_')*) ) ([LuU]|'Lu'|'LU'|'uL'|'UL')?
+!Binary      = '0' [bB] {BinaryDigit}+                    ([LuU]|'Lu'|'LU'|'uL'|'UL')?
+!Octal       = '0'      {OctalDigit}+                     ([LuU]|'Lu'|'LU'|'uL'|'UL')?
+!Hexadecimal = '0' [xX] {HexDigit}+                       ([LuU]|'Lu'|'LU'|'uL'|'UL')?
+
+!FloatLiteralDec = ( '0' | ({NonZeroDigit} ({Number}|'_')*) ) ([LuU]|'Lu'|'LU'|'uL'|'UL')? ([fF]'i'|'Li'|'i') ( [eE][-+]?({Number}|'_')+ )?
+!FloatLiteralBin = '0' [bB] {BinaryDigit}+                    ([LuU]|'Lu'|'LU'|'uL'|'UL')? ([fF]'i'|'Li'|'i') ( [eE][-+]?({Number}|'_')+ )?
+!FloatLiteralOct = '0'      {OctalDigit}+                     ([LuU]|'Lu'|'LU'|'uL'|'UL')? ([fF]'i'|'Li'|'i') ( [eE][-+]?({Number}|'_')+ )?
+!FloatLiteralHex = '0' [xX] {HexDigit}+                       ([LuU]|'Lu'|'LU'|'uL'|'UL')? ([fF]'i'|'Li'|'i') ( [eE][-+]?({Number}|'_')+ )?
+
+!DecimalFloat1 = {DecimalDigit}+ '.' ( {DecimalDigit}+ ( [eE][-+]?{DecimalDigit}+ )? )?
+!DecimalFloat2 = '.' ( '0' | ({NonZeroDigit} {DecimalDigit}*) ) ( [eE][-+]?{DecimalDigit}+ )?
+!DecimalFloat3 = {Number} {DecimalDigit}* [eE][-+]?{DecimalDigit}+
+
+!HexFloat1 = '0' [xX] {HexDigit} '.' {HexDigit}+ [pP][-+]?{HexDigit}+
+!HexFloat2 = '0' [xX]            '.' {HexDigit}+ [pP][-+]?{HexDigit}+
+!HexFloat3 = '0' [xX]                {HexDigit}+ [pP][-+]?{HexDigit}+
+
+!{DoubleQuotedStringChar} = {Printable} - ["]
+!DoubleQuotedString = '"' ({DoubleQuotedStringChar} | '\' {Printable})* '"' [cwd]?
+!WysiwygString = 'r"' {DoubleQuotedStringChar}* '"' [cwd]?
+
+!{AlternateWysiwygStringChar} = {Printable} - [`]
+!AlternateWysiwygString = '`' {DoubleQuotedStringChar}* '`' [cwd]?
+
+!{HexStringDigit} = {HexDigit} + {Whitespace}
+!HexString = 'x"' {HexStringDigit}* '"' [cwd]?
+
+! Not yet supported, the following won't work quite right
+! DelimitedString = 'q"' {DoubleQuotedStringChar}* '"' [cwd]?
+
+!{CharacterLiteralChar} = {Printable} - ['']
+!CharacterLiteral = '' ({CharacterLiteralChar} | '\' {Printable}) '' [cwd]?
+
+
+intLiteral = {Digit}+
+
+<Module> ::= <ModuleDeclaration> <Declarations>
+    | <Declarations>
+
+<ModuleDeclaration> ::= 'module' <IdentifierChain>
+
+<ImportDeclaration> ::= 'import' <ImportList> ';'
+    | 'static' 'import' <ImportList> ';'
+
+<ImportList> ::= <Import>
+    | <ImportBindings>
+    | <Import> ',' <ImportList>
+
+<Import> ::= <IdentifierChain>
+    | identifier '=' <IdentifierChain>
+
+<ImportBindings> ::= <Import> ':' <ImportBindList>
+
+<ImportBindList> ::= <ImportBind>
+    | <ImportBind> ',' <ImportBindList>
+
+<ImportBind> ::= identifier
+    | identifier '=' identifier
+
+<DeclarationsAndStatements> ::= <Declaration>
+    | <Statement>
+    | <Declaration> <DeclarationsAndStatements>
+    | <Statement> <DeclarationsAndStatements>
+
+<Declarations> ::= <Declaration>
+    | <Declaration> <Declarations>
+
+<Declaration> ::= <ImportDeclaration>
+    | <FunctionDeclaration>
+    | <VariableDeclaration>
+    | <AliasThisDeclaration>
+    | <StructDeclaration>
+    | <ClassDeclaration>
+    | <AliasDeclaration>
+    | <MixinDeclaration>
+    | <Unittest>
+    | ';'
+
+<AliasThisDeclaration> ::= 'alias' identifier 'this' ';'
+
+<StructDeclaration> ::= 'struct' identifier <StructBody>
+
+<StructBody> ::= '{' <Declarations> '}'
+
+<ClassDeclaration> ::= 'class' identifier <ClassBody>
+    | 'class' identifier ':' <IdentifierList> <ClassBody>
+
+<ClassBody> ::= '{' <Declarations> '}'
+
+<ExpressionList> ::= <Expression>
+    | <Expression> ',' <ExpressionList>
+
+<Statements> ::= <Statement>
+    | <Statement> <Statements>
+
+<Statement> ::= <IfStatement>
+    | <WhileStatement>
+    | <DoStatement>
+    | <ScopeStatement>
+    | <AssignStatement>
+    | <FunctionCallStatement>
+    | <DebugSpecification>
+    | <ReturnStatement>
+    | <SwitchStatement>
+    | <FinalSwitchStatement>
+    | <CaseStatement>
+    | <CaseRangeStatement>
+    | <DefaultStatement>
+    | <ContinueStatement>
+    | <BreakStatement>
+    | <GotoStatement>
+
+<ReturnStatement> ::= 'return' <Expression> ';'
+    | 'return' ';'
+
+<SwitchStatement> ::= 'switch' '(' <Expression> ')' <ScopeStatement>
+
+<FinalSwitchStatement> ::= 'final' <SwitchStatement>
+
+<CaseStatement> ::= 'case' <ArgumentList> ':' <ScopeStatementList>
+
+<CaseRangeStatement> ::= 'case' <AssignExpression> ':' '...' 'case' <AssignExpression> ':' <ScopeStatementList>
+
+<DefaultStatement> ::= 'default' ':' <ScopeStatementList>
+
+<ContinueStatement> ::= 'continue' identifier ';'
+    | 'continue' ';'
+
+<BreakStatement> ::= 'break' identifier ';'
+    | 'break' ';'
+
+<GotoStatement> ::= 'goto' identifier ';'
+
+<FunctionCallStatement> ::= <FunctionCallExpression> ';'
+
+<AssignStatement> ::= <UnaryExpression> <AssignOperator> <AssignExpression> ';'
+    | <PreIncDec> ';'
+    | <PostIncDec> ';'
+
+<IfStatement> ::= 'if' '(' <Expression> ')' <ScopeStatement>
+    | 'if' '(' <Expression> ')' <ScopeStatement> 'else' <ScopeStatement>
+
+<Expression> ::= <AssignExpression>
+    | <AssignExpression> ',' <Expression>
+
+<IdentifierOrTemplateInstance> ::= identifier
+    | <TemplateInstance>
+
+<TemplateInstance> ::= identifier '!' '(' ')'
+    | identifier '!' '(' <IdentifierList> ')'
+    | identifier '!' identifier
+
+<UnaryExpression> ::= <UnaryPrefixExpression>
+    | <UnaryPostfixExpression>
+
+<UnaryPostfixExpression> ::= <PrimaryExpression>
+    | <PostIncDec>
+    | <FunctionCallExpression>
+    | <UnaryPostfixExpression> '[' <Arguments> ']'
+    | <UnaryPostfixExpression> '[' <AssignExpression> '..' <AssignExpression> ']'
+    | <UnaryPostfixExpression> '.' <IdentifierOrTemplateInstance>
+
+<PostIncDec> ::= <UnaryPostfixExpression> '++'
+    | <UnaryPostfixExpression> '--'
+
+<UnaryPrefixExpression> ::= <PreIncDec>
+    | '&' <UnaryExpression>
+    | '!' <UnaryExpression>
+    | '*' <UnaryExpression>
+    | '+' <UnaryExpression>
+    | '-' <UnaryExpression>
+    | '~' <UnaryExpression>
+
+<PreIncDec> ::= '++' <UnaryPrefixExpression>
+    | '--' <UnaryPrefixExpression>
+
+<PrimaryExpression> ::= <IdentifierOrTemplateInstance>
+    | '.' identifier
+    | intLiteral
+    | 'true'
+    | 'false'
+    | <TypeofExpression>
+    | '(' <Expression> ')'
+    | <IsExpression>
+
+<TypeofExpression> ::= 'typeof' '(' <Expression> ')'
+    | 'typeof' '(' 'return' ')'
+
+<IsExpression> ::= 'is' '(' <Type> ')'
+    | 'is' '(' <Type> ':' <TypeSpecialization> ')'
+    | 'is' '(' <Type> '==' <TypeSpecialization> ')'
+    | 'is' '(' <Type> ':' <TypeSpecialization> ',' <TemplateParameterList> ')'
+    | 'is' '(' <Type> '==' <TypeSpecialization> ',' <TemplateParameterList> ')'
+    | 'is' '(' <Type> identifier ')'
+    | 'is' '(' <Type> identifier ':' <TypeSpecialization> ')'
+    | 'is' '(' <Type> identifier '==' <TypeSpecialization> ')'
+    | 'is' '(' <Type> identifier ':' <TypeSpecialization> ',' <TemplateParameterList> ')'
+    | 'is' '(' <Type> identifier '==' <TypeSpecialization> ',' <TemplateParameterList> ')'
+
+<TypeSpecialization> ::= <Type>
+    | 'struct'
+    | 'union'
+    | 'class'
+    | 'interface'
+    | 'enum'
+    | 'function'
+    | 'delegate'
+    | 'super'
+    | 'const'
+    | 'immutable'
+    | 'inout'
+    | 'shared'
+    | 'return'
+    | '__parameters'
+
+<FunctionCallExpression> ::= <UnaryPostfixExpression> <Arguments>
+
+<Arguments> ::= '(' ')'
+    | '(' <ArgumentList> ')'
+
+<ArgumentList> ::= <AssignExpression>
+    | <AssignExpression> ','
+    | <AssignExpression> ',' <ArgumentList>
+
+<AssignExpression> ::= <UnaryExpression>
+    | <BinaryExpression>
+    | <TernaryExpression>
+
+<BinaryExpression> ::= <Expression> <BinaryOperator> <Expression>
+
+<TernaryExpression> ::= <Expression> '?' <Expression> ':' <Expression> ';'
+
+<BinaryOperator> ::= <CalcOperator>
+    | <ComparisonOperator>
+    | <AssignOperator>
+
+<CalcOperator> ::= '+'
+    | '-'
+    | '/'
+    | '*'
+    | '^'
+    | '&'
+    | '&&'
+    | '|'
+    | '||'
+    | '>>'
+    | '>>>'
+    | '<<'
+
+<AssignOperator> ::= '='
+    | '>>>='
+    | '>>='
+    | '<<='
+    | '+='
+    | '-='
+    | '*='
+    | '%='
+    | '&='
+    | '/='
+    | '|='
+    | '^^='
+    | '^='
+    | '~='
+
+<ComparisonOperator> ::= '<'
+    | '>'
+    | '>='
+    | '<='
+    | '=='
+    | '!='
+    | '!>'
+    | '!<'
+    | '<>'
+    | '!<>'
+    | '<>='
+    | '!<>='
+    | 'is'
+    | '!is'
+
+<WhileStatement> ::= 'while' '(' <Expression> ')' <ScopeStatement>
+
+<DoStatement> ::= 'do' <ScopeStatement> 'while' '(' <Expression> ')' ';'
+
+<ScopeStatement> ::= <BlockStatement>
+
+<BlockStatement> ::= '{' '}'
+    | '{' <DeclarationsAndStatements> '}'
+
+<FunctionDeclaration> ::= <Type> identifier <ParameterList> <FunctionBody>
+    | <Type> identifier <ParameterList> ';'
+
+<Type> ::= identifier
+    | identifier <TypeSuffix>
+    | <BasicTypeX>
+    | <BasicTypeX> <TypeSuffix>
+
+<TypeSuffix> ::= '*'
+    | '[' ']'
+    | '[' <Type> ']'
+
+<Parameters> ::= '(' ')'
+    | '(' <ParameterList> ')'
+
+<ParameterList> ::= <Parameter>
+    | <Parameter> ',' <ParameterList>
+
+<Parameter> ::= <Type> identifier
+    | <Type> identifier '...'
+    | <Type> identifier ',' <ParameterList>
+
+<ParameterAttribute> ::= 'auto'
+    | 'final'
+    | 'in'
+    | 'lazy'
+    | 'out'
+    | 'ref'
+    | 'scope'
+    | <TypeCtor>
+
+<FunctionAttribute> ::= 'nothrow'
+    | 'pure'
+    | <AtAttribute>
+
+<MemberFunctionAttribute> ::= 'const'
+    | 'immutable'
+    | 'inout'
+    | 'shared'
+    | <FunctionAttribute>
+
+<AtAttribute> ::= '@' identifier
+
+<DefaultInitializerExpression> ::= <AssignExpression>
+    | '__FILE__'
+    | '__MODULE__'
+    | '__LINE__'
+    | '__FUNCTION__'
+    | '__PRETTY_FUNCTION__'
+
+<FunctionBody> ::= <BlockStatement>
+    | <BodyStatement>
+    | <InStatement> <BodyStatement>
+    | <OutStatement> <BodyStatement>
+    | <InStatement> <OutStatement> <BodyStatement>
+    | <OutStatement> <InStatement> <BodyStatement>
+
+<InStatement> ::= 'in' <BlockStatement>
+
+<OutStatement> ::= 'out' <BlockStatement>
+    | 'out' '(' identifier ')' <BlockStatement>
+
+<BodyStatement> ::= 'body' <BlockStatement>
+
+<BasicTypeX> ::= 'bool'
+    | 'byte'
+    | 'ubyte'
+    | 'short'
+    | 'ushort'
+    | 'int'
+    | 'uint'
+    | 'long'
+    | 'ulong'
+    | 'char'
+    | 'wchar'
+    | 'dchar'
+    | 'float'
+    | 'double'
+    | 'real'
+    | 'ifloat'
+    | 'idouble'
+    | 'ireal'
+    | 'cfloat'
+    | 'cdouble'
+    | 'creal'
+    | 'void'
+
+<LinkageAttribute> ::= 'extern' '(' identifier ')'
+
+<AliasDeclaration> ::= 'alias' <AliasInitializerList>
+
+<AliasInitializerList> ::= <AliasInitializer>
+    | <AliasInitializer> ',' <AliasInitializerList>
+
+<AliasInitializer> ::= identifier '=' <Type>
+
+<VariableDeclaration> ::= <Type> <Names> ';'
+    | <Type> identifier '=' <Expression> ';'
+
+<Names> ::= identifier
+    | identifier ',' <Names>
+
+<BasicType> ::= <BasicTypeX>
+    | 'const' '(' <Type> ')'
+    | 'immutable' '(' <Type> ')'
+    | 'shared' '(' <Type> ')'
+    | 'inout' '(' <Type> ')'
+
+<BasicType2> ::= '*'
+    | '[' ']'
+    | '[' <Type> ']'
+    | 'delegate' <Parameters>
+    | 'function' <Parameters>
+
+<MixinDeclaration> ::= 'mixin' '(' <AssignExpression> ')' ';'
+
+<CastQual> ::= 'const'
+    | 'const' 'shared'
+    | 'shared' 'const'
+    | 'inout'
+    | 'inout' 'shared'
+    | 'shared' 'inout'
+    | 'immutable'
+    | 'shared'
+
+<IdentifierList> ::= identifier
+    | identifier ',' <IdentifierList>
+
+<IdentifierChain> ::= identifier
+    | identifier '.' <IdentifierChain>
+
+<TypeCtors> ::= <TypeCtor>
+    | <TypeCtor> <TypeCtors>
+
+<TypeCtor> ::= 'const'
+    | 'immutable'
+    | 'inout'
+    | 'shared'
+
+<AlignAttribute> ::= 'align'
+    | 'align' '(' intLiteral ')'
+
+<ProtectionAttribute> ::= 'private'
+    | 'package'
+    | 'protected'
+    | 'public'
+    | 'export'
+
+<VersionCondition> ::= 'version' '(' intLiteral ')'
+    | 'version' '(' identifier ')'
+    | 'version' '(' unittest ')'
+    | 'version' '(' assert ')'
+
+<VersionSpecification> ::= 'version' '=' identifier ';'
+    | 'version' '=' intLiteral ';'
+
+<DebugCondition> ::= 'debug'
+    | 'debug' '(' intLiteral ')'
+    | 'debug' '(' identifier ')'
+
+<DebugSpecification> ::= 'debug' '=' identifier ';'
+    | 'debug' '=' intLiteral ';'
+
+<StaticIfCondition> ::= 'static' 'if' '(' <AssignExpression> ')'
+
+<StaticAssert> ::= 'static' 'assert' '(' <AssignExpression> ')' ';'
+    | 'static' 'assert' '(' <AssignExpression> ',' <AssignExpression> ')' ';'
+
+<TraitsExpression> ::= 'traits' '(' identifier ',' <TraitsArguments> ')'
+
+<TraitsArguments> ::= <TraitsArgument>
+    | <TraitsArgument> ',' <TraitsArguments>
+
+<TraitsArgument> ::= <AssignExpression>
+    | <Type>
+
+<UnitTest> ::= 'unittest' <BlockStatement>
+
+<ArrayInitializer> ::= '[' ']'
+    | '[' <ArrayMemberInitializations> ']'
+
+<ArrayMemberInitializations> ::= <ArrayMemberInitialization>
+    | <ArrayMemberInitialization> ','
+    | <ArrayMemberInitialization> ',' <ArrayMemberInitializations>
+
+<Initializer> ::= <VoidInitializer>
+    | <NonVoidInitializer>
+
+<VoidInitializer> ::= 'void'
+
+<NonVoidInitializer> ::= <AssignExpression>
+    | <ArrayInitializer>
+    | <StructInitializer>
+
+<LambdaExpression> ::= identifier '=>' <AssignExpression>
+    | <Parameters> '=>' <AssignExpression>
+    | <ParameterAttributes> <FunctionAttribute> '=>' <AssignExpression>
+
+<ArrayLiteral> ::= '[' <ArgumentList> ']'
