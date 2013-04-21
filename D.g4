@@ -525,9 +525,9 @@ primaryExpression: identifierOrTemplateInstance
     | 'null'
     | 'true'
     | 'false'
-    | '__file__'
-    | '__module__'
-    | '__line__'
+    | '__FILE__'
+    | '__MODULE__'
+    | '__LINE__'
     | '__FUNCTION__'
     | '__PRETTY_FUNCTION__'
     | IntegerLiteral
@@ -577,7 +577,7 @@ templateValueParameter: type Identifier templateValueParameterSpecialization? te
 templateValueParameterSpecialization: ':' expression
     ;
 
-templateValueParameterDefault:  '=' ('__file__' | '__module__' | '__line__' | '__FUNCTION__' | '__PRETTY_FUNCTION__' | assignExpression)
+templateValueParameterDefault:  '=' ('__FILE__' | '__MODULE__' | '__LINE__' | '__FUNCTION__' | '__PRETTY_FUNCTION__' | assignExpression)
     ;
 
 templateAliasParameter: 'alias' type? Identifier templatealiasparameterspecialization? templatealiasparameterdefault?
@@ -836,9 +836,9 @@ parameter: parameterAttribute? type ('...' | (Identifier ('=' defaultInitializer
     ;
 
 defaultInitializerExpression: assignExpression
-    | '__file__'
-    | '__module__'
-    | '__line__'
+    | '__FILE__'
+    | '__MODULE__'
+    | '__LINE__'
     | '__FUNCTION__'
     | '__PRETTY_FUNCTION__'
     ;
