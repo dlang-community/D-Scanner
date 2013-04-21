@@ -430,7 +430,7 @@ staticIfCondition: 'static' 'if' '(' assignExpression ')'
 staticAssert: 'static' 'assert' '(' assignExpression (',' assignExpression)? ')' ';'
     ;
 
-templateMixinStatement: 'mixin' mixinTemplateName (templateArguments | Identifier | templateArguments Identifier) ';'
+templateMixinStatement: 'mixin' mixinTemplateName templateArguments? Identifier? ';'
     ;
 
 mixinTemplateName: '.' qualifiedIdentifierChain
@@ -452,6 +452,22 @@ deleteStatement: deleteExpression ';'
 assignStatement: unaryExpression assignOperator assignExpression ';'
     | preIncDecExpression ';'
     | postIncDecExpression ';'
+    ;
+
+assignOperator: '='
+    | '>>>='
+    | '>>='
+    | '<<='
+    | '+='
+    | '-='
+    | '*='
+    | '%='
+    | '&='
+    | '/='
+    | '|='
+    | '^^='
+    | '^='
+    | '~='
     ;
 
 ifStatement: 'if' '(' expression ')' statement ('else' statement)?
@@ -655,7 +671,7 @@ arguments: '(' argumentList? ')'
 argumentList: assignExpression (',' argumentList?)?
     ;
 
-newExpression: 'new' type ('[' assignExpression ']' | arguments | )
+newExpression: 'new' type ('[' assignExpression ']' | arguments)?
     | newAnonClassExpression
     ;
 
@@ -665,15 +681,12 @@ newAnonClassExpression: 'new' arguments? 'class' arguments? Identifier identifie
 deleteExpression: 'delete' unaryExpression
     ;
 
-ternaryexpression: orOrExpression '?' expression ':' conditionalExpression
+assignExpression: ternaryExpression
+    | ternaryExpression assignOperator assignExpression
     ;
 
-assignExpression: conditionalExpression
-    | conditionalExpression assignOperator assignExpression
-    ;
-
-conditionalExpression: orOrExpression
-    | ternaryexpression
+ternaryExpression: orOrExpression
+    | orOrExpression '?' expression ':' ternaryExpression
     ;
 
 orOrExpression: andAndExpression
@@ -710,34 +723,6 @@ identityExpression: shiftExpression ('is' | '!is') shiftExpression;
 
 relExpression: shiftExpression relOperator shiftExpression;
 
-inExpression: shiftExpression ('in' | '!in') shiftExpression;
-
-shiftExpression: addExpression
-    | shiftExpression ('<<' | '>>' | '>>>') addExpression;
-
-addExpression: mulExpression
-    | addExpression ('+' | '-' | '~') mulExpression
-    ;
-
-mulExpression: unaryExpression
-    | mulExpression ('*' | '/' | '%') unaryExpression;
-
-assignOperator: '='
-    | '>>>='
-    | '>>='
-    | '<<='
-    | '+='
-    | '-='
-    | '*='
-    | '%='
-    | '&='
-    | '/='
-    | '|='
-    | '^^='
-    | '^='
-    | '~='
-    ;
-
 relOperator: '<'
     | '<='
     | '>'
@@ -750,6 +735,19 @@ relOperator: '<'
     | '!>='
     | '!<'
     | '!<='
+    ;
+
+inExpression: shiftExpression ('in' | '!in') shiftExpression;
+
+shiftExpression: addExpression
+    | shiftExpression ('<<' | '>>' | '>>>') addExpression;
+
+addExpression: mulExpression
+    | addExpression ('+' | '-' | '~') mulExpression
+    ;
+
+mulExpression: unaryExpression
+    | mulExpression ('*' | '/' | '%') unaryExpression
     ;
 
 whileStatement: 'while' '(' expression ')' blockStatement
@@ -770,8 +768,8 @@ functionTemplateDeclaration: type Identifier templateParameters parameters const
 type: typeConstructors? type2
     ;
 
-type2: type3 typesuffix?
-    | type2 typesuffix
+type2: type3 typeSuffix?
+    | type2 typeSuffix
     ;
 
 type3: builtinType
@@ -787,7 +785,7 @@ type3: builtinType
     | 'function' parameters memberFunctionAttributes?
     ;
 
-typesuffix: '*'
+typeSuffix: '*'
     | '[' ']'
     | '[' type ']'
     | '[' assignExpression ']'
