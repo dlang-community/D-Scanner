@@ -2180,14 +2180,19 @@ enum TokenType: ushort
     while_, /// $(D_KEYWORD while)
     with_, /// $(D_KEYWORD with)
 
-    date, /// ___DATE__
-    eof, /// ___EOF__
-    time, /// ___TIME__
-    timestamp, /// ___TIMESTAMP__
-    vendor, /// ___VENDOR__
-    compilerVersion, /// ___VERSION__
-    file, /// $(D_KEYWORD ___FILE__)
-    line, /// $(D_KEYWORD ___LINE__)
+    specialDate, /// ___DATE__
+    specialEof, /// ___EOF__
+    specialTime, /// ___TIME__
+    specialimestamp, /// ___TIMESTAMP__
+    specialVendor, /// ___VENDOR__
+    specialVersion, /// ___VERSION__
+    specialFile, /// $(D_KEYWORD ___FILE__)
+    specialLine, /// $(D_KEYWORD ___LINE__)
+    specialModule, /// $(D_KEYWORD ___MODULE__)
+    specialFunction, /// $(D_KEYWORD ___FUNCTION__)
+    specialPrettyFunction, /// $(D_KEYWORD ___PRETTY_FUNCTION__)
+    specialTokenSequence, /// #line 10 "file.d"
+
     comment, /// $(D_COMMENT /** comment */) or $(D_COMMENT // comment) or $(D_COMMENT ///comment)
     identifier, /// anything else
     scriptLine, /// Line at the beginning of source file that starts from #!
@@ -2195,7 +2200,6 @@ enum TokenType: ushort
     parameters, /// $(D_KEYWORD ___parameters)
     vector, /// $(D_KEYWORD ___vector)
     whitespace, /// whitespace
-    specialTokenSequence, /// #line 10 "file.d"
     doubleLiteral, /// 123.456
     floatLiteral, /// 123.456f or 0x123_45p-3
     idoubleLiteral, /// 123.456i

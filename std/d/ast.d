@@ -9,409 +9,582 @@ module std.d.ast;
 import std.container;
 import std.d.lexer;
 
-
 interface ASTVisitor
 {
-    ///
-    void visit(ASTNode node);
-    ///
-    void visit(Module node);
-    ///
-    void visit(ModuleDeclaration node);
-    ///
-    void visit(CaseStatement node);
-    ///
-    void visit(DefaultStatement node);
-    ///
-    void visit(CaseRangeStatement node);
-    ///
-    void visit(LabeledStatement node);
 }
 
 interface ASTNode
 {
-    void accept(ASTVisitor visitor;)
+    void accept(ASTVisitor visitor);
 }
 
-immutable string DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) { visitor.visit(this); }};
-
-interface DeclDef : ASTNode {}
-interface AttributeSpecifier : DeclDef {}
-interface EnumDeclaration : DeclDef {}
-interface ClassDeclaration : DeclDef {}
-interface InterfaceDeclaration : DeclDef {}
-interface AggregateDeclaration : DeclDef {}
-interface Declaration : DeclDef {}
-interface Constructor : DeclDef {}
-interface Destructor : DeclDef {}
-interface UnitTest : DeclDef {}
-interface StaticConstructor : DeclDef {}
-interface StaticDestructor : DeclDef {}
-interface SharedStaticConstructor : DeclDef {}
-interface SharedStaticDestructor : DeclDef {}
-interface ConditionalDeclaration : DeclDef {}
-interface DebugSpecification : DeclDef {}
-interface VersionSpecification : DeclDef {}
-interface TemplateDeclaration : DeclDef {}
-interface TemplateMixinDeclaration : DeclDef {}
-interface MixinDeclaration : DeclDef {}
-
+immutable string OVERRIDE_DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) { visitor.visit(this); }};
+immutable string DEFAULT_ACCEPT = q{void accept(ASTVisitor visitor) { visitor.visit(this); }};
 
 class Module : ASTNode
 {
-	ModuleDeclaration declaration;
-	DList!(DeclDef) declDefs;
+public:
     mixin(DEFAULT_ACCEPT);
+    ModuleDeclaration moduleDeclaration;
+    Declaration[] declarations;
 }
 
 class ModuleDeclaration : ASTNode
 {
-	string[] packageName;
-	string moduleName;
+public:
     mixin(DEFAULT_ACCEPT);
+    IdentifierChain moduleName;
 }
 
-
-
-struct Import
+class IdentifierChain : ASTNode
 {
-	string moduleName;
-	string aliasName;
-	string[] symbols;
-}
-
-
-interface Statement : ASTNode {}
-class EmptyStatement : Statement, NoScopeStatement
-{
+public:
     mixin(DEFAULT_ACCEPT);
+    Token[] identifiers;
 }
-interface NoScopeNonEmptyStatement : ASTNode {}
-interface NoScopeStatement : ASTNode {}
-interface NonEmptyStatement : NoScopeNonEmptyStatement, NoScopeStatement, Statement {}
-interface NonEmptyOrScopeBlockStatement : Statement {} //BUG: The standard does not say that NonEmptyOrScopeBlockStatement is a statement
-interface ScopeBlockStatement : NonEmptyOrScopeBlockStatement {}
 
-interface NonEmptyStatementNoCaseNoDefault : NonEmptyStatement {}
-class CaseStatement : NonEmptyStatement
+abstract class Declaration : ASTNode {
+    void accept(ASTVisitor visitor)
+    {
+        visitor.visit(this);
+    }
+}
+
+class AttributedDeclaration : Declaration
 {
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+}
+
+class ImportDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    bool isStatic;
+    ImportList importList;
+}
+
+class ImportList : ASTNode
+{
+public:
     mixin(DEFAULT_ACCEPT);
+    SingleImport singleImport;
+    ImportList next;
+    ImportBindings bindings;
 }
 
-class DefaultStatement : NonEmptyStatement
+class SingleImport : ASTNode
 {
+public:
     mixin(DEFAULT_ACCEPT);
+    Token rename;
+    IdentifierChain import_;
 }
 
-class CaseRangeStatement : NonEmptyStatement
+class ImportBindings : ASTNode
 {
+public:
     mixin(DEFAULT_ACCEPT);
+    SingleImport bind;
+    ImportBindList bindList;
 }
 
-class LabeledStatement : NonEmptyStatementNoCaseNoDefault
+class ImportBindList : ASTNode
 {
-	string label;
-	NoScopeStatement statement;
+public:
     mixin(DEFAULT_ACCEPT);
+    ImportBind[] importBinds;
 }
 
-interface ExpressionStatement : NonEmptyStatementNoCaseNoDefault {}
-interface DeclarationStatement : NonEmptyStatementNoCaseNoDefault {}
-
-class BlockStatement : NoScopeNonEmptyStatement, ScopeBlockStatement, NoScopeStatement
+class ImportBind : ASTNode
 {
-	Statement[] statements;
+public:
     mixin(DEFAULT_ACCEPT);
+    Token left;
+    Token right;
 }
 
-
-/**
- * $(LINK2 http://dlang.org/statement.html#IfStatement)
- */
-class IfStatement : NonEmptyStatementNoCaseNoDefault
+class FunctionDeclaration : Declaration
 {
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Type returnType;
+    Token name;
+    TemplateParameters templateParameters;
+    Parameters parameters;
+    Constraint constraint;
+    FunctionBody functionBody;
+}
+
+class Parameters : ASTNode
+{
+public:
     mixin(DEFAULT_ACCEPT);
-}
-
-class WhileStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-class DoStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-class ForStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-class ForeachStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-class SwitchStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-class FinalSwitchStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-/**
- * $(LINK http://dlang.org/statement.html#ContinueStatement)
- */
-class ContinueStatement : NonEmptyStatementNoCaseNoDefault
-{
-	string identifier;
-    mixin(DEFAULT_ACCEPT);
-}
-
-/**
- *
- */
-class BreakStatement : NonEmptyStatementNoCaseNoDefault
-{
-	string identifier;
-    mixin(DEFAULT_ACCEPT);
-}
-
-class ReturnStatement : NonEmptyStatementNoCaseNoDefault
-{
-    mixin(DEFAULT_ACCEPT);
-}
-
-class GotoStatement : NonEmptyStatementNoCaseNoDefault
-{
-	enum GotoType
-	{
-		identifier,
-		default_,
-		case_,
-		caseExpression
-	}
-
-	union
-	{
-		//Expression expression;
-		string identifier;
-	}
-
-	GotoType type;
-
-    mixin(DEFAULT_ACCEPT);
-}
-class WithStatement : NonEmptyStatementNoCaseNoDefault {}
-class SynchronizedStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class TryStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class ScopeGuardStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class ThrowStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class AsmStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class PragmaStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class MixinStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class ForeachRangeStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class ConditionalStatement : NonEmptyStatementNoCaseNoDefault
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class StaticAssert : NonEmptyStatementNoCaseNoDefault, DeclDef
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class TemplateMixin : NonEmptyStatementNoCaseNoDefault, DeclDef
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class ImportDeclaration : NonEmptyStatementNoCaseNoDefault, DeclDef
-{
-	bool isStatic;
-	Import[] importList;
-}
-
-
-
-
-interface Expression : ASTNode {}
-
-class CommaExpression : Expression
-{
-	AssignExpression left;
-	AssignExpression right;
-    mixin(DEFAULT_ACCEPT);
-}
-
-class AssignExpression
-{
-	ConditionalExpression left;
-	ConditionalExpression right;
-	TokenType operator;
-
-	invariant()
-	{
-		assert (
-			operator == TokenType.assign
-			|| operator == TokenType.plusEqual
-			|| operator == TokenType.minusEqual
-			|| operator == TokenType.mulEqual
-			|| operator == TokenType.divEqual
-			|| operator == TokenType.modEqual
-			|| operator == TokenType.bitAndEqual
-			|| operator == TokenType.bitOrEqual
-			|| operator == TokenType.xorEqual
-			|| operator == TokenType.catEqual
-			|| operator == TokenType.shiftLeftEqual
-			|| operator == TokenType.shiftRightEqual
-			|| operator == TokenType.unsignedShiftRightEqual
-			|| operator == TokenType.powEqual
-		);
-	}
-
-    mixin(DEFAULT_ACCEPT);
-}
-
-interface ConditionalExpression : Expression {}
-
-class TernaryExpression : ConditionalExpression
-{
-	OrOrExpression left;
-	/// Null unless this is a ternary
-	Expression middle;
-	/// Null unless this is a ternary
-	ConditionalExpression right;
-
-    mixin(DEFAULT_ACCEPT);
-}
-
-interface OrOrExpression : ConditionalExpression {}
-
-interface AndAndExpression : OrOrExpression {}
-interface OrExpression : AndAndExpression {}
-interface CmpExpression : AndAndExpression {}
-interface XorExpression : OrExpression {}
-interface AndExpression : XorExpression {}
-interface ShiftExpression : AndExpression {}
-interface AddExpression : ShiftExpression {}
-interface MulExpression : AddExpression {}
-interface CatExpression : AddExpression {}
-interface UnaryExpression : MulExpression {}
-class ComplementaryExpression : UnaryExpression
-{
-	UnaryExpression unary;
-    mixin(DEFAULT_ACCEPT);
-}
-interface NewExpression : UnaryExpression {}
-interface DeleteExpression : UnaryExpression {}
-interface CastExpression : UnaryExpression {}
-interface PowExpression : UnaryExpression {}
-
-
-interface PrimaryExpression : Expression {}
-class SingleTokenExpression
-{
-	Token token;
-    mixin(DEFAULT_ACCEPT);
-}
-class ThisExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class SuperExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class NullExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class TrueExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class FalseExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class DollarExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class FileExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class LineExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class IntegerExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class FloatExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class CharacterExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class StringExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class IdentifierExpression : SingleTokenExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-class ArrayExpression : PrimaryExpression
-{
-	mixin(DEFAULT_ACCEPT);
-}
-
-
-
-interface DefaultInitializerExpression : ASTNode {}
-
-class RelExpression : CmpExpression
-{
-	ShiftExpression left;
-	ShiftExpression right;
-	TokenType operator;
-    mixin(DEFAULT_ACCEPT);
+    Parameter[] paramaters;
 }
 
 class Parameter : ASTNode
 {
-	TokenType[] inOut;
-	string type;
+public:
     mixin(DEFAULT_ACCEPT);
+    ParameterAttribute[] paramaterAttributes;
+    Type type;
+    Token name;
+    DefaultInitializationExpression defaultInitialization;
+    bool vararg;
+}
+
+class ParameterAttribute: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token attribute;
+    TypeConstructor typeConstructor;
+}
+
+class TypeConstructor : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token typeConstructor;
+}
+
+class DefaultInitializationExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssignExpression assignExpression;
+    Token specialKeyword;
+}
+
+class FunctionBody : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    InStatement inStatement;
+    OutStatement outStatement;
+    BodyStatement bodyStatement;
+    BlockStatement blockStatement;
+}
+
+class InStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    BlockStatement blockStatement;
+}
+
+class OutStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token parameter;
+    BlockStatement blockStatement;
+}
+
+class BodyStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    BlockStatement blockStatement;
+}
+
+class VariableDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Type type;
+    Declarator[] declarators;
+}
+
+class Declarator : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token identifier;
+    Initializer initializer;
+}
+
+class AliasDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Type type;
+    Declarator declarator;
+    AliasInitialization[] initializations;
+}
+
+class StructDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Token name;
+    TemplateParameters templateParameters;
+    Constraint constraint;
+    StructBody structBody;
+}
+
+class StructBody : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Declaration[] declarations;
+}
+
+class ClassDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Token name;
+    TemplateParameters templateParameters;
+    Constraint constraint;
+    IdentifierList superClasses;
+    ClassBody classBody;
+}
+
+class IdentifierList : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token[] identifiers;
+}
+
+class ClassBody : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+
+    struct DeclarationOrInvariant
+    {
+        bool isDeclaration;
+        union
+        {
+            Declaration declaration;
+            Invariant classInvariant;
+        }
+    }
+
+    DeclarationOrInvariant[] declarationsAndInvariants;
+}
+
+class Invariant : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    BlockStatement blockStatement;
+}
+
+class InterfaceDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Token name;
+    TemplateParameters templateParameters;
+    Constraint constraint;
+    IdentifierList superInterfaces;
+    StructBody interfaceBody;
+}
+
+class UnionDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Token name;
+    TemplateParameters templateParameters;
+    Constraint constraint;
+    StructBody unionBody;
+}
+
+class MixinDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    AssignExpression expression;
+}
+
+class Unittest : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    BlockStatement testBody;
+}
+
+class TemplateDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Token name;
+    TemplateParameters templateParameters;
+    Constraint constraint;
+    Declaration[] declarations;
+}
+
+class TemplateParameters : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    TemplateParameterList parameterList;
+}
+
+class TemplateParameterList : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    TemplateParameter[] parameters;
+}
+
+class TemplateParameter : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    TemplateTypeParameter valueParameter;
+    TemplateValueParameter valueParameter;
+    TemplateAliasParameter aliasParameter;
+    TemplateTupleParameter tupleParameter;
+    TemplateThisParameter thisParameter;
+}
+
+class TemplateTypeParameter : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Type templateTypeParameterSpecialization;
+    Type templateTypeParameterDefault;
+}
+
+class TemplateValueParameter : ASTNode {}
+
+class TemplateAliasParameter : ASTNode {}
+
+class TemplateTupleParameter : ASTNode {}
+
+class TemplateThisParameter : ASTNode {}
+
+class Constraint : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Expression expression;
+}
+
+class StaticConstructor : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    FunctionBody functionBody;
+}
+
+class StaticDestructor : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    FunctionBody functionBody;
+}
+
+class SharedStaticConstructor : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    FunctionBody functionBody;
+}
+
+class SharedStaticDestructor : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    FunctionBody functionBody;
+}
+
+class Type
+{
+    TypeConstructors typeConstructors;
+    Type2 type2;
+}
+
+class Type2
+{
+    Type3 type3;
+    TypeSuffix typeSuffix;
+    Type2 type2;
+}
+
+class TypeSuffix : ASTNode
+{
+    Type type;
+    AssignExpression assignExpression;
+    bool star;
+}
+
+class BuiltinType : ASTNode
+{
+    Token type;
+}
+
+class Type3
+{
+    BuiltinType builtinType;
+    Typeof typeof_;
+    IdentifierChain identifierChain;
+}
+
+class Expression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssignExpression[] expressions;
+}
+
+class AssignExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    TernaryExpression ternaryExpression;
+    AssignOperator assignOperator;
+    AssignExpression assignExpression;
+}
+
+class TernaryExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    OrOrExpression orOrExpression;
+    Expression expression;
+    TernaryExpression ternaryExpression;
+}
+
+class OrOrExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AndAndExpression andandExpression;
+    OrOrExpression orOrExpression;
+}
+
+class AndAndExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    OrExpression orExpression;
+    AndAndExpression andandExpression;
+    CmpExpression cmpExpression;
+}
+
+class orExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    OrExpression orExpression;
+    XorExpression xorExpression;
+}
+
+class XorExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    XorExpression xorExpression;
+    andExpression andExpression;
+}
+
+class AndExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AndExpression andExpression;
+    shiftExpression shiftExpression;
+}
+
+class CmpExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ShiftExpression shiftExpression;
+    EqualExpression equalExpression;
+    IdentityExpression identityExpression;
+    RelExpression relExpression;
+    InExpression inExpression;
+}
+
+immutable string SHIFT_SHIFT_BODY = q{
+    Token operator;
+    ShiftExpression left;
+    ShiftExpression right;
+};
+
+class EqualExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    mixin(SHIFT_SHIFT_BODY);
+}
+
+class IdentityExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    mixin(SHIFT_SHIFT_BODY);
+}
+
+class RelExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    mixin(SHIFT_SHIFT_BODY);
+}
+
+class InExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    mixin(SHIFT_SHIFT_BODY);
+}
+
+class ShiftExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AddExpression addExpression;
+    shiftExpression shiftExpression;
+}
+
+class AddExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token operator;
+    AddExpression addExpression;
+    MulExpression mulExpression;
+}
+
+class MulExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token operator;
+    PowExpression powExpression;
+    MulExpression  mulExpression;
+}
+
+class PowExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    PowExpression powExpression;
+    UnaryExpression  unaryExpression;
+}
+
+class UnaryExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token operator;
+    UnaryExpression unaryExpression;
+    PreIncDecExpression preIncDecExpression
+    NewExpression newExpression;
+    DeleteExpression deleteExpression;
+    CastExpression castExpression;
+    PrimaryExpression primaryExpression;
+    ArgumentList argumentList;
+    AssignExpression sliceLower;
+    AssignExpression sliceUpper;
+    IdentifierOrTemplateInstance identifierOrTemplateInstance;
 }
