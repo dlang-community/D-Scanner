@@ -1,5 +1,187 @@
 grammar D;
 
+Assign: '=';
+At: '@';
+BitAnd: '&';
+BitAndEqual: '&=';
+BitOr: '|';
+BitOrEqual: '|=';
+CatEqual: '~=';
+Colon: ':';
+Comma: ',';
+Decrement: '--';
+Div: '/';
+DivEqual: '/=';
+Dollar: '$';
+Dot: '.';
+Equal: '==';
+GoesTo: '=>';
+Greater: '>';
+GreaterEqual: '>=';
+Hash: '#';
+Increment: '++';
+LBrace: '{';
+LBracket: '[';
+Less: '<';
+LessEqual: '<=';
+LessEqualGreater: '<>=';
+LessOrGreater: '<>';
+LogicAnd: '&&';
+LogicOr: '||';
+LParen: '(';
+Minus: '-';
+MinusEqual: '-=';
+Mod: '%';
+ModEqual: '%=';
+MulEqual: '*=';
+Not: '!';
+NotEqual: '!=';
+NotGreater: '!>';
+NotGreaterEqual: '!>=';
+NotLess: '!<';
+NotLessEqual: '!<=';
+NotLessEqualGreater: '!<>';
+Plus: '+';
+PlusEqual: '+=';
+Pow: '^^';
+PowEqual: '^^=';
+RBrace: '}';
+RBracket: ']';
+RParen: ')';
+Semicolon: ';';
+ShiftLeft: '<<';
+ShiftLeftEqual: '<<=';
+ShiftRight: '>>';
+ShiftRightEqual: '>>=';
+Slice: '..';
+Star: '*';
+Ternary: '?';
+Tilde: '~';
+Unordered: '!<>=';
+UnsignedShiftRight: '>>>';
+UnsignedShiftRightEqual: '>>>=';
+Vararg: '...';
+Xor: '^';
+XorEqual: '^=';
+Bool: 'bool';
+Byte: 'byte';
+Cdouble: 'cdouble';
+Cent: 'cent';
+Cfloat: 'cfloat';
+Char: 'char';
+Creal: 'creal';
+Dchar: 'dchar';
+Double: 'double';
+Float: 'float';
+Function: 'function';
+Idouble: 'idouble';
+Ifloat: 'ifloat';
+Int: 'int';
+Ireal: 'ireal';
+Long: 'long';
+Real: 'real';
+Short: 'short';
+Ubyte: 'ubyte';
+Ucent: 'ucent';
+Uint: 'uint';
+Ulong: 'ulong';
+Ushort: 'ushort';
+Void: 'void';
+Wchar: 'wchar';
+Align: 'align';
+Deprecated: 'deprecated';
+Extern: 'extern';
+Pragma: 'pragma';
+Export: 'export';
+Package: 'package';
+Private: 'private';
+Protected: 'protected';
+Public: 'public';
+Abstract: 'abstract';
+Auto: 'auto';
+Const: 'const';
+Final: 'final';
+Gshared: '__gshared';
+Immutable: 'immutable';
+Inout: 'inout';
+Scope: 'scope';
+Shared: 'shared';
+Static: 'static';
+Synchronized: 'synchronized';
+Alias: 'alias';
+Asm: 'asm';
+Assert: 'assert';
+Body: 'body';
+Break: 'break';
+Case: 'case';
+Cast: 'cast';
+Catch: 'catch';
+Class: 'class';
+Continue: 'continue';
+Debug: 'debug';
+Default: 'default';
+Delegate: 'delegate';
+Delete: 'delete';
+Do: 'do';
+Else: 'else';
+Enum: 'enum';
+False: 'false';
+Finally: 'finally';
+Foreach: 'foreach';
+Foreach_reverse: 'foreach_reverse';
+For: 'for';
+Goto: 'goto';
+If: 'if';
+Import: 'import';
+In: 'in';
+Interface: 'interface';
+Invariant: 'invariant';
+Is: 'is';
+Lazy: 'lazy';
+Macro: 'macro';
+Mixin: 'mixin';
+Module: 'module';
+New: 'new';
+Nothrow: 'nothrow';
+Null: 'null';
+Out: 'out';
+Override: 'override';
+Pure: 'pure';
+Ref: 'ref';
+Return: 'return';
+Struct: 'struct';
+Super: 'super';
+Switch: 'switch';
+Template: 'template';
+This: 'this';
+Throw: 'throw';
+True: 'true';
+Try: 'try';
+Typedef: 'typedef';
+Typeid: 'typeid';
+Typeof: 'typeof';
+Union: 'union';
+Unittest: 'unittest';
+Version: 'version';
+Volatile: 'volatile';
+While: 'while';
+With: 'with';
+
+SpecialDate: '__DATE__';
+SpecialEof: '__EOF__';
+SpecialTime: '__TIME__';
+Specialimestamp: '__TIMESTAMP__';
+SpecialVendor: '__VENDOR__';
+SpecialVersion: '__VERSION__';
+SpecialFile: '__FILE__';
+SpecialLine: '__LINE__';
+SpecialModule: '__MODULE__';
+SpecialFunction: '__FUNCTION__';
+SpecialPrettyFunction: '__PRETTY_FUNCTION__';
+Traits: '__traits';
+Parameters: '__parameters';
+Vector: '__vector';
+
 Whitespace: [\u0020\u0009\u000b\u000c\u000a\u000d]+ -> skip;
 fragment EndOfLine : '\u000d' | '\u000a' | '\u000d' '\u000a' | '\u2028' | '\u2029';
 
@@ -54,8 +236,8 @@ fragment DecimalInteger: DecimalDigit (DecimalDigit | '_')*;
 fragment BinaryInteger: ('0b' | '0B') BinDigit (BinDigit | '_')*;
 fragment HexadecimalInteger: ('0x' | '0X') HexDigit (HexDigit | '_')*;
 
-FloatLiteral: (Float FloatSuffix?) | (Integer (FloatSuffix | RealSuffix)? ImaginarySuffix);
-fragment Float: DecimalFloat | HexFloat;
+FloatLiteral: (FloatOption FloatSuffix?) | (Integer (FloatSuffix | RealSuffix)? ImaginarySuffix);
+fragment FloatOption: DecimalFloat | HexFloat;
 fragment DecimalFloat: (DecimalInteger '.' DecimalDigit*);
 fragment DecimalExponent: ('e' | 'E' | 'e+' | 'E+' | 'e-' | 'E-') DecimalInteger;
 fragment FloatSuffix: 'F' | 'f';
@@ -72,42 +254,15 @@ module: moduleDeclaration? declaration*
 moduleDeclaration: 'module' identifierChain ';'
     ;
 
-importDeclaration: 'static'? 'import' importList ';'
-    ;
-
-importList: singleImport (',' importList)?
-    | importBindings
-    ;
-
-singleImport: (Identifier '=')? identifierChain
-    ;
-
-importBindings: singleImport ':' importbindlist
-    ;
-
-importbindlist: importBind (',' importbindlist)?
-    ;
-
-importBind: Identifier ('=' Identifier)?
-    ;
-
-declarationsAndStatements: (declaration | statement)+
-    ;
-
 declaration: attributedDeclaration
     | importDeclaration
     | functionDeclaration
-    | functionTemplateDeclaration
     | variableDeclaration
     | aliasThisDeclaration
     | structDeclaration
-    | structTemplateDeclaration
     | classDeclaration
-    | classTemplateDeclaration
     | interfaceDeclaration
-    | interfaceTemplateDeclaration
     | unionDeclaration
-    | unionTemplateDeclaration
     | aliasDeclaration
     | mixinDeclaration
     | unittest
@@ -118,28 +273,41 @@ declaration: attributedDeclaration
     | sharedStaticConstructor
     ;
 
+importDeclaration: 'static'? 'import' importList ';'
+    ;
+
+importList: singleImport (',' importList)?
+    | importBindings
+    ;
+
+singleImport: (Identifier '=')? identifierChain
+    ;
+
+importBindings: singleImport ':' importBindList
+    ;
+
+importBindList: importBind (',' importBind)?
+    ;
+
+importBind: Identifier ('=' Identifier)?
+    ;
+
+aliasThisDeclaration: 'alias' Identifier 'this' ';'
+    ;
+
+structDeclaration: 'struct' Identifier (templateParameters constraint? structBody | (structBody | ';'))
+    ;
+
 templateParameters: '(' templateParameterList? ')'
     ;
 
 constraint: 'if' '(' expression ')'
     ;
 
-aliasThisDeclaration: 'alias' Identifier 'this' ';'
-    ;
-
-structDeclaration: 'struct' Identifier (structBody | ';')
-    ;
-
-structTemplateDeclaration: 'struct' Identifier templateParameters constraint? structBody
-    ;
-
 structBody: '{' declaration* '}'
     ;
 
-classDeclaration: 'class' Identifier (':' identifierList )? classBody
-    ;
-
-classTemplateDeclaration: 'class' Identifier templateParameters constraint? classBody
+classDeclaration: 'class' Identifier (templateParameters constraint?)? (':' identifierList )? classBody
     ;
 
 classBody: '{' (declaration | invariant)* '}'
@@ -149,16 +317,10 @@ statement: ';'
     | nonemptyStatement
     ;
 
-interfaceDeclaration: 'interface' Identifier (':' identifierList)? structBody
+interfaceDeclaration: 'interface' Identifier (templateParameters constraint?)? (':' identifierList)? structBody
     ;
 
-interfaceTemplateDeclaration: 'interface' Identifier templateParameters constraint? (':' identifierList)? structBody
-    ;
-
-unionDeclaration: 'union' Identifier (structBody | ';')
-    ;
-
-unionTemplateDeclaration: 'union' Identifier parameters constraint? structBody
+unionDeclaration: 'union' Identifier ((templateParameters constraint? structBody)? | (structBody | ';'))
     ;
 
 nonemptyStatement: nonEmptyStatementNoCaseNoDefault
@@ -484,78 +646,20 @@ initialize: ';'
 foreachStatement: ('foreach' | 'foreach_reverse') '(' foreachTypeList ';' expression ')' nonEmptyStatementNoCaseNoDefault
     ;
 
-foreachTypeList: foreachType
-    | foreachType ',' foreachTypeList
+foreachTypeList: foreachType (',' foreachType)*
     ;
 
 foreachType: 'ref'? type? Identifier
     ;
 
-expression: assignExpression
-    | assignExpression ',' expression
+expression: assignExpression (',' assignExpression)*
     ;
 
 identifierOrTemplateInstance: Identifier
     | templateInstance
     ;
 
-templateInstance: Identifier '!' (Identifier | '(' identifierList? ')')
-    ;
-
-unaryExpression: '&' unaryExpression
-    | '!' unaryExpression
-    | '*' unaryExpression
-    | '+' unaryExpression
-    | '-' unaryExpression
-    | '~' unaryExpression
-    | preIncDecExpression
-    | newExpression
-    | deleteExpression
-    | castExpression
-    | primaryExpression
-    /*| postIncDecExpression*/
-    | unaryExpression ('++'| '--')
-    | unaryExpression '[' ']'
-    | unaryExpression '[' argumentList ']'
-    | unaryExpression '[' assignExpression '..' assignExpression ']'
-    | unaryExpression '.' identifierOrTemplateInstance
-    ;
-
-powExpression: unaryExpression
-    | unaryExpression '^^' powExpression
-    ;
-
-postIncDecExpression: unaryExpression ('++' | '--')
-    ;
-
-preIncDecExpression: ('++' | '--') unaryExpression
-    ;
-
-primaryExpression: identifierOrTemplateInstance
-    | '.' identifierOrTemplateInstance
-    | type '.' Identifier
-    | typeofExpression
-    | typeidExpression
-    | 'this'
-    | 'super'
-    | 'null'
-    | 'true'
-    | 'false'
-    | '__FILE__'
-    | '__MODULE__'
-    | '__LINE__'
-    | '__FUNCTION__'
-    | '__PRETTY_FUNCTION__'
-    | IntegerLiteral
-    | FloatLiteral
-    | StringLiteral
-    | CharacterLiteral
-    | arrayLiteral
-    | assocArrayLiteral
-    | '(' expression ')'
-    | isExpression
-    | lambdaExpression
-    | traitsExpression
+templateInstance: Identifier templateArguments
     ;
 
 typeofExpression: 'typeof' '(' (expression | 'return') ')'
@@ -578,19 +682,10 @@ templateParameter: templateTypeParameter
     | templateThisParameter
     ;
 
-templateTypeParameter: Identifier templateTypeParameterSpecialization? templateTypeParameterDefault?
+templateTypeParameter: Identifier (':' type)? ('=' type)?
     ;
 
-templateTypeParameterSpecialization: ':' type
-    ;
-
-templateTypeParameterDefault: '=' type
-    ;
-
-templateValueParameter: type Identifier templateValueParameterSpecialization? templateValueParameterDefault?
-    ;
-
-templateValueParameterSpecialization: ':' expression
+templateValueParameter: type Identifier (':' expression)? templateValueParameterDefault?
     ;
 
 templateValueParameterDefault:  '=' ('__FILE__' | '__MODULE__' | '__LINE__' | '__FUNCTION__' | '__PRETTY_FUNCTION__' | assignExpression)
@@ -719,25 +814,11 @@ cmpExpression: shiftExpression
 
 equalExpression: shiftExpression ('==' | '!=') shiftExpression;
 
-identityExpression: shiftExpression ('is' | '!is') shiftExpression;
+identityExpression: shiftExpression ('is' | '!' 'is') shiftExpression;
 
-relExpression: shiftExpression relOperator shiftExpression;
+relExpression: shiftExpression ('<' | '<=' | '>' | '>=' | '!<>=' | '!<>' | '<>' | '<>=' | '!>' | '!>=' | '!<' | '!<=') shiftExpression;
 
-relOperator: '<'
-    | '<='
-    | '>'
-    | '>='
-    | '!<>='
-    | '!<>'
-    | '<>'
-    | '<>='
-    | '!>'
-    | '!>='
-    | '!<'
-    | '!<='
-    ;
-
-inExpression: shiftExpression ('in' | '!in') shiftExpression;
+inExpression: shiftExpression ('in' | '!' 'in') shiftExpression;
 
 shiftExpression: addExpression
     | shiftExpression ('<<' | '>>' | '>>>') addExpression;
@@ -746,8 +827,63 @@ addExpression: mulExpression
     | addExpression ('+' | '-' | '~') mulExpression
     ;
 
-mulExpression: unaryExpression
-    | mulExpression ('*' | '/' | '%') unaryExpression
+mulExpression: powExpression
+    | mulExpression ('*' | '/' | '%') powExpression
+    ;
+
+powExpression: unaryExpression
+    | unaryExpression '^^' powExpression
+    ;
+
+unaryExpression: primaryExpression
+    | '&' unaryExpression
+    | '!' unaryExpression
+    | '*' unaryExpression
+    | '+' unaryExpression
+    | '-' unaryExpression
+    | '~' unaryExpression
+    | preIncDecExpression
+    | newExpression
+    | deleteExpression
+    | castExpression
+    | unaryExpression ('++'| '--') /* postIncDecExpression */ /* This causes an error in ANTLR */
+    | unaryExpression '[' ']'
+    | unaryExpression '[' argumentList ']'
+    | unaryExpression '[' assignExpression '..' assignExpression ']'
+    | unaryExpression '.' identifierOrTemplateInstance
+    ;
+
+postIncDecExpression: unaryExpression ('++' | '--')
+    ;
+
+preIncDecExpression: ('++' | '--') unaryExpression
+    ;
+
+primaryExpression: identifierOrTemplateInstance
+    | '.' identifierOrTemplateInstance
+    | type '.' Identifier
+    | typeofExpression
+    | typeidExpression
+    | 'this'
+    | 'super'
+    | 'null'
+    | 'true'
+    | 'false'
+    | '__FILE__'
+    | '__MODULE__'
+    | '__LINE__'
+    | '__FUNCTION__'
+    | '__PRETTY_FUNCTION__'
+    | IntegerLiteral
+    | FloatLiteral
+    | StringLiteral
+    | CharacterLiteral
+    | arrayLiteral
+    | assocArrayLiteral
+    | '(' expression ')'
+    | isExpression
+    | lambdaExpression
+    | traitsExpression
     ;
 
 whileStatement: 'while' '(' expression ')' blockStatement
@@ -757,6 +893,9 @@ doStatement: 'do' blockStatement 'while' '(' expression ')' ';'
     ;
 
 blockStatement: '{' declarationsAndStatements? '}'
+    ;
+
+declarationsAndStatements: (declaration | statement)+
     ;
 
 functionDeclaration: type Identifier parameters (functionBody | ';')
@@ -815,7 +954,7 @@ builtinType: 'bool'
     | 'void'
     ;
 
-typeConstructors: typeConstructor typeConstructors?
+typeConstructors: typeConstructor+
     ;
 
 typeConstructor: 'const'
@@ -830,15 +969,7 @@ typeof: 'typeof' '(' (expression | 'return') ')'
 parameters: '(' (parameter (',' parameter)*)? ')'
     ;
 
-parameter: parameterAttribute? type ('...' | (Identifier ('=' defaultInitializerExpression)?))?
-    ;
-
-defaultInitializerExpression: assignExpression
-    | '__FILE__'
-    | '__MODULE__'
-    | '__LINE__'
-    | '__FUNCTION__'
-    | '__PRETTY_FUNCTION__'
+parameter: parameterAttribute* type ('...' | (Identifier ('=' defaultInitializerExpression)?))?
     ;
 
 parameterAttribute: 'auto'
@@ -849,6 +980,14 @@ parameterAttribute: 'auto'
     | 'ref'
     | 'scope'
     | typeConstructor
+    ;
+
+defaultInitializerExpression: assignExpression
+    | '__FILE__'
+    | '__MODULE__'
+    | '__LINE__'
+    | '__FUNCTION__'
+    | '__PRETTY_FUNCTION__'
     ;
 
 functionAttribute: 'nothrow'
@@ -879,10 +1018,10 @@ outStatement: 'out' ('(' Identifier ')')? blockStatement
 bodyStatement: 'body' blockStatement
     ;
 
-aliasDeclaration: 'alias' (aliasinitializer (',' aliasinitializer)* | type declarator) ';'
+aliasDeclaration: 'alias' (aliasInitializer (',' aliasInitializer)* | type declarator) ';'
     ;
 
-aliasinitializer: Identifier '=' type
+aliasInitializer: Identifier '=' type
     ;
 
 variableDeclaration: type declarator (',' declarator)* ';'
@@ -939,7 +1078,7 @@ protectionAttribute: 'private'
     | 'export'
     ;
 
-traitsExpression: 'traits' '(' Identifier ',' traitsArgument (',' traitsArgument)* ')'
+traitsExpression: '__traits' '(' Identifier ',' traitsArgument (',' traitsArgument)* ')'
     ;
 
 traitsArgument: assignExpression
