@@ -192,9 +192,9 @@ fragment OctalDigit: [0-7];
 fragment BinDigit: [01];
 fragment DecimalDigit: [0-9];
 
-fragment BlockComment: '/*' (Character | Whitespace)* '*/';
+fragment BlockComment: '/*' .*? '*/';
 fragment LineComment: '//' (~[\r\n])* EndOfLine;
-fragment NestingBlockComment: '/+' (NestingBlockComment | Character*) '+/';
+fragment NestingBlockComment: '/+' (NestingBlockComment | .)* '+/';
 Comment : (BlockComment | LineComment | NestingBlockComment) -> skip;
 
 Identifier : ([a-zA-Z_])([a-zA-Z0-9_])*;
@@ -227,7 +227,7 @@ fragment HexString: 'x"' HexStringChar* '"' StringPostfix?;
 // fragment TokenString: 'q{' Token* '}';
 StringLiteral : WysiwygString | AlternativeWysiwygString | DoubleQuotedString | HexString /*| DelimitedString | TokenString*/;
 
-CharacterLiteral: '\'' (Character | EscapeSequence) '\'';
+CharacterLiteral: '\'' ( EscapeSequence | ~[\\'] )*? '\'';
 
 IntegerLiteral: Integer IntegerSuffix?;
 fragment Integer: BinaryInteger | DecimalInteger | HexadecimalInteger;
@@ -271,6 +271,7 @@ declaration: attributedDeclaration
     | staticDestructor
     | sharedStaticDestructor
     | sharedStaticConstructor
+    | conditionalDeclaration
     ;
 
 importDeclaration: 'static'? 'import' importList ';'
@@ -330,6 +331,7 @@ nonemptyStatement: nonEmptyStatementNoCaseNoDefault
     ;
 
 nonEmptyStatementNoCaseNoDefault: labeledStatement
+    | blockStatement
     | assignStatement
     | ifStatement
     | whileStatement
@@ -898,10 +900,7 @@ blockStatement: '{' declarationsAndStatements? '}'
 declarationsAndStatements: (declaration | statement)+
     ;
 
-functionDeclaration: type Identifier parameters (functionBody | ';')
-    ;
-
-functionTemplateDeclaration: type Identifier templateParameters parameters constraint? functionBody
+functionDeclaration: type Identifier (templateParameters? parameters constraint? functionBody | parameters (functionBody | ';'))
     ;
 
 type: typeConstructors? type2
@@ -912,16 +911,19 @@ type2: type3 typeSuffix?
     ;
 
 type3: builtinType
-    | '.' identifierChain
-    | identifierChain
+    | '.' identifierOrTemplateChain
+    | identifierOrTemplateChain
     | typeof
-    | typeof '.' identifierChain
+    | typeof '.' identifierOrTemplateChain
     | 'const' '(' type ')'
     | 'immutable' '(' type ')'
     | 'shared' '(' type ')'
     | 'inout' '(' type ')'
     | 'delegate' parameters memberFunctionAttributes?
     | 'function' parameters memberFunctionAttributes?
+    ;
+
+identifierOrTemplateChain : identifierOrTemplateInstance ('.' identifierOrTemplateInstance)*
     ;
 
 typeSuffix: '*'
@@ -1101,6 +1103,9 @@ sharedStaticDestructor: 'shared' 'static' 'this' '(' ')' functionBody
     ;
 
 sharedStaticConstructor: 'shared' 'static' '~' 'this' '(' ')' functionBody
+    ;
+
+conditionalDeclaration: compileCondition (declaration | '{' declaration* '}')
     ;
 
 invariant: 'invariant' '(' ')' blockStatement
