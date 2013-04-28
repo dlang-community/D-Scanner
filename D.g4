@@ -237,7 +237,7 @@ fragment DecimalInteger: DecimalDigit (DecimalDigit | '_')*;
 fragment BinaryInteger: ('0b' | '0B') BinDigit (BinDigit | '_')*;
 fragment HexadecimalInteger: ('0x' | '0X') HexDigit (HexDigit | '_')*;
 
-FloatLiteral: (FloatOption FloatSuffix?) | (Integer (FloatSuffix | RealSuffix)? ImaginarySuffix);
+FloatLiteral: (FloatOption (FloatSuffix | RealSuffix)?) | (Integer (FloatSuffix | RealSuffix)? ImaginarySuffix);
 fragment FloatOption: DecimalFloat | HexFloat;
 fragment DecimalFloat: (DecimalInteger '.' DecimalDigit*); /* BUG: can't lex a[0..1] properly */
 fragment DecimalExponent: ('e' | 'E' | 'e+' | 'E+' | 'e-' | 'E-') DecimalInteger;
@@ -277,6 +277,7 @@ declaration: attributedDeclaration
     | sharedStaticDestructor
     | sharedStaticConstructor
     | conditionalDeclaration
+    | pragmaDeclaration
     ;
 
 importDeclaration: 'static'? 'import' importList ';'
@@ -375,7 +376,6 @@ nonEmptyStatementNoCaseNoDefault: labeledStatement
     | throwStatement
     | scopeGuardStatement
     | asmStatement
-    | pragmaStatement
     | foreachRangeStatement
     | conditionalStatement
     | staticAssertStatement
@@ -562,10 +562,10 @@ asmtypeprefix: Identifier Identifier
     | 'real' Identifier
     ;
 
-pragmaStatement: pragma ';'
+pragmaDeclaration: pragmaExpression ';'
     ;
 
-pragma: 'pragma' '(' Identifier (',' argumentList)? ')'
+pragmaExpression: 'pragma' '(' Identifier (',' argumentList)? ')'
     ;
 
 foreachRangeStatement: 'foreach' '(' foreachType ';' expression '..' expression ')' nonEmptyStatementNoCaseNoDefault
@@ -1015,7 +1015,7 @@ typeConstructor: 'const'
 typeof: 'typeof' '(' (expression | 'return') ')'
     ;
 
-parameters: '(' (parameter (',' parameter)*)? ')'
+parameters: '(' ((parameter (',' parameter)*)? (',' '...')? | '...') ')'
     ;
 
 parameter: parameterAttribute* type (Identifier? '...' | (Identifier ('=' defaultInitializerExpression)?))?
@@ -1117,7 +1117,7 @@ attributedDeclaration: attribute (':' | declaration | '{' declaration* '}')
 
 attribute: linkageattribute
     | alignattribute
-    | pragma
+    | pragmaExpression
     | protectionAttribute
     | 'deprecated'
     | 'extern'
