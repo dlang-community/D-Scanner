@@ -290,10 +290,7 @@ importList: singleImport (',' importList)?
 singleImport: (Identifier '=')? identifierChain
     ;
 
-importBindings: singleImport ':' importBindList
-    ;
-
-importBindList: importBind (',' importBind)?
+importBindings: singleImport ':' importBind (',' importBind)*
     ;
 
 importBind: Identifier ('=' Identifier)?
@@ -427,8 +424,7 @@ gotoStatement: 'goto' (Identifier | 'default' | 'case' expression?) ';'
 withStatement: 'with' '(' (expression | symbol | templateInstance) ')' nonEmptyStatementNoCaseNoDefault
     ;
 
-synchronizedStatement: 'synchronized' nonEmptyStatementNoCaseNoDefault
-    | 'synchronized' '(' expression ')' nonEmptyStatementNoCaseNoDefault
+synchronizedStatement: 'synchronized' ('(' expression ')')? nonEmptyStatementNoCaseNoDefault
     ;
 
 tryStatement: 'try' nonEmptyStatementNoCaseNoDefault (catches | catches finally_ | finally_)
@@ -1119,7 +1115,7 @@ attribute: linkageattribute
     | alignattribute
     | pragmaExpression
     | protectionAttribute
-    | 'deprecated'
+    | deprecated
     | 'extern'
     | 'final'
     | 'synchronized'
@@ -1152,6 +1148,9 @@ protectionAttribute: 'private'
     | 'protected'
     | 'public'
     | 'export'
+    ;
+
+deprecated: 'deprecated' ('(' assignExpression ')')?
     ;
 
 traitsExpression: '__traits' '(' Identifier ',' traitsArgument (',' traitsArgument)* ')'
