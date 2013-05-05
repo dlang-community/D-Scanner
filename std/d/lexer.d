@@ -12,7 +12,7 @@
  * ---
  * LexerConfig config;
  * config.iterStyle = IterationStyle.everything;
- * config.tokenStyle = IterationStyle.source;
+ * config.tokenStyle = TokenStyle.source;
  * config.versionNumber = 2061;
  * config.vendorString = "Lexer Example";
  * ---
@@ -592,7 +592,7 @@ L_advance:
             current.value = getTokenValue(current.type);
             if (current.value is null)
                 setTokenValue();
-            if (!(config.iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.eof)
+            if (!(config.iterStyle & IterationStyle.ignoreEOF) && current.type == TokenType.specialEof)
             {
                 _empty = true;
                 return;
@@ -1775,17 +1775,17 @@ L_advance:
     {
         switch (current.type)
         {
-        case TokenType.date:
+        case TokenType.specialDate:
             current.type = TokenType.stringLiteral;
             auto time = Clock.currTime();
             current.value = format("%s %02d %04d", time.month, time.day, time.year);
             return;
-        case TokenType.time:
+        case TokenType.specialTime:
             auto time = Clock.currTime();
             current.type = TokenType.stringLiteral;
             current.value = (cast(TimeOfDay)(time)).toISOExtString();
             return;
-        case TokenType.timestamp:
+        case TokenType.specialTimestamp:
             auto time = Clock.currTime();
             auto dt = cast(DateTime) time;
             current.type = TokenType.stringLiteral;
@@ -1793,19 +1793,19 @@ L_advance:
                 dt.dayOfWeek, dt.month, dt.day, dt.hour, dt.minute,
                 dt.second, dt.year);
             return;
-        case TokenType.vendor:
+        case TokenType.specialVendor:
             current.type = TokenType.stringLiteral;
             current.value = config.vendorString;
             return;
-        case TokenType.compilerVersion:
+        case TokenType.specialVersion:
             current.type = TokenType.stringLiteral;
             current.value = format("%d", config.versionNumber);
             return;
-        case TokenType.line:
+        case TokenType.specialLine:
             current.type = TokenType.intLiteral;
             current.value = format("%d", current.line);
             return;
-        case TokenType.file:
+        case TokenType.specialFile:
             current.type = TokenType.stringLiteral;
             current.value = config.fileName;
             return;
@@ -1889,7 +1889,7 @@ pure nothrow bool isBasicType(const TokenType t)
  */
 pure nothrow bool isBasicType(ref const Token t)
 {
-    return isType(t.type);
+    return isBasicType(t.type);
 }
 
 /**
@@ -1929,7 +1929,7 @@ pure nothrow bool isProtection(ref const Token t)
  */
 pure nothrow bool isConstant(const TokenType t)
 {
-    return t >= TokenType.date && t <= TokenType.traits;
+    return t >= TokenType.specialDate && t <= TokenType.traits;
 }
 
 /**
@@ -2183,7 +2183,7 @@ enum TokenType: ushort
     specialDate, /// ___DATE__
     specialEof, /// ___EOF__
     specialTime, /// ___TIME__
-    specialimestamp, /// ___TIMESTAMP__
+    specialTimestamp, /// ___TIMESTAMP__
     specialVendor, /// ___VENDOR__
     specialVersion, /// ___VERSION__
     specialFile, /// $(D_KEYWORD ___FILE__)
@@ -2681,6 +2681,9 @@ immutable(string[TokenType.max + 1]) tokenValues = [
     "__VERSION__",
     "__FILE__",
     "__LINE__",
+	"__MODULE__",
+	"__FUNCTION__",
+	"__PRETTY_FUNCTION",
     null,
     null,
     null,
@@ -2845,7 +2848,7 @@ pure TokenType lookupTokenType(R)(R input)
     case 7:
         switch (input[0])
         {
-        case '_': if (input[1..$].equal("_EOF__")) return TokenType.eof; else break;
+        case '_': if (input[1..$].equal("_EOF__")) return TokenType.specialEof; else break;
         case 'c': if (input[1..$].equal("double")) return TokenType.cdouble_; else break;
         case 'd': if (input[1..$].equal("efault")) return TokenType.default_; else break;
         case 'f': if (input[1..$].equal("inally")) return TokenType.finally_;
@@ -2862,10 +2865,10 @@ pure TokenType lookupTokenType(R)(R input)
     case 8:
         switch (input[0])
         {
-        case '_': if (input[1..$].equal("_DATE__")) return TokenType.date;
-            else if (input[1..$].equal("_FILE__")) return TokenType.file;
-            else if (input[1..$].equal("_LINE__")) return TokenType.line;
-            else if (input[1..$].equal("_TIME__")) return TokenType.time;
+        case '_': if (input[1..$].equal("_DATE__")) return TokenType.specialDate;
+            else if (input[1..$].equal("_FILE__")) return TokenType.specialFile;
+            else if (input[1..$].equal("_LINE__")) return TokenType.specialLine;
+            else if (input[1..$].equal("_TIME__")) return TokenType.specialTime;
             else if (input[1..$].equal("_traits")) return TokenType.traits; else break;
         case 'a': if (input[1..$].equal("bstract")) return TokenType.abstract_; else break;
         case 'c': if (input[1..$].equal("ontinue")) return TokenType.continue_; else break;
@@ -2893,25 +2896,34 @@ pure TokenType lookupTokenType(R)(R input)
         switch (input[0])
         {
         case 'd': if (input[1..$].equal("eprecated")) return TokenType.deprecated_; else break;
-        case '_': if (input[1..$].equal("_VENDOR__")) return TokenType.vendor; else break;
+        case '_':
+			if (input[1..$].equal("_VENDOR__")) return TokenType.specialVendor;
+			else if (input[1..$].equal("_MODULE__")) return TokenType.specialModule; else break;
         default: break;
         }
         break;
     case 11:
         if (input[1..$].equal("_VERSION__"))
-            return TokenType.compilerVersion;
+            return TokenType.specialVersion;
         break;
     case 12:
-        if (input[1..$].equal("ynchronized"))
-            return TokenType.synchronized_;
-        break;
+		switch (input[0])
+		{
+        case 's': if (input[1..$].equal("ynchronized")) return TokenType.synchronized_; else break;
+        case '_': if (input[1..$].equal("_FUNCTION__")) return TokenType.specialFunction; else break;
+        default: break;
+		}
     case 13:
         if (input[1..$].equal("_TIMESTAMP__"))
-            return TokenType.timestamp;
+            return TokenType.specialTimestamp;
         break;
     case 15:
         if (input[1..$].equal("oreach_reverse"))
             return TokenType.foreach_reverse_;
+        break;
+	case 19:
+        if (input[1..$].equal("_PRETTY_FUNCTION__"))
+            return TokenType.specialPrettyFunction;
         break;
     default: break;
     }
