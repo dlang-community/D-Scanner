@@ -291,26 +291,27 @@ static char * keyword_xpm[] = {
 
 
 local keywords = {
-	"abstract?5", "alias?5", "align?5", "asm?5", "assert?5", "auto?5", "body?5",
-	"bool?5", "break?5", "byte?5", "case?5", "cast?5", "catch?5", "cdouble?5",
-	"cent?5", "cfloat?5", "char?5", "class?5", "const?5", "continue?5", "creal?5",
-	"dchar?5", "debug?5", "default?5", "delegate?5", "delete?5", "deprecated?5",
-	"@disable?5", "do?5", "double?5", "dstring?5", "else?5", "enum?5",
-	"export?5", "extern?5", "false?5", "__FILE__?5", "finally?5",
-	"final?5", "float?5", "foreach_reverse?5", "foreach?5", "for?5", "function?5",
-	"goto?5", "__gshared?5", "idouble?5", "ifloat?5", "if?5", "immutable?5",
-	"import?5", "inout?5", "interface?5", "in?5", "int?5", "invariant?5",
-	"ireal?5", "is?5", "lazy?5", "__LINE__?5", "long?5", "macro?5",
-	"mixin?5", "module?5", "new?5", "nothrow?5", "null?5", "out?5",
-	"override?5", "package?5", "pragma?5", "private?5", "@property?5",
-	"protected?5", "public?5", "pure?5", "real?5",
-	"ref?5", "return?5", "@safe?5", "scope?5", "shared?5", "short?5",
+	"__DATE__?5", "__EOF__?5", "__FILE__?5", "__FUNCTION__?5", "__LINE__?5",
+	"__MODULE__?5", "__PRETTY_FUNCTION__?5", "__TIMESTAMP__?5", "__TIME__?5",
+	"__VENDOR__?5", "__VERSION__?5", "__gshared?5", "__parameters?5",
+	"__thread?5", "__traits?5", "__vector?5", "abstract?5", "alias?5",
+	"align?5", "asm?5", "assert?5", "auto?5", "body?5", "bool?5", "break?5",
+	"byte?5", "case?5", "cast?5", "catch?5", "cdouble?5", "cent?5", "cfloat?5",
+	"char?5", "class?5", "const?5", "continue?5", "creal?5", "dchar?5",
+	"debug?5", "default?5", "delegate?5", "delete?5", "deprecated?5", "do?5",
+	"double?5", "dstring?5", "else?5", "enum?5", "export?5", "extern?5",
+	"false?5", "final?5", "finally?5", "float?5", "for?5", "foreach?5",
+	"foreach_reverse?5", "function?5", "goto?5", "idouble?5", "if?5",
+	"ifloat?5", "immutable?5", "import?5", "in?5", "inout?5", "int?5",
+	"interface?5", "invariant?5", "ireal?5", "is?5", "lazy?5", "long?5",
+	"macro?5", "mixin?5", "module?5", "new?5", "nothrow?5", "null?5", "out?5",
+	"override?5", "package?5", "pragma?5", "private?5", "protected?5", "public?5",
+	"pure?5", "real?5", "ref?5", "return?5", "scope?5", "shared?5", "short?5",
 	"static?5", "string?5", "struct?5", "super?5", "switch?5", "synchronized?5",
-	"@system?5", "template?5", "this?5", "__thread?5", "throw?5",
-	"__traits?5", "true?5", "@trusted?5", "try?5", "typedef?5", "typeid?5",
-	"typeof?5", "ubyte?5", "ucent?5", "uint?5", "ulong?5", "union?5",
-	"unittest?5", "ushort?5", "version?5", "void?5", "volatile?5",
-	"wchar?5", "while?5", "with?5", "wstring?5",
+	"template?5", "this?5", "throw?5", "true?5", "try?5", "typedef?5",
+	"typeid?5", "typeof?5", "ubyte?5", "ucent?5", "uint?5", "ulong?5",
+	"union?5", "unittest?5", "ushort?5", "version?5", "void?5", "volatile?5",
+	"wchar?5", "while?5", "with?5", "wstring?5"
 }
 
 
@@ -399,7 +400,7 @@ end)
 
 local function autocomplete()
 	registerImages()
-	_M.textadept.editing.autocomplete_word("@%w_", keywords)
+	_M.textadept.editing.autocomplete_word(keywords)
 end
 
 -- D-specific key commands.
