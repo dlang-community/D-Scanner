@@ -2180,12 +2180,12 @@ enum TokenType: ushort
     while_, /// $(D_KEYWORD while)
     with_, /// $(D_KEYWORD with)
 
-    specialDate, /// ___DATE__
-    specialEof, /// ___EOF__
-    specialTime, /// ___TIME__
-    specialTimestamp, /// ___TIMESTAMP__
-    specialVendor, /// ___VENDOR__
-    specialVersion, /// ___VERSION__
+    specialDate, /// $(D_KEYWORD ___DATE__)
+    specialEof, /// $(D_KEYWORD ___EOF__)
+    specialTime, /// $(D_KEYWORD ___TIME__)
+    specialTimestamp, /// $(D_KEYWORD ___TIMESTAMP__)
+    specialVendor, /// $(D_KEYWORD ___VENDOR__)
+    specialVersion, /// $(D_KEYWORD ___VERSION__)
     specialFile, /// $(D_KEYWORD ___FILE__)
     specialLine, /// $(D_KEYWORD ___LINE__)
     specialModule, /// $(D_KEYWORD ___MODULE__)
@@ -2913,6 +2913,7 @@ pure TokenType lookupTokenType(R)(R input)
         case '_': if (input[1..$].equal("_FUNCTION__")) return TokenType.specialFunction; else break;
         default: break;
 		}
+		break;
     case 13:
         if (input[1..$].equal("_TIMESTAMP__"))
             return TokenType.specialTimestamp;
