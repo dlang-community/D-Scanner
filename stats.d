@@ -33,8 +33,7 @@ void printTokenCount(Tokens)(File output, ref Tokens tokens, size_t fileSize)
 		tokens.popFront();
 		++count;
 	}
-	output.writefln("%f", cast(float) fileSize / cast(float) count);
-	//output.writefln("%d", count);
+	output.writefln("%d", count);
 }
 
 void printLineCount(Tokens)(File output, ref Tokens tokens)

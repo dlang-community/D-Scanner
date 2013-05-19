@@ -211,7 +211,29 @@ public:
     mixin(OVERRIDE_DEFAULT_ACCEPT);
     Type type;
     Declarator declarator;
-    AliasInitialization[] initializations;
+    AliasInitializer[] initializations;
+}
+
+class AliasInitializer : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token identifier;
+    Type type;
+}
+
+class AliasThisDeclaration : Declaration
+{
+public:
+    mixin(OVERRIDE_DEFAULT_ACCEPT);
+    Token identifier;
+}
+
+class AlignAttribute : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token integerLiteral;
 }
 
 class StructDeclaration : Declaration
@@ -482,7 +504,7 @@ class XorExpression : ASTNode
 public:
     mixin(DEFAULT_ACCEPT);
     XorExpression xorExpression;
-    andExpression andExpression;
+    AndExpression andExpression;
 }
 
 class AndExpression : ASTNode
@@ -578,7 +600,7 @@ public:
     mixin(DEFAULT_ACCEPT);
     Token operator;
     UnaryExpression unaryExpression;
-    PreIncDecExpression preIncDecExpression
+    PreIncDecExpression preIncDecExpression;
     NewExpression newExpression;
     DeleteExpression deleteExpression;
     CastExpression castExpression;
@@ -587,4 +609,300 @@ public:
     AssignExpression sliceLower;
     AssignExpression sliceUpper;
     IdentifierOrTemplateInstance identifierOrTemplateInstance;
+}
+
+class ArgumentList : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssignExpression[] arguments;
+}
+
+class Arguments : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ArgumentList argumentList;
+}
+
+class ArrayInitializer : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ArrayMemberInitializations arrayMemberInitializations;
+}
+
+class ArrayLiteral : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ArgumentList argumentList;
+}
+
+class ArrayMemberInitialization : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssignExpression assignExpression;
+    NonVoidInitializer nonVoidInitializer;
+}
+
+class ArrayMemberInitializations : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ArrayMemberInitialization[] arrayMemberInitializations;
+}
+
+class AssertExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssignExpression assertion;
+    AssignExpression message;
+}
+
+class AssertStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssertExpression assertExpression;
+}
+
+class AssignStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    PreIncDecExpression preIncDecExpression;
+    PostIncDecExpression postIncDecExpression;
+    UnaryExpression[] unaryExpressions;
+    AssignExpression[] assignExpressions;
+    Token[] assignOperators;
+}
+
+class AssocArrayLiteral : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    KeyValuePairs keyValuePairs;
+}
+
+class AtAttribute : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    FunctionCallExpression functionCallExpression;
+    ArgumentList argumentList;
+    Token identifier;
+}
+
+class AttributedDeclaration : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Declaration[] declarations
+}
+
+class Attribute : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    LinkageAttribute linkageAttribute;
+    AlignAttribute alignAttribute;
+    PragmaExpression pragmaExpression;
+    Deprecated deprecated_;
+    ProtectionAttribute protectionAttribute;
+    AtAttribute atAttribute;
+    Token attribute;
+}
+
+class AutoDeclaration : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    StorageClass storageClass;
+    Token[] identifiers;
+    Initializer[] initializers;
+}
+
+class BlockStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    DeclarationsAndStatements declarationsAndStatements;
+}
+
+class BodyStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    BlockStatements declarationsAndStatements;
+}
+
+class BreakStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token identifier;
+    bool hasIdentifier;
+}
+
+class BuiltinType : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token token;
+}
+
+class CaseRangeStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    AssignExpression low;
+    AssignExpression high;
+    DeclarationsAndStatements declarationsAndStatements;
+}
+
+class CaseStatement: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ArgumentList argumentList;
+    DeclarationsAndStatements declarationsAndStatements;
+}
+
+class CastExpression: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Type type;
+    CastQualifier castQualifier;
+}
+
+class CastQualifier: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token first;
+    Token second;
+    bool hasSecond;
+}
+
+class Catches: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Catch[] catches;
+    LastCatch lastCatch;
+}
+
+class Catch: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Type type;
+    Token identifier;
+    NonEmptyStatementNoCaseNoDefault nonEmptyStatementNoCaseNoDefault;
+}
+
+class ClassBody: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Declaration[] declarations;
+    Invariant[] invariants;
+}
+
+class ClassDeclaration: ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token name;
+    TemplateParameters templateParameters;
+    Constraint constraint;
+    IdentifierList superClasses;
+    ClassBody classBody;
+}
+
+class CmpExpression : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    ShiftExpression shiftExpression;
+    EqualExpression equalExpression;
+    IdentityExpression identityExpression;
+    RelExpression relExpression;
+    InExpression inExpression;
+}
+
+class CompileCondition : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    VersionCondition versionCondition;
+    DebugCondition debugCondition;
+    StaticIfCondition staticIfCondition;
+}
+
+class ConditionalDeclaration : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    CompileCondition compileCondition;
+    Declaration[] trueDeclarations;
+    Declaration[] falseDeclarations;
+}
+
+class ConditionalStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    CompileCondition compileCondition;
+    NonEmptyStatementNoCaseNoDefault trueStatement;
+    NonEmptyStatementNoCaseNoDefault falseStatement;
+}
+
+class Constraint : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Expression expression;
+}
+
+class Constructor : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Parameters parameters;
+    FunctionBody functionBody;
+}
+
+class ContinueStatement : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    bool hasIdentifier;
+    Token identifier;
+}
+
+class DebugCondition : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token identifierOrInteger;
+    bool hasIdentifierOrInteger;
+}
+
+class DebugSpecification : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    Token identifierOrInteger;
+}
+
+class  : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+
 }

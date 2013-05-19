@@ -41,7 +41,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 
 	foreach (Token t; tokens)
 	{
-		if (isType(t.type))
+		if (isBasicType(t.type))
 			writeSpan("type", t.value);
 		else if (isKeyword(t.type))
 			writeSpan("kwrd", t.value);
