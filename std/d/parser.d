@@ -21,124 +21,45 @@ private:
 
 struct Parser
 {
-    Module parseModule()
-    {
-        Module m = new Module;
-        while (index < tokens.length)
-        {
-            switch (tokens[index].type)
-            {
-            case TokenType.module_:
-                if (m.declaration !is null)
-                    m.declaration = parseModuleDeclaration();
-                else
-                    error("Only one module declaration is allowed per module");
-                break;
-            default:
-                m.declDefs.insert(parseDeclDef());
-            }
-        }
-        return m;
-    }
-
-    ModuleDeclaration parseModuleDeclaration()
-    in
-    {
-        assert (expect(TokenType.module_));
-    }
-    body
-    {
-        ModuleDeclaration declaration = new ModuleDeclaration;
-        string recent;
-        loop: while (index < tokens.length)
-        {
-            if (tokens[index].type == TokenType.identifier)
-            {
-                recent = tokens[index++].value;
-                switch (tokens[index].type)
-                {
-                case TokenType.dot:
-                    declaration.packageName ~= recent;
-                    index++;
-                    break;
-                case TokenType.semicolon:
-                    declaration.moduleName = recent;
-                    index++;
-                    break loop;
-                default:
-                    break;
-                }
-            }
-            else
-                error("Identifier expected");
-        }
-        return declaration;
-    }
-
-    DeclDef parseDeclDef()
-    {
-        switch (tokens[index].type)
-        {
-            default:
-                return null;
-        }
-    }
-
-
-
-	LabeledStatement parseLabeledStatement()
-	in
-	{
-		assert (tokens[index].type == TokenType.identifier);
-	}
-	body
-	{
-		auto ls = new LabeledStatement;
-		ls.label = tokens[index++].value;
-		ls.statement = parseNoScopeStatement();
-		return ls;
-	}
-
-	NoScopeStatement parseNoScopeStatement()
-	{
-		switch (tokens[index].type)
-		{
-		case TokenType.semicolon:
-			return new EmptyStatement;
-		case TokenType.lBrace:
-			return parseBlockStatement();
-		default:
-			return parseNonEmptyStatement();
-		}
-	}
-
-	NonEmptyStatement parseNonEmptyStatement()
-	{
-		switch (tokens[index].type)
-		{
-		case TokenType.case_:
-			return parseCaseStatement();
-		case TokenType.default_:
-			return parseDefaultStatement();
-		default:
-			return null;
-		}
-	}
-
-	CaseStatement parseCaseStatement()
-	{
-		return null;
-	}
-
-	DefaultStatement parseDefaultStatement()
-	{
-		return null;
-	}
-
-	Statement parseStatement()
-	{
-		return null;
-	}
+	AddExpression parseAddExpression() { return null; }
+	AliasDeclaration parseAliasDeclaration() { return null; }
+	AliasInitializer parseAliasInitializer() { return null; }
+	AliasThisDeclaration parseAliasThisDeclaration() { return null; }
+	AlignAttribute parseAlignAttribute() { return null; }
+	AndAndExpression parseAndAndExpression() { return null; }
+	AndExpression parseAndExpression() { return null; }
+	ArgumentList parseArgumentList() { return null; }
+	Arguments parseArguments() { return null; }
+	ArrayInitializer parseArrayInitializer() { return null; }
+	ArrayLiteral parseArrayLiteral() { return null; }
+	ArrayMemberInitialization parseArrayMemberInitialization() { return null; }
+	ArrayMemberInitializations parseArrayMemberInitializations() { return null; }
+	AsmAddExp parseAsmAddExp() { return null; }
+	AsmAndExp parseAsmAndExp() { return null; }
+	AsmBrExp parseAsmBrExp() { return null; }
+	AsmEqualExp parseAsmEqualExp() { return null; }
+	AsmExp parseAsmExp() { return null; }
+	AsmInstruction parseAsmInstruction() { return null; }
+	AsmLogAndExp parseAsmLogAndExp() { return null; }
+	AsmLogOrExp parseAsmLogOrExp() { return null; }
+	AsmMulExp parseAsmMulExp() { return null; }
+	AsmOrExp parseAsmOrExp() { return null; }
+	AsmPrimaryExp parseAsmPrimaryExp() { return null; }
+	AsmRelExp parseAsmRelExp() { return null; }
+	AsmShiftExp parseAsmShiftExp() { return null; }
+	AsmStatement parseAsmStatement() { return null; }
+	AsmTypePrefix parseAsmTypePrefix() { return null; }
+	AsmUnaExp parseAsmUnaExp() { return null; }
+	AsmXorExp parseAsmXorExp() { return null; }
+	AssertExpression parseAssertExpression() { return null; }
+	AssertStatement parseAssertStatement() { return null; }
+	AssignExpression parseAssignExpression() { return null; }
+	AssignStatement parseAssignStatement() { return null; }
+	AssocArrayLiteral parseAssocArrayLiteral() { return null; }
+	AtAttribute parseAtAttribute() { return null; }
+	Attribute parseAttribute() { return null; }
+	AttributedDeclaration parseAttributedDeclaration() { return null; }
+	AutoDeclaration parseAutoDeclaration() { return null; }
 
 	BlockStatement parseBlockStatement()
 	{
@@ -153,6 +74,67 @@ struct Parser
 		}
 		return statement;
 	}
+
+	BodyStatement parseBodyStatement() { return null; }
+
+	BreakStatement parseBreakStatement()
+	{
+		expect(TokenType.break_);
+		return parseContinueBreakStatement!(BreakStatement)();
+	}
+
+	BuiltinType parseBuiltinType() { return null; }
+	CaseRangeStatement parseCaseRangeStatement() { return null; }
+	CaseStatement parseCaseStatement() { return null; }
+	CastExpression parseCastExpression() { return null; }
+	CastQualifier parseCastQualifier() { return null; }
+	Catch parseCatch() { return null; }
+	Catches parseCatches() { return null; }
+	ClassBody parseClassBody() { return null; }
+	ClassDeclaration parseClassDeclaration() { return null; }
+	CmpExpression parseCmpExpression() { return null; }
+	CompileCondition parseCompileCondition() { return null; }
+	ConditionalDeclaration parseConditionalDeclaration() { return null; }
+	ConditionalStatement parseConditionalStatement() { return null; }
+	Constraint parseConstraint() { return null; }
+	Constructor parseConstructor() { return null; }
+
+	ContinueStatement parseContinueStatement()
+	{
+		expect(TokenType.continue_);
+		return parseContinueBreakStatement!(ContinueStatement)();
+	}
+
+	DebugCondition parseDebugCondition() { return null; }
+	DebugSpecification parseDebugSpecification() { return null; }
+	Declaration parseDeclaration() { return null; }
+	DeclarationsAndStatements parseDeclarationsAndStatements() { return null; }
+	Declarator parseDeclarator() { return null; }
+	DeclaratorSuffix parseDeclaratorSuffix() { return null; }
+	DefaultStatement parseDefaultStatement() { return null; }
+	DeleteExpression parseDeleteExpression() { return null; }
+	DeleteStatement parseDeleteStatement() { return null; }
+	Deprecated parseDeprecated() { return null; }
+	Destructor parseDestructor() { return null; }
+	DoStatement parseDoStatement() { return null; }
+	EnumBody parseEnumBody() { return null; }
+	EnumDeclaration parseEnumDeclaration() { return null; }
+	EnumMember parseEnumMember() { return null; }
+	EqualExpression parseEqualExpression() { return null; }
+	Expression parseExpression() { return null; }
+	FinalSwitchStatement parseFinalSwitchStatement() { return null; }
+	Finally parseFinally() { return null; }
+	ForStatement parseForStatement() { return null; }
+	ForeachRangeStatement parseForeachRangeStatement() { return null; }
+	ForeachStatement parseForeachStatement() { return null; }
+	ForeachType parseForeachType() { return null; }
+	ForeachTypeList parseForeachTypeList() { return null; }
+	FunctionAttribute parseFunctionAttribute() { return null; }
+	FunctionBody parseFunctionBody() { return null; }
+	FunctionCallExpression parseFunctionCallExpression() { return null; }
+	FunctionCallStatement parseFunctionCallStatement() { return null; }
+	FunctionDeclaration parseFunctionDeclaration() { return null; }
+	FunctionLiteralExpression parseFunctionLiteralExpression() { return null; }
 
 	GotoStatement parseGotoStatement()
 	{
@@ -179,35 +161,14 @@ struct Parser
 		return g;
 	}
 
-	ContinueStatement parseContinueStatement()
-	{
-		expect(TokenType.continue_);
-		return parseContinueBreakStatement!(ContinueStatement)();
-	}
-
-	BreakStatement parseBreakStatement()
-	{
-		expect(TokenType.break_);
-		return parseContinueBreakStatement!(BreakStatement)();
-	}
-
-	statementType parseContinueBreakStatement(alias statementType)()
-	{
-		index++;
-		auto c = new statementType;
-		switch (tokens[index].type)
-		{
-			case TokenType.identifier:
-				c.identifier = tokens[index++].value;
-				goto case;
-			case TokenType.semicolon:
-				return c;
-			default:
-				error("Identifier or semicolon expected");
-				return null;
-		}
-
-	}
+	IdentifierChain parseIdentifierChain() { return null; }
+	IdentifierList parseIdentifierList() { return null; }
+	IdentifierOrTemplateChain parseIdentifierOrTemplateChain() { return null; }
+	IdentifierOrTemplateInstance parseIdentifierOrTemplateInstance() { return null; }
+	IdentityExpression parseIdentityExpression() { return null; }
+	IfStatement parseIfStatement() { return null; }
+	ImportBind parseImportBind() { return null; }
+	ImportBindings parseImportBindings() { return null; }
 
 	ImportDeclaration parseImportDeclaration(Tokens)(ref Tokens tokens)
 	in
@@ -311,6 +272,213 @@ struct Parser
 		}
 
 		return declaration;
+	}
+
+	ImportExpression parseImportExpression() { return null; }
+	ImportList parseImportList() { return null; }
+	InExpression parseInExpression() { return null; }
+	InStatement parseInStatement() { return null; }
+	Initialize parseInitialize() { return null; }
+	Initializer parseInitializer() { return null; }
+	InterfaceDeclaration parseInterfaceDeclaration() { return null; }
+	Invariant parseInvariant() { return null; }
+	IsExpression parseIsExpression() { return null; }
+	KeyValuePair parseKeyValuePair() { return null; }
+	KeyValuePairs parseKeyValuePairs() { return null; }
+
+	LabeledStatement parseLabeledStatement()
+	in
+	{
+		assert (tokens[index].type == TokenType.identifier);
+	}
+	body
+	{
+		auto ls = new LabeledStatement;
+		ls.label = tokens[index++].value;
+		ls.statement = parseNoScopeStatement();
+		return ls;
+	}
+
+	LambdaExpression parseLambdaExpression() { return null; }
+	LastCatch parseLastCatch() { return null; }
+	LinkageAttribute parseLinkageAttribute() { return null; }
+	MemberFunctionAttribute parseMemberFunctionAttribute() { return null; }
+	MixinDeclaration parseMixinDeclaration() { return null; }
+	MixinExpression parseMixinExpression() { return null; }
+	MixinTemplateName parseMixinTemplateName() { return null; }
+
+	Module parseModule()
+    {
+        Module m = new Module;
+        while (index < tokens.length)
+        {
+            switch (tokens[index].type)
+            {
+            case TokenType.module_:
+                if (m.declaration !is null)
+                    m.declaration = parseModuleDeclaration();
+                else
+                    error("Only one module declaration is allowed per module");
+                break;
+            default:
+                m.declDefs.insert(parseDeclDef());
+            }
+        }
+        return m;
+    }
+
+	ModuleDeclaration parseModuleDeclaration()
+    in
+    {
+        assert (expect(TokenType.module_));
+    }
+    body
+    {
+        ModuleDeclaration declaration = new ModuleDeclaration;
+        string recent;
+        loop: while (index < tokens.length)
+        {
+            if (tokens[index].type == TokenType.identifier)
+            {
+                recent = tokens[index++].value;
+                switch (tokens[index].type)
+                {
+                case TokenType.dot:
+                    declaration.packageName ~= recent;
+                    index++;
+                    break;
+                case TokenType.semicolon:
+                    declaration.moduleName = recent;
+                    index++;
+                    break loop;
+                default:
+                    break;
+                }
+            }
+            else
+                error("Identifier expected");
+        }
+        return declaration;
+    }
+
+	MulExpression parseMulExpression() { return null; }
+	NewAnonClassExpression parseNewAnonClassExpression() { return null; }
+	NewExpression parseNewExpression() { return null; }
+
+	NonEmptyStatement parseNonEmptyStatement()
+	{
+		switch (tokens[index].type)
+		{
+		case TokenType.case_:
+			return parseCaseStatement();
+		case TokenType.default_:
+			return parseDefaultStatement();
+		default:
+			return null;
+		}
+	}
+
+	NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault() { return null; }
+	NonVoidInitializer parseNonVoidInitializer() { return null; }
+	Opcode parseOpcode() { return null; }
+	Operand parseOperand() { return null; }
+	Operands parseOperands() { return null; }
+	OrExpression parseOrExpression() { return null; }
+	OrOrExpression parseOrOrExpression() { return null; }
+	OutStatement parseOutStatement() { return null; }
+	Parameter parseParameter() { return null; }
+	ParameterAttribute parseParameterAttribute() { return null; }
+	Parameters parseParameters() { return null; }
+	PostIncDecExpression parsePostIncDecExpression() { return null; }
+	PowExpression parsePowExpression() { return null; }
+	PragmaDeclaration parsePragmaDeclaration() { return null; }
+	PragmaExpression parsePragmaExpression() { return null; }
+	PreIncDecExpression parsePreIncDecExpression() { return null; }
+	PrimaryExpression parsePrimaryExpression() { return null; }
+	ProtectionAttribute parseProtectionAttribute() { return null; }
+	Register parseRegister() { return null; }
+	RelExpression parseRelExpression() { return null; }
+	ReturnStatement parseReturnStatement() { return null; }
+	ScopeGuardStatement parseScopeGuardStatement() { return null; }
+	SharedStaticConstructor parseSharedStaticConstructor() { return null; }
+	SharedStaticDestructor parseSharedStaticDestructor() { return null; }
+	ShiftExpression parseShiftExpression() { return null; }
+	SingleImport parseSingleImport() { return null; }
+	Statement parseStatement() { return null; }
+	StatementNoCaseNoDefault parseStatementNoCaseNoDefault() { return null; }
+	StaticAssertDeclaration parseStaticAssertDeclaration() { return null; }
+	StaticAssertStatement parseStaticAssertStatement() { return null; }
+	StaticConstructor parseStaticConstructor() { return null; }
+	StaticDestructor parseStaticDestructor() { return null; }
+	StaticIfCondition parseStaticIfCondition() { return null; }
+	StorageClass parseStorageClass() { return null; }
+	StructBody parseStructBody() { return null; }
+	StructDeclaration parseStructDeclaration() { return null; }
+	StructInitializer parseStructInitializer() { return null; }
+	StructMemberInitializer parseStructMemberInitializer() { return null; }
+	StructMemberInitializers parseStructMemberInitializers() { return null; }
+	SwitchBody parseSwitchBody() { return null; }
+	SwitchStatement parseSwitchStatement() { return null; }
+	Symbol parseSymbol() { return null; }
+	SynchronizedStatement parseSynchronizedStatement() { return null; }
+	TemplateAliasParameter parseTemplateAliasParameter() { return null; }
+	TemplateArgument parseTemplateArgument() { return null; }
+	TemplateArgumentList parseTemplateArgumentList() { return null; }
+	TemplateArguments parseTemplateArguments() { return null; }
+	TemplateDeclaration parseTemplateDeclaration() { return null; }
+	TemplateInstance parseTemplateInstance() { return null; }
+	TemplateMixinStatement parseTemplateMixinStatement() { return null; }
+	TemplateParameter parseTemplateParameter() { return null; }
+	TemplateParameterList parseTemplateParameterList() { return null; }
+	TemplateParameters parseTemplateParameters() { return null; }
+	TemplateSingleArgument parseTemplateSingleArgument() { return null; }
+	TemplateThisParameter parseTemplateThisParameter() { return null; }
+	TemplateTupleParameter parseTemplateTupleParameter() { return null; }
+	TemplateTypeParameter parseTemplateTypeParameter() { return null; }
+	TemplateValueParameter parseTemplateValueParameter() { return null; }
+	TemplateValueParameterDefault parseTemplateValueParameterDefault() { return null; }
+	TernaryExpression parseTernaryExpression() { return null; }
+	ThrowStatement parseThrowStatement() { return null; }
+	TraitsArgument parseTraitsArgument() { return null; }
+	TraitsExpression parseTraitsExpression() { return null; }
+	TryStatement parseTryStatement() { return null; }
+	Type parseType() { return null; }
+	Type2 parseType2() { return null; }
+	Type3 parseType3() { return null; }
+	TypeConstructor parseTypeConstructor() { return null; }
+	TypeConstructors parseTypeConstructors() { return null; }
+	TypeSpecialization parseTypeSpecialization() { return null; }
+	TypeSuffix parseTypeSuffix() { return null; }
+	TypeidExpression parseTypeidExpression() { return null; }
+	TypeofExpression parseTypeofExpression() { return null; }
+	UnaryExpression parseUnaryExpression() { return null; }
+	UnionDeclaration parseUnionDeclaration() { return null; }
+	Unittest parseUnittest() { return null; }
+	VariableDeclaration parseVariableDeclaration() { return null; }
+	VersionCondition parseVersionCondition() { return null; }
+	VersionSpecification parseVersionSpecification() { return null; }
+	WhileStatement parseWhileStatement() { return null; }
+	WithStatement parseWithStatement() { return null; }
+	XorExpression parseXorExpression() { return null; }
+
+	///////////////////////////////////////////////////////////////
+
+	statementType parseContinueBreakStatement(alias statementType)()
+	{
+		index++;
+		auto c = new statementType;
+		switch (tokens[index].type)
+		{
+			case TokenType.identifier:
+				c.identifier = tokens[index++].value;
+				goto case;
+			case TokenType.semicolon:
+				return c;
+			default:
+				error("Identifier or semicolon expected");
+				return null;
+		}
+
 	}
 
     void error(string message)
@@ -451,586 +619,4 @@ unittest
 	assert (decl.imports[0].symbols[0].symbolName == "writefln");
 	assert (decl.imports[0].symbols[1].symbolName == "writef");
 	assert (decl.imports[0].symbols[1].alias_ == "foo");
-}
-
-
-
-//
-//unittest
-//{
-//	auto a = cast(ubyte[]) q{/** */ module a.b.c;};
-//	LexerConfig config;
-//	auto ta = byToken(a, config);
-//	auto moda = parseModuleDeclaration(ta);
-//	assert (moda.packageName == ["a", "b"]);
-//	assert (moda.moduleName == "c");
-//
-//	auto b = cast(ubyte[]) q{module a;};
-//	auto tb = byToken(b, config);
-//	auto modb = parseModuleDeclaration(tb);
-//	assert (modb.packageName.length == 0);
-//	assert (modb.moduleName == "a");
-//}
-//
-//NonEmptyStatement parseNonEmptyStatement(Token[] tokens)
-//{
-//	switch (tokens[i].type)
-//	{
-//		case TokenType.case_:
-//			return null;
-//		case TokenType.default_:
-//			return parseDefaultStatement(tokens);
-//		default:
-//			return parseNonEmptyStatementNoCaseNoDefault(tokens);
-//	}
-//}
-//
-//NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault(Token[] tokens)
-//{
-//	switch (tokens[i].type)
-//	{
-//	case TokenType.identifier:
-//	case TokenType.if_:
-//		return parseIfStatement(tokens);
-//	case TokenType.while_:
-//		return parseWhileStatement(tokens);
-//	case TokenType.do_:
-//		return parseDoStatement(tokens);
-//	case TokenType.for_:
-//		return parseForStatement(tokens);
-//	case TokenType.foreach_:
-//		return parseForeachStatement(tokens);
-//	case TokenType.switch_:
-//		return parseSwitchStatement(tokens);
-//	case TokenType.final_:
-//		if (tokens.peek(1).type == TokenType.switch_)
-//			return parseFinalSwitchStatement(tokens);
-//		else
-//			goto default;
-//	case TokenType.continue_:
-//		return parseContinueStatement(tokens);
-//	case TokenType.break_:
-//		return parseBreakStatement(tokens);
-//	case TokenType.return_:
-//		return parseReturnStatement(tokens);
-//	case TokenType.goto_:
-//		return parseGotoStatement(tokens);
-//	case TokenType.with_:
-//		return parseWithStatement(tokens);
-//	case TokenType.synchronized_:
-//		return parseSynchronizedStatement(tokens);
-//	case TokenType.try_:
-//		return parseTryStatement(tokens);
-//	case TokenType.scope_:
-//		return parseScopeGuardStatement(tokens);
-//	case TokenType.throw_:
-//		return parseThrowStatement(tokens);
-//	case TokenType.asm_:
-//		return parseAsmStatement(tokens);
-//	case TokenType.pragma_:
-//		return parsePragmaStatement(tokens);
-//	case TokenType.mixin_:
-//		if (tokens.peek(1).type == TokenType.lParen)
-//			return parseMixinStatement(tokens);
-//		else if (tokens.peek(1).type == TokenType.identifier)
-//			return parseTemplateMixinStatement(tokens);
-//		else
-//		{
-//			error(tokens, "Expected identifier or ( following \"mixin\"");
-//			return null;
-//		}
-//	case TokenType.version_:
-//		if (tokens.peek(1).type == TokenType.lParen)
-//			return parseConditionalStatement(tokens);
-//		else
-//		{
-//			error(tokens, "Expected ( following \"version\"");
-//			return null;
-//		}
-//	case TokenType.debug_:
-//		return parseConditionalStatement(tokens);
-//	case TokenType.static_:
-//		if (tokens.peek(1).type == TokenType.if_)
-//			return parseConditionalStatement(tokens);
-//		else if (tokens.peek(1).type == TokenType.assert_)
-//			return parseStaticAssert(tokens);
-//		else
-//		{
-//			error(tokens, "Expected \"if\" or \"assert\" following \"static\"");
-//			return null;
-//		}
-//	case TokenType.import_:
-//		return parseImportDeclaration(tokens);
-//	default:
-//		auto d = parseDeclarationStatement(tokens);
-//		if (d is null)
-//		{
-//			auto e = parseExpressionStatement(tokens);
-//			if (e is null)
-//			{
-//				error(tokens, "OMGWTF");
-//				return null;
-//			}
-//			else
-//				return e;
-//		}
-//		else
-//			return d;
-//	}
-//}
-//
-
-//
-//
-//T parseSingleTokenExpression(TokType, AstType, R)(ref R range)
-//{
-//	auto node = new AstType;
-//	node.token = range.moveFront();
-//	return node;
-//}
-//
-//AssignExpression parseAssignExpression(Tokens)(ref Tokens tokens)
-//{
-//	auto expr = new AssignExpression;
-//	expr.left = parseConditionalExpression(tokens);
-//	switch (tokens[i].type)
-//	{
-//		case TokenType.assign:
-//		case TokenType.plusEqual:
-//		case TokenType.minusEqual:
-//		case TokenType.mulEqual:
-//		case TokenType.divEqual:
-//		case TokenType.modEqual:
-//		case TokenType.bitAndEqual:
-//		case TokenType.bitOrEqual:
-//		case TokenType.xorEqual:
-//		case TokenType.catEqual:
-//		case TokenType.shiftLeftEqual:
-//		case TokenType.shiftRightEqual:
-//		case TokenType.unsignedShiftRightEqual:
-//		case TokenType.powEqual:
-//			expr.operator = tokens.moveFront().type;
-//			expr.right = parseAssignExpression();
-//		default:
-//			break;
-//	}
-//	return expr;
-//}
-
-/+
-
-
-bool isIdentifierOrBasicType(const TokenType type)
-{
-    return isType(type) || type == TokenType.identifier;
-}
-
-
-
-string parseType(Tokens)(ref Tokens tokens)
-{
-    if (tokens.front != TokenType.identifier && !isType(tokens.front.type))
-        return null;
-    auto app = appender!(ubyte[])();
-    switch (tokens.front.type)
-    {
-    case TokenType.const_:
-    case TokenType.immutable_:
-    case TokenType.shared_:
-    case TokenType.inout_:
-    case TokenType.typeof_:
-        app.put(cast(ubyte[]) tokens.moveFront().value);
-        if (tokens.empty) goto ret;
-        if (tokens.front.type == TokenType.lParen)
-            app.put(cast(ubyte[]) parenContent(tokens));
-        break;
-    case TokenType.bool_: .. case TokenType.wchar_:
-    case TokenType.identifier:
-        app.put(cast(ubyte[]) tokens.moveFront().value);
-        break;
-    default:
-        return null;
-    }
-
-    if (tokens.empty) goto ret;
-
-    if (tokens.front.type == TokenType.not)
-    {
-        app.put('!');
-        tokens.popFront();
-        if (tokens.empty) goto ret;
-        if (tokens.front.type == TokenType.lParen)
-            app.put(cast(ubyte[]) parenContent(tokens));
-        else if (isIdentifierOrBasicType(tokens.front.type))
-            app.put(cast(ubyte[]) tokens.moveFront().value);
-        else
-            goto ret;
-    }
-    else if (tokens.front.type == TokenType.function_ || tokens.front.type == TokenType.delegate_)
-    {
-        app.put(' ');
-        app.put(cast(ubyte[]) tokens.moveFront().value);
-        if (tokens.empty) goto ret;
-        if (tokens.front.type == TokenType.lParen)
-        {
-            app.put(cast(ubyte[]) parenContent(tokens));
-            goto ret;
-        }
-    }
-
-    loop: while (!tokens.empty)
-    {
-        switch (tokens.front.type)
-        {
-        case TokenType.star:
-            app.put('*');
-            tokens.popFront();
-            break;
-        case TokenType.lBracket:
-            app.put(cast(ubyte[]) bracketContent(tokens));
-            break;
-        default:
-            break loop;
-        }
-    }
-ret:
-    return cast(string) app.data;
-}
-
-unittest
-{
-    auto sources = [
-        q{int}c,
-        q{int function(int,int)}c,
-        q{void}c,
-        q{char*}c,
-        q{char*[]*[]}c,
-        q{Stuff!(int,double)*}c,
-        q{Template!a[]}c,
-        q{Template!(a)[]}c,
-    ];
-    LexerConfig config;
-    foreach (source; sources)
-    {
-        auto tokens = (cast(ubyte[]) source).byToken(config).circularBuffer(4);
-        auto t = parseType(tokens);
-        assert (t == source, t);
-    }
-}
-
-Parameter parseParameter(Tokens)(ref Tokens tokens)
-{
-    Parameter p;
-    p.type = parseType(tokens);
-    if (!tokens.empty && (tokens.front.type == TokenType.delegate_ || tokens.front.type == TokenType.function_))
-    {
-        p.type ~= " " ~ tokens.moveFront().value;
-        if (tokens.front.type == TokenType.lParen)
-            p.type ~= "(" ~ parenContent(tokens) ~")";
-    }
-    if (tokens.empty || tokens.front.type == TokenType.comma || tokens.front.type == TokenType.rParen)
-    {
-        p.name = p.type;
-        p.type = "";
-    }
-    else
-        p.name = tokens.moveFront().value;
-    return p;
-}
-
-unittest
-{
-    auto source = cast(ubyte[]) q{int[] a}c;
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(4);
-    auto p = parseParameter(tokens);
-    assert (p.name == "a", p.name);
-    assert (p.type == "int[]", p.type);
-}
-
-Parameter[] parseParameters(Tokens)(ref Tokens tokens)
-in
-{
-    assert (tokens.front == TokenType.lParen);
-}
-body
-{
-    tokens.popFront();
-    if (tokens.front.type == TokenType.rParen)
-    {
-        tokens.popFront();
-        return [];
-    }
-    auto app = appender!(Parameter[])();
-    while (!tokens.empty)
-    {
-        app.put(parseParameter(tokens));
-        if (tokens.empty)
-            break;
-        else if (tokens.front.type == TokenType.rParen)
-        {
-            tokens.popFront();
-            break;
-        }
-        else if (tokens.front == TokenType.comma)
-            tokens.popFront();
-        else
-        {
-            tokens.popFront();
-            break;
-        }
-    }
-    return app.data;
-}
-
-unittest
-{
-    auto source = cast(ubyte[]) q{(int[] a, double d, void*[] voids,
-        void function(int**, double*[][string]) vf, R);}c;
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(4);
-    auto p = parseParameters(tokens);
-    assert (p.length == 5, "%d".format(p.length));
-    assert (p[0].name == "a", p[0].name);
-    assert (p[0].type == "int[]", p[0].type);
-    assert (p[1].name == "d", p[1].name);
-    assert (p[1].type == "double", p[1].type);
-    assert (p[2].name == "voids", p[2].name);
-    assert (p[2].type == "void*[]", p[2].type);
-    assert (p[3].name == "vf", p[3].name);
-    assert (p[3].type == "void function(int**,double*[][string])", p[3].type);
-    assert (p[4].name == "R", p[4].name);
-    assert (p[4].type == "", p[4].type);
-    assert (tokens.front.type == TokenType.semicolon, tokens.front.value);
-}
-
-unittest
-{
-    auto source = cast(ubyte[]) q{()}c;
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(2);
-    auto p = parseParameters(tokens);
-    assert (p.length == 0, "%s".format(p.length));
-}
-
-FunctionDeclaration parseFunctionDeclaration(Tokens)(ref Tokens tokens, string type)
-{
-    FunctionDeclaration fun;
-    fun.returnType = type;
-    fun.name = tokens.moveFront().value;
-    fun.rtParameters = parseParameters(tokens);
-    if (tokens.front.type == TokenType.lParen)
-    {
-        fun.ctParameters = fun.rtParameters;
-        fun.rtParameters = parseParameters(tokens);
-    }
-    while (!tokens.empty && isAttribute(tokens.front.type))
-        fun.attributes.set(tokens.moveFront().type);
-    if (tokens.front.type == TokenType.lBrace)
-        skipBraces(tokens);
-    else if (tokens.front.type == TokenType.semicolon)
-        tokens.popFront();
-    return fun;
-}
-
-unittest
-{
-    auto source = cast(ubyte[]) q{
-        void doStuff();
-        T calcSomething(T)(T input) { return input * 2; }
-        const(string)[] getStrings() const {}
-    }c;
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(4);
-
-    auto decl = parseFunctionDeclaration(tokens, parseType(tokens));
-    assert (decl.name == "doStuff");
-    assert (decl.returnType == "void");
-    assert (decl.ctParameters.length == 0);
-    assert (decl.rtParameters.length == 0);
-
-    decl = parseFunctionDeclaration(tokens, parseType(tokens));
-    assert (decl.name == "calcSomething");
-    assert (decl.returnType == "T");
-    assert (decl.ctParameters[0].name == "T");
-    assert (decl.rtParameters[0].type == "T");
-    assert (decl.rtParameters[0].name == "input");
-
-    decl = parseFunctionDeclaration(tokens, parseType(tokens));
-    assert (decl.returnType == "const(string)[]", decl.returnType);
-    assert (decl.name == "getStrings", decl.name);
-    assert (decl.ctParameters.length == 0);
-    assert (decl.rtParameters.length == 0);
-    assert (decl.attributes.get() == [TokenType.const_]);
-    assert (tokens.empty);
-}
-
-VariableDeclaration parseVariableDeclaration(Tokens)(ref Tokens tokens, string type)
-{
-    VariableDeclaration v;
-    v.line = tokens.front.line;
-    v.type = type;
-    v.name = tokens.front.value;
-    tokens.popFront();
-    if (tokens.front.type == TokenType.semicolon)
-        tokens.popFront();
-    else
-        skipPastSemicolon(tokens);
-    return v;
-}
-
-unittest
-{
-    auto source = cast(ubyte[]) q{int c;}c;
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(2);
-    auto decl = parseVariableDeclaration(tokens, parseType(tokens));
-    assert (decl.name == "c");
-    assert (decl.type == "int", decl.type);
-    assert (tokens.empty);
-}
-
-ModuleDeclaration parseModuleDeclaration(Tokens)(ref Tokens tokens)
-in
-{
-    assert (tokens.front.type == TokenType.module_);
-}
-body
-{
-    tokens.popFront();
-    ModuleDeclaration declaration;
-    string recent;
-    loop: while (!tokens.empty)
-    {
-        if (tokens.front.type == TokenType.identifier)
-        {
-            recent = tokens.moveFront().value;
-            switch (tokens.front.type)
-            {
-            case TokenType.dot:
-                declaration.package_ ~= recent;
-                tokens.popFront();
-                break;
-            case TokenType.semicolon:
-                declaration.name = recent;
-                tokens.popFront();
-                break loop;
-            default:
-                break;
-            }
-        }
-        else
-            skipPastSemicolon(tokens);
-    }
-    return declaration;
-}
-
-unittest
-{
-    auto a = cast(ubyte[]) q{/** */ module a.b.c;};
-    LexerConfig config;
-    auto ta = byToken(a, config).circularBuffer(2);
-    auto moda = parseModuleDeclaration(ta);
-    assert (moda.package_ == ["a", "b"]);
-    assert (moda.name == "c");
-
-    auto b = cast(ubyte[]) q{module a;};
-    auto tb = byToken(b, config).circularBuffer(2);
-    auto modb = parseModuleDeclaration(tb);
-    assert (modb.package_.length == 0);
-    assert (modb.name == "a");
-}
-
-Module parseMod(Tokens)(ref Tokens tokens)
-{
-    Module mod;
-    while (!tokens.empty)
-    {
-        switch (tokens.front.type)
-        {
-//			case TokenType.const_:
-//			case TokenType.immutable_:
-//			case TokenType.shared_:
-//			case TokenType.inout_:
-//				if (tokens.peek.type == TokenType.lParen)
-//				{
-//					auto
-//				}
-//				break;
-            case TokenType.rBrace:
-                return mod;
-            case TokenType.identifier:
-            case TokenType.bool_: .. case TokenType.wchar_:
-                auto type = parseType(tokens);
-                if (tokens.front.type == TokenType.identifier)
-                {
-                    if (tokens.peek.type == TokenType.lParen)
-                        mod.functions ~= parseFunctionDeclaration(tokens, type);
-                    else
-                        mod.variables ~= parseVariableDeclaration(tokens, type);
-                }
-                else
-                    skipPastSemicolon(tokens);
-                break;
-            case TokenType.module_:
-                mod.moduleDeclaration = parseModuleDeclaration(tokens);
-                break;
-            case TokenType.class_:
-                mod.classes ~= parseClassDeclaration(tokens);
-                break;
-//			case TokenType.align_:
-//			case TokenType.deprecated_:
-//			case TokenType.extern_:
-            default:
-                tokens.popFront();
-        }
-    }
-    return mod;
-}
-
-Module parseModule(ref const(ubyte)[] source)
-{
-    LexerConfig config;
-    auto tokens = source.byToken(config).circularBuffer(2);
-    AttributeList attributes;
-    return parseMod(tokens);
-}
-
-unittest
-{
-    auto source = cast(const(ubyte)[]) q{
-        module a.b.c;
-
-        int x;
-        int doStuff();
-        int doOtherStuff() {}
-
-        class Point { int x; int y; }
-    }c;
-    auto mod = parseModule(source);
-    assert (mod.moduleDeclaration.name == "c");
-    assert (mod.moduleDeclaration.package_ == ["a", "b"]);
-    assert (mod.functions.length == 2);
-    assert (mod.variables.length == 1);
-    assert (mod.classes.length == 1);
-}
-
-ClassDeclaration parseClassDeclaration(Tokens)(ref Tokens tokens)
-in
-{
-    assert (tokens.front.type == TokenType.class_);
-}
-body
-{
-    tokens.popFront();
-    ClassDeclaration decl;
-    if (tokens.front.type != TokenType.identifier)
-
-
-    return decl;
-}
-+/
-
-void main(string[] args)
-{
 }
