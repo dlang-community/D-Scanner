@@ -1159,6 +1159,7 @@ class LabeledStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
+    Token identifier;
 	Statement statement;
 }
 
