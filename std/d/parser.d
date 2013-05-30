@@ -1,15 +1,34 @@
 // Written in the D programming language
 
 /**
- * This module contains a parser for D source code.
+ * This module contains a _parser for D source code.
+ *
+ * Examples:
+ * ---
+ * // TODO
+ * ---
+ *
+ * Copyright: Brian Schott 2013
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
+ * Authors: Brian Schott
+ * Source: $(PHOBOSSRC std/d/_parser.d)
+ * MACROS:
+ *     GRAMMAR = <pre>$0</pre>
  */
 
 module std.d.parser;
 
 import std.d.lexer;
 import std.d.ast;
+import std.conv;
+import std.algorithm;
 version(unittest) import std.stdio;
 
+/**
+* Params:
+*     tokens = the tokens parsed by std.d.lexer
+* Returns: the parsed module
+*/
 Module parseModule(R)(R tokens) if (is (ElementType!R == Token))
 {
 	auto parser = new Parser();
@@ -17,286 +36,522 @@ Module parseModule(R)(R tokens) if (is (ElementType!R == Token))
 	return parser.parseModule();
 }
 
-private:
-
+/**
+ * Parser structure
+ */
 struct Parser
 {
+	/**
+	 * Parses an AddExpression.
+	 * $(GRAMMAR addExpression: mulExpression
+	 *     | addExpression ('+' | '-' | '~') addExpression
+	 *     ;)
+	 */
 	AddExpression parseAddExpression()
-    {
-        auto node = new AddExpression;
-        return node;
-    }
+	{
+		auto node = new AddExpression;
+		auto mul = parseMulExpression();
+		node.mulExpression = mul;
+		while (tokens[index] == TokenType.plus || tokens[index] == TokenType.minus || tokens[index] == TokenType.tilde)
+		{
+			node.operator = tokens[index++];
+			auto newNode = new AddExpression;
+			newNode.left = node;
+			newNode.right = parseAddExpression();
+			node = newNode;
+		}
+		return node;
+	}
 
+	/**
+	 * Parses an AliasDeclaration
+	 * $(GRAMMAR aliasDeclaration: 'alias' (aliasInitializer (',' aliasInitializer)* | type declarator) ';'
+	 *     ;)
+	 */
 	AliasDeclaration parseAliasDeclaration()
-    {
-        auto node = new AliasDeclaration;
+	{
+		auto node = new AliasDeclaration;
+		expect(TokenType.alias_);
 
-        return node;
-    }
+		// TODO
 
-    AliasInitializer parseAliasInitializer()
-    {
-        auto node = new AliasInitializer;
+		expect(TokenType.semicolon);
+		return node;
+	}
 
-        return node;
-    }
+	/**
+	 * Parses an AliasInitializer
+	 * $(GRAMMAR aliasInitializer: Identifier '=' type
+	 *     ;)
+	 */
+	AliasInitializer parseAliasInitializer()
+	{
+		auto node = new AliasInitializer;
+		node.identifier = *expect(TokenType.identifier);
+		expect(TokenType.assign);
+		node.type = parseType();
+		return node;
+	}
 
+	/**
+	 * Parses an AliasThisDeclaration
+	 * $(GRAMMAR aliasThisDeclaration: 'alias' Identifier 'this' ';'
+	 *     ;)
+	 */
 	AliasThisDeclaration parseAliasThisDeclaration()
-    {
-        auto node = new AliasThisDeclaration;
+	{
+		auto node = new AliasThisDeclaration;
+		expect(TokenType.alias_);
+		node.identifier = *expect(TokenType.identifier);
+		expect(TokenType.this_);
+		expect(TokenType.semicolon);
+		return node;
+	}
 
-        return node;
-    }
-
+	/**
+	 * Parses an AlignAttribute.
+	 * $(GRAMMAR alignAttribute: 'align' ('(' IntegerLiteral ')')?
+	 *     ;)
+	 */
 	AlignAttribute parseAlignAttribute()
-    {
-        auto node = new AlignAttribute;
+	{
+		auto node = new AlignAttribute;
+		expect(TokenType.align_);
+		if (currentIs(TokenType.lParen))
+		{
+			expect(TokenType.lParen);
+			node.intLiteral = *expect(TokenType.intLiteral);
+			expect(TokenType.rParen);
+		}
+		return node;
+	}
 
-        return node;
-    }
-
+	/**
+	 * Parses an AndAndExpression
+	 * $(GRAMMAR andAndExpression: orExpression
+	 *     | andAndExpression '&&' orExpression
+	 *     ;)
+	 */
 	AndAndExpression parseAndAndExpression()
-    {
-        auto node = new AndAndExpression;
+	{
+		auto node = new AndAndExpression;
+		node.right = parseOrExpression();
+		while (tokens[index] == TokenType.logicAnd)
+		{
+			expect(TokenType.logicAnd);
+			auto node2 = new AndAndExpression;
+			node2.left = node;
+			node2.right = parseOrExpression();
+			node = node2;
+		}
+		return node;
+	}
 
-        return node;
-    }
-
+	/**
+	 * Parses an AndExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	AndExpression parseAndExpression()
-    {
-        auto node = new AndExpression;
+	{
+		auto node = new AndExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ArgumentList
+	 *
+	 * $(GRAMMAR )
+	 */
 	ArgumentList parseArgumentList()
-    {
-        auto node = new ArgumentList;
+	{
+		auto node = new ArgumentList;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Arguments
+	 *
+	 * $(GRAMMAR )
+	 */
 	Arguments parseArguments()
-    {
-        auto node = new Arguments;
-        expect(TokenType.lParen);
-        node.argumentList = parseArgumentList();
-        expect(TokenType.rParen);
-        return node;
-    }
+	{
+		auto node = new Arguments;
+		expect(TokenType.lParen);
+		node.argumentList = parseArgumentList();
+		expect(TokenType.rParen);
+		return node;
+	}
 
+	/**
+	 * Parses an ArrayInitializer
+	 *
+	 * $(GRAMMAR )
+	 */
 	ArrayInitializer parseArrayInitializer()
-    {
-        auto node = new ArrayInitializer;
+	{
+		auto node = new ArrayInitializer;
 
-        return node;
-    }
+		return node;
+	}
 
-    ArrayLiteral parseArrayLiteral()
-    {
-        auto node = new ArrayLiteral;
-        expect(TokenType.lBracket);
-        node.argumentList = parseArgumentList();
-        expect(TokenType.rBracket);
-        return node;
-    }
+	/**
+	 * Parses an ArrayLiteral
+	 *
+	 * $(GRAMMAR )
+	 */
+	ArrayLiteral parseArrayLiteral()
+	{
+		auto node = new ArrayLiteral;
+		expect(TokenType.lBracket);
+		node.argumentList = parseArgumentList();
+		expect(TokenType.rBracket);
+		return node;
+	}
 
+	/**
+	 * Parses an ArrayMemberInitialization
+	 *
+	 * $(GRAMMAR )
+	 */
 	ArrayMemberInitialization parseArrayMemberInitialization()
-    {
-        auto node = new ArrayMemberInitialization;
+	{
+		auto node = new ArrayMemberInitialization;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ArrayMemberInitializations
+	 *
+	 * $(GRAMMAR )
+	 */
 	ArrayMemberInitializations parseArrayMemberInitializations()
-    {
-        auto node = new ArrayMemberInitializations;
+	{
+		auto node = new ArrayMemberInitializations;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmAddExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmAddExp parseAsmAddExp()
-    {
-        auto node = new AsmAddExp;
+	{
+		auto node = new AsmAddExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmAndExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmAndExp parseAsmAndExp()
-    {
-        auto node = new AsmAndExp;
+	{
+		auto node = new AsmAndExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmBrExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmBrExp parseAsmBrExp()
-    {
-        auto node = new AsmBrExp;
+	{
+		auto node = new AsmBrExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmEqualExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmEqualExp parseAsmEqualExp()
-    {
-        auto node = new AsmEqualExp;
+	{
+		auto node = new AsmEqualExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmExp parseAsmExp()
-    {
-        auto node = new AsmExp;
+	{
+		auto node = new AsmExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmInstruction
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmInstruction parseAsmInstruction()
-    {
-        auto node = new AsmInstruction;
+	{
+		auto node = new AsmInstruction;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmLogAndExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmLogAndExp parseAsmLogAndExp()
-    {
-        auto node = new AsmLogAndExp;
+	{
+		auto node = new AsmLogAndExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmLogOrExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmLogOrExp parseAsmLogOrExp()
-    {
-        auto node = new AsmLogOrExp;
+	{
+		auto node = new AsmLogOrExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmMulExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmMulExp parseAsmMulExp()
-    {
-        auto node = new AsmMulExp;
+	{
+		auto node = new AsmMulExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmOrExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmOrExp parseAsmOrExp()
-    {
-        auto node = new AsmOrExp;
+	{
+		auto node = new AsmOrExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmPrimaryExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmPrimaryExp parseAsmPrimaryExp()
-    {
-        auto node = new AsmPrimaryExp;
+	{
+		auto node = new AsmPrimaryExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmRelExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmRelExp parseAsmRelExp()
-    {
-        auto node = new AsmRelExp;
+	{
+		auto node = new AsmRelExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmShiftExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmShiftExp parseAsmShiftExp()
-    {
-        auto node = new AsmShiftExp;
+	{
+		auto node = new AsmShiftExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmStatement parseAsmStatement()
-    {
-        auto node = new AsmStatement;
+	{
+		auto node = new AsmStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmTypePrefix
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmTypePrefix parseAsmTypePrefix()
-    {
-        auto node = new AsmTypePrefix;
+	{
+		auto node = new AsmTypePrefix;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmUnaExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmUnaExp parseAsmUnaExp()
-    {
-        auto node = new AsmUnaExp;
+	{
+		auto node = new AsmUnaExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AsmXorExp
+	 *
+	 * $(GRAMMAR )
+	 */
 	AsmXorExp parseAsmXorExp()
-    {
-        auto node = new AsmXorExp;
+	{
+		auto node = new AsmXorExp;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AssertExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	AssertExpression parseAssertExpression()
-    {
-        auto node = new AssertExpression;
+	{
+		auto node = new AssertExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AssertStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	AssertStatement parseAssertStatement()
-    {
-        auto node = new AssertStatement;
+	{
+		auto node = new AssertStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AssignExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	AssignExpression parseAssignExpression()
-    {
-        auto node = new AssignExpression;
+	{
+		auto node = new AssignExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AssignStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	AssignStatement parseAssignStatement()
-    {
-        auto node = new AssignStatement;
+	{
+		auto node = new AssignStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AssocArrayLiteral
+	 *
+	 * $(GRAMMAR )
+	 */
 	AssocArrayLiteral parseAssocArrayLiteral()
-    {
-        auto node = new AssocArrayLiteral;
+	{
+		auto node = new AssocArrayLiteral;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AtAttribute
+	 *
+	 * $(GRAMMAR )
+	 */
 	AtAttribute parseAtAttribute()
-    {
-        auto node = new AtAttribute;
+	{
+		auto node = new AtAttribute;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Attribute
+	 *
+	 * $(GRAMMAR )
+	 */
 	Attribute parseAttribute()
-    {
-        auto node = new Attribute;
+	{
+		auto node = new Attribute;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AttributedDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	AttributedDeclaration parseAttributedDeclaration()
-    {
-        auto node = new AttributedDeclaration;
+	{
+		auto node = new AttributedDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an AutoDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	AutoDeclaration parseAutoDeclaration()
-    {
-        auto node = new AutoDeclaration;
+	{
+		auto node = new AutoDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an BlockStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	BlockStatement parseBlockStatement()
 	{
 		auto node = new BlockStatement();
@@ -311,582 +566,864 @@ struct Parser
 		return node;
 	}
 
+	/**
+	 * Parses an BodyStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	BodyStatement parseBodyStatement()
-    {
-        auto node = new BodyStatement;
+	{
+		auto node = new BodyStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an BreakStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	BreakStatement parseBreakStatement()
 	{
 		expect(TokenType.break_);
-		return parseContinueBreakStatement!(BreakStatement)();
+		auto node = new BreakStatement;
+		switch (current().type)
+		{
+		case TokenType.identifier:
+			node.identifier = advance();
+			expect(TokenType.semicolon);
+			break;
+		case TokenType.semicolon:
+			advance();
+			break;
+		default:
+			error("Identifier or semicolon expected following \"break\"");
+			return null;
+		}
+		return node;
 	}
 
+	/**
+	 * Parses an BuiltinType
+	 *
+	 * $(GRAMMAR )
+	 */
 	BuiltinType parseBuiltinType()
-    {
-        auto node = new BuiltinType;
+	{
+		auto node = new BuiltinType;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an CaseRangeStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	CaseRangeStatement parseCaseRangeStatement()
-    {
-        auto node = new CaseRangeStatement;
+	{
+		auto node = new CaseRangeStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an CaseStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	CaseStatement parseCaseStatement()
-    {
-        auto node = new CaseStatement;
+	{
+		auto node = new CaseStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an CastExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	CastExpression parseCastExpression()
-    {
-        auto node = new CastExpression;
+	{
+		auto node = new CastExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an CastQualifier
+	 *
+	 * $(GRAMMAR )
+	 */
 	CastQualifier parseCastQualifier()
-    {
-        auto node = new CastQualifier;
+	{
+		auto node = new CastQualifier;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Catch
+	 *
+	 * $(GRAMMAR )
+	 */
 	Catch parseCatch()
-    {
-        auto node = new Catch;
+	{
+		auto node = new Catch;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Catches
+	 *
+	 * $(GRAMMAR )
+	 */
 	Catches parseCatches()
-    {
-        auto node = new Catches;
+	{
+		auto node = new Catches;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ClassBody
+	 *
+	 * $(GRAMMAR )
+	 */
 	ClassBody parseClassBody()
-    {
-        auto node = new ClassBody;
+	{
+		auto node = new ClassBody;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ClassDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	ClassDeclaration parseClassDeclaration()
-    {
-        auto node = new ClassDeclaration;
+	{
+		auto node = new ClassDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an CmpExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	CmpExpression parseCmpExpression()
-    {
-        auto node = new CmpExpression;
+	{
+		auto node = new CmpExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an CompileCondition
+	 *
+	 * $(GRAMMAR )
+	 */
 	CompileCondition parseCompileCondition()
-    {
-        auto node = new CompileCondition;
+	{
+		auto node = new CompileCondition;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ConditionalDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	ConditionalDeclaration parseConditionalDeclaration()
-    {
-        auto node = new ConditionalDeclaration;
+	{
+		auto node = new ConditionalDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ConditionalStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	ConditionalStatement parseConditionalStatement()
-    {
-        auto node = new ConditionalStatement;
+	{
+		auto node = new ConditionalStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Constraint
+	 *
+	 * $(GRAMMAR )
+	 */
 	Constraint parseConstraint()
-    {
-        auto node = new Constraint;
+	{
+		auto node = new Constraint;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Constructor
+	 *
+	 * $(GRAMMAR )
+	 */
 	Constructor parseConstructor()
-    {
-        auto node = new Constructor;
+	{
+		auto node = new Constructor;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ContinueStatement
+	 *
+	 * $(GRAMMAR continueStatement: 'continue' Identifier? ';'
+	 *     ;)
+	 */
 	ContinueStatement parseContinueStatement()
 	{
 		expect(TokenType.continue_);
-		return parseContinueBreakStatement!(ContinueStatement)();
+		auto node = new ContinueStatement;
+		switch (current().type)
+		{
+		case TokenType.identifier:
+			node.identifier = advance();
+			expect(TokenType.semicolon);
+			break;
+		case TokenType.semicolon:
+			advance();
+			break;
+		default:
+			error("Identifier or semicolon expected following \"continue\"");
+			return null;
+		}
+		return node;
 	}
 
+	/**
+	 * Parses an DebugCondition
+	 *
+	 * $(GRAMMAR )
+	 */
 	DebugCondition parseDebugCondition()
-    {
-        auto node = new DebugCondition;
+	{
+		auto node = new DebugCondition;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DebugSpecification
+	 *
+	 * $(GRAMMAR )
+	 */
 	DebugSpecification parseDebugSpecification()
-    {
-        auto node = new DebugSpecification;
+	{
+		auto node = new DebugSpecification;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Declaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	Declaration parseDeclaration()
-    {
-        auto node = new Declaration;
+	{
+		auto node = new Declaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DeclarationsAndStatements
+	 *
+	 * $(GRAMMAR )
+	 */
 	DeclarationsAndStatements parseDeclarationsAndStatements()
-    {
-        auto node = new DeclarationsAndStatements;
+	{
+		auto node = new DeclarationsAndStatements;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Declarator
+	 *
+	 * $(GRAMMAR )
+	 */
 	Declarator parseDeclarator()
-    {
-        auto node = new Declarator;
+	{
+		auto node = new Declarator;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DeclaratorSuffix
+	 *
+	 * $(GRAMMAR )
+	 */
 	DeclaratorSuffix parseDeclaratorSuffix()
-    {
-        auto node = new DeclaratorSuffix;
+	{
+		auto node = new DeclaratorSuffix;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DefaultStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	DefaultStatement parseDefaultStatement()
-    {
-        auto node = new DefaultStatement;
+	{
+		auto node = new DefaultStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DeleteExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	DeleteExpression parseDeleteExpression()
-    {
-        auto node = new DeleteExpression;
+	{
+		auto node = new DeleteExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DeleteStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	DeleteStatement parseDeleteStatement()
-    {
-        auto node = new DeleteStatement;
+	{
+		auto node = new DeleteStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Deprecated
+	 *
+	 * $(GRAMMAR )
+	 */
 	Deprecated parseDeprecated()
-    {
-        auto node = new Deprecated;
+	{
+		auto node = new Deprecated;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Destructor
+	 *
+	 * $(GRAMMAR )
+	 */
 	Destructor parseDestructor()
-    {
-        auto node = new Destructor;
+	{
+		auto node = new Destructor;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an DoStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	DoStatement parseDoStatement()
-    {
-        auto node = new DoStatement;
+	{
+		auto node = new DoStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an EnumBody
+	 *
+	 * $(GRAMMAR )
+	 */
 	EnumBody parseEnumBody()
-    {
-        auto node = new EnumBody;
+	{
+		auto node = new EnumBody;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an EnumDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	EnumDeclaration parseEnumDeclaration()
-    {
-        auto node = new EnumDeclaration;
+	{
+		auto node = new EnumDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an EnumMember
+	 *
+	 * $(GRAMMAR )
+	 */
 	EnumMember parseEnumMember()
-    {
-        auto node = new EnumMember;
+	{
+		auto node = new EnumMember;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an EqualExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	EqualExpression parseEqualExpression()
-    {
-        auto node = new EqualExpression;
+	{
+		auto node = new EqualExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Expression
+	 *
+	 * $(GRAMMAR )
+	 */
 	Expression parseExpression()
-    {
-        auto node = new Expression;
+	{
+		auto node = new Expression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FinalSwitchStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	FinalSwitchStatement parseFinalSwitchStatement()
-    {
-        auto node = new FinalSwitchStatement;
+	{
+		auto node = new FinalSwitchStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Finally
+	 *
+	 * $(GRAMMAR )
+	 */
 	Finally parseFinally()
-    {
-        auto node = new Finally;
+	{
+		auto node = new Finally;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ForStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	ForStatement parseForStatement()
-    {
-        auto node = new ForStatement;
+	{
+		auto node = new ForStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ForeachRangeStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	ForeachRangeStatement parseForeachRangeStatement()
-    {
-        auto node = new ForeachRangeStatement;
+	{
+		auto node = new ForeachRangeStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ForeachStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	ForeachStatement parseForeachStatement()
-    {
-        auto node = new ForeachStatement;
+	{
+		auto node = new ForeachStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ForeachType
+	 *
+	 * $(GRAMMAR )
+	 */
 	ForeachType parseForeachType()
-    {
-        auto node = new ForeachType;
+	{
+		auto node = new ForeachType;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ForeachTypeList
+	 *
+	 * $(GRAMMAR )
+	 */
 	ForeachTypeList parseForeachTypeList()
-    {
-        auto node = new ForeachTypeList;
+	{
+		auto node = new ForeachTypeList;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FunctionAttribute
+	 *
+	 * $(GRAMMAR )
+	 */
 	FunctionAttribute parseFunctionAttribute()
-    {
-        auto node = new FunctionAttribute;
+	{
+		auto node = new FunctionAttribute;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FunctionBody
+	 *
+	 * $(GRAMMAR )
+	 */
 	FunctionBody parseFunctionBody()
-    {
-        auto node = new FunctionBody;
+	{
+		auto node = new FunctionBody;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FunctionCallExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	FunctionCallExpression parseFunctionCallExpression()
-    {
-        auto node = new FunctionCallExpression;
+	{
+		auto node = new FunctionCallExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FunctionCallStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	FunctionCallStatement parseFunctionCallStatement()
-    {
-        auto node = new FunctionCallStatement;
+	{
+		auto node = new FunctionCallStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FunctionDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	FunctionDeclaration parseFunctionDeclaration()
-    {
-        auto node = new FunctionDeclaration;
+	{
+		auto node = new FunctionDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an FunctionLiteralExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	FunctionLiteralExpression parseFunctionLiteralExpression()
-    {
-        auto node = new FunctionLiteralExpression;
+	{
+		auto node = new FunctionLiteralExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an GotoStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	GotoStatement parseGotoStatement()
 	{
 		auto node = new GotoStatement;
 		return node;
 	}
 
+	/**
+	 * Parses an IdentifierChain
+	 *
+	 * $(GRAMMAR )
+	 */
 	IdentifierChain parseIdentifierChain()
-    {
-        auto node = new IdentifierChain;
+	{
+		auto node = new IdentifierChain;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an IdentifierList
+	 *
+	 * $(GRAMMAR )
+	 */
 	IdentifierList parseIdentifierList()
-    {
-        auto node = new IdentifierList;
+	{
+		auto node = new IdentifierList;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an IdentifierOrTemplateChain
+	 *
+	 * $(GRAMMAR )
+	 */
 	IdentifierOrTemplateChain parseIdentifierOrTemplateChain()
-    {
-        auto node = new IdentifierOrTemplateChain;
+	{
+		auto node = new IdentifierOrTemplateChain;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an IdentifierOrTemplateInstance
+	 *
+	 * $(GRAMMAR )
+	 */
 	IdentifierOrTemplateInstance parseIdentifierOrTemplateInstance()
-    {
-        auto node = new IdentifierOrTemplateInstance;
+	{
+		auto node = new IdentifierOrTemplateInstance;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an IdentityExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	IdentityExpression parseIdentityExpression()
-    {
-        auto node = new IdentityExpression;
+	{
+		auto node = new IdentityExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an IfStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	IfStatement parseIfStatement()
-    {
-        auto node = new IfStatement;
+	{
+		auto node = new IfStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ImportBind
+	 *
+	 * $(GRAMMAR )
+	 */
 	ImportBind parseImportBind()
-    {
-        auto node = new ImportBind;
+	{
+		auto node = new ImportBind;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ImportBindings
+	 *
+	 * $(GRAMMAR )
+	 */
 	ImportBindings parseImportBindings()
-    {
-        auto node = new ImportBindings;
-
-        return node;
-    }
-
-	ImportDeclaration parseImportDeclaration(Tokens)(ref Tokens tokens)
-	in
 	{
-		assert(tokens[i] == TokenType.import_);
-	}
-	body
-	{
-		auto declaration = new ImportDeclaration;
-		tokens.popFront();
-		Import im;
+		auto node = new ImportBindings;
 
-		if (tokens[i].type != TokenType.identifier)
-		{
-			tokens.skipPastSemicolon();
-			return declaration;
-		}
-
-		void completeImport()
-		{
-			im.moduleName = tokens.moveFront().value;
-			tokens.popFront();
-			declaration.imports ~= im;
-		}
-
-		void parseImportBindings()
-		{
-			loop: while (!tokens.empty)
-			{
-				if (tokens[i].type != TokenType.identifier)
-					break;
-				switch (tokens.peek().type)
-				{
-				case TokenType.assign:
-					Import.ImportSymbol s;
-					s.alias_ = tokens.moveFront().value;
-					tokens.popFront();
-					if (tokens.empty || tokens[i].type != TokenType.identifier)
-						break loop;
-					s.symbolName = tokens.moveFront().value;
-					im.symbols ~= s;
-					if (!tokens.empty())
-					{
-						if (tokens[i].type == TokenType.comma)
-							tokens.popFront();
-						if (tokens[i].type == TokenType.semicolon)
-						{
-							tokens.popFront();
-							declaration.imports ~= im;
-							break loop;
-						}
-					}
-					break;
-				case TokenType.comma:
-					Import.ImportSymbol s;
-					s.symbolName = tokens.moveFront().value;
-					tokens.popFront();
-					im.symbols ~= s;
-					break;
-				case TokenType.semicolon:
-					Import.ImportSymbol s;
-					s.symbolName = tokens.moveFront().value;
-					tokens.popFront();
-					im.symbols ~= s;
-					declaration.imports ~= im;
-					break loop;
-				default:
-					break loop;
-				}
-			}
-		}
-
-		loop: while (!tokens.empty)
-		{
-			switch  (tokens.peek().type)
-			{
-			case TokenType.dot:
-				im.packageParts ~= tokens.moveFront().value;
-				tokens.popFront();
-				break;
-			case TokenType.comma:
-				completeImport();
-				im = Import.init;
-				break;
-			case TokenType.semicolon:
-				completeImport();
-				break loop;
-			case TokenType.colon:
-				im.moduleName = tokens.moveFront().value;
-				tokens.popFront();
-				parseImportBindings();
-				break loop;
-			case TokenType.assign:
-				im.alias_ = tokens.moveFront().value;
-				tokens.popFront();
-				break;
-			default:
-				tokens.popFront();
-				break;
-			}
-		}
-
-		return declaration;
+		return node;
 	}
 
+	/**
+	 * Parses an ImportDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
+	ImportDeclaration parseImportDeclaration()()
+	{
+		auto node = new ImportDeclaration;
+
+		return node;
+	}
+
+	/**
+	 * Parses an ImportExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	ImportExpression parseImportExpression()
-    {
-        auto node = new ImportExpression;
+	{
+		auto node = new ImportExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an ImportList
+	 *
+	 * $(GRAMMAR )
+	 */
 	ImportList parseImportList()
-    {
-        auto node = new ImportList;
+	{
+		auto node = new ImportList;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an InExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	InExpression parseInExpression()
-    {
-        auto node = new InExpression;
+	{
+		auto node = new InExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an InStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	InStatement parseInStatement()
-    {
-        auto node = new InStatement;
+	{
+		auto node = new InStatement;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Initialize
+	 *
+	 * $(GRAMMAR )
+	 */
 	Initialize parseInitialize()
-    {
-        auto node = new Initialize;
+	{
+		auto node = new Initialize;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an Initializer
+	 *
+	 * $(GRAMMAR )
+	 */
 	Initializer parseInitializer()
-    {
-        auto node = new Initializer;
+	{
+		auto node = new Initializer;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an InterfaceDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	InterfaceDeclaration parseInterfaceDeclaration()
-    {
-        auto node = new InterfaceDeclaration;
-        return node;
-    }
+	{
+		auto node = new InterfaceDeclaration;
+		return node;
+	}
 
+	/**
+	 * Parses an Invariant
+	 *
+	 * $(GRAMMAR )
+	 */
 	Invariant parseInvariant()
-    {
-        auto node = new Invariant;
+	{
+		auto node = new Invariant;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an IsExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	IsExpression parseIsExpression()
-    {
-        auto node = new IsExpression;
+	{
+		auto node = new IsExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an KeyValuePair
+	 *
+	 * $(GRAMMAR )
+	 */
 	KeyValuePair parseKeyValuePair()
-    {
-        auto node = new KeyValuePair;
+	{
+		auto node = new KeyValuePair;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an KeyValuePairs
+	 *
+	 * $(GRAMMAR )
+	 */
 	KeyValuePairs parseKeyValuePairs()
-    {
-        auto node = new KeyValuePairs;
+	{
+		auto node = new KeyValuePairs;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an LabeledStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	LabeledStatement parseLabeledStatement()
 	{
 		auto node = new LabeledStatement;
@@ -896,933 +1433,1385 @@ struct Parser
 		return node;
 	}
 
+	/**
+	 * Parses an LambdaExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	LambdaExpression parseLambdaExpression()
-    {
-        auto node = new LambdaExpression;
+	{
+		auto node = new LambdaExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an LastCatch
+	 *
+	 * $(GRAMMAR )
+	 */
 	LastCatch parseLastCatch()
-    {
-        auto node = new LastCatch;
+	{
+		auto node = new LastCatch;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an LinkageAttribute
+	 *
+	 * $(GRAMMAR )
+	 */
 	LinkageAttribute parseLinkageAttribute()
-    {
-        auto node = new LinkageAttribute;
+	{
+		auto node = new LinkageAttribute;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an MemberFunctionAttribute
+	 *
+	 * $(GRAMMAR )
+	 */
 	MemberFunctionAttribute parseMemberFunctionAttribute()
-    {
-        auto node = new MemberFunctionAttribute;
+	{
+		auto node = new MemberFunctionAttribute;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an MixinDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
 	MixinDeclaration parseMixinDeclaration()
-    {
-        auto node = new MixinDeclaration;
+	{
+		auto node = new MixinDeclaration;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an MixinExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	MixinExpression parseMixinExpression()
-    {
-        auto node = new MixinExpression;
+	{
+		auto node = new MixinExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an MixinTemplateName
+	 *
+	 * $(GRAMMAR )
+	 */
 	MixinTemplateName parseMixinTemplateName()
-    {
-        auto node = new MixinTemplateName;
+	{
+		auto node = new MixinTemplateName;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses a Module
+	 *
+	 * $(GRAMMAR module: moduleDeclaration? declaration*
+	 *     ;)
+	 */
 	Module parseModule()
-    {
-        Module m = new Module;
-        while (index < tokens.length)
-        {
-            switch (tokens[index].type)
-            {
-            case TokenType.module_:
-                if (m.moduleDeclaration !is null)
-                    m.moduleDeclaration = parseModuleDeclaration();
-                else
-                    error("Only one module declaration is allowed per module");
-                break;
-            default:
-                m.declarations ~= parseDeclaration();
-            }
-        }
-        return m;
-    }
+	{
+		Module m = new Module;
+		while (index < tokens.length)
+		{
+			switch (tokens[index].type)
+			{
+			case TokenType.module_:
+				if (m.moduleDeclaration is null)
+					m.moduleDeclaration = parseModuleDeclaration();
+				else
+					error("Only one module declaration is allowed per module");
+				break;
+			default:
+				m.declarations ~= parseDeclaration();
+			}
+		}
+		return m;
+	}
 
+	/**
+	 * Parses a ModuleDeclaration
+	 *
+	 * $(GRAMMAR moduleDeclaration: 'module' identifierChain ';'
+	 *     ;)
+	 */
 	ModuleDeclaration parseModuleDeclaration()
-    {
-        auto node = new ModuleDeclaration;
-        expect(TokenType.module_);
-        node.moduleName = parseIdentifierChain();
-        expect(TokenType.semicolon);
-        return node;
-    }
+	{
+		auto node = new ModuleDeclaration;
+		expect(TokenType.module_);
+		node.moduleName = parseIdentifierChain();
+		expect(TokenType.semicolon);
+		return node;
+	}
 
+	/**
+	 * Parses a MulExpression
+	 * $(GRAMMAR mulExpression: unaryExpression
+	 *     | mulExpression ('*' | '/' | '%') unaryExpression
+	 *     ;)
+	 */
 	MulExpression parseMulExpression()
-    {
-        auto node = new MulExpression;
+	{
+		auto node = new MulExpression;
+		auto left = parseUnaryExpression();
+		if (tokens[index] == TokenType.star || tokens[index] == TokenType.div)
+		{
+			node.operator = tokens[index++];
+			node.right = parseUnaryExpression();
+		}
+		return node;
+	}
 
-        return node;
-    }
-
+	/**
+	 * Parses an NewAnonClassExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	NewAnonClassExpression parseNewAnonClassExpression()
-    {
-        auto node = new NewAnonClassExpression;
+	{
+		auto node = new NewAnonClassExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an NewExpression
+	 *
+	 * $(GRAMMAR )
+	 */
 	NewExpression parseNewExpression()
-    {
-        auto node = new NewExpression;
+	{
+		auto node = new NewExpression;
 
-        return node;
-    }
+		return node;
+	}
 
+	/**
+	 * Parses an NonEmptyStatement
+	 *
+	 * $(GRAMMAR )
+	 */
 	NonEmptyStatement parseNonEmptyStatement()
 	{
 		auto node = new NonEmptyStatement;
-        return node;
+		return node;
 	}
 
+	/**
+	 * Parses an NonEmptyStatementNoCaseNoDefault
+	 *
+	 * $(GRAMMAR )
+	 */
 	NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault()
-    {
-        auto node = new NonEmptyStatementNoCaseNoDefault;
-
-        return node;
-    }
-
-	NonVoidInitializer parseNonVoidInitializer()
-    {
-        auto node = new NonVoidInitializer;
-
-        return node;
-    }
-
-	Opcode parseOpcode()
-    {
-        auto node = new Opcode;
-
-        return node;
-    }
-
-	Operand parseOperand()
-    {
-        auto node = new Operand;
-
-        return node;
-    }
-
-	Operands parseOperands()
-    {
-        auto node = new Operands;
-
-        return node;
-    }
-
-	OrExpression parseOrExpression()
-    {
-        auto node = new OrExpression;
-
-        return node;
-    }
-
-	OrOrExpression parseOrOrExpression()
-    {
-        auto node = new OrOrExpression;
-
-        return node;
-    }
-
-	OutStatement parseOutStatement()
-    {
-        auto node = new OutStatement;
-
-        return node;
-    }
-
-	Parameter parseParameter()
-    {
-        auto node = new Parameter;
-
-        return node;
-    }
-
-	ParameterAttribute parseParameterAttribute()
-    {
-        auto node = new ParameterAttribute;
-
-        return node;
-    }
-
-	Parameters parseParameters()
-    {
-        auto node = new Parameters;
-
-        return node;
-    }
-
-	PostIncDecExpression parsePostIncDecExpression()
-    {
-        auto node = new PostIncDecExpression;
-
-        return node;
-    }
-
-	PowExpression parsePowExpression()
-    {
-        auto node = new PowExpression;
-
-        return node;
-    }
-
-	PragmaDeclaration parsePragmaDeclaration()
-    {
-        auto node = new PragmaDeclaration;
-
-        return node;
-    }
-
-	PragmaExpression parsePragmaExpression()
-    {
-        auto node = new PragmaExpression;
-
-        return node;
-    }
-
-	PreIncDecExpression parsePreIncDecExpression()
-    {
-        auto node = new PreIncDecExpression;
-
-        return node;
-    }
-
-	PrimaryExpression parsePrimaryExpression()
-    {
-        auto node = new PrimaryExpression;
-
-        return node;
-    }
-
-	ProtectionAttribute parseProtectionAttribute()
-    {
-        auto node = new ProtectionAttribute;
-
-        return node;
-    }
-
-	Register parseRegister()
-    {
-        auto node = new Register;
-
-        return node;
-    }
-
-	RelExpression parseRelExpression()
-    {
-        auto node = new RelExpression;
-
-        return node;
-    }
-
-	ReturnStatement parseReturnStatement()
-    {
-        auto node = new ReturnStatement;
-        expect(TokenType.return_);
-        if (tokens[index] != TokenType.semicolon)
-            node.expression = parseExpression();
-        expect(TokenType.semicolon);
-        return node;
-    }
-
-	ScopeGuardStatement parseScopeGuardStatement()
-    {
-        auto node = new ScopeGuardStatement;
-
-        return node;
-    }
-
-	SharedStaticConstructor parseSharedStaticConstructor()
-    {
-        auto node = new SharedStaticConstructor;
-
-        return node;
-    }
-
-	SharedStaticDestructor parseSharedStaticDestructor()
-    {
-        auto node = new SharedStaticDestructor;
-
-        return node;
-    }
-
-	ShiftExpression parseShiftExpression()
-    {
-        auto node = new ShiftExpression;
-
-        return node;
-    }
-
-	SingleImport parseSingleImport()
-    {
-        auto node = new SingleImport;
-
-        return node;
-    }
-
-	Statement parseStatement()
-    {
-        auto node = new Statement;
-        if (tokens[index] != TokenType.semicolon)
-            node.nonEmptyStatement = parseNonEmptyStatement();
-        else
-            expect(TokenType.semicolon);
-        return node;
-    }
-
-	StatementNoCaseNoDefault parseStatementNoCaseNoDefault()
-    {
-        auto node = new StatementNoCaseNoDefault;
-        if (tokens[index] != TokenType.semicolon)
-            node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
-        else
-            expect(TokenType.semicolon);
-        return node;
-    }
-
-	StaticAssertDeclaration parseStaticAssertDeclaration()
-    {
-        auto node = new StaticAssertDeclaration;
-        node.staticAssertStatement = parseStaticAssertStatement();
-        return node;
-    }
-
-	StaticAssertStatement parseStaticAssertStatement()
-    {
-        auto node = new StaticAssertStatement;
-        expect(TokenType.static_);
-        node.assertStatement = parseAssertStatement();
-        return node;
-    }
-
-	StaticConstructor parseStaticConstructor()
-    {
-        auto node = new StaticConstructor;
-        expect(TokenType.static_);
-        expect(TokenType.this_);
-        expect(TokenType.lParen);
-        expect(TokenType.rParen);
-        node.functionBody = parseFunctionBody();
-        return node;
-    }
-
-	StaticDestructor parseStaticDestructor()
-    {
-        auto node = new StaticDestructor;
-        expect(TokenType.static_);
-        expect(TokenType.tilde);
-        expect(TokenType.this_);
-        expect(TokenType.lParen);
-        expect(TokenType.rParen);
-        node.functionBody = parseFunctionBody();
-        return node;
-    }
-
-	StaticIfCondition parseStaticIfCondition()
-    {
-        auto node = new StaticIfCondition;
-        expect(TokenType.static_);
-        expect(TokenType.if_);
-        expect(TokenType.lParen);
-        node.assignExpression = parseAssignExpression();
-        expect(TokenType.rParen);
-        return node;
-    }
-
-	StorageClass parseStorageClass()
-    {
-        auto node = new StorageClass;
-
-        return node;
-    }
-
-	StructBody parseStructBody()
-    {
-        auto node = new StructBody;
-        expect(TokenType.lBrace);
-        while (tokens[index] != TokenType.rBrace && moreTokens())
-            node.declarations ~= parseDeclaration();
-        expect(TokenType.rBrace);
-        return node;
-    }
-
-	StructDeclaration parseStructDeclaration()
-    {
-        auto node = new StructDeclaration;
-        expect(TokenType.struct_);
-        node.identifier = *expect(TokenType.identifier);
-        if (tokens[index] == TokenType.lParen)
-        {
-            node.templateParameters = parseTemplateParameters();
-            if (tokens[index] == TokenType.if_)
-                node.constraint = parseConstraint();
-            node.structBody = parseStructBody();
-        }
-        else if (tokens[index] == TokenType.lBrace)
-        {
-            node.structBody = parseStructBody();
-        }
-        else if (tokens[index] != TokenType.semicolon)
-            error("Template Parameters, Struct Body, or Semicolon expected");
-        return node;
-    }
-
-	StructInitializer parseStructInitializer()
-    {
-        auto node = new StructInitializer;
-        expect(TokenType.lBrace);
-        node.structMemberInitializers = parseStructMemberInitializers();
-        expect(TokenType.rBrace);
-        return node;
-    }
-
-	StructMemberInitializer parseStructMemberInitializer()
-    {
-        auto node = new StructMemberInitializer;
-        if (startsWith(TokenType.identifier, TokenType.colon))
-        {
-            node.identifier = tokens[index++];
-            index++;
-        }
-        node.nonVoidInitializer = parseNonVoidInitializer();
-        return node;
-    }
-
-	StructMemberInitializers parseStructMemberInitializers()
-    {
-        auto node = new StructMemberInitializers;
-
-        return node;
-    }
-
-	SwitchBody parseSwitchBody()
-    {
-        auto node = new SwitchBody;
-        expect(TokenType.lBrace);
-        while (moreTokens() && tokens[index] != TokenType.rBrace)
-            node.statements ~= parseStatement();
-        expect(TokenType.rBrace);
-        return node;
-    }
-
-	SwitchStatement parseSwitchStatement()
-    {
-        auto node = new SwitchStatement;
-        expect(TokenType.switch_);
-        expect(TokenType.lParen);
-        node.expression = parseExpression();
-        expect(TokenType.rParen);
-        node.switchBody = parseSwitchBody();
-        return node;
-    }
-
-	Symbol parseSymbol()
-    {
-        auto node = new Symbol;
-        if (tokens[index] == TokenType.dot)
-        {
-            node.hasDot = true;
-            ++index;
-        }
-        node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
-        return node;
-    }
-
-	SynchronizedStatement parseSynchronizedStatement()
-    {
-        auto node = new SynchronizedStatement;
-        expect(TokenType.synchronized_);
-        if (tokens[index] == TokenType.lParen)
-        {
-            expect(TokenType.lParen);
-            node.expression = parseExpression();
-            expect(TokenType.rParen);
-        }
-        node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
-        return node;
-    }
-
-	TemplateAliasParameter parseTemplateAliasParameter()
-    {
-        auto node = new TemplateAliasParameter;
-
-        return node;
-    }
-
-	TemplateArgument parseTemplateArgument()
-    {
-        auto node = new TemplateArgument;
-
-        return node;
-    }
-
-	TemplateArgumentList parseTemplateArgumentList()
-    {
-        auto node = new TemplateArgumentList;
-
-        return node;
-    }
-
-	TemplateArguments parseTemplateArguments()
-    {
-        auto node = new TemplateArguments;
-
-        return node;
-    }
-
-	TemplateDeclaration parseTemplateDeclaration()
-    {
-        auto node = new TemplateDeclaration;
-
-        return node;
-    }
-
-	TemplateInstance parseTemplateInstance()
-    {
-        auto node = new TemplateInstance;
-
-        return node;
-    }
-
-	TemplateMixinStatement parseTemplateMixinStatement()
-    {
-        auto node = new TemplateMixinStatement;
-
-        return node;
-    }
-
-	TemplateParameter parseTemplateParameter()
-    {
-        auto node = new TemplateParameter;
-
-        return node;
-    }
-
-	TemplateParameterList parseTemplateParameterList()
-    {
-        auto node = new TemplateParameterList;
-
-        return node;
-    }
-
-	TemplateParameters parseTemplateParameters()
-    {
-        auto node = new TemplateParameters;
-
-        return node;
-    }
-
-	TemplateSingleArgument parseTemplateSingleArgument()
-    {
-        auto node = new TemplateSingleArgument;
-
-        return node;
-    }
-
-	TemplateThisParameter parseTemplateThisParameter()
-    {
-        auto node = new TemplateThisParameter;
-
-        return node;
-    }
-
-	TemplateTupleParameter parseTemplateTupleParameter()
-    {
-        auto node = new TemplateTupleParameter;
-
-        return node;
-    }
-
-	TemplateTypeParameter parseTemplateTypeParameter()
-    {
-        auto node = new TemplateTypeParameter;
-
-        return node;
-    }
-
-	TemplateValueParameter parseTemplateValueParameter()
-    {
-        auto node = new TemplateValueParameter;
-
-        return node;
-    }
-
-	TemplateValueParameterDefault parseTemplateValueParameterDefault()
-    {
-        auto node = new TemplateValueParameterDefault;
-
-        return node;
-    }
-
-	TernaryExpression parseTernaryExpression()
-    {
-        auto node = new TernaryExpression;
-        node.orOrExpression = parseOrOrExpression();
-        if (tokens[index] == TokenType.ternary)
-        {
-            ++index;
-            node.expression = parseExpression();
-            expect(TokenType.colon);
-            node.ternaryExpression = parseTernaryExpression();
-        }
-        return node;
-    }
-
-	ThrowStatement parseThrowStatement()
-    {
-        auto node = new ThrowStatement;
-        expect(TokenType.throw_);
-        node.expression = parseExpression();
-        expect(TokenType.semicolon);
-        return node;
-    }
-
-	TraitsArgument parseTraitsArgument()
-    {
-        auto node = new TraitsArgument;
-
-        return node;
-    }
-
-	TraitsExpression parseTraitsExpression()
-    {
-        auto node = new TraitsExpression;
-
-        return node;
-    }
-
-	TryStatement parseTryStatement()
-    {
-        auto node = new TryStatement;
-
-        return node;
-    }
-
-	Type parseType()
-    {
-        auto node = new Type;
-
-        return node;
-    }
-
-	Type2 parseType2()
-    {
-        auto node = new Type2;
-
-        return node;
-    }
-
-	Type3 parseType3()
-    {
-        auto node = new Type3;
-
-        return node;
-    }
-
-	TypeConstructor parseTypeConstructor()
-    {
-        auto node = new TypeConstructor;
-
-        return node;
-    }
-
-	TypeConstructors parseTypeConstructors()
-    {
-        auto node = new TypeConstructors;
-
-        return node;
-    }
-
-	TypeSpecialization parseTypeSpecialization()
-    {
-        auto node = new TypeSpecialization;
-
-        return node;
-    }
-
-	TypeSuffix parseTypeSuffix()
-    {
-        auto node = new TypeSuffix;
-
-        return node;
-    }
-
-	TypeidExpression parseTypeidExpression()
-    {
-        auto node = new TypeidExpression;
-
-        return node;
-    }
-
-	TypeofExpression parseTypeofExpression()
-    {
-        auto node = new TypeofExpression;
-        expect(TokenType.typeof_);
-        expect(TokenType.lParen);
-        if (tokens[index] == TokenType.return_)
-            node.return_ = tokens[index];
-        else
-            node.expression = parseExpression();
-        expect(TokenType.rParen);
-        return node;
-    }
-
-	UnaryExpression parseUnaryExpression()
-    {
-        auto node = new UnaryExpression;
-
-        return node;
-    }
-
-	UnionDeclaration parseUnionDeclaration()
-    {
-        auto node = new UnionDeclaration;
-
-        return node;
-    }
-
-	Unittest parseUnittest()
-    {
-        auto node = new Unittest;
-        expect(TokenType.unittest_);
-        node.blockStatement = parseBlockStatement();
-        return node;
-    }
-
-	VariableDeclaration parseVariableDeclaration()
-    {
-        auto node = new VariableDeclaration;
-
-        return node;
-    }
-
-	VersionCondition parseVersionCondition()
-    {
-        auto node = new VersionCondition;
-        expect(TokenType.version_);
-        expect(TokenType.lParen);
-        node.token = tokens[index];
-        expect(TokenType.rParen);
-        return node;
-    }
-
-	VersionSpecification parseVersionSpecification()
-    {
-        auto node = new VersionSpecification;
-        expect(TokenType.version_);
-        expect(TokenType.assign);
-        node.token = tokens[index];
-        expect(TokenType.semicolon);
-        return node;
-    }
-
-	WhileStatement parseWhileStatement()
-    {
-        auto node = new WhileStatement;
-
-        return node;
-    }
-
-	WithStatement parseWithStatement()
-    {
-        auto node = new WithStatement;
-        expect(TokenType.with_);
-        expect(TokenType.lParen);
-        // magic here
-        expect(TokenType.rParen);
-        parseNonEmptyStatementNoCaseNoDefault();
-        return node;
-    }
-
-	XorExpression parseXorExpression()
-    {
-        auto node = new XorExpression;
-
-        return node;
-    }
-
-	///////////////////////////////////////////////////////////////
-
-	statementType parseContinueBreakStatement(alias statementType)()
 	{
-		index++;
-		auto c = new statementType;
-		switch (tokens[index].type)
-		{
-			case TokenType.identifier:
-				c.identifier = tokens[index++];
-				goto case;
-			case TokenType.semicolon:
-				return c;
-			default:
-				error("Identifier or semicolon expected");
-				return null;
-		}
+		auto node = new NonEmptyStatementNoCaseNoDefault;
 
+		return node;
 	}
 
-    void error(string message)
-    {
-        import std.stdio;
-        stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
-            tokens[index].column, message);
-        while (index < tokens.length)
-        {
-            if (tokens[++index].type == TokenType.semicolon)
-                break;
-        }
-    }
+	/**
+	 * Parses an NonVoidInitializer
+	 *
+	 * $(GRAMMAR )
+	 */
+	NonVoidInitializer parseNonVoidInitializer()
+	{
+		auto node = new NonVoidInitializer;
 
-    Token* peekPast(alias O, alias C)()
-    in
-    {
-        assert (tokens[index].type == O);
-    }
-    body
-    {
-        int depth = 1;
-        auto i = index;
-        ++i;
-        while (index < tokens.length)
-        {
-            if (tokens[i] == O)
-                ++depth;
-            else if (tokens[i] == C)
-            {
-                --depth;
-                ++i;
-                if (depth <= 0)
-                    break;
-            }
-            ++i;
-        }
-        return depth == 0 ? &tokens[i] : null;
-    }
+		return node;
+	}
 
-    Token* peekPastParens()
-    {
-        return peekPast!(TokenType.lParen, TokenType.rParen)();
-    }
+	/**
+	 * Parses an Opcode
+	 *
+	 * $(GRAMMAR )
+	 */
+	Opcode parseOpcode()
+	{
+		auto node = new Opcode;
 
-    Token* peekPastBrackets()
-    {
-        return peekPast!(TokenType.lBracket, TokenType.rBracket)();
-    }
+		return node;
+	}
 
-    Token* peekPastBraces()
-    {
-        return peekPast!(TokenType.lBrace, TokenType.rBrace)();
-    }
+	/**
+	 * Parses an Operand
+	 *
+	 * $(GRAMMAR )
+	 */
+	Operand parseOperand()
+	{
+		auto node = new Operand;
 
-    Token* expect(TokenType type)
-    {
-        if (tokens[index].type == type)
-            return &tokens[index++];
-        else
-            return null;
-    }
+		return node;
+	}
 
-    Token* peek()
-    {
-        return index + 1 < tokens.length ? &tokens[index + 1] : null;
-    }
+	/**
+	 * Parses an Operands
+	 *
+	 * $(GRAMMAR )
+	 */
+	Operands parseOperands()
+	{
+		auto node = new Operands;
 
-    bool nextIs(TokenType t)
-    {
-        return peek() && peek().type == t;
-    }
+		return node;
+	}
 
-    bool startsWith(TokenType[] types...)
-    {
-        for (size_t i = 0; i != types.length; ++i)
-        {
-            if (tokens[index + i].type != types[i])
-                return false;
-        }
-        return true;
-    }
+	/**
+	 * Parses an OrExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	OrExpression parseOrExpression()
+	{
+		auto node = new OrExpression;
 
-    bool moreTokens()
-    {
-        return index < tokens.length;
-    }
+		return node;
+	}
 
-    Token[] tokens;
-    size_t index;
-    string fileName;
-}
+	/**
+	 * Parses an OrOrExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	OrOrExpression parseOrOrExpression()
+	{
+		auto node = new OrOrExpression;
 
-unittest
-{
-	auto source = cast(ubyte[]) q{import std.stdio;
-		import std.ascii: hexDigits;
-		import r = std.range;
-		import foo, bar;
-		import std.stdio : writefln, foo = writef;}c;
+		return node;
+	}
 
-	LexerConfig config;
-	auto tokens = source.byToken(config).circularBuffer(4);
-	assert (tokens[i] == "import");
+	/**
+	 * Parses an OutStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	OutStatement parseOutStatement()
+	{
+		auto node = new OutStatement;
 
-	auto decl = parseImportDeclaration(tokens);
-	assert (decl.imports.length == 1);
-	assert (decl.imports[0].packageParts == ["std"]);
-	assert (decl.imports[0].moduleName == "stdio");
-	assert (tokens[i].value == "import", tokens.front.value);
-	assert (tokens.peek(3).value == "ascii", tokens.front.value);
+		return node;
+	}
 
-	decl = parseImportDeclaration(tokens);
-	assert (decl.imports.length == 1, "%d".format(decl.imports.length));
-	assert (decl.imports[0].packageParts == ["std"]);
-	assert (decl.imports[0].moduleName == "ascii", decl.imports[0].moduleName);
-	assert (decl.imports[0].symbols[0].symbolName == "hexDigits", decl.imports[0].symbols[0].symbolName);
-	assert (decl.imports[0].symbols[0].alias_.length == 0);
+	/**
+	 * Parses an Parameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	Parameter parseParameter()
+	{
+		auto node = new Parameter;
 
-	decl = parseImportDeclaration(tokens);
-	assert (decl.imports.length == 1, "%s".format(decl.imports.length));
-	assert (decl.imports[0].moduleName == "range");
-	assert (decl.imports[0].packageParts == ["std"]);
-	assert (decl.imports[0].alias_ == "r");
+		return node;
+	}
 
-	decl = parseImportDeclaration(tokens);
-	assert (decl.imports.length == 2);
-	assert (decl.imports[0].packageParts.length == 0);
-	assert (decl.imports[0].moduleName == "foo");
-	assert (decl.imports[1].packageParts.length == 0);
-	assert (decl.imports[1].moduleName == "bar");
+	/**
+	 * Parses an ParameterAttribute
+	 *
+	 * $(GRAMMAR )
+	 */
+	ParameterAttribute parseParameterAttribute()
+	{
+		auto node = new ParameterAttribute;
 
-	decl = parseImportDeclaration(tokens);
-	assert (decl.imports.length == 1, "%s".format(decl.imports.length));
-	assert (decl.imports[0].packageParts == ["std"]);
-	assert (decl.imports[0].moduleName == "stdio");
-	assert (decl.imports[0].symbols.length == 2);
-	assert (decl.imports[0].symbols[0].symbolName == "writefln");
-	assert (decl.imports[0].symbols[1].symbolName == "writef");
-	assert (decl.imports[0].symbols[1].alias_ == "foo");
+		return node;
+	}
+
+	/**
+	 * Parses an Parameters
+	 *
+	 * $(GRAMMAR )
+	 */
+	Parameters parseParameters()
+	{
+		auto node = new Parameters;
+
+		return node;
+	}
+
+	/**
+	 * Parses an PostIncDecExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	PostIncDecExpression parsePostIncDecExpression()
+	{
+		auto node = new PostIncDecExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an PowExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	PowExpression parsePowExpression()
+	{
+		auto node = new PowExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an PragmaDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
+	PragmaDeclaration parsePragmaDeclaration()
+	{
+		auto node = new PragmaDeclaration;
+
+		return node;
+	}
+
+	/**
+	 * Parses an PragmaExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	PragmaExpression parsePragmaExpression()
+	{
+		auto node = new PragmaExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an PreIncDecExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	PreIncDecExpression parsePreIncDecExpression()
+	{
+		auto node = new PreIncDecExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an PrimaryExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	PrimaryExpression parsePrimaryExpression()
+	{
+		auto node = new PrimaryExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an ProtectionAttribute
+	 *
+	 * $(GRAMMAR )
+	 */
+	ProtectionAttribute parseProtectionAttribute()
+	{
+		auto node = new ProtectionAttribute;
+
+		return node;
+	}
+
+	/**
+	 * Parses an Register
+	 *
+	 * $(GRAMMAR )
+	 */
+	Register parseRegister()
+	{
+		auto node = new Register;
+
+		return node;
+	}
+
+	/**
+	 * Parses an RelExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	RelExpression parseRelExpression()
+	{
+		auto node = new RelExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an ReturnStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	ReturnStatement parseReturnStatement()
+	{
+		auto node = new ReturnStatement;
+		expect(TokenType.return_);
+		if (tokens[index] != TokenType.semicolon)
+			node.expression = parseExpression();
+		expect(TokenType.semicolon);
+		return node;
+	}
+
+	/**
+	 * Parses an ScopeGuardStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	ScopeGuardStatement parseScopeGuardStatement()
+	{
+		auto node = new ScopeGuardStatement;
+
+		return node;
+	}
+
+	/**
+	 * Parses an SharedStaticConstructor
+	 *
+	 * $(GRAMMAR )
+	 */
+	SharedStaticConstructor parseSharedStaticConstructor()
+	{
+		auto node = new SharedStaticConstructor;
+
+		return node;
+	}
+
+	/**
+	 * Parses an SharedStaticDestructor
+	 *
+	 * $(GRAMMAR )
+	 */
+	SharedStaticDestructor parseSharedStaticDestructor()
+	{
+		auto node = new SharedStaticDestructor;
+
+		return node;
+	}
+
+	/**
+	 * Parses an ShiftExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	ShiftExpression parseShiftExpression()
+	{
+		auto node = new ShiftExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an SingleImport
+	 *
+	 * $(GRAMMAR )
+	 */
+	SingleImport parseSingleImport()
+	{
+		auto node = new SingleImport;
+
+		return node;
+	}
+
+	/**
+	 * Parses an Statement
+	 *
+	 * $(GRAMMAR )
+	 */
+	Statement parseStatement()
+	{
+		auto node = new Statement;
+		if (tokens[index] != TokenType.semicolon)
+			node.nonEmptyStatement = parseNonEmptyStatement();
+		else
+			expect(TokenType.semicolon);
+		return node;
+	}
+
+	/**
+	 * Parses an StatementNoCaseNoDefault
+	 *
+	 * $(GRAMMAR )
+	 */
+	StatementNoCaseNoDefault parseStatementNoCaseNoDefault()
+	{
+		auto node = new StatementNoCaseNoDefault;
+		if (tokens[index] != TokenType.semicolon)
+			node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
+		else
+			expect(TokenType.semicolon);
+		return node;
+	}
+
+	/**
+	 * Parses an StaticAssertDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
+	StaticAssertDeclaration parseStaticAssertDeclaration()
+	{
+		auto node = new StaticAssertDeclaration;
+		node.staticAssertStatement = parseStaticAssertStatement();
+		return node;
+	}
+
+	/**
+	 * Parses an StaticAssertStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	StaticAssertStatement parseStaticAssertStatement()
+	{
+		auto node = new StaticAssertStatement;
+		expect(TokenType.static_);
+		node.assertStatement = parseAssertStatement();
+		return node;
+	}
+
+	/**
+	 * Parses an StaticConstructor
+	 *
+	 * $(GRAMMAR )
+	 */
+	StaticConstructor parseStaticConstructor()
+	{
+		auto node = new StaticConstructor;
+		expect(TokenType.static_);
+		expect(TokenType.this_);
+		expect(TokenType.lParen);
+		expect(TokenType.rParen);
+		node.functionBody = parseFunctionBody();
+		return node;
+	}
+
+	/**
+	 * Parses an StaticDestructor
+	 *
+	 * $(GRAMMAR )
+	 */
+	StaticDestructor parseStaticDestructor()
+	{
+		auto node = new StaticDestructor;
+		expect(TokenType.static_);
+		expect(TokenType.tilde);
+		expect(TokenType.this_);
+		expect(TokenType.lParen);
+		expect(TokenType.rParen);
+		node.functionBody = parseFunctionBody();
+		return node;
+	}
+
+	/**
+	 * Parses an StaticIfCondition
+	 *
+	 * $(GRAMMAR )
+	 */
+	StaticIfCondition parseStaticIfCondition()
+	{
+		auto node = new StaticIfCondition;
+		expect(TokenType.static_);
+		expect(TokenType.if_);
+		expect(TokenType.lParen);
+		node.assignExpression = parseAssignExpression();
+		expect(TokenType.rParen);
+		return node;
+	}
+
+	/**
+	 * Parses an StorageClass
+	 *
+	 * $(GRAMMAR )
+	 */
+	StorageClass parseStorageClass()
+	{
+		auto node = new StorageClass;
+
+		return node;
+	}
+
+	/**
+	 * Parses an StructBody
+	 *
+	 * $(GRAMMAR )
+	 */
+	StructBody parseStructBody()
+	{
+		auto node = new StructBody;
+		expect(TokenType.lBrace);
+		while (tokens[index] != TokenType.rBrace && moreTokens())
+			node.declarations ~= parseDeclaration();
+		expect(TokenType.rBrace);
+		return node;
+	}
+
+	/**
+	 * Parses an StructDeclaration
+	 *
+	 * $(GRAMMAR structDeclaration: 'struct' Identifier (templateParameters constraint? structBody | (structBody | ';'))
+	 *     ;)
+	 */
+	StructDeclaration parseStructDeclaration()
+	{
+		auto node = new StructDeclaration;
+		expect(TokenType.struct_);
+		node.identifier = *expect(TokenType.identifier);
+		if (currentIs(TokenType.lParen))
+		{
+			node.templateParameters = parseTemplateParameters();
+			if (tokens[index] == TokenType.if_)
+				node.constraint = parseConstraint();
+			node.structBody = parseStructBody();
+		}
+		else if (currentIs(TokenType.lBrace))
+		{
+			node.structBody = parseStructBody();
+		}
+		else if (currentIs(TokenType.semicolon))
+			advance();
+		else
+		{
+			error("Template Parameters, Struct Body, or Semicolon expected");
+			return null;
+		}
+		return node;
+	}
+
+	/**
+	 * Parses an StructInitializer
+	 *
+	 * $(GRAMMAR )
+	 */
+	StructInitializer parseStructInitializer()
+	{
+		auto node = new StructInitializer;
+		expect(TokenType.lBrace);
+		node.structMemberInitializers = parseStructMemberInitializers();
+		expect(TokenType.rBrace);
+		return node;
+	}
+
+	/**
+	 * Parses an StructMemberInitializer
+	 *
+	 * $(GRAMMAR )
+	 */
+	StructMemberInitializer parseStructMemberInitializer()
+	{
+		auto node = new StructMemberInitializer;
+		if (startsWith(TokenType.identifier, TokenType.colon))
+		{
+			node.identifier = tokens[index++];
+			index++;
+		}
+		node.nonVoidInitializer = parseNonVoidInitializer();
+		return node;
+	}
+
+	/**
+	 * Parses an StructMemberInitializers
+	 *
+	 * $(GRAMMAR )
+	 */
+	StructMemberInitializers parseStructMemberInitializers()
+	{
+		auto node = new StructMemberInitializers;
+
+		return node;
+	}
+
+	/**
+	 * Parses an SwitchBody
+	 *
+	 * $(GRAMMAR )
+	 */
+	SwitchBody parseSwitchBody()
+	{
+		auto node = new SwitchBody;
+		expect(TokenType.lBrace);
+		while (moreTokens() && tokens[index] != TokenType.rBrace)
+			node.statements ~= parseStatement();
+		expect(TokenType.rBrace);
+		return node;
+	}
+
+	/**
+	 * Parses an SwitchStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	SwitchStatement parseSwitchStatement()
+	{
+		auto node = new SwitchStatement;
+		expect(TokenType.switch_);
+		expect(TokenType.lParen);
+		node.expression = parseExpression();
+		expect(TokenType.rParen);
+		node.switchBody = parseSwitchBody();
+		return node;
+	}
+
+	/**
+	 * Parses an Symbol
+	 *
+	 * $(GRAMMAR )
+	 */
+	Symbol parseSymbol()
+	{
+		auto node = new Symbol;
+		if (tokens[index] == TokenType.dot)
+		{
+			node.hasDot = true;
+			++index;
+		}
+		node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
+		return node;
+	}
+
+	/**
+	 * Parses an SynchronizedStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	SynchronizedStatement parseSynchronizedStatement()
+	{
+		auto node = new SynchronizedStatement;
+		expect(TokenType.synchronized_);
+		if (tokens[index] == TokenType.lParen)
+		{
+			expect(TokenType.lParen);
+			node.expression = parseExpression();
+			expect(TokenType.rParen);
+		}
+		node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateAliasParameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateAliasParameter parseTemplateAliasParameter()
+	{
+		auto node = new TemplateAliasParameter;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateArgument
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateArgument parseTemplateArgument()
+	{
+		auto node = new TemplateArgument;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateArgumentList
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateArgumentList parseTemplateArgumentList()
+	{
+		auto node = new TemplateArgumentList;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateArguments
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateArguments parseTemplateArguments()
+	{
+		auto node = new TemplateArguments;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateDeclaration parseTemplateDeclaration()
+	{
+		auto node = new TemplateDeclaration;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateInstance
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateInstance parseTemplateInstance()
+	{
+		auto node = new TemplateInstance;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateMixinStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateMixinStatement parseTemplateMixinStatement()
+	{
+		auto node = new TemplateMixinStatement;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateParameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateParameter parseTemplateParameter()
+	{
+		auto node = new TemplateParameter;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateParameterList
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateParameterList parseTemplateParameterList()
+	{
+		auto node = new TemplateParameterList;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateParameters
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateParameters parseTemplateParameters()
+	{
+		auto node = new TemplateParameters;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateSingleArgument
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateSingleArgument parseTemplateSingleArgument()
+	{
+		auto node = new TemplateSingleArgument;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateThisParameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateThisParameter parseTemplateThisParameter()
+	{
+		auto node = new TemplateThisParameter;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateTupleParameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateTupleParameter parseTemplateTupleParameter()
+	{
+		auto node = new TemplateTupleParameter;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateTypeParameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateTypeParameter parseTemplateTypeParameter()
+	{
+		auto node = new TemplateTypeParameter;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateValueParameter
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateValueParameter parseTemplateValueParameter()
+	{
+		auto node = new TemplateValueParameter;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TemplateValueParameterDefault
+	 *
+	 * $(GRAMMAR )
+	 */
+	TemplateValueParameterDefault parseTemplateValueParameterDefault()
+	{
+		auto node = new TemplateValueParameterDefault;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TernaryExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	TernaryExpression parseTernaryExpression()
+	{
+		auto node = new TernaryExpression;
+		node.orOrExpression = parseOrOrExpression();
+		if (tokens[index] == TokenType.ternary)
+		{
+			++index;
+			node.expression = parseExpression();
+			expect(TokenType.colon);
+			node.ternaryExpression = parseTernaryExpression();
+		}
+		return node;
+	}
+
+	/**
+	 * Parses an ThrowStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	ThrowStatement parseThrowStatement()
+	{
+		auto node = new ThrowStatement;
+		expect(TokenType.throw_);
+		node.expression = parseExpression();
+		expect(TokenType.semicolon);
+		return node;
+	}
+
+	/**
+	 * Parses an TraitsArgument
+	 *
+	 * $(GRAMMAR )
+	 */
+	TraitsArgument parseTraitsArgument()
+	{
+		auto node = new TraitsArgument;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TraitsExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	TraitsExpression parseTraitsExpression()
+	{
+		auto node = new TraitsExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TryStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	TryStatement parseTryStatement()
+	{
+		auto node = new TryStatement;
+
+		return node;
+	}
+
+	/**
+	 * Parses an Type
+	 *
+	 * $(GRAMMAR )
+	 */
+	Type parseType()
+	{
+		auto node = new Type;
+
+		return node;
+	}
+
+	/**
+	 * Parses an Type2
+	 *
+	 * $(GRAMMAR )
+	 */
+	Type2 parseType2()
+	{
+		auto node = new Type2;
+
+		return node;
+	}
+
+	/**
+	 * Parses an Type3
+	 *
+	 * $(GRAMMAR )
+	 */
+	Type3 parseType3()
+	{
+		auto node = new Type3;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TypeConstructor
+	 *
+	 * $(GRAMMAR )
+	 */
+	TypeConstructor parseTypeConstructor()
+	{
+		auto node = new TypeConstructor;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TypeConstructors
+	 *
+	 * $(GRAMMAR )
+	 */
+	TypeConstructors parseTypeConstructors()
+	{
+		auto node = new TypeConstructors;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TypeSpecialization
+	 *
+	 * $(GRAMMAR )
+	 */
+	TypeSpecialization parseTypeSpecialization()
+	{
+		auto node = new TypeSpecialization;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TypeSuffix
+	 *
+	 * $(GRAMMAR )
+	 */
+	TypeSuffix parseTypeSuffix()
+	{
+		auto node = new TypeSuffix;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TypeidExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	TypeidExpression parseTypeidExpression()
+	{
+		auto node = new TypeidExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an TypeofExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	TypeofExpression parseTypeofExpression()
+	{
+		auto node = new TypeofExpression;
+		expect(TokenType.typeof_);
+		expect(TokenType.lParen);
+		if (tokens[index] == TokenType.return_)
+			node.return_ = tokens[index];
+		else
+			node.expression = parseExpression();
+		expect(TokenType.rParen);
+		return node;
+	}
+
+	/**
+	 * Parses an UnaryExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	UnaryExpression parseUnaryExpression()
+	{
+		auto node = new UnaryExpression;
+
+		return node;
+	}
+
+	/**
+	 * Parses an UnionDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
+	UnionDeclaration parseUnionDeclaration()
+	{
+		auto node = new UnionDeclaration;
+
+		return node;
+	}
+
+	/**
+	 * Parses an Unittest
+	 *
+	 * $(GRAMMAR )
+	 */
+	Unittest parseUnittest()
+	{
+		auto node = new Unittest;
+		expect(TokenType.unittest_);
+		node.blockStatement = parseBlockStatement();
+		return node;
+	}
+
+	/**
+	 * Parses an VariableDeclaration
+	 *
+	 * $(GRAMMAR )
+	 */
+	VariableDeclaration parseVariableDeclaration()
+	{
+		auto node = new VariableDeclaration;
+
+		return node;
+	}
+
+	/**
+	 * Parses an VersionCondition
+	 *
+	 * $(GRAMMAR )
+	 */
+	VersionCondition parseVersionCondition()
+	{
+		auto node = new VersionCondition;
+		expect(TokenType.version_);
+		expect(TokenType.lParen);
+		node.token = tokens[index];
+		expect(TokenType.rParen);
+		return node;
+	}
+
+	/**
+	 * Parses an VersionSpecification
+	 *
+	 * $(GRAMMAR )
+	 */
+	VersionSpecification parseVersionSpecification()
+	{
+		auto node = new VersionSpecification;
+		expect(TokenType.version_);
+		expect(TokenType.assign);
+		node.token = tokens[index];
+		expect(TokenType.semicolon);
+		return node;
+	}
+
+	/**
+	 * Parses an WhileStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	WhileStatement parseWhileStatement()
+	{
+		auto node = new WhileStatement;
+
+		return node;
+	}
+
+	/**
+	 * Parses an WithStatement
+	 *
+	 * $(GRAMMAR )
+	 */
+	WithStatement parseWithStatement()
+	{
+		auto node = new WithStatement;
+		expect(TokenType.with_);
+		expect(TokenType.lParen);
+		// magic here
+		expect(TokenType.rParen);
+		parseNonEmptyStatementNoCaseNoDefault();
+		return node;
+	}
+
+	/**
+	 * Parses an XorExpression
+	 *
+	 * $(GRAMMAR )
+	 */
+	XorExpression parseXorExpression()
+	{
+		auto node = new XorExpression;
+
+		return node;
+	}
+
+	void error(string message)
+	{
+		import std.stdio;
+		stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
+			tokens[index].column, message);
+		while (index < tokens.length)
+		{
+			if (tokens[++index].type == TokenType.semicolon)
+				break;
+		}
+	}
+
+	Token* peekPast(alias O, alias C)()
+	in
+	{
+		assert (tokens[index].type == O);
+	}
+	body
+	{
+		int depth = 1;
+		auto i = index;
+		++i;
+		while (index < tokens.length)
+		{
+			if (tokens[i] == O)
+				++depth;
+			else if (tokens[i] == C)
+			{
+				--depth;
+				++i;
+				if (depth <= 0)
+					break;
+			}
+			++i;
+		}
+		return depth == 0 ? &tokens[i] : null;
+	}
+
+	Token* peekPastParens()
+	{
+		return peekPast!(TokenType.lParen, TokenType.rParen)();
+	}
+
+	Token* peekPastBrackets()
+	{
+		return peekPast!(TokenType.lBracket, TokenType.rBracket)();
+	}
+
+	Token* peekPastBraces()
+	{
+		return peekPast!(TokenType.lBrace, TokenType.rBrace)();
+	}
+
+	/**
+	 * Returns a token of the specified type if it was the next token, otherwise
+	 * calls the error function and returns null.
+	 */
+	Token* expect(TokenType type)
+	{
+		if (tokens[index].type == type)
+			return &tokens[index++];
+		else
+		{
+			error("Expected " ~ to!string(type));
+			return null;
+		}
+	}
+
+	/**
+	 * Returns: the current token
+	 */
+	Token current()
+	{
+		return tokens[index];
+	}
+
+	/**
+	 * Advances to the next token and returns the current token
+	 */
+	Token advance()
+	{
+		return tokens[index++];
+	}
+
+	/**
+	 * Returns: true if the current token has the given type
+	 */
+	bool currentIs(TokenType type)
+	{
+		return tokens[index] == type;
+	}
+
+	/**
+	 * Returns: true if the current token is one of the given types
+	 */
+	bool currentIsOneOf(TokenType[] types...)
+	{
+		return canFind(types, current().type);
+	}
+
+	bool startsWith(TokenType[] types...)
+	{
+		for (size_t i = 0; i != types.length; ++i)
+		{
+			if (tokens[index + i].type != types[i])
+				return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Returns: true if there are more tokens
+	 */
+	bool moreTokens()
+	{
+		return index < tokens.length;
+	}
+
+	Token[] tokens;
+	size_t index;
+	string fileName;
 }

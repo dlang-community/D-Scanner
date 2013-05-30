@@ -23,7 +23,7 @@
  * auto tokens = byToken(source, config);
  * ---
  * The result of byToken$(LPAREN)$(RPAREN) is a forward range of tokens that can
- * be used easily with the algorithms from std.algorithm or iterated over with
+ * be easily used with the algorithms from std.algorithm or iterated over with
  * $(D_KEYWORD foreach)
  * ---
  * assert (tokens.front.type == TokenType.import_);
@@ -46,7 +46,6 @@
  * {
  *     stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
  * }
- *
  *
  * // http://ethanschoonover.com/solarized
  * void highlight(R)(R tokens)
@@ -71,7 +70,7 @@
  *
  *     foreach (Token t; tokens)
  *     {
- *         if (isType(t.type))
+ *         if (isBuiltType(t.type))
  *             writeSpan("type", t.value);
  *         else if (isKeyword(t.type))
  *             writeSpan("kwrd", t.value);
@@ -2211,9 +2210,9 @@ enum TokenType: ushort
     uintLiteral, /// 123u
     ulongLiteral, /// 123uL
     characterLiteral, /// 'a'
-    dstringLiteral, /// $(D_STRING "32-bit character string"d)
+    dstringLiteral, /// $(D_STRING "32-bit string"d)
     stringLiteral, /// $(D_STRING "an 8-bit string")
-    wstringLiteral, /// $(D_STRING "16-bit character string"w)
+    wstringLiteral, /// $(D_STRING "16-bit string"w)
 }
 
 // Implementation details follow

@@ -1,220 +1,234 @@
 // Written in the D programming language.
 
 /**
-* This module defines an Abstract Syntax Tree for the D language
-*/
+ * This module defines an Abstract Syntax Tree for the D language
+ *
+ * Examples:
+ * ---
+ * // TODO
+ * ---
+ *
+ * Copyright: Brian Schott 2013
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
+ * Authors: Brian Schott
+ * Source: $(PHOBOSSRC std/d/_ast.d)
+ */
 
 module std.d.ast;
 
 import std.d.lexer;
 
-interface ASTVisitor
+/**
+ * Implements the $(LINK2 http://en.wikipedia.org/wiki/Visitor_pattern, Visitor Pattern)
+ * for the various AST classes
+ */
+abstract class ASTVisitor
 {
-	void visit(AddExpression addExpression);
-	void visit(AliasDeclaration aliasDeclaration);
-	void visit(AliasInitializer aliasInitializer);
-	void visit(AliasThisDeclaration aliasThisDeclaration);
-	void visit(AlignAttribute alignAttribute);
-	void visit(AndAndExpression andAndExpression);
-	void visit(AndExpression andExpression);
-	void visit(ArgumentList argumentList);
-	void visit(Arguments arguments);
-	void visit(ArrayInitializer arrayInitializer);
-	void visit(ArrayLiteral arrayLiteral);
-	void visit(ArrayMemberInitialization arrayMemberInitialization);
-	void visit(ArrayMemberInitializations arrayMemberInitializations);
-	void visit(AsmAddExp asmAddExp);
-	void visit(AsmAndExp asmAndExp);
-	void visit(AsmBrExp asmBrExp);
-	void visit(AsmEqualExp asmEqualExp);
-	void visit(AsmExp asmExp);
-	void visit(AsmInstruction asmInstruction);
-	void visit(AsmLogAndExp asmLogAndExp);
-	void visit(AsmLogOrExp asmLogOrExp);
-	void visit(AsmMulExp asmMulExp);
-	void visit(AsmOrExp asmOrExp);
-	void visit(AsmPrimaryExp asmPrimaryExp);
-	void visit(AsmRelExp asmRelExp);
-	void visit(AsmShiftExp asmShiftExp);
-	void visit(AsmStatement asmStatement);
-	void visit(AsmTypePrefix asmTypePrefix);
-	void visit(AsmUnaExp asmUnaExp);
-	void visit(AsmXorExp asmXorExp);
-	void visit(AssertExpression assertExpression);
-	void visit(AssertStatement assertStatement);
-	void visit(AssignExpression assignExpression);
-	void visit(AssignStatement assignStatement);
-	void visit(AssocArrayLiteral assocArrayLiteral);
-	void visit(AtAttribute atAttribute);
-	void visit(Attribute attribute);
-	void visit(AttributedDeclaration attributedDeclaration);
-	void visit(AutoDeclaration autoDeclaration);
-	void visit(BlockStatement blockStatement);
-	void visit(BodyStatement bodyStatement);
-	void visit(BreakStatement breakStatement);
-	void visit(BuiltinType builtinType);
-	void visit(CaseRangeStatement caseRangeStatement);
-	void visit(CaseStatement caseStatement);
-	void visit(CastExpression castExpression);
-	void visit(CastQualifier castQualifier);
-	void visit(Catch catch_);
-	void visit(Catches catches);
-	void visit(ClassBody classBody);
-	void visit(ClassDeclaration classDeclaration);
-	void visit(CmpExpression cmpExpression);
-	void visit(CompileCondition compileCondition);
-	void visit(ConditionalDeclaration conditionalDeclaration);
-	void visit(ConditionalStatement conditionalStatement);
-	void visit(Constraint constraint);
-	void visit(Constructor constructor);
-	void visit(ContinueStatement continueStatement);
-	void visit(DebugCondition debugCondition);
-	void visit(DebugSpecification debugSpecification);
-	void visit(Declaration declaration);
-	void visit(DeclarationsAndStatements declarationsAndStatements);
-	void visit(Declarator declarator);
-	void visit(DeclaratorSuffix declaratorSuffix);
-	void visit(DefaultStatement defaultStatement);
-	void visit(DeleteExpression deleteExpression);
-	void visit(DeleteStatement deleteStatement);
-	void visit(Deprecated deprecated_);
-	void visit(Destructor destructor);
-	void visit(DoStatement doStatement);
-	void visit(EnumBody enumBody);
-	void visit(EnumDeclaration enumDeclaration);
-	void visit(EnumMember enumMember);
-	void visit(EqualExpression equalExpression);
-	void visit(Expression expression);
-	void visit(FinalSwitchStatement finalSwitchStatement);
-	void visit(Finally finally_);
-	void visit(ForStatement forStatement);
-	void visit(ForeachRangeStatement foreachRangeStatement);
-	void visit(ForeachStatement foreachStatement);
-	void visit(ForeachType foreachType);
-	void visit(ForeachTypeList foreachTypeList);
-	void visit(FunctionAttribute functionAttribute);
-	void visit(FunctionBody functionBody);
-	void visit(FunctionCallExpression functionCallExpression);
-	void visit(FunctionCallStatement functionCallStatement);
-	void visit(FunctionDeclaration functionDeclaration);
-	void visit(FunctionLiteralExpression functionLiteralExpression);
-	void visit(GotoStatement gotoStatement);
-	void visit(IdentifierChain identifierChain);
-	void visit(IdentifierList identifierList);
-	void visit(IdentifierOrTemplateChain identifierOrTemplateChain);
-	void visit(IdentifierOrTemplateInstance identifierOrTemplateInstance);
-	void visit(IdentityExpression identityExpression);
-	void visit(IfStatement ifStatement);
-	void visit(ImportBind importBind);
-	void visit(ImportBindings importBindings);
-	void visit(ImportDeclaration importDeclaration);
-	void visit(ImportExpression importExpression);
-	void visit(ImportList importList);
-	void visit(InExpression inExpression);
-	void visit(InStatement inStatement);
-	void visit(Initialize initialize);
-	void visit(Initializer initializer);
-	void visit(InterfaceDeclaration interfaceDeclaration);
-	void visit(Invariant invariant_);
-	void visit(IsExpression isExpression);
-	void visit(KeyValuePair keyValuePair);
-	void visit(KeyValuePairs keyValuePairs);
-	void visit(LabeledStatement labeledStatement);
-	void visit(LambdaExpression lambdaExpression);
-	void visit(LastCatch lastCatch);
-	void visit(LinkageAttribute linkageAttribute);
-	void visit(MemberFunctionAttribute memberFunctionAttribute);
-	void visit(MixinDeclaration mixinDeclaration);
-	void visit(MixinExpression mixinExpression);
-	void visit(MixinTemplateName mixinTemplateName);
-	void visit(Module module_);
-	void visit(ModuleDeclaration moduleDeclaration);
-	void visit(MulExpression mulExpression);
-	void visit(NewAnonClassExpression newAnonClassExpression);
-	void visit(NewExpression newExpression);
-	void visit(NonEmptyStatement nonEmptyStatement);
-	void visit(NonEmptyStatementNoCaseNoDefault nonEmptyStatementNoCaseNoDefault);
-	void visit(NonVoidInitializer nonVoidInitializer);
-	void visit(Opcode opcode);
-	void visit(Operand operand);
-	void visit(Operands operands);
-	void visit(OrExpression orExpression);
-	void visit(OrOrExpression orOrExpression);
-	void visit(OutStatement outStatement);
-	void visit(Parameter parameter);
-	void visit(ParameterAttribute parameterAttribute);
-	void visit(Parameters parameters);
-	void visit(PostIncDecExpression postIncDecExpression);
-	void visit(PowExpression powExpression);
-	void visit(PragmaDeclaration pragmaDeclaration);
-	void visit(PragmaExpression pragmaExpression);
-	void visit(PreIncDecExpression preIncDecExpression);
-	void visit(PrimaryExpression primaryExpression);
-	void visit(ProtectionAttribute protectionAttribute);
-	void visit(Register register);
-	void visit(RelExpression relExpression);
-	void visit(ReturnStatement returnStatement);
-	void visit(ScopeGuardStatement scopeGuardStatement);
-	void visit(SharedStaticConstructor sharedStaticConstructor);
-	void visit(SharedStaticDestructor sharedStaticDestructor);
-	void visit(ShiftExpression shiftExpression);
-	void visit(SingleImport singleImport);
-	void visit(Statement statement);
-	void visit(StatementNoCaseNoDefault statementNoCaseNoDefault);
-	void visit(StaticAssertDeclaration staticAssertDeclaration);
-	void visit(StaticAssertStatement staticAssertStatement);
-	void visit(StaticConstructor staticConstructor);
-	void visit(StaticDestructor staticDestructor);
-	void visit(StaticIfCondition staticIfCondition);
-	void visit(StorageClass storageClass);
-	void visit(StructBody structBody);
-	void visit(StructDeclaration structDeclaration);
-	void visit(StructInitializer structInitializer);
-	void visit(StructMemberInitializer structMemberInitializer);
-	void visit(StructMemberInitializers structMemberInitializers);
-	void visit(SwitchBody switchBody);
-	void visit(SwitchStatement switchStatement);
-	void visit(Symbol symbol);
-	void visit(SynchronizedStatement synchronizedStatement);
-	void visit(TemplateAliasParameter templateAliasParameter);
-	void visit(TemplateArgument templateArgument);
-	void visit(TemplateArgumentList templateArgumentList);
-	void visit(TemplateArguments templateArguments);
-	void visit(TemplateDeclaration templateDeclaration);
-	void visit(TemplateInstance templateInstance);
-	void visit(TemplateMixinStatement templateMixinStatement);
-	void visit(TemplateParameter templateParameter);
-	void visit(TemplateParameterList templateParameterList);
-	void visit(TemplateParameters templateParameters);
-	void visit(TemplateSingleArgument templateSingleArgument);
-	void visit(TemplateThisParameter templateThisParameter);
-	void visit(TemplateTupleParameter templateTupleParameter);
-	void visit(TemplateTypeParameter templateTypeParameter);
-	void visit(TemplateValueParameter templateValueParameter);
-	void visit(TemplateValueParameterDefault templateValueParameterDefault);
-	void visit(TernaryExpression ternaryExpression);
-	void visit(ThrowStatement throwStatement);
-	void visit(TraitsArgument traitsArgument);
-	void visit(TraitsExpression traitsExpression);
-	void visit(TryStatement tryStatement);
-	void visit(Type type);
-	void visit(Type2 type2);
-	void visit(Type3 type3);
-	void visit(TypeConstructor typeConstructor);
-	void visit(TypeConstructors typeConstructors);
-	void visit(TypeSpecialization typeSpecialization);
-	void visit(TypeSuffix typeSuffix);
-	void visit(TypeidExpression typeidExpression);
-	void visit(TypeofExpression typeofExpression);
-	void visit(UnaryExpression unaryExpression);
-	void visit(UnionDeclaration unionDeclaration);
-	void visit(Unittest unittest_);
-	void visit(VariableDeclaration variableDeclaration);
-	void visit(VersionCondition versionCondition);
-	void visit(VersionSpecification versionSpecification);
-	void visit(WhileStatement whileStatement);
-	void visit(WithStatement withStatement);
-	void visit(XorExpression xorExpression);
+	/** */ void visit(AddExpression addExpression) {}
+	/** */ void visit(AliasDeclaration aliasDeclaration) {}
+	/** */ void visit(AliasInitializer aliasInitializer) {}
+	/** */ void visit(AliasThisDeclaration aliasThisDeclaration) {}
+	/** */ void visit(AlignAttribute alignAttribute) {}
+	/** */ void visit(AndAndExpression andAndExpression) {}
+	/** */ void visit(AndExpression andExpression) {}
+	/** */ void visit(ArgumentList argumentList) {}
+	/** */ void visit(Arguments arguments) {}
+	/** */ void visit(ArrayInitializer arrayInitializer) {}
+	/** */ void visit(ArrayLiteral arrayLiteral) {}
+	/** */ void visit(ArrayMemberInitialization arrayMemberInitialization) {}
+	/** */ void visit(ArrayMemberInitializations arrayMemberInitializations) {}
+	/** */ void visit(AsmAddExp asmAddExp) {}
+	/** */ void visit(AsmAndExp asmAndExp) {}
+	/** */ void visit(AsmBrExp asmBrExp) {}
+	/** */ void visit(AsmEqualExp asmEqualExp) {}
+	/** */ void visit(AsmExp asmExp) {}
+	/** */ void visit(AsmInstruction asmInstruction) {}
+	/** */ void visit(AsmLogAndExp asmLogAndExp) {}
+	/** */ void visit(AsmLogOrExp asmLogOrExp) {}
+	/** */ void visit(AsmMulExp asmMulExp) {}
+	/** */ void visit(AsmOrExp asmOrExp) {}
+	/** */ void visit(AsmPrimaryExp asmPrimaryExp) {}
+	/** */ void visit(AsmRelExp asmRelExp) {}
+	/** */ void visit(AsmShiftExp asmShiftExp) {}
+	/** */ void visit(AsmStatement asmStatement) {}
+	/** */ void visit(AsmTypePrefix asmTypePrefix) {}
+	/** */ void visit(AsmUnaExp asmUnaExp) {}
+	/** */ void visit(AsmXorExp asmXorExp) {}
+	/** */ void visit(AssertExpression assertExpression) {}
+	/** */ void visit(AssertStatement assertStatement) {}
+	/** */ void visit(AssignExpression assignExpression) {}
+	/** */ void visit(AssignStatement assignStatement) {}
+	/** */ void visit(AssocArrayLiteral assocArrayLiteral) {}
+	/** */ void visit(AtAttribute atAttribute) {}
+	/** */ void visit(Attribute attribute) {}
+	/** */ void visit(AttributedDeclaration attributedDeclaration) {}
+	/** */ void visit(AutoDeclaration autoDeclaration) {}
+	/** */ void visit(BlockStatement blockStatement) {}
+	/** */ void visit(BodyStatement bodyStatement) {}
+	/** */ void visit(BreakStatement breakStatement) {}
+	/** */ void visit(BuiltinType builtinType) {}
+	/** */ void visit(CaseRangeStatement caseRangeStatement) {}
+	/** */ void visit(CaseStatement caseStatement) {}
+	/** */ void visit(CastExpression castExpression) {}
+	/** */ void visit(CastQualifier castQualifier) {}
+	/** */ void visit(Catch catch_) {}
+	/** */ void visit(Catches catches) {}
+	/** */ void visit(ClassBody classBody) {}
+	/** */ void visit(ClassDeclaration classDeclaration) {}
+	/** */ void visit(CmpExpression cmpExpression) {}
+	/** */ void visit(CompileCondition compileCondition) {}
+	/** */ void visit(ConditionalDeclaration conditionalDeclaration) {}
+	/** */ void visit(ConditionalStatement conditionalStatement) {}
+	/** */ void visit(Constraint constraint) {}
+	/** */ void visit(Constructor constructor) {}
+	/** */ void visit(ContinueStatement continueStatement) {}
+	/** */ void visit(DebugCondition debugCondition) {}
+	/** */ void visit(DebugSpecification debugSpecification) {}
+	/** */ void visit(Declaration declaration) {}
+	/** */ void visit(DeclarationsAndStatements declarationsAndStatements) {}
+	/** */ void visit(Declarator declarator) {}
+	/** */ void visit(DeclaratorSuffix declaratorSuffix) {}
+	/** */ void visit(DefaultStatement defaultStatement) {}
+	/** */ void visit(DeleteExpression deleteExpression) {}
+	/** */ void visit(DeleteStatement deleteStatement) {}
+	/** */ void visit(Deprecated deprecated_) {}
+	/** */ void visit(Destructor destructor) {}
+	/** */ void visit(DoStatement doStatement) {}
+	/** */ void visit(EnumBody enumBody) {}
+	/** */ void visit(EnumDeclaration enumDeclaration) {}
+	/** */ void visit(EnumMember enumMember) {}
+	/** */ void visit(EqualExpression equalExpression) {}
+	/** */ void visit(Expression expression) {}
+	/** */ void visit(FinalSwitchStatement finalSwitchStatement) {}
+	/** */ void visit(Finally finally_) {}
+	/** */ void visit(ForStatement forStatement) {}
+	/** */ void visit(ForeachRangeStatement foreachRangeStatement) {}
+	/** */ void visit(ForeachStatement foreachStatement) {}
+	/** */ void visit(ForeachType foreachType) {}
+	/** */ void visit(ForeachTypeList foreachTypeList) {}
+	/** */ void visit(FunctionAttribute functionAttribute) {}
+	/** */ void visit(FunctionBody functionBody) {}
+	/** */ void visit(FunctionCallExpression functionCallExpression) {}
+	/** */ void visit(FunctionCallStatement functionCallStatement) {}
+	/** */ void visit(FunctionDeclaration functionDeclaration) {}
+	/** */ void visit(FunctionLiteralExpression functionLiteralExpression) {}
+	/** */ void visit(GotoStatement gotoStatement) {}
+	/** */ void visit(IdentifierChain identifierChain) {}
+	/** */ void visit(IdentifierList identifierList) {}
+	/** */ void visit(IdentifierOrTemplateChain identifierOrTemplateChain) {}
+	/** */ void visit(IdentifierOrTemplateInstance identifierOrTemplateInstance) {}
+	/** */ void visit(IdentityExpression identityExpression) {}
+	/** */ void visit(IfStatement ifStatement) {}
+	/** */ void visit(ImportBind importBind) {}
+	/** */ void visit(ImportBindings importBindings) {}
+	/** */ void visit(ImportDeclaration importDeclaration) {}
+	/** */ void visit(ImportExpression importExpression) {}
+	/** */ void visit(ImportList importList) {}
+	/** */ void visit(InExpression inExpression) {}
+	/** */ void visit(InStatement inStatement) {}
+	/** */ void visit(Initialize initialize) {}
+	/** */ void visit(Initializer initializer) {}
+	/** */ void visit(InterfaceDeclaration interfaceDeclaration) {}
+	/** */ void visit(Invariant invariant_) {}
+	/** */ void visit(IsExpression isExpression) {}
+	/** */ void visit(KeyValuePair keyValuePair) {}
+	/** */ void visit(KeyValuePairs keyValuePairs) {}
+	/** */ void visit(LabeledStatement labeledStatement) {}
+	/** */ void visit(LambdaExpression lambdaExpression) {}
+	/** */ void visit(LastCatch lastCatch) {}
+	/** */ void visit(LinkageAttribute linkageAttribute) {}
+	/** */ void visit(MemberFunctionAttribute memberFunctionAttribute) {}
+	/** */ void visit(MixinDeclaration mixinDeclaration) {}
+	/** */ void visit(MixinExpression mixinExpression) {}
+	/** */ void visit(MixinTemplateName mixinTemplateName) {}
+	/** */ void visit(Module module_) {}
+	/** */ void visit(ModuleDeclaration moduleDeclaration) {}
+	/** */ void visit(MulExpression mulExpression) {}
+	/** */ void visit(NewAnonClassExpression newAnonClassExpression) {}
+	/** */ void visit(NewExpression newExpression) {}
+	/** */ void visit(NonEmptyStatement nonEmptyStatement) {}
+	/** */ void visit(NonEmptyStatementNoCaseNoDefault nonEmptyStatementNoCaseNoDefault) {}
+	/** */ void visit(NonVoidInitializer nonVoidInitializer) {}
+	/** */ void visit(Opcode opcode) {}
+	/** */ void visit(Operand operand) {}
+	/** */ void visit(Operands operands) {}
+	/** */ void visit(OrExpression orExpression) {}
+	/** */ void visit(OrOrExpression orOrExpression) {}
+	/** */ void visit(OutStatement outStatement) {}
+	/** */ void visit(Parameter parameter) {}
+	/** */ void visit(ParameterAttribute parameterAttribute) {}
+	/** */ void visit(Parameters parameters) {}
+	/** */ void visit(PostIncDecExpression postIncDecExpression) {}
+	/** */ void visit(PowExpression powExpression) {}
+	/** */ void visit(PragmaDeclaration pragmaDeclaration) {}
+	/** */ void visit(PragmaExpression pragmaExpression) {}
+	/** */ void visit(PreIncDecExpression preIncDecExpression) {}
+	/** */ void visit(PrimaryExpression primaryExpression) {}
+	/** */ void visit(ProtectionAttribute protectionAttribute) {}
+	/** */ void visit(Register register) {}
+	/** */ void visit(RelExpression relExpression) {}
+	/** */ void visit(ReturnStatement returnStatement) {}
+	/** */ void visit(ScopeGuardStatement scopeGuardStatement) {}
+	/** */ void visit(SharedStaticConstructor sharedStaticConstructor) {}
+	/** */ void visit(SharedStaticDestructor sharedStaticDestructor) {}
+	/** */ void visit(ShiftExpression shiftExpression) {}
+	/** */ void visit(SingleImport singleImport) {}
+	/** */ void visit(Statement statement) {}
+	/** */ void visit(StatementNoCaseNoDefault statementNoCaseNoDefault) {}
+	/** */ void visit(StaticAssertDeclaration staticAssertDeclaration) {}
+	/** */ void visit(StaticAssertStatement staticAssertStatement) {}
+	/** */ void visit(StaticConstructor staticConstructor) {}
+	/** */ void visit(StaticDestructor staticDestructor) {}
+	/** */ void visit(StaticIfCondition staticIfCondition) {}
+	/** */ void visit(StorageClass storageClass) {}
+	/** */ void visit(StructBody structBody) {}
+	/** */ void visit(StructDeclaration structDeclaration) {}
+	/** */ void visit(StructInitializer structInitializer) {}
+	/** */ void visit(StructMemberInitializer structMemberInitializer) {}
+	/** */ void visit(StructMemberInitializers structMemberInitializers) {}
+	/** */ void visit(SwitchBody switchBody) {}
+	/** */ void visit(SwitchStatement switchStatement) {}
+	/** */ void visit(Symbol symbol) {}
+	/** */ void visit(SynchronizedStatement synchronizedStatement) {}
+	/** */ void visit(TemplateAliasParameter templateAliasParameter) {}
+	/** */ void visit(TemplateArgument templateArgument) {}
+	/** */ void visit(TemplateArgumentList templateArgumentList) {}
+	/** */ void visit(TemplateArguments templateArguments) {}
+	/** */ void visit(TemplateDeclaration templateDeclaration) {}
+	/** */ void visit(TemplateInstance templateInstance) {}
+	/** */ void visit(TemplateMixinStatement templateMixinStatement) {}
+	/** */ void visit(TemplateParameter templateParameter) {}
+	/** */ void visit(TemplateParameterList templateParameterList) {}
+	/** */ void visit(TemplateParameters templateParameters) {}
+	/** */ void visit(TemplateSingleArgument templateSingleArgument) {}
+	/** */ void visit(TemplateThisParameter templateThisParameter) {}
+	/** */ void visit(TemplateTupleParameter templateTupleParameter) {}
+	/** */ void visit(TemplateTypeParameter templateTypeParameter) {}
+	/** */ void visit(TemplateValueParameter templateValueParameter) {}
+	/** */ void visit(TemplateValueParameterDefault templateValueParameterDefault) {}
+	/** */ void visit(TernaryExpression ternaryExpression) {}
+	/** */ void visit(ThrowStatement throwStatement) {}
+	/** */ void visit(TraitsArgument traitsArgument) {}
+	/** */ void visit(TraitsExpression traitsExpression) {}
+	/** */ void visit(TryStatement tryStatement) {}
+	/** */ void visit(Type type) {}
+	/** */ void visit(Type2 type2) {}
+	/** */ void visit(Type3 type3) {}
+	/** */ void visit(TypeConstructor typeConstructor) {}
+	/** */ void visit(TypeConstructors typeConstructors) {}
+	/** */ void visit(TypeSpecialization typeSpecialization) {}
+	/** */ void visit(TypeSuffix typeSuffix) {}
+	/** */ void visit(TypeidExpression typeidExpression) {}
+	/** */ void visit(TypeofExpression typeofExpression) {}
+	/** */ void visit(UnaryExpression unaryExpression) {}
+	/** */ void visit(UnionDeclaration unionDeclaration) {}
+	/** */ void visit(Unittest unittest_) {}
+	/** */ void visit(VariableDeclaration variableDeclaration) {}
+	/** */ void visit(VersionCondition versionCondition) {}
+	/** */ void visit(VersionSpecification versionSpecification) {}
+	/** */ void visit(WhileStatement whileStatement) {}
+	/** */ void visit(WithStatement withStatement) {}
+	/** */ void visit(XorExpression xorExpression) {}
 }
 
 interface ASTNode
@@ -237,7 +251,8 @@ class AddExpression : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	Token operator;
-	AddExpression addExpression;
+	AddExpression left;
+	AddExpression right;
 	MulExpression mulExpression;
 }
 
@@ -269,16 +284,15 @@ class AlignAttribute : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	Token integerLiteral;
+	Token intLiteral;
 }
 
 class AndAndExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	OrExpression orExpression;
-	AndAndExpression andandExpression;
-	CmpExpression cmpExpression;
+	AndAndExpression left;
+	OrExpression right;
 }
 
 class AndExpression : ASTNode
@@ -1240,8 +1254,8 @@ class MulExpression : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	Token operator;
-	MulExpression mulExpression;
-	PowExpression powExpression;
+	UnaryExpression left;
+	UnaryExpression right;
 }
 
 class NewAnonClassExpression : ASTNode
@@ -1988,6 +2002,6 @@ class XorExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	XorExpression xorExpression;
-	AndExpression andExpression;
+	XorExpression left;
+	AndExpression right;
 }
