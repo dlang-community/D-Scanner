@@ -44,20 +44,19 @@ struct Parser
 	/**
 	 * Parses an AddExpression.
 	 * $(GRAMMAR addExpression: mulExpression
-	 *     | addExpression ('+' | '-' | '~') addExpression
+	 *     | addExpression ('+' | '-' | '~') mulExpression
 	 *     ;)
 	 */
 	AddExpression parseAddExpression()
 	{
 		auto node = new AddExpression;
-		auto mul = parseMulExpression();
-		node.mulExpression = mul;
-		while (tokens[index] == TokenType.plus || tokens[index] == TokenType.minus || tokens[index] == TokenType.tilde)
+		node.right = parseMulExpression();
+		while (currentIsOneOf(TokenType.plus, TokenType.minus, TokenType.tilde))
 		{
-			node.operator = tokens[index++];
+			node.operator = advance().type;
 			auto newNode = new AddExpression;
 			newNode.left = node;
-			newNode.right = parseAddExpression();
+			newNode.right = parseMulExpression();
 			node = newNode;
 		}
 		return node;
@@ -136,9 +135,9 @@ struct Parser
 	{
 		auto node = new AndAndExpression;
 		node.right = parseOrExpression();
-		while (tokens[index] == TokenType.logicAnd)
+		while (currentIs(TokenType.logicAnd))
 		{
-			expect(TokenType.logicAnd);
+			advance();
 			auto node2 = new AndAndExpression;
 			node2.left = node;
 			node2.right = parseOrExpression();
@@ -567,21 +566,24 @@ struct Parser
 	}
 
 	/**
-	 * Parses an BodyStatement
+	 * Parses a BodyStatement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR bodyStatement: 'body' blockStatement
+     *     ;)
 	 */
 	BodyStatement parseBodyStatement()
 	{
 		auto node = new BodyStatement;
-
+        expect(TokenType.body_);
+        node.blockStatement = parseBlockStatement();
 		return node;
 	}
 
 	/**
-	 * Parses an BreakStatement
+	 * Parses a BreakStatement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR breakStatement: 'break' Identifier? ';'
+     *     ;)
 	 */
 	BreakStatement parseBreakStatement()
 	{
@@ -606,12 +608,40 @@ struct Parser
 	/**
 	 * Parses an BuiltinType
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR builtinType: 'bool'
+     *    | 'byte'
+     *    | 'ubyte'
+     *    | 'short'
+     *    | 'ushort'
+     *    | 'int'
+     *    | 'uint'
+     *    | 'long'
+     *    | 'ulong'
+     *    | 'char'
+     *    | 'wchar'
+     *    | 'dchar'
+     *    | 'float'
+     *    | 'double'
+     *    | 'real'
+     *    | 'ifloat'
+     *    | 'idouble'
+     *    | 'ireal'
+     *    | 'cfloat'
+     *    | 'cdouble'
+     *    | 'creal'
+     *    | 'void'
+     *    ;)
 	 */
 	BuiltinType parseBuiltinType()
 	{
 		auto node = new BuiltinType;
-
+        if (isBasicType(current().type)
+            node.type = advance().type;
+        else
+        {
+            error("Basic type expected");
+            return null;
+        }
 		return node;
 	}
 
@@ -652,31 +682,65 @@ struct Parser
 	}
 
 	/**
-	 * Parses an CastQualifier
+	 * Parses a CastQualifier
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR castQualifier: 'const'
+     *    | 'const' 'shared'
+     *    | 'immutable'
+     *    | 'inout'
+     *    | 'inout' 'shared'
+     *    | 'shared'
+     *    | 'shared' 'const'
+     *    | 'shared' 'inout'
+     *    ;)
 	 */
 	CastQualifier parseCastQualifier()
 	{
 		auto node = new CastQualifier;
-
+        switch (current().type)
+        {
+        case TokenType.inout_:
+        case TokenType.const_:
+            node.first = advance().type;
+            if (currentIs(TokenType.shared_))
+                node.second == advance().type;
+            break;
+        case TokenType.shared_:
+            node.first = advance().type;
+            if (currentIsOneOf(TokenType.const_, TokenType.inout_))
+                node.second == advance().type;
+            break;
+        case TokenType.immutable_:
+            node.first = advance().type;
+            break;
+        default:
+            error("const, immutable, inout, or shared expected");
+            return null;
+        }
 		return node;
 	}
 
 	/**
-	 * Parses an Catch
+	 * Parses a Catch
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR catch_: 'catch' '(' type Identifier? ')' nonEmptyStatementNoCaseNoDefault
+     *    ;)
 	 */
 	Catch parseCatch()
 	{
 		auto node = new Catch;
-
+        expect(TokenType.catch_);
+        expect(TokenType.lParen);
+        node.type = parseType();
+        if (currentIs(TokenType.identifier))
+            node.identifier = advance();
+        expect(TokenType.rParen);
+        node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
 		return node;
 	}
 
 	/**
-	 * Parses an Catches
+	 * Parses a Catches
 	 *
 	 * $(GRAMMAR )
 	 */
@@ -772,14 +836,17 @@ struct Parser
 	}
 
 	/**
-	 * Parses an Constructor
+	 * Parses a Constructor
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR constructor: 'this' parameters functionBody
+     *     ;)
 	 */
 	Constructor parseConstructor()
 	{
 		auto node = new Constructor;
-
+        expect(TokenType.this_);
+        node.parameters = parseParameters();
+        node.functionBody = parseFunctionBody();
 		return node;
 	}
 
@@ -930,14 +997,19 @@ struct Parser
 	}
 
 	/**
-	 * Parses an Destructor
+	 * Parses a Destructor
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR destructor: '~' 'this' '(' ')' functionBody
+     *     ;)
 	 */
 	Destructor parseDestructor()
 	{
 		auto node = new Destructor;
-
+        expect(TokenType.tilde);
+        expect(TokenType.this_);
+        expect(TokenType.lParen);
+        expect(TokenType.rParen);
+        node.functionBody = parseFunctionBody();
 		return node;
 	}
 
@@ -1927,17 +1999,19 @@ struct Parser
 	}
 
 	/**
-	 * Parses an Statement
+	 * Parses a Statement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR statement: ';'
+     *     | nonEmptyStatement
+     *     ;)
 	 */
 	Statement parseStatement()
 	{
 		auto node = new Statement;
-		if (tokens[index] != TokenType.semicolon)
+		if (currentIs(TokenType.semicolon))
+            advance();
+        else
 			node.nonEmptyStatement = parseNonEmptyStatement();
-		else
-			expect(TokenType.semicolon);
 		return node;
 	}
 

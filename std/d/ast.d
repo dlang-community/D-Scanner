@@ -66,7 +66,7 @@ abstract class ASTVisitor
 	/** */ void visit(BlockStatement blockStatement) {}
 	/** */ void visit(BodyStatement bodyStatement) {}
 	/** */ void visit(BreakStatement breakStatement) {}
-	/** */ void visit(BuiltinType builtinType) {}
+	/** */ void visit(BasicType builtinType) {}
 	/** */ void visit(CaseRangeStatement caseRangeStatement) {}
 	/** */ void visit(CaseStatement caseStatement) {}
 	/** */ void visit(CastExpression castExpression) {}
@@ -250,10 +250,9 @@ class AddExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	Token operator;
+	TokenType operator;
 	AddExpression left;
-	AddExpression right;
-	MulExpression mulExpression;
+	MulExpression right;
 }
 
 class AliasDeclaration : Declaration
@@ -597,11 +596,11 @@ public:
 	bool hasIdentifier;
 }
 
-class BuiltinType : ASTNode
+class BasicType : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	Token token;
+	TokenType type;
 }
 
 class CaseRangeStatement : ASTNode
@@ -633,8 +632,8 @@ class CastQualifier: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	Token first;
-	Token second;
+	TokenType first;
+	TokenType second;
 	bool hasSecond;
 }
 
@@ -1757,7 +1756,7 @@ class TemplateSingleArgument : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	Token token;
-	BuiltinType builtinType;
+	BasicType builtinType;
 }
 
 class TemplateThisParameter : ASTNode
@@ -1863,7 +1862,7 @@ class Type3 : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	BuiltinType builtinType;
+	BasicType builtinType;
 	Symbol symbol;
 	TypeofExpression typeofExpression;
 	IdentifierOrTemplateChain identifierOrTemplateChain;
