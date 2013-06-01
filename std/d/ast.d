@@ -86,6 +86,7 @@ abstract class ASTVisitor
 	/** */ void visit(DebugSpecification debugSpecification) {}
 	/** */ void visit(Declaration declaration) {}
 	/** */ void visit(DeclarationsAndStatements declarationsAndStatements) {}
+	/** */ void visit(DeclarationOrInvariant declarationOrInvariant) {}
 	/** */ void visit(Declarator declarator) {}
 	/** */ void visit(DeclaratorSuffix declaratorSuffix) {}
 	/** */ void visit(DefaultStatement defaultStatement) {}
@@ -585,7 +586,7 @@ class BodyStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	DeclarationsAndStatements declarationsAndStatements;
+	BlockStatement blockStatement;
 }
 
 class BreakStatement : ASTNode
@@ -658,8 +659,7 @@ class ClassBody: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	Declaration[] declarations;
-	Invariant[] invariants;
+	DeclarationOrInvariant[] declarationOrInvariants;
 }
 
 class ClassDeclaration: ASTNode
@@ -784,12 +784,19 @@ class DeclarationsAndStatements : ASTNode
 	ASTNode[] declarationsAndStatements;
 }
 
+class DeclarationOrInvariant : ASTNode
+{
+    mixin(DEFAULT_ACCEPT);
+    Declaration declaration;
+    Invariant invariant_;
+}
+
 class Declarator : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
 	Token identifier;
-	DeclaratorSuffix declaratiorSuffix;
+	DeclaratorSuffix declaratorSuffix;
 	Initializer initializer;
 }
 

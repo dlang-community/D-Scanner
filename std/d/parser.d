@@ -154,7 +154,7 @@ struct Parser
 	AndExpression parseAndExpression()
 	{
 		auto node = new AndExpression;
-
+        // TODO
 		return node;
 	}
 
@@ -166,7 +166,7 @@ struct Parser
 	ArgumentList parseArgumentList()
 	{
 		auto node = new ArgumentList;
-
+        // TODO
 		return node;
 	}
 
@@ -192,14 +192,15 @@ struct Parser
 	ArrayInitializer parseArrayInitializer()
 	{
 		auto node = new ArrayInitializer;
-
+        // TODO
 		return node;
 	}
 
 	/**
 	 * Parses an ArrayLiteral
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR arrayLiteral: '[' argumentList ']'
+     *     ;)
 	 */
 	ArrayLiteral parseArrayLiteral()
 	{
@@ -218,7 +219,7 @@ struct Parser
 	ArrayMemberInitialization parseArrayMemberInitialization()
 	{
 		auto node = new ArrayMemberInitialization;
-
+        // TODO
 		return node;
 	}
 
@@ -230,7 +231,7 @@ struct Parser
 	ArrayMemberInitializations parseArrayMemberInitializations()
 	{
 		auto node = new ArrayMemberInitializations;
-
+        // TODO
 		return node;
 	}
 
@@ -242,7 +243,7 @@ struct Parser
 	AsmAddExp parseAsmAddExp()
 	{
 		auto node = new AsmAddExp;
-
+        // TODO
 		return node;
 	}
 
@@ -254,7 +255,7 @@ struct Parser
 	AsmAndExp parseAsmAndExp()
 	{
 		auto node = new AsmAndExp;
-
+        // TODO
 		return node;
 	}
 
@@ -266,7 +267,7 @@ struct Parser
 	AsmBrExp parseAsmBrExp()
 	{
 		auto node = new AsmBrExp;
-
+        // TODO
 		return node;
 	}
 
@@ -278,7 +279,7 @@ struct Parser
 	AsmEqualExp parseAsmEqualExp()
 	{
 		auto node = new AsmEqualExp;
-
+        // TODO
 		return node;
 	}
 
@@ -489,12 +490,15 @@ struct Parser
 	/**
 	 * Parses an AssocArrayLiteral
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR assocArrayLiteral: '[' keyValuePairs ']'
+     *     ;)
 	 */
 	AssocArrayLiteral parseAssocArrayLiteral()
 	{
 		auto node = new AssocArrayLiteral;
-
+        expect(TokenType.lBracket);
+        node.keyValuePairs = parseKeyValuePairs();
+        expect(TokenType.rBracket);
 		return node;
 	}
 
@@ -547,21 +551,18 @@ struct Parser
 	}
 
 	/**
-	 * Parses an BlockStatement
+	 * Parses a BlockStatement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR blockStatement: '{' declarationsAndStatements? '}'
+     *     ;)
 	 */
 	BlockStatement parseBlockStatement()
 	{
 		auto node = new BlockStatement();
 		expect(TokenType.lBrace);
-		switch (tokens[index].type)
-		{
-		case TokenType.rBrace:
-			break;
-		default:
+		if (!currentIs(TokenType.rBrace))
 			node.declarationsAndStatements = parseDeclarationsAndStatements();
-		}
+		expect(TokenType.rBrace);
 		return node;
 	}
 
@@ -632,10 +633,10 @@ struct Parser
      *    | 'void'
      *    ;)
 	 */
-	BuiltinType parseBuiltinType()
+	BasicType parseBasicType()
 	{
-		auto node = new BuiltinType;
-        if (isBasicType(current().type)
+		auto node = new BasicType;
+        if (isBasicType(current().type))
             node.type = advance().type;
         else
         {
@@ -646,26 +647,38 @@ struct Parser
 	}
 
 	/**
-	 * Parses an CaseRangeStatement
+	 * Parses a CaseRangeStatement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR caseRangeStatement: 'case' assignExpression ':' '...' 'case' assignExpression ':' declarationsAndStatements
+     *     ;)
 	 */
 	CaseRangeStatement parseCaseRangeStatement()
 	{
 		auto node = new CaseRangeStatement;
-
+        expect(TokenType.case_);
+        node.low = parseAssignExpression();
+        expect(TokenType.colon);
+        expect(TokenType.vararg);
+        expect(TokenType.case_);
+        node.high = parseAssignExpression();
+        expect(TokenType.colon);
+        node.declarationsAndStatements = parseDeclarationsAndStatements();
 		return node;
 	}
 
 	/**
 	 * Parses an CaseStatement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR caseStatement: 'case' argumentList ':' declarationsAndStatements
+     *     ;)
 	 */
 	CaseStatement parseCaseStatement()
 	{
 		auto node = new CaseStatement;
-
+        expect(TokenType.case_);
+        node.argumentList = parseArgumentList();
+        expect(TokenType.colon);
+        node.declarationsAndStatements = parseDeclarationsAndStatements();
 		return node;
 	}
 
@@ -703,12 +716,12 @@ struct Parser
         case TokenType.const_:
             node.first = advance().type;
             if (currentIs(TokenType.shared_))
-                node.second == advance().type;
+                node.second = advance().type;
             break;
         case TokenType.shared_:
             node.first = advance().type;
             if (currentIsOneOf(TokenType.const_, TokenType.inout_))
-                node.second == advance().type;
+                node.second = advance().type;
             break;
         case TokenType.immutable_:
             node.first = advance().type;
@@ -754,24 +767,39 @@ struct Parser
 	/**
 	 * Parses an ClassBody
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR classBody: '{' declarationOrInvariant* '}'
+     *     ;)
 	 */
 	ClassBody parseClassBody()
 	{
 		auto node = new ClassBody;
-
+        expect(TokenType.lBrace);
+        while (!currentIs(TokenType.rBrace))
+            node.declarationOrInvariants ~= parseDeclarationOrInvariant();
+        expect(TokenType.rBrace);
 		return node;
 	}
 
 	/**
 	 * Parses an ClassDeclaration
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR classDeclaration: 'class' Identifier (templateParameters constraint?)? (':' identifierList )? classBody
+     *     ;)
 	 */
 	ClassDeclaration parseClassDeclaration()
 	{
 		auto node = new ClassDeclaration;
-
+        expect(TokenType.class_);
+        node.name = *expect(TokenType.identifier);
+        if (currentIs(TokenType.lParen))
+        {
+            node.templateParameters = parseTemplateParameters();
+            if (currentIs(TokenType.if_))
+                node.constraint = parseConstraint();
+        }
+        if (currentIs(TokenType.colon))
+            node.superClasses = parseIdentifierList();
+        node.classBody = parseClassBody();
 		return node;
 	}
 
@@ -788,14 +816,31 @@ struct Parser
 	}
 
 	/**
-	 * Parses an CompileCondition
+	 * Parses a CompileCondition
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR compileCondition: versionCondition
+     *     | debugCondition
+     *     | staticIfCondition
+     *     ;)
 	 */
 	CompileCondition parseCompileCondition()
 	{
 		auto node = new CompileCondition;
-
+        switch (current().type)
+        {
+        case TokenType.version_:
+            node.versionCondition = parseVersionCondition();
+            break;
+        case TokenType.debug_:
+            node.debugCondition = parseDebugCondition();
+            break;
+        case TokenType.static_:
+            node.staticIfCondition = parseStaticIfCondition();
+            break;
+        default:
+            error(`"version", "debug", or "static" expected`);
+            return null;
+        }
 		return node;
 	}
 
@@ -826,12 +871,16 @@ struct Parser
 	/**
 	 * Parses an Constraint
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR constraint: 'if' '(' expression ')'
+     *     ;)
 	 */
 	Constraint parseConstraint()
 	{
 		auto node = new Constraint;
-
+        expect(TokenType.if_);
+        expect(TokenType.lParen);
+        node.expression = parseExpression();
+        expect(TokenType.rParen);
 		return node;
 	}
 
@@ -870,7 +919,7 @@ struct Parser
 			advance();
 			break;
 		default:
-			error("Identifier or semicolon expected following \"continue\"");
+			error(`Identifier or semicolon expected following "continue"`);
 			return null;
 		}
 		return node;
@@ -879,36 +928,154 @@ struct Parser
 	/**
 	 * Parses an DebugCondition
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR debugCondition: 'debug' ('(' (IntegerLiteral | Identifier) ')')?
+     *     ;)
 	 */
 	DebugCondition parseDebugCondition()
 	{
 		auto node = new DebugCondition;
-
+        expect(TokenType.debug_);
+        if (currentIs(TokenType.lParen))
+        {
+            advance();
+            node.hasIdentifierOrInteger = true;
+            if (currentIsOneOf(TokenType.intLiteral, TokenType.identifier))
+                node.identifierOrInteger = advance();
+            else
+            {
+                error(`Integer literal or identifier expected`);
+                return null;
+            }
+            expect(TokenType.rParen);
+        }
+        else
+            node.hasIdentifierOrInteger = false;
 		return node;
 	}
 
 	/**
-	 * Parses an DebugSpecification
+	 * Parses a DebugSpecification
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR debugSpecification: 'debug' '=' (Identifier | IntegerLiteral) ';'
+     *     ;)
 	 */
 	DebugSpecification parseDebugSpecification()
 	{
 		auto node = new DebugSpecification;
-
+        expect(TokenType.debug_);
+        expect(TokenType.assign);
+        if (currentIsOneOf(TokenType.identifier, TokenType.intLiteral))
+            node.identifierOrInteger = advance();
+        else
+        {
+            error("Integer literal or identifier expected");
+            return null;
+        }
+        expect(TokenType.semicolon);
 		return node;
 	}
 
 	/**
-	 * Parses an Declaration
+	 * Parses a Declaration
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR declaration: aliasDeclaration
+     *     | aliasThisDeclaration
+     *     | attributedDeclaration
+     *     | classDeclaration
+     *     | conditionalDeclaration
+     *     | constructor
+     *     | destructor
+     *     | enumDeclaration
+     *     | functionDeclaration
+     *     | importDeclaration
+     *     | interfaceDeclaration
+     *     | mixinDeclaration
+     *     | pragmaDeclaration
+     *     | sharedStaticConstructor
+     *     | sharedStaticDestructor
+     *     | staticAssertDeclaration
+     *     | staticConstructor
+     *     | staticDestructor
+     *     | structDeclaration
+     *     | templateDeclaration
+     *     | unionDeclaration
+     *     | unittest
+     *     | variableDeclaration
+     *     ;)
 	 */
 	Declaration parseDeclaration()
 	{
 		auto node = new Declaration;
-
+        switch (current().type)
+        {
+        case TokenType.alias_:
+            if (startsWith(TokenType.alias_, TokenType.identifier, TokenType.this_))
+                node.aliasThisDeclaration = parseAliasThisDeclaration();
+            else
+                node.aliasDeclaration = parseAliasDeclaration();
+            break;
+        case TokenType.class_:
+            node.classDeclaration = parseClassDeclaration();
+            break;
+        case TokenType.this_:
+            node.constructor = parseConstructor();
+            break;
+        case TokenType.tilde:
+            node.destructor = parseDestructor();
+            break;
+        case TokenType.enum_:
+            node.enumDeclaration = parseEnumDeclaration();
+            break;
+        case TokenType.import_:
+            node.importDeclaration = parseImportDeclaration();
+            break;
+        case TokenType.interface_:
+            node.interfaceDeclaration = parseInterfaceDeclaration();
+            break;
+        case TokenType.mixin_:
+            node.mixinDeclaration = parseMixinDeclaration();
+            break;
+        case TokenType.pragma_:
+            node.pragmaDeclaration = parsePragmaDeclaration();
+            break;
+        case TokenType.shared_:
+            // TODO:
+            // sharedStaticConstructor shared static this
+            // sharedStaticDestructor shared static ~ this
+            // attributedDeclaration shared anything else
+            break;
+        case TokenType.static_:
+            // TODO:
+            // staticConstructor static this
+            // staticDestructor static ~
+            // attributedDeclaration static anything else
+            // conditionalDeclaration static if
+            break;
+        case TokenType.struct_:
+            node.structDeclaration = parseStructDeclaration();
+            break;
+        case TokenType.template_:
+            node.templateDeclaration = parseTemplateDeclaration();
+            break;
+        case TokenType.union_:
+            node.unionDeclaration = parseUnionDeclaration();
+            break;
+        case TokenType.unittest_:
+            node.unittest_ = parseUnittest();
+            break;
+        case TokenType.identifier:
+            // TODO:
+            // variableDeclaration
+            // functionDeclaration
+            break;
+        case TokenType.version_:
+        case TokenType.debug_:
+            node.conditionalDeclaration = parseConditionalDeclaration();
+            break;
+        default:
+            error("Declaration expected");
+            return null;
+        }
 		return node;
 	}
 
@@ -924,15 +1091,40 @@ struct Parser
 		return node;
 	}
 
-	/**
-	 * Parses an Declarator
+    /**
+	 * Parses a DeclarationOrInvariant
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR declarationOrInvariant : declaration
+     *     | invariant
+     *     ;)
+	 */
+    DeclarationOrInvariant parseDeclarationOrInvariant()
+    {
+        auto node = new DeclarationOrInvariant;
+        if (currentIs(TokenType.invariant_))
+            node.invariant_ = parseInvariant();
+        else
+            node.declaration = parseDeclaration();
+		return node;
+    }
+
+	/**
+	 * Parses a Declarator
+	 *
+	 * $(GRAMMAR declarator: Identifier declaratorSuffix? ('=' initializer)?
+     *     ;)
 	 */
 	Declarator parseDeclarator()
 	{
 		auto node = new Declarator;
-
+        node.identifier = *expect(TokenType.identifier);
+        if (currentIs(TokenType.lBracket))
+            node.declaratorSuffix = parseDeclaratorSuffix();
+        if (currentIs(TokenType.assign))
+        {
+            advance();
+            node.initializer = parseInitializer();
+        }
 		return node;
 	}
 
@@ -985,14 +1177,21 @@ struct Parser
 	}
 
 	/**
-	 * Parses an Deprecated
+	 * Parses a Deprecated attribute
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR deprecated: 'deprecated' ('(' assignExpression ')')?
+     *     ;)
 	 */
 	Deprecated parseDeprecated()
 	{
 		auto node = new Deprecated;
-
+        expect(TokenType.deprecated_);
+        if (currentIs(TokenType.lParen))
+        {
+            advance();
+            node.assignExpression = parseAssignExpression();
+            expect(TokenType.rParen);
+        }
 		return node;
 	}
 
@@ -1255,24 +1454,46 @@ struct Parser
 	/**
 	 * Parses an IdentifierChain
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR identifierChain: Identifier ('.' Identifier)*
+     *     ;)
 	 */
 	IdentifierChain parseIdentifierChain()
 	{
 		auto node = new IdentifierChain;
-
+        while (true)
+        {
+            node.identifiers ~= *expect(TokenType.identifier);
+            if (currentIs(TokenType.dot))
+            {
+                advance();
+                continue;
+            }
+            else
+                break;
+        }
 		return node;
 	}
 
 	/**
 	 * Parses an IdentifierList
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR identifierList: Identifier (',' Identifier)*
+     *     ;)
 	 */
 	IdentifierList parseIdentifierList()
 	{
 		auto node = new IdentifierList;
-
+        while (true)
+        {
+            node.identifiers ~= *expect(TokenType.identifier);
+            if (currentIs(TokenType.comma))
+            {
+                advance();
+                continue;
+            }
+            else
+                break;
+        }
 		return node;
 	}
 
@@ -1532,12 +1753,21 @@ struct Parser
 	/**
 	 * Parses an LinkageAttribute
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR linkageAttribute: 'extern' '(' Identifier '++'? ')'
+     *     ;)
 	 */
 	LinkageAttribute parseLinkageAttribute()
 	{
 		auto node = new LinkageAttribute;
-
+        expect(TokenType.extern_);
+        expect(TokenType.lParen);
+        node.identifier = *expect(TokenType.identifier);
+        if (currentIs(TokenType.increment))
+        {
+            advance();
+            node.hasPlusPlus = true;
+        }
+        expect(TokenType.rParen);
 		return node;
 	}
 
@@ -1556,12 +1786,14 @@ struct Parser
 	/**
 	 * Parses an MixinDeclaration
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR mixinDeclaration: mixinExpression ';'
+     *     ;)
 	 */
 	MixinDeclaration parseMixinDeclaration()
 	{
 		auto node = new MixinDeclaration;
-
+        node.mixinExpression = parseMixinExpression();
+        expect(TokenType.semicolon);
 		return node;
 	}
 
@@ -2686,7 +2918,7 @@ struct Parser
 	}
 
 	/**
-	 * Parses an VariableDeclaration
+	 * Parses a VariableDeclaration
 	 *
 	 * $(GRAMMAR )
 	 */
@@ -2698,31 +2930,47 @@ struct Parser
 	}
 
 	/**
-	 * Parses an VersionCondition
+	 * Parses a VersionCondition
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR versionCondition: 'version' '(' (IntegerLiteral | Identifier | 'unittest' | 'assert') ')'
+     *     ;)
 	 */
 	VersionCondition parseVersionCondition()
 	{
 		auto node = new VersionCondition;
 		expect(TokenType.version_);
 		expect(TokenType.lParen);
-		node.token = tokens[index];
+        if (currentIsOneOf(TokenType.intLiteral, TokenType.identifier,
+            TokenType.unittest_, TokenType.assert_))
+        {
+            node.token = advance();
+        }
+        else
+        {
+            error(`Expected an integer literal, an identifier, "assert", or "unittest"`);
+            return null;
+        }
 		expect(TokenType.rParen);
 		return node;
 	}
 
 	/**
-	 * Parses an VersionSpecification
+	 * Parses a VersionSpecification
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR versionSpecification: 'version' '=' (Identifier | IntegerLiteral) ';'
+     *     ;)
 	 */
 	VersionSpecification parseVersionSpecification()
 	{
 		auto node = new VersionSpecification;
 		expect(TokenType.version_);
 		expect(TokenType.assign);
-		node.token = tokens[index];
+        if (!currentIsOneOf(TokenType.identifier, TokenType.intLiteral))
+        {
+            error("Identifier or integer literal expected");
+            return null;
+        }
+		node.token = advance();
 		expect(TokenType.semicolon);
 		return node;
 	}
@@ -2730,12 +2978,17 @@ struct Parser
 	/**
 	 * Parses an WhileStatement
 	 *
-	 * $(GRAMMAR )
+	 * $(GRAMMAR whileStatement: 'while' '(' expression ')' statementNoCaseNoDefault
+     *     ;)
 	 */
 	WhileStatement parseWhileStatement()
 	{
 		auto node = new WhileStatement;
-
+        expect(TokenType.while_);
+        expect(TokenType.lParen);
+        node.expression = parseExpression();
+        expect(TokenType.rParen);
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
 		return node;
 	}
 
@@ -2763,12 +3016,13 @@ struct Parser
 	XorExpression parseXorExpression()
 	{
 		auto node = new XorExpression;
-
+        // TODO
 		return node;
 	}
 
 	void error(string message)
 	{
+        ++errorCount;
 		import std.stdio;
 		stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
 			tokens[index].column, message);
@@ -2885,6 +3139,7 @@ struct Parser
 		return index < tokens.length;
 	}
 
+    uint errorCount;
 	Token[] tokens;
 	size_t index;
 	string fileName;
