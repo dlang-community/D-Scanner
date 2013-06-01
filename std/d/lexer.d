@@ -13,7 +13,7 @@
  * LexerConfig config;
  * config.iterStyle = IterationStyle.everything;
  * config.tokenStyle = TokenStyle.source;
- * config.versionNumber = 2061;
+ * config.versionNumber = 2064;
  * config.vendorString = "Lexer Example";
  * ---
  * Once you have configured the _lexer, call byToken$(LPAREN)$(RPAREN) on your
@@ -200,7 +200,7 @@ enum IterationStyle
     includeWhitespace = 0b0010,
     /// Include $(LINK2 http://dlang.org/lex.html#specialtokens, special tokens)
     includeSpecialTokens = 0b0100,
-    /// Do not stop iteration on reaching the ___EOF__ token
+    /// Do not stop iteration on reaching the $(D_KEYWORD ___EOF__) token
     ignoreEOF = 0b1000,
     /// Include _everything
     everything = includeComments | includeWhitespace | ignoreEOF
@@ -215,8 +215,8 @@ enum TokenStyle : uint
     /**
      * Escape sequences will be replaced with their equivalent characters,
      * enclosing quote characters will not be included. Special tokens such as
-     * __VENDOR__ will be replaced with their equivalent strings. Useful for
-     * creating a compiler or interpreter.
+     * $(D_KEYWORD ___VENDOR__) will be replaced with their equivalent strings.
+	 * Useful for creating a compiler or interpreter.
      */
     default_ = 0b0000,
 
@@ -236,8 +236,8 @@ enum TokenStyle : uint
     includeQuotes = 0b0010,
 
     /**
-     * Do not replace the value field of the special tokens such as ___DATE__
-     * with their string equivalents.
+     * Do not replace the value field of the special tokens such as
+	 * $(D_KEYWORD ___DATE__) with their string equivalents.
      */
     doNotReplaceSpecial = 0b0100,
 
@@ -265,12 +265,12 @@ struct LexerConfig
     TokenStyle tokenStyle = tokenStyle.default_;
 
     /**
-     * Replacement for the ___VERSION__ token. Defaults to 100.
+     * Replacement for the $(D_KEYWORD ___VERSION__) token. Defaults to 100.
      */
     uint versionNumber = 100;
 
     /**
-     * Replacement for the ___VENDOR__ token. Defaults to $(D_STRING "std.d.lexer")
+     * Replacement for the $(D_KEYWORD ___VENDOR__) token. Defaults to $(D_STRING "std.d.lexer")
      */
     string vendorString = "std.d.lexer";
 
@@ -597,7 +597,7 @@ L_advance:
                 return;
             }
 
-            if (config.iterStyle & TokenStyle.doNotReplaceSpecial)
+            if (config.tokenStyle & TokenStyle.doNotReplaceSpecial)
                 return;
             expandSpecialToken();
         }
@@ -2680,16 +2680,16 @@ immutable(string[TokenType.max + 1]) tokenValues = [
     "__VERSION__",
     "__FILE__",
     "__LINE__",
-	"__MODULE__",
-	"__FUNCTION__",
-	"__PRETTY_FUNCTION",
+    "__MODULE__",
+    "__FUNCTION__",
+    "__PRETTY_FUNCTION__",
+    null,
     null,
     null,
     null,
     "__traits",
     "__parameters",
     "__vector",
-    null,
     null,
     null,
     null,
@@ -2867,6 +2867,7 @@ pure TokenType lookupTokenType(R)(R input)
         case '_': if (input[1..$].equal("_DATE__")) return TokenType.specialDate;
             else if (input[1..$].equal("_FILE__")) return TokenType.specialFile;
             else if (input[1..$].equal("_LINE__")) return TokenType.specialLine;
+            else if (input[1..$].equal("_vector")) return TokenType.vector;
             else if (input[1..$].equal("_TIME__")) return TokenType.specialTime;
             else if (input[1..$].equal("_traits")) return TokenType.traits; else break;
         case 'a': if (input[1..$].equal("bstract")) return TokenType.abstract_; else break;
@@ -2896,8 +2897,8 @@ pure TokenType lookupTokenType(R)(R input)
         {
         case 'd': if (input[1..$].equal("eprecated")) return TokenType.deprecated_; else break;
         case '_':
-			if (input[1..$].equal("_VENDOR__")) return TokenType.specialVendor;
-			else if (input[1..$].equal("_MODULE__")) return TokenType.specialModule; else break;
+            if (input[1..$].equal("_VENDOR__")) return TokenType.specialVendor;
+            else if (input[1..$].equal("_MODULE__")) return TokenType.specialModule; else break;
         default: break;
         }
         break;
@@ -2906,13 +2907,14 @@ pure TokenType lookupTokenType(R)(R input)
             return TokenType.specialVersion;
         break;
     case 12:
-		switch (input[0])
-		{
+        switch (input[0])
+        {
         case 's': if (input[1..$].equal("ynchronized")) return TokenType.synchronized_; else break;
-        case '_': if (input[1..$].equal("_FUNCTION__")) return TokenType.specialFunction; else break;
+        case '_': if (input[1..$].equal("_FUNCTION__")) return TokenType.specialFunction;
+            else if (input[1..$].equal("_parameters")) return TokenType.parameters; else break;
         default: break;
-		}
-		break;
+        }
+        break;
     case 13:
         if (input[1..$].equal("_TIMESTAMP__"))
             return TokenType.specialTimestamp;
@@ -2921,7 +2923,7 @@ pure TokenType lookupTokenType(R)(R input)
         if (input[1..$].equal("oreach_reverse"))
             return TokenType.foreach_reverse_;
         break;
-	case 19:
+    case 19:
         if (input[1..$].equal("_PRETTY_FUNCTION__"))
             return TokenType.specialPrettyFunction;
         break;
@@ -3306,7 +3308,8 @@ unittest
         ~ " interface invariant is lazy macro mixin module new nothrow null"
         ~ " out override pure ref return struct super switch template this"
         ~ " throw true try typedef typeid typeof union unittest version volatile"
-        ~ " while with __traits __parameters __vector");
+        ~ " while with __traits __parameters __vector __VENDOR__ __MODULE__"
+        ~ " __VERSION__ __TIMESTAMP__ __PRETTY_FUNCTION__");
     auto expected = ["bool", "byte", "cdouble",
         "cent", "cfloat", "char", "creal",
         "dchar", "double", "float", "function",
@@ -3329,10 +3332,13 @@ unittest
         "super", "switch", "template", "this", "throw",
         "true", "try", "typedef", "typeid", "typeof",
         "union", "unittest", "version", "volatile",
-        "while", "with", "__traits", "__parameters", "__vector"];
+        "while", "with", "__traits", "__parameters", "__vector",
+        "__VENDOR__", "__MODULE__", "__VERSION__", "__TIMESTAMP__",
+        "__PRETTY_FUNCTION__"];
     LexerConfig config;
+    config.tokenStyle = TokenStyle.doNotReplaceSpecial;
     auto tokens = byToken(source, config);
-    //writeln(tokens.map!"a.value"().array());
+//    writeln(tokens.map!"a.value"().array());
     assert (equal(map!"a.value"(tokens), expected));
 }
 
@@ -3387,7 +3393,7 @@ unittest
     assert (tokens.front.line == 1);
     assert (tokens.moveFront() == TokenType.int_);
     assert (tokens.front.line == 4);
-    assert (isType(tokens.front));
+    assert (isBasicType(tokens.front));
     assert (tokens.front.value == "double");
     tokens.popFront();
     assert (tokens.front.value == "abcde (a + b) == 0", tokens.front.value);
