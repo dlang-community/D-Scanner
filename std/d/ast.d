@@ -38,7 +38,6 @@ class ASTVisitor
 	/** */void visit(ArrayInitializer arrayInitializer) {}
 	/** */void visit(ArrayLiteral arrayLiteral) {}
 	/** */void visit(ArrayMemberInitialization arrayMemberInitialization) {}
-	/** */void visit(ArrayMemberInitializations arrayMemberInitializations) {}
 	/** */void visit(AsmAddExp asmAddExp) {}
 	/** */void visit(AsmAndExp asmAndExp) {}
 	/** */void visit(AsmBrExp asmBrExp) {}
@@ -68,6 +67,8 @@ class ASTVisitor
 	/** */void visit(BlockStatement blockStatement) {}
 	/** */void visit(BodyStatement bodyStatement) {}
 	/** */void visit(BreakStatement breakStatement) {}
+	/** */void visit(BaseClass baseClass) {}
+	/** */void visit(BaseClassList baseClassList) {}
 	/** */void visit(BasicType builtinType) {}
 	/** */void visit(CaseRangeStatement caseRangeStatement) {}
 	/** */void visit(CaseStatement caseStatement) {}
@@ -75,10 +76,8 @@ class ASTVisitor
 	/** */void visit(CastQualifier castQualifier) {}
 	/** */void visit(Catch catch_) {}
 	/** */void visit(Catches catches) {}
-	/** */void visit(ClassBody ///
-classBody) {}
-	/** */void visit(ClassDeclaration ///
-classDeclaration) {}
+	/** */void visit(ClassBody classBody) {}
+	/** */void visit(ClassDeclaration classDeclaration) {}
 	/** */void visit(CmpExpression cmpExpression) {}
 	/** */void visit(CompileCondition compileCondition) {}
 	/** */void visit(ConditionalDeclaration conditionalDeclaration) {}
@@ -155,7 +154,6 @@ classDeclaration) {}
 	/** */void visit(NonEmptyStatement nonEmptyStatement) {}
 	/** */void visit(NonEmptyStatementNoCaseNoDefault nonEmptyStatementNoCaseNoDefault) {}
 	/** */void visit(NonVoidInitializer nonVoidInitializer) {}
-	/** */void visit(Opcode opcode) {}
 	/** */void visit(Operand operand) {}
 	/** */void visit(Operands operands) {}
 	/** */void visit(OrExpression orExpression) {}
@@ -170,7 +168,6 @@ classDeclaration) {}
 	/** */void visit(PragmaExpression pragmaExpression) {}
 	/** */void visit(PreIncDecExpression preIncDecExpression) {}
 	/** */void visit(PrimaryExpression primaryExpression) {}
-	/** */void visit(ProtectionAttribute protectionAttribute) {}
 	/** */void visit(Register register) {}
 	/** */void visit(RelExpression relExpression) {}
 	/** */void visit(ReturnStatement returnStatement) {}
@@ -337,7 +334,7 @@ class ArrayInitializer : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ArrayMemberInitializations arrayMemberInitializations;
+	/** */ArrayMemberInitialization[] arrayMemberInitializations;
 }
 
 ///
@@ -355,14 +352,6 @@ public:
 	mixin(DEFAULT_ACCEPT);
 	/** */AssignExpression assignExpression;
 	/** */NonVoidInitializer nonVoidInitializer;
-}
-
-///
-class ArrayMemberInitializations : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ArrayMemberInitialization[] arrayMemberInitializations;
 }
 
 ///
@@ -419,10 +408,9 @@ class AsmInstruction : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token identifierOrInteger;
+	/** */Token identifierOrIntegerOrOpcode;
 	/** */bool hasAlign;
 	/** */AsmExp asmExp;
-	/** */Opcode opcode;
 	/** */Operands operands;
 }
 
@@ -555,7 +543,7 @@ public:
 	mixin(DEFAULT_ACCEPT);
 	/** */TernaryExpression ternaryExpression;
 	/** */AssignExpression assignExpression;
-	/** */Token operator;
+	/** */TokenType operator;
 }
 
 ///
@@ -567,7 +555,7 @@ public:
 	/** */PostIncDecExpression postIncDecExpression;
 	/** */UnaryExpression[] unaryExpressions;
 	/** */AssignExpression[] assignExpressions;
-	/** */Token[] assignOperators;
+	/** */TokenType[] assignOperators;
 }
 
 ///
@@ -606,9 +594,8 @@ public:
 	/** */AlignAttribute alignAttribute;
 	/** */PragmaExpression pragmaExpression;
 	/** */Deprecated deprecated_;
-	/** */ProtectionAttribute protectionAttribute;
 	/** */AtAttribute atAttribute;
-	/** */Token attribute;
+	/** */TokenType attribute;
 }
 
 ///
@@ -642,8 +629,25 @@ class BreakStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token identifier;
-	/** */bool hasIdentifier;
+	/** */ Token identifier;
+	/** */ bool hasIdentifier;
+}
+
+///
+class BaseClass : ASTNode
+{
+public:
+	mixin(DEFAULT_ACCEPT);
+	/** */ IdentifierOrTemplateChain identifierOrTemplateChain;
+	/** */ TypeofExpression typeofExpression;
+}
+
+///
+class BaseClassList : ASTNode
+{
+public:
+	mixin(DEFAULT_ACCEPT);
+	/** */ BaseClass[] baseClasses;
 }
 
 ///
@@ -828,8 +832,7 @@ public:
 	/** */ VariableDeclaration variableDeclaration;
 	/** */ AliasThisDeclaration aliasThisDeclaration;
 	/** */ StructDeclaration structDeclaration;
-	/** */ ClassDeclaration ///
-classDeclaration;
+	/** */ ClassDeclaration classDeclaration;
 	/** */ InterfaceDeclaration interfaceDeclaration;
 	/** */ UnionDeclaration unionDeclaration;
 	/** */ EnumDeclaration enumDeclaration;
@@ -927,7 +930,7 @@ class DoStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ BlockStatement blockStatement;
+	/** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
 	/** */ Expression expression;
 }
 
@@ -1486,14 +1489,6 @@ public:
 }
 
 ///
-class Opcode : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ Token identifier;
-}
-
-///
 class Operand : ASTNode
 {
 public:
@@ -1629,14 +1624,6 @@ public:
     TraitsExpression traitsExpression;
     MixinExpression mixinExpression;
     ImportExpression importExpression;
-}
-
-///
-class ProtectionAttribute : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ Token attribute;
 }
 
 ///

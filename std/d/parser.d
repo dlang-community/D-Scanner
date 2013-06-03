@@ -16,7 +16,7 @@
  *     GRAMMAR = <pre style="font-weight: bold">$0</pre>
  *     RULEDEF = <a name="$0"><span>$0</span></a>
  *     RULE = <a href="#$0"><span style="font-weight: bold">$0</span></a>
- *     LITERAL = <span style="font-style:italic; color: green; font-weight: normal;">$0</span>
+ *     LITERAL = <span style="color: green; font-weight: normal;">$0</span>
  */
 
 module std.d.parser;
@@ -159,7 +159,10 @@ struct Parser
     /**
      * Parses an AndExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF andExpression):
+     *     $(RULE cmpExpression)
+     *     $(RULE andExpression) $(LITERAL '&') $(RULE cmpExpression)
+     *     ;)
      */
     AndExpression parseAndExpression()
     {
@@ -171,12 +174,24 @@ struct Parser
     /**
      * Parses an ArgumentList
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF argumentList):
+     *     $(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression)?)*
+     *     ;)
      */
     ArgumentList parseArgumentList()
     {
         auto node = new ArgumentList;
-        // TODO
+        while (true)
+        {
+            node.arguments ~= parseAssignExpression();
+            if (moreTokens() && currentIs(TokenType.comma))
+            {
+                advance();
+                continue;
+            }
+            else
+                break;
+        }
         return node;
     }
 
@@ -199,12 +214,28 @@ struct Parser
     /**
      * Parses an ArrayInitializer
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF arrayInitializer):
+     *       $(LITERAL '[') $(LITERAL ']')
+     *     | $(LITERAL '[') $(RULE arrayMemberInitialization) ($(LITERAL ',') $(RULE arrayMemberInitialization))* $(LITERAL ']')
+     *     ;)
      */
     ArrayInitializer parseArrayInitializer()
     {
         auto node = new ArrayInitializer;
-        // TODO
+        expect(TokenType.lBracket);
+        while (true)
+        {
+            node.arrayMemberInitializations ~= parseArrayMemberInitialization();
+            if (currentIs(TokenType.comma))
+            {
+                advance();
+                continue;
+            }
+            else
+                break;
+        }
+
+        expect(TokenType.rBracket);
         return node;
     }
 
@@ -227,23 +258,13 @@ struct Parser
     /**
      * Parses an ArrayMemberInitialization
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF arrayMemberInitialization):
+     *     ($(RULE assignExpression) $(LITERAL ':'))? $(RULE nonVoidInitializer)
+     *     ;)
      */
     ArrayMemberInitialization parseArrayMemberInitialization()
     {
         auto node = new ArrayMemberInitialization;
-        // TODO
-        return node;
-    }
-
-    /**
-     * Parses an ArrayMemberInitializations
-     *
-     * $(GRAMMAR )
-     */
-    ArrayMemberInitializations parseArrayMemberInitializations()
-    {
-        auto node = new ArrayMemberInitializations;
         // TODO
         return node;
     }
@@ -304,7 +325,7 @@ struct Parser
     AsmExp parseAsmExp()
     {
         auto node = new AsmExp;
-
+        // TODO
         return node;
     }
 
@@ -316,7 +337,7 @@ struct Parser
     AsmInstruction parseAsmInstruction()
     {
         auto node = new AsmInstruction;
-
+        // TODO
         return node;
     }
 
@@ -328,7 +349,7 @@ struct Parser
     AsmLogAndExp parseAsmLogAndExp()
     {
         auto node = new AsmLogAndExp;
-
+        // TODO
         return node;
     }
 
@@ -340,7 +361,7 @@ struct Parser
     AsmLogOrExp parseAsmLogOrExp()
     {
         auto node = new AsmLogOrExp;
-
+        // TODO
         return node;
     }
 
@@ -352,7 +373,7 @@ struct Parser
     AsmMulExp parseAsmMulExp()
     {
         auto node = new AsmMulExp;
-
+        // TODO
         return node;
     }
 
@@ -364,7 +385,7 @@ struct Parser
     AsmOrExp parseAsmOrExp()
     {
         auto node = new AsmOrExp;
-
+        // TODO
         return node;
     }
 
@@ -376,7 +397,7 @@ struct Parser
     AsmPrimaryExp parseAsmPrimaryExp()
     {
         auto node = new AsmPrimaryExp;
-
+        // TODO
         return node;
     }
 
@@ -388,7 +409,7 @@ struct Parser
     AsmRelExp parseAsmRelExp()
     {
         auto node = new AsmRelExp;
-
+        // TODO
         return node;
     }
 
@@ -400,7 +421,7 @@ struct Parser
     AsmShiftExp parseAsmShiftExp()
     {
         auto node = new AsmShiftExp;
-
+        // TODO
         return node;
     }
 
@@ -412,7 +433,7 @@ struct Parser
     AsmStatement parseAsmStatement()
     {
         auto node = new AsmStatement;
-
+        // TODO
         return node;
     }
 
@@ -424,7 +445,7 @@ struct Parser
     AsmTypePrefix parseAsmTypePrefix()
     {
         auto node = new AsmTypePrefix;
-
+        // TODO
         return node;
     }
 
@@ -436,7 +457,7 @@ struct Parser
     AsmUnaExp parseAsmUnaExp()
     {
         auto node = new AsmUnaExp;
-
+        // TODO
         return node;
     }
 
@@ -448,55 +469,100 @@ struct Parser
     AsmXorExp parseAsmXorExp()
     {
         auto node = new AsmXorExp;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an AssertExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF assertExpression):
+     *     $(LITERAL 'assert') $(LITERAL '$(LPAREN)') $(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression))? $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     AssertExpression parseAssertExpression()
     {
         auto node = new AssertExpression;
-
+        expect(TokenType.assert_);
+        expect(TokenType.lParen);
+        node.assertion = parseAssignExpression();
+        if (currentIs(TokenType.comma))
+        {
+            advance();
+            node.message = parseAssignExpression();
+        }
+        expect(TokenType.rParen);
         return node;
     }
 
     /**
      * Parses an AssertStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF assertStatement):
+     *     $(RULE assertExpression) $(LITERAL ';')
+     *     ;)
      */
     AssertStatement parseAssertStatement()
     {
         auto node = new AssertStatement;
-
+        node.assertExpression = parseAssertExpression();
+        expect(TokenType.semicolon);
         return node;
     }
 
     /**
      * Parses an AssignExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF assignExpression):
+     *     $(RULE ternaryExpression) ($(RULE assignOperator) $(RULE assignExpression))?
+     *     ;
+     *$(RULEDEF assignOperator):
+     *       $(LITERAL '=')
+     *     | $(LITERAL '>>>=')
+     *     | $(LITERAL '>>=')
+     *     | $(LITERAL '<<=')
+     *     | $(LITERAL '+=')
+     *     | $(LITERAL '-=')
+     *     | $(LITERAL '*=')
+     *     | $(LITERAL '%=')
+     *     | $(LITERAL '&=')
+     *     | $(LITERAL '/=')
+     *     | $(LITERAL '|=')
+     *     | $(LITERAL '^^=')
+     *     | $(LITERAL '^=')
+     *     | $(LITERAL '~=')
+     *     ;)
      */
     AssignExpression parseAssignExpression()
     {
         auto node = new AssignExpression;
-
+        node.ternaryExpression = parseTernaryExpression();
+        if (currentIsOneOf(TokenType.assign, TokenType.unsignedShiftRightEqual,
+            TokenType.shiftRightEqual, TokenType.shiftLeftEqual,
+            TokenType.plusEqual, TokenType.minusEqual, TokenType.mulEqual,
+            TokenType.modEqual, TokenType.bitAndEqual, TokenType.divEqual,
+            TokenType.bitOrEqual, TokenType.powEqual, TokenType.xorEqual,
+            TokenType.catEqual))
+        {
+            node.operator = advance().type;
+            node.assignExpression = parseAssignExpression();
+        }
         return node;
     }
 
     /**
      * Parses an AssignStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF assignStatement):
+     *       $(RULE unaryExpression) $(RULE assignOperator) $(RULE assignExpression) ($(LITERAL ',') $(RULE unaryExpression) $(RULE assignOperator) $(RULE assignExpression))* $(LITERAL ';')
+     *     | $(RULE preIncDecExpression) $(LITERAL ';')
+     *     | $(RULE postIncDecExpression) $(LITERAL ';')
+     *     ;)
      */
     AssignStatement parseAssignStatement()
     {
         auto node = new AssignStatement;
-
+        // TODO
         return node;
     }
 
@@ -519,24 +585,93 @@ struct Parser
     /**
      * Parses an AtAttribute
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF atAttribute):
+     *     $(LITERAL '@') ($(LITERAL Identifier) | $(LITERAL '$(LPAREN)') $(RULE argumentList) $(LITERAL '$(RPAREN)') | $(RULE functionCallExpression))
+     *     ;)
      */
     AtAttribute parseAtAttribute()
     {
         auto node = new AtAttribute;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an Attribute
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF attribute):
+     *       $(RULE linkageAttribute)
+     *     | $(RULE alignAttribute)
+     *     | $(RULE pragmaExpression)
+     *     | $(RULE deprecated)
+     *     | $(RULE atAttribute)
+     *     | $(LITERAL 'private')
+     *     | $(LITERAL 'package')
+     *     | $(LITERAL 'protected')
+     *     | $(LITERAL 'public')
+     *     | $(LITERAL 'export')
+     *     | $(LITERAL 'extern')
+     *     | $(LITERAL 'final')
+     *     | $(LITERAL 'synchronized')
+     *     | $(LITERAL 'override')
+     *     | $(LITERAL 'abstract')
+     *     | $(LITERAL 'const')
+     *     | $(LITERAL 'auto')
+     *     | $(LITERAL 'scope')
+     *     | $(LITERAL 'gshared')
+     *     | $(LITERAL 'shared')
+     *     | $(LITERAL 'immutable')
+     *     | $(LITERAL 'inout')
+     *     | $(LITERAL 'static')
+     *     | $(LITERAL 'pure')
+     *     | $(LITERAL 'nothrow')
+     *     ;)
      */
     Attribute parseAttribute()
     {
         auto node = new Attribute;
-
+        switch (current().type)
+        {
+        case TokenType.extern_:
+            if (peekIs(TokenType.lParen))
+                node.linkageAttribute = parseLinkageAttribute();
+            else
+                node.attribute = advance().type;
+            break;
+        case TokenType.align_:
+            node.alignAttribute = parseAlignAttribute();
+            break;
+        case TokenType.pragma_:
+            node.pragmaExpression = parsePragmaExpression();
+            break;
+        case TokenType.deprecated_:
+            node.deprecated_ = parseDeprecated();
+            break;
+        case TokenType.private_:
+        case TokenType.package_:
+        case TokenType.protected_:
+        case TokenType.public_:
+        case TokenType.export_:
+        case TokenType.final_:
+        case TokenType.synchronized_:
+        case TokenType.override_:
+        case TokenType.abstract_:
+        case TokenType.const_:
+        case TokenType.auto_:
+        case TokenType.scope_:
+        case TokenType.gshared:
+        case TokenType.shared_:
+        case TokenType.immutable_:
+        case TokenType.inout_:
+        case TokenType.static_:
+        case TokenType.pure_:
+        case TokenType.nothrow_:
+            node.attribute = advance().type;
+            break;
+        default:
+            error("Attribute expected");
+            return null;
+        }
         return node;
     }
 
@@ -570,12 +705,14 @@ struct Parser
     /**
      * Parses an AutoDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF autoDeclaration):
+     *     $(RULE storageClass) $(LITERAL Identifier) $(LITERAL '=') $(RULE initializer) ($(LITERAL ',') $(LITERAL Identifier) $(LITERAL '=') $(RULE initializer))* $(LITERAL ';')
+     *     ;)
      */
     AutoDeclaration parseAutoDeclaration()
     {
         auto node = new AutoDeclaration;
-
+        // TODO
         return node;
     }
 
@@ -635,6 +772,42 @@ struct Parser
             error("Identifier or semicolon expected following \"break\"");
             return null;
         }
+        return node;
+    }
+
+    /**
+     * Parses a BaseClass
+     *
+     * $(GRAMMAR $(RULEDEF baseClass):
+	 *       $(RULE typeofExpression) ($(LITERAL '.') $(RULE identifierOrTemplateChain))?
+     *     | $(RULE identifierOrTemplateChain)
+	 *     ;)
+     */
+    BaseClass parseBaseClass()
+    {
+        auto node = new BaseClass;
+        if (currentIs(TokenType.typeof_))
+        {
+            node.typeofExpression = parseTypeofExpression();
+            expect(TokenType.dot);
+        }
+        node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
+        return node;
+    }
+
+    /**
+     * Parses a BaseClassList
+     *
+     * $(GRAMMAR $(RULEDEF baseClassList):
+     *     $(RULE baseClass) ($(LITERAL ',') $(RULE baseClass))*
+	 *     ;)
+     */
+    BaseClassList parseBaseClassList()
+    {
+        auto node = new BaseClassList;
+        do
+            node.baseClasses ~= parseBaseClass();
+        while(currentIs(TokenType.comma));
         return node;
     }
 
@@ -818,12 +991,31 @@ struct Parser
     /**
      * Parses a Catches
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF catches):
+     *       $(RULE catch)+
+     *     | $(RULE catch)* $(RULE lastCatch)
+     *     ;)
      */
     Catches parseCatches()
     {
         auto node = new Catches;
-
+        while (true)
+        {
+            expect(TokenType.catch_);
+            if (currentIs(TokenType.lParen))
+            {
+                node.catches ~= parseCatch();
+                if (currentIs(TokenType.catch_))
+                    continue;
+                else
+                    break;
+            }
+            else
+            {
+                node.lastCatch  = parseLastCatch();
+                break;
+            }
+        }
         return node;
     }
 
@@ -848,7 +1040,7 @@ struct Parser
      * Parses an ClassDeclaration
      *
      * $(GRAMMAR $(RULEDEF classDeclaration):
-     *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE identifierList))? $(RULE classBody)
+     *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE classBody)
      *     ;)
      */
     ClassDeclaration parseClassDeclaration()
@@ -869,14 +1061,20 @@ struct Parser
     }
 
     /**
-     * Parses an CmpExpression
+     * Parses a CmpExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF cmpExpression):
+     *       $(RULE shiftExpression)
+     *     | $(RULE equalExpression)
+     *     | $(RULE identityExpression)
+     *     | $(RULE relExpression)
+     *     | $(RULE inExpression)
+     *     ;)
      */
     CmpExpression parseCmpExpression()
     {
         auto node = new CmpExpression;
-
+        // TODO
         return node;
     }
 
@@ -911,26 +1109,30 @@ struct Parser
     }
 
     /**
-     * Parses an ConditionalDeclaration
+     * Parses a ConditionalDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF conditionalDeclaration):
+     *     $(RULE compileCondition) ($(RULE declaration) | $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')) ($(LITERAL 'else') ($(RULE declaration) | $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')))?
+     *     ;)
      */
     ConditionalDeclaration parseConditionalDeclaration()
     {
         auto node = new ConditionalDeclaration;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an ConditionalStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF conditionalStatement):
+     *     $(RULE compileCondition) $(RULE nonEmptyStatementNoCaseNoDefault) ($(LITERAL 'else') $(RULE nonEmptyStatementNoCaseNoDefault))?
+     *     ;)
      */
     ConditionalStatement parseConditionalStatement()
     {
         auto node = new ConditionalStatement;
-
+        // TODO
         return node;
     }
 
@@ -1154,12 +1356,14 @@ struct Parser
     /**
      * Parses an DeclarationsAndStatements
      *
-     * $(GRAMMAR )
+    * $(GRAMMAR $(RULEDEF declarationsAndStatements):
+    *     ($(RULE declaration) | $(RULE statementNoCaseNoDefault))+
+    *     ;)
      */
     DeclarationsAndStatements parseDeclarationsAndStatements()
     {
         auto node = new DeclarationsAndStatements;
-
+        // TODO
         return node;
     }
 
@@ -1203,50 +1407,61 @@ struct Parser
     }
 
     /**
-     * Parses an DeclaratorSuffix
+     * Parses a DeclaratorSuffix
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF declaratorSuffix):
+     *     $(LITERAL '[') ($(RULE type) | $(RULE assignExpression))? $(LITERAL ']')
+     *     ;)
      */
     DeclaratorSuffix parseDeclaratorSuffix()
     {
         auto node = new DeclaratorSuffix;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an DefaultStatement
+     * Parses a DefaultStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF defaultStatement):
+     *     $(LITERAL 'default') $(LITERAL ':') $(RULE declarationsAndStatements)
+     *     ;)
      */
     DefaultStatement parseDefaultStatement()
     {
         auto node = new DefaultStatement;
-
+        expect(TokenType.default_);
+        expect(TokenType.colon);
+        node.declarationsAndStatements = parseDeclarationsAndStatements();
         return node;
     }
 
     /**
      * Parses an DeleteExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF deleteExpression):
+     *     $(LITERAL 'delete') $(RULE unaryExpression)
+     *     ;)
      */
     DeleteExpression parseDeleteExpression()
     {
         auto node = new DeleteExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an DeleteStatement
+     * Parses a DeleteStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF deleteStatement):
+     *     $(RULE deleteExpression) $(LITERAL ';')
+     *     ;)
      */
     DeleteStatement parseDeleteStatement()
     {
         auto node = new DeleteStatement;
-
+        node.deleteExpression = parseDeleteExpression();
+        expect(TokenType.semicolon);
         return node;
     }
 
@@ -1292,14 +1507,14 @@ struct Parser
      * Parses a DoStatement
      *
      * $(GRAMMAR $(RULEDEF doStatement):
-     *     $(LITERAL 'do') $(RULE blockStatement) $(LITERAL 'while') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(LITERAL ';')
+     *     $(LITERAL 'do') $(RULE nonEmptyStatementNoCaseNoDefault) $(LITERAL 'while') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(LITERAL ';')
      *     ;)
      */
     DoStatement parseDoStatement()
     {
         auto node = new DoStatement;
         expect(TokenType.do_);
-        node.blockStatement = parseBlockStatement();
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         expect(TokenType.while_);
         expect(TokenType.lParen);
         node.expression = parseExpression();
@@ -1382,191 +1597,228 @@ struct Parser
     /**
      * Parses an EqualExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF equalExpression):
+     *     $(RULE shiftExpression) ($(LITERAL '==') | $(LITERAL '!=')) $(RULE shiftExpression)
+     *     ;)
      */
     EqualExpression parseEqualExpression()
     {
         auto node = new EqualExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an Expression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF expression):
+     *     $(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression))*
+     *     ;)
      */
     Expression parseExpression()
     {
         auto node = new Expression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an FinalSwitchStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF finalSwitchStatement):
+     *     $(LITERAL 'final') $(RULE switchStatement)
+     *     ;)
      */
     FinalSwitchStatement parseFinalSwitchStatement()
     {
         auto node = new FinalSwitchStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an Finally
+     * Parses a Finally
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF finally_):
+     *     $(LITERAL 'finally') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     Finally parseFinally()
     {
         auto node = new Finally;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ForStatement
+     * Parses a ForStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF forStatement):
+     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     ForStatement parseForStatement()
     {
         auto node = new ForStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ForeachRangeStatement
+     * Parses a ForeachRangeStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF foreachRangeStatement):
+     *     $(LITERAL 'foreach') $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     ForeachRangeStatement parseForeachRangeStatement()
     {
         auto node = new ForeachRangeStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ForeachStatement
+     * Parses a ForeachStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF foreachStatement):
+     *     ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     ForeachStatement parseForeachStatement()
     {
         auto node = new ForeachStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ForeachType
+     * Parses a ForeachType
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF foreachType):
+     *     $(LITERAL 'ref')? $(RULE type)? $(LITERAL Identifier)
+     *     ;)
      */
     ForeachType parseForeachType()
     {
         auto node = new ForeachType;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ForeachTypeList
+     * Parses a ForeachTypeList
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF foreachTypeList):
+     *     $(RULE foreachType) ($(LITERAL ',') $(RULE foreachType))*
+     *     ;)
      */
     ForeachTypeList parseForeachTypeList()
     {
         auto node = new ForeachTypeList;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an FunctionAttribute
+     * Parses a FunctionAttribute
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF functionAttribute):
+     *       $(RULE atAttribute)
+     *     | $(LITERAL 'pure')
+     *     | $(LITERAL 'nothrow')
+     *     ;)
      */
     FunctionAttribute parseFunctionAttribute()
     {
         auto node = new FunctionAttribute;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an FunctionBody
+     * Parses a FunctionBody
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF functionBody):
+     *       $(RULE blockStatement)
+     *     | ($(RULE inStatement) | $(RULE outStatement) | $(RULE outStatement) $(RULE inStatement) | $(RULE inStatement) $(RULE outStatement))? $(RULE bodyStatement)
+     *     ;)
      */
     FunctionBody parseFunctionBody()
     {
         auto node = new FunctionBody;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an FunctionCallExpression
+     * Parses a FunctionCallExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF functionCallExpression):
+     *     $(RULE unaryExpression) $(RULE templateArguments)? $(RULE arguments)
+     *     ;)
      */
     FunctionCallExpression parseFunctionCallExpression()
     {
         auto node = new FunctionCallExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an FunctionCallStatement
+     * Parses a FunctionCallStatement
      *
-     * $(GRAMMAR )
+	 * $(GRAMMAR $(RULEDEF functionCallStatement):
+	 *     $(RULE functionCallExpression) $(LITERAL ';')
+     *     ;)
      */
     FunctionCallStatement parseFunctionCallStatement()
     {
         auto node = new FunctionCallStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an FunctionDeclaration
+     * Parses a FunctionDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF functionDeclaration):
+     *       $(RULE memberFunctionAttribute)* ($(RULE type) | $(LITERAL 'auto') $(LITERAL 'ref')? | $(LITERAL 'ref') $(LITERAL 'auto')?) $(LITERAL Identifier) $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? $(RULE functionBody)
+     *     | $(RULE memberFunctionAttribute)* ($(RULE type) | $(LITERAL 'auto') $(LITERAL 'ref')? | $(LITERAL 'ref') $(LITERAL 'auto')?) $(LITERAL Identifier) $(RULE parameters) $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
+     *     ;)
      */
     FunctionDeclaration parseFunctionDeclaration()
     {
         auto node = new FunctionDeclaration;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an FunctionLiteralExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF functionLiteralExpression):
+     *     (($(LITERAL 'function') | $(LITERAL 'delegate')) $(RULE type)?)? ($(RULE parameters) $(RULE functionAttribute)*)? $(RULE functionBody)
+     *     ;)
      */
     FunctionLiteralExpression parseFunctionLiteralExpression()
     {
         auto node = new FunctionLiteralExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an GotoStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF gotoStatement):
+     *     $(LITERAL 'goto') ($(LITERAL Identifier) | $(LITERAL 'default') | $(LITERAL 'case') $(RULE expression)?) $(LITERAL ';')
+     *     ;)
      */
     GotoStatement parseGotoStatement()
     {
         auto node = new GotoStatement;
+		// TODO
         return node;
     }
 
@@ -1633,108 +1885,127 @@ struct Parser
     /**
      * Parses an IdentifierOrTemplateChain
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF identifierOrTemplateChain):
+     *     $(RULE identifierOrTemplateInstance) ($(LITERAL '.') $(RULE identifierOrTemplateInstance))*
+     *     ;)
      */
     IdentifierOrTemplateChain parseIdentifierOrTemplateChain()
     {
         auto node = new IdentifierOrTemplateChain;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an IdentifierOrTemplateInstance
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF identifierOrTemplateInstance):
+     *       $(LITERAL Identifier)
+     *     | $(RULE templateInstance)
+     *     ;)
      */
     IdentifierOrTemplateInstance parseIdentifierOrTemplateInstance()
     {
         auto node = new IdentifierOrTemplateInstance;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an IdentityExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF identityExpression):
+     *     $(RULE shiftExpression) ($(LITERAL 'is') | $(LITERAL '!') $(LITERAL 'is')) $(RULE shiftExpression)
+     *     ;)
      */
     IdentityExpression parseIdentityExpression()
     {
         auto node = new IdentityExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an IfStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF ifStatement):
+     *     $(LITERAL 'if') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault) ($(LITERAL 'else') $(RULE nonEmptyStatementNoCaseNoDefault))?
+     *     ;)
      */
     IfStatement parseIfStatement()
     {
         auto node = new IfStatement;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an ImportBind
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF importBind):
+     *     $(LITERAL Identifier) ($(LITERAL '=') $(LITERAL Identifier))?
+     *     ;)
      */
     ImportBind parseImportBind()
     {
         auto node = new ImportBind;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an ImportBindings
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF importBindings):
+     *     $(RULE singleImport) $(LITERAL ':') $(RULE importBind) ($(LITERAL ',') $(RULE importBind))*
+     *     ;)
      */
     ImportBindings parseImportBindings()
     {
         auto node = new ImportBindings;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an ImportDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF importDeclaration):
+     *     $(LITERAL 'static')? $(LITERAL 'import') $(RULE importList) $(LITERAL ';')
+     *     ;)
      */
-    ImportDeclaration parseImportDeclaration()()
+    ImportDeclaration parseImportDeclaration()
     {
         auto node = new ImportDeclaration;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an ImportExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF importExpression):
+     *     $(LITERAL 'import') $(LITERAL '$(LPAREN)') $(RULE assignExpression) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     ImportExpression parseImportExpression()
     {
         auto node = new ImportExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an ImportList
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF importList): $(RULE singleImport) ($(LITERAL ',') $(RULE importList))?
+     *     | $(RULE importBindings)
+     *     ;)
      */
     ImportList parseImportList()
     {
         auto node = new ImportList;
-
+        // TODO
         return node;
     }
 
@@ -1748,62 +2019,74 @@ struct Parser
     IndexExpression parseImportList()
     {
         auto node = new IndexExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an InExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF inExpression):
+     *     $(RULE shiftExpression) ($(LITERAL 'in') | $(LITERAL '!') $(LITERAL 'in')) $(RULE shiftExpression)
+     *     ;)
      */
     InExpression parseInExpression()
     {
         auto node = new InExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an InStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF inStatement):
+     *     $(LITERAL 'in') $(RULE blockStatement)
+     *     ;)
      */
     InStatement parseInStatement()
     {
         auto node = new InStatement;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an Initialize
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF initialize):
+     *       $(LITERAL ';')
+     *     | $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     Initialize parseInitialize()
     {
         auto node = new Initialize;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an Initializer
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF initializer):
+     *       $(LITERAL 'void')
+     *     | $(RULE nonVoidInitializer)
+     *     ;)
      */
     Initializer parseInitializer()
     {
         auto node = new Initializer;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an InterfaceDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF interfaceDeclaration):
+     *     $(LITERAL 'interface') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     ;)
      */
     InterfaceDeclaration parseInterfaceDeclaration()
     {
@@ -1814,55 +2097,65 @@ struct Parser
     /**
      * Parses an Invariant
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF invariant):
+     *     $(LITERAL 'invariant') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE blockStatement)
+     *     ;)
      */
     Invariant parseInvariant()
     {
         auto node = new Invariant;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an IsExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF isExpression):
+     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') ($(RULE assignExpression) | ($(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | '==') $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)?)) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     IsExpression parseIsExpression()
     {
         auto node = new IsExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an KeyValuePair
+     * Parses a KeyValuePair
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF keyValuePair):
+     *     $(RULE assignExpression) $(LITERAL ':') $(RULE assignExpression)
+     *     ;)
      */
     KeyValuePair parseKeyValuePair()
     {
         auto node = new KeyValuePair;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an KeyValuePairs
+     * Parses KeyValuePairs
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF keyValuePairs):
+     *     $(RULE keyValuePair) ($(LITERAL ',') $(RULE keyValuePair))*
+     *     ;)
      */
     KeyValuePairs parseKeyValuePairs()
     {
         auto node = new KeyValuePairs;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an LabeledStatement
+     * Parses a LabeledStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF labeledStatement):
+     *     $(LITERAL Identifier) $(LITERAL ':') $(RULE statement)
+     *     ;)
      */
     LabeledStatement parseLabeledStatement()
     {
@@ -1874,31 +2167,35 @@ struct Parser
     }
 
     /**
-     * Parses an LambdaExpression
+     * Parses a LambdaExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF lambdaExpression):
+     *     ($(LITERAL Identifier) | $(RULE parameters) $(RULE functionAttribute)* ) $(LITERAL '=>') $(RULE assignExpression)
+     *     ;)
      */
     LambdaExpression parseLambdaExpression()
     {
         auto node = new LambdaExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an LastCatch
+     * Parses a LastCatch
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF lastCatch):
+     *     $(LITERAL 'catch') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     LastCatch parseLastCatch()
     {
         auto node = new LastCatch;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an LinkageAttribute
+     * Parses a LinkageAttribute
      *
      * $(GRAMMAR $(RULEDEF linkageAttribute):
      *     $(LITERAL 'extern') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL '++')? $(LITERAL '$(RPAREN)')
@@ -1920,19 +2217,25 @@ struct Parser
     }
 
     /**
-     * Parses an MemberFunctionAttribute
+     * Parses a MemberFunctionAttribute
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF memberFunctionAttribute):
+     *       $(RULE functionAttribute)
+     *     | $(LITERAL 'immutable')
+     *     | $(LITERAL 'inout')
+     *     | $(LITERAL 'shared')
+     *     | $(LITERAL 'const')
+     *     ;)
      */
     MemberFunctionAttribute parseMemberFunctionAttribute()
     {
         auto node = new MemberFunctionAttribute;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an MixinDeclaration
+     * Parses a MixinDeclaration
      *
      * $(GRAMMAR $(RULEDEF mixinDeclaration):
      *     $(RULE mixinExpression) $(LITERAL ';')
@@ -1947,26 +2250,30 @@ struct Parser
     }
 
     /**
-     * Parses an MixinExpression
+     * Parses a MixinExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF mixinExpression):
+     *     $(LITERAL 'mixin') $(LITERAL '$(LPAREN)') $(RULE assignExpression) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     MixinExpression parseMixinExpression()
     {
         auto node = new MixinExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an MixinTemplateName
+     * Parses a MixinTemplateName
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF mixinTemplateName):
+     *     ($(RULE typeofExpression)? $(LITERAL '.'))? $(RULE identifierOrTemplateChain)
+     *     ;)
      */
     MixinTemplateName parseMixinTemplateName()
     {
         auto node = new MixinTemplateName;
-
+        // TODO
         return node;
     }
 
@@ -2035,31 +2342,41 @@ struct Parser
     /**
      * Parses an NewAnonClassExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF newAnonClassExpression):
+     *     $(LITERAL 'new') $(RULE arguments)? $(LITERAL 'class') $(RULE arguments)? $(LITERAL Identifier) $(RULE identifierList)? $(RULE classBody)
+     *     ;)
      */
     NewAnonClassExpression parseNewAnonClassExpression()
     {
         auto node = new NewAnonClassExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an NewExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF newExpression):
+     *       $(LITERAL 'new') $(RULE type) ($(LITERAL '[') $(RULE assignExpression) $(LITERAL ']') | $(RULE arguments))?
+     *     | $(RULE newAnonClassExpression)
+     *     ;)
      */
     NewExpression parseNewExpression()
     {
         auto node = new NewExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an NonEmptyStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF nonEmptyStatement):
+     *       $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     | $(RULE caseStatement)
+     *     | $(RULE caseRangeStatement)
+     *     | $(RULE defaultStatement)
+     *     ;)
      */
     NonEmptyStatement parseNonEmptyStatement()
     {
@@ -2070,247 +2387,336 @@ struct Parser
     /**
      * Parses an NonEmptyStatementNoCaseNoDefault
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF nonEmptyStatementNoCaseNoDefault):
+     *       $(RULE labeledStatement)
+     *     | $(RULE blockStatement)
+     *     | $(RULE assignStatement)
+     *     | $(RULE ifStatement)
+     *     | $(RULE whileStatement)
+     *     | $(RULE doStatement)
+     *     | $(RULE forStatement)
+     *     | $(RULE foreachStatement)
+     *     | $(RULE switchStatement)
+     *     | $(RULE finalSwitchStatement)
+     *     | $(RULE continueStatement)
+     *     | $(RULE breakStatement)
+     *     | $(RULE returnStatement)
+     *     | $(RULE gotoStatement)
+     *     | $(RULE withStatement)
+     *     | $(RULE synchronizedStatement)
+     *     | $(RULE tryStatement)
+     *     | $(RULE throwStatement)
+     *     | $(RULE scopeGuardStatement)
+     *     | $(RULE asmStatement)
+     *     | $(RULE foreachRangeStatement)
+     *     | $(RULE conditionalStatement)
+     *     | $(RULE staticAssertStatement)
+     *     | $(RULE assertStatement)
+     *     | $(RULE templateMixinStatement)
+     *     | $(RULE versionSpecification)
+     *     | $(RULE debugSpecification)
+     *     | $(RULE functionCallStatement)
+     *     | $(RULE deleteStatement)
+     *     ;)
      */
     NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault()
     {
         auto node = new NonEmptyStatementNoCaseNoDefault;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an NonVoidInitializer
+     * Parses a NonVoidInitializer
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF nonVoidInitializer):
+     *       $(RULE assignExpression)
+     *     | $(RULE arrayInitializer)
+     *     | $(RULE structInitializer)
+     *     ;)
      */
     NonVoidInitializer parseNonVoidInitializer()
     {
         auto node = new NonVoidInitializer;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an Opcode
+     * Parses Operands
      *
-     * $(GRAMMAR )
-     */
-    Opcode parseOpcode()
-    {
-        auto node = new Opcode;
-
-        return node;
-    }
-
-    /**
-     * Parses an Operand
-     *
-     * $(GRAMMAR )
-     */
-    Operand parseOperand()
-    {
-        auto node = new Operand;
-
-        return node;
-    }
-
-    /**
-     * Parses an Operands
-     *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF operands):
+	 *     $(RULE asmExp)+
+	 *     ;)
      */
     Operands parseOperands()
     {
         auto node = new Operands;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an OrExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF orExpression):
+     *       $(RULE xorExpression)
+	 *     | $(RULE orExpression) $(LITERAL '|') $(RULE xorExpression)
+     *     ;)
      */
     OrExpression parseOrExpression()
     {
         auto node = new OrExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an OrOrExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF orOrExpression):
+     *       $(RULE andAndExpression)
+     *     | $(RULE orOrExpression) $(LITERAL '||') $(RULE andAndExpression)
+     *     ;)
      */
     OrOrExpression parseOrOrExpression()
     {
         auto node = new OrOrExpression;
-
+        // TODO
         return node;
     }
 
     /**
      * Parses an OutStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF outStatement):
+     *     $(LITERAL 'out') ($(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL '$(RPAREN)'))? $(RULE blockStatement)
+     *     ;)
      */
     OutStatement parseOutStatement()
     {
         auto node = new OutStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an Parameter
+     * Parses a Parameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF parameter):
+     *     $(RULE parameterAttribute)* $(RULE type) ($(LITERAL Identifier)? $(LITERAL '...') | ($(LITERAL Identifier) ($(LITERAL '=') $(RULE assignExpression))?))?
+     *     ;)
      */
     Parameter parseParameter()
     {
         auto node = new Parameter;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ParameterAttribute
+     * Parses a ParameterAttribute
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF parameterAttribute):
+     *       $(LITERAL 'auto')
+     *     | $(LITERAL 'final')
+     *     | $(LITERAL 'in')
+     *     | $(LITERAL 'lazy')
+     *     | $(LITERAL 'out')
+     *     | $(LITERAL 'ref')
+     *     | $(LITERAL 'scope')
+     *     | $(RULE typeConstructor)
+     *     ;)
      */
     ParameterAttribute parseParameterAttribute()
     {
         auto node = new ParameterAttribute;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an Parameters
+     * Parses Parameters
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF parameters):
+     *     $(LITERAL '(') (($(RULE parameter) ($(LITERAL ',') $(RULE parameter))*)? ($(LITERAL ',') '...')? | '...') $(LITERAL ')')
+     *     ;)
      */
     Parameters parseParameters()
     {
         auto node = new Parameters;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an PostIncDecExpression
+     * Parses a PostIncDecExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF postIncDecExpression):
+     *     $(RULE unaryExpression) ($(LITERAL '++') | $(LITERAL '--'))
+     *     ;)
      */
     PostIncDecExpression parsePostIncDecExpression()
     {
         auto node = new PostIncDecExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an PowExpression
+     * Parses a PowExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF powExpression):
+     *       $(RULE unaryExpression)
+     *     | $(RULE powExpression) $(LITERAL '^^') $(RULE unaryExpression)
+     *     ;)
      */
     PowExpression parsePowExpression()
     {
         auto node = new PowExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an PragmaDeclaration
+     * Parses a PragmaDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF pragmaDeclaration):
+     *     $(RULE pragmaExpression) $(LITERAL ';')
+     *     ;)
      */
     PragmaDeclaration parsePragmaDeclaration()
     {
         auto node = new PragmaDeclaration;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an PragmaExpression
+     * Parses a PragmaExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF pragmaExpression):
+     *     $(RULE 'pragma') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) ($(LITERAL ',') $(RULE argumentList))? $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     PragmaExpression parsePragmaExpression()
     {
         auto node = new PragmaExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an PreIncDecExpression
+     * Parses a PreIncDecExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF preIncDecExpression):
+     *     ($(LITERAL '++') | $(LITERAL '--')) $(RULE unaryExpression)
+     *     ;)
      */
     PreIncDecExpression parsePreIncDecExpression()
     {
         auto node = new PreIncDecExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an PrimaryExpression
+     * Parses a PrimaryExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF primaryExpression):
+     *       $(RULE identifierOrTemplateInstance)
+     *     | $(LITERAL '.') $(RULE identifierOrTemplateInstance)
+     *     | $(RULE type) $(LITERAL '.') $(LITERAL Identifier)
+     *     | $(RULE typeofExpression)
+     *     | $(RULE typeidExpression)
+     *     | $(LITERAL '$')
+     *     | $(LITERAL 'this')
+     *     | $(LITERAL 'super')
+     *     | $(LITERAL 'null')
+     *     | $(LITERAL 'true')
+     *     | $(LITERAL 'false')
+     *     | $(LITERAL '___DATE__')
+     *     | $(LITERAL '___TIME__')
+     *     | $(LITERAL '___TIMESTAMP__')
+     *     | $(LITERAL '___VENDOR__')
+     *     | $(LITERAL '___VERSION__')
+     *     | $(LITERAL '___FILE__')
+     *     | $(LITERAL '___LINE__')
+     *     | $(LITERAL '___MODULE__')
+     *     | $(LITERAL '___FUNCTION__')
+     *     | $(LITERAL '___PRETTY_FUNCTION__')
+     *     | $(RULE IntegerLiteral)
+     *     | $(RULE FloatLiteral)
+     *     | $(RULE StringLiteral)
+     *     | $(RULE CharacterLiteral)
+     *     | $(RULE arrayLiteral)
+     *     | $(RULE assocArrayLiteral)
+     *     | $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)')
+     *     | $(RULE isExpression)
+     *     | $(RULE lambdaExpression)
+     *     | $(RULE functionLiteralExpression)
+     *     | $(RULE traitsExpression)
+     *     | $(RULE mixinExpression)
+     *     | $(RULE importExpression)
+     *     ;)
      */
     PrimaryExpression parsePrimaryExpression()
     {
         auto node = new PrimaryExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ProtectionAttribute
+     * Parses a Register
      *
-     * $(GRAMMAR )
-     */
-    ProtectionAttribute parseProtectionAttribute()
-    {
-        auto node = new ProtectionAttribute;
-
-        return node;
-    }
-
-    /**
-     * Parses an Register
-     *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF register):
+     *     $(LITERAL Identifier)
+     *     | $(LITERAL Identifier) $(LITERAL '$(LPAREN)') $(RULE IntegerLiteral) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     Register parseRegister()
     {
         auto node = new Register;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an RelExpression
+     * Parses a RelExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF relExpression):
+     *     $(RULE shiftExpression)
+     *     | $(RULE relExpression) $(RULE relOperator) $(RULE shiftExpression)
+     *     ;
+	 *$(RULEDEF relOperator):
+     *       $(LITERAL '<')
+     *     | $(LITERAL '<=')
+     *     | $(LITERAL '>')
+     *     | $(LITERAL '>=')
+     *     | $(LITERAL '!<>=')
+     *     | $(LITERAL '!<>')
+     *     | $(LITERAL '<>')
+     *     | $(LITERAL '<>=')
+     *     | $(LITERAL '!>')
+     *     | $(LITERAL '!>=')
+     *     | $(LITERAL '!<')
+     *     | $(LITERAL '!<=')
+	 *     ;)
      */
     RelExpression parseRelExpression()
     {
         auto node = new RelExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ReturnStatement
+     * Parses a ReturnStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF returnStatement):
+     *     $(LITERAL 'return') $(RULE expression)? $(LITERAL ';')
+     *     ;)
      */
     ReturnStatement parseReturnStatement()
     {
@@ -2323,62 +2729,73 @@ struct Parser
     }
 
     /**
-     * Parses an ScopeGuardStatement
+     * Parses a ScopeGuardStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF scopeGuardStatement):
+     *     $(LITERAL 'scope') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     ScopeGuardStatement parseScopeGuardStatement()
     {
         auto node = new ScopeGuardStatement;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an SharedStaticConstructor
+     * Parses a SharedStaticConstructor
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF sharedStaticConstructor):
+     *     $(LITERAL 'shared') $(LITERAL 'static') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     ;)
      */
     SharedStaticConstructor parseSharedStaticConstructor()
     {
         auto node = new SharedStaticConstructor;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an SharedStaticDestructor
+     * Parses a SharedStaticDestructor
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF sharedStaticDestructor):
+     *     $(LITERAL 'shared') $(LITERAL 'static') $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     ;)
      */
     SharedStaticDestructor parseSharedStaticDestructor()
     {
         auto node = new SharedStaticDestructor;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an ShiftExpression
+     * Parses a ShiftExpression
      *
-     * $(GRAMMAR )
+	 * $(GRAMMAR $(RULEDEF shiftExpression):
+     *       $(RULE addExpression)
+     *     | $(RULE shiftExpression) ($(LITERAL '<<') | $(LITERAL '>>') | $(LITERAL '>>>')) $(RULE addExpression)
+     *     ;)
      */
     ShiftExpression parseShiftExpression()
     {
         auto node = new ShiftExpression;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an SingleImport
+     * Parses a SingleImport
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF singleImport):
+     *     ($(LITERAL Identifier) $(LITERAL '='))? $(RULE identifierChain)
+     *     ;)
      */
     SingleImport parseSingleImport()
     {
         auto node = new SingleImport;
-
+        // TODO
         return node;
     }
 
@@ -2401,9 +2818,12 @@ struct Parser
     }
 
     /**
-     * Parses an StatementNoCaseNoDefault
+     * Parses a StatementNoCaseNoDefault
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF statementNoCaseNoDefault):
+     *       $(LITERAL ';')
+     *     | $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     StatementNoCaseNoDefault parseStatementNoCaseNoDefault()
     {
@@ -2416,9 +2836,11 @@ struct Parser
     }
 
     /**
-     * Parses an StaticAssertDeclaration
+     * Parses a StaticAssertDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF staticAssertDeclaration):
+     *     $(RULE staticAssertStatement)
+     *     ;)
      */
     StaticAssertDeclaration parseStaticAssertDeclaration()
     {
@@ -2428,9 +2850,11 @@ struct Parser
     }
 
     /**
-     * Parses an StaticAssertStatement
+     * Parses a StaticAssertStatement
      *
-     * $(GRAMMAR )
+	 * $(GRAMMAR $(RULEDEF staticAssertStatement):
+     *     $(LITERAL 'static') $(RULE assertStatement)
+     *     ;)
      */
     StaticAssertStatement parseStaticAssertStatement()
     {
@@ -2441,9 +2865,11 @@ struct Parser
     }
 
     /**
-     * Parses an StaticConstructor
+     * Parses a StaticConstructor
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF staticConstructor):
+     *     $(LITERAL 'static') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     ;)
      */
     StaticConstructor parseStaticConstructor()
     {
@@ -2457,9 +2883,11 @@ struct Parser
     }
 
     /**
-     * Parses an StaticDestructor
+     * Parses a StaticDestructor
      *
-     * $(GRAMMAR )
+	 * $(GRAMMAR $(RULEDEF staticConstructor):
+     *     $(LITERAL 'static') $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     ;)
      */
     StaticDestructor parseStaticDestructor()
     {
@@ -2476,7 +2904,9 @@ struct Parser
     /**
      * Parses an StaticIfCondition
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF staticIfCondition):
+     *     $(RULE 'static') $(LITERAL 'if') $(LITERAL '$(LPAREN)') $(RULE assignExpression) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     StaticIfCondition parseStaticIfCondition()
     {
@@ -2492,19 +2922,37 @@ struct Parser
     /**
      * Parses an StorageClass
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULE storageClass):
+     *       $(RULE atAttribute)
+     *     | $(RULE typeConstructor)
+     *     | $(LITERAL 'abstract')
+     *     | $(LITERAL 'auto')
+     *     | $(LITERAL 'deprecated')
+     *     | $(LITERAL 'enum')
+     *     | $(LITERAL 'extern')
+     *     | $(LITERAL 'final')
+     *     | $(LITERAL 'nothrow')
+     *     | $(LITERAL 'override')
+     *     | $(LITERAL 'pure')
+     *     | $(LITERAL '___gshared')
+     *     | $(LITERAL 'scope')
+     *     | $(LITERAL 'static')
+     *     | $(LITERAL 'synchronized')
+     *     ;)
      */
     StorageClass parseStorageClass()
     {
         auto node = new StorageClass;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an StructBody
+     * Parses a StructBody
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF structBody):
+     *     $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')
+     *     ;)
      */
     StructBody parseStructBody()
     {
@@ -2552,7 +3000,9 @@ struct Parser
     /**
      * Parses an StructInitializer
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF structInitializer):
+     *     $(LITERAL '{') $(RULE structMemberInitializers)? $(LITERAL '}')
+     *     ;)
      */
     StructInitializer parseStructInitializer()
     {
@@ -2564,9 +3014,11 @@ struct Parser
     }
 
     /**
-     * Parses an StructMemberInitializer
+     * Parses a StructMemberInitializer
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF structMemberInitializer):
+     *     ($(LITERAL Identifier) $(LITERAL ':'))? $(RULE nonVoidInitializer)
+     *     ;)
      */
     StructMemberInitializer parseStructMemberInitializer()
     {
@@ -2581,21 +3033,25 @@ struct Parser
     }
 
     /**
-     * Parses an StructMemberInitializers
+     * Parses StructMemberInitializers
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF structMemberInitializers):
+     *     $(RULE structMemberInitializer) ($(LITERAL ',') $(RULE structMemberInitializer)?)*
+     *     ;)
      */
     StructMemberInitializers parseStructMemberInitializers()
     {
         auto node = new StructMemberInitializers;
-
+        // TODO
         return node;
     }
 
     /**
-     * Parses an SwitchBody
+     * Parses a SwitchBody
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF switchBody):
+     *     $(LITERAL '{') $(RULE statement)+ $(LITERAL '}')
+     *     ;)
      */
     SwitchBody parseSwitchBody()
     {
@@ -2610,7 +3066,9 @@ struct Parser
     /**
      * Parses an SwitchStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF switchStatement):
+     *     $(LITERAL 'switch') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE switchBody)
+     *     ;)
      */
     SwitchStatement parseSwitchStatement()
     {
@@ -2667,7 +3125,7 @@ struct Parser
     TemplateAliasParameter parseTemplateAliasParameter()
     {
         auto node = new TemplateAliasParameter;
-
+        // TODO
         return node;
     }
 
@@ -2679,7 +3137,7 @@ struct Parser
     TemplateArgument parseTemplateArgument()
     {
         auto node = new TemplateArgument;
-
+        // TODO
         return node;
     }
 
@@ -2691,7 +3149,7 @@ struct Parser
     TemplateArgumentList parseTemplateArgumentList()
     {
         auto node = new TemplateArgumentList;
-
+        // TODO
         return node;
     }
 
@@ -2703,7 +3161,7 @@ struct Parser
     TemplateArguments parseTemplateArguments()
     {
         auto node = new TemplateArguments;
-
+        // TODO
         return node;
     }
 
@@ -2715,7 +3173,7 @@ struct Parser
     TemplateDeclaration parseTemplateDeclaration()
     {
         auto node = new TemplateDeclaration;
-
+        // TODO
         return node;
     }
 
@@ -2727,7 +3185,7 @@ struct Parser
     TemplateInstance parseTemplateInstance()
     {
         auto node = new TemplateInstance;
-
+        // TODO
         return node;
     }
 
@@ -2739,7 +3197,7 @@ struct Parser
     TemplateMixinStatement parseTemplateMixinStatement()
     {
         auto node = new TemplateMixinStatement;
-
+        // TODO
         return node;
     }
 
@@ -2751,7 +3209,7 @@ struct Parser
     TemplateParameter parseTemplateParameter()
     {
         auto node = new TemplateParameter;
-
+        // TODO
         return node;
     }
 
@@ -2763,7 +3221,7 @@ struct Parser
     TemplateParameterList parseTemplateParameterList()
     {
         auto node = new TemplateParameterList;
-
+        // TODO
         return node;
     }
 
@@ -2775,7 +3233,7 @@ struct Parser
     TemplateParameters parseTemplateParameters()
     {
         auto node = new TemplateParameters;
-
+        // TODO
         return node;
     }
 
@@ -2787,7 +3245,7 @@ struct Parser
     TemplateSingleArgument parseTemplateSingleArgument()
     {
         auto node = new TemplateSingleArgument;
-
+        // TODO
         return node;
     }
 
@@ -2799,7 +3257,7 @@ struct Parser
     TemplateThisParameter parseTemplateThisParameter()
     {
         auto node = new TemplateThisParameter;
-
+        // TODO
         return node;
     }
 
@@ -2811,7 +3269,7 @@ struct Parser
     TemplateTupleParameter parseTemplateTupleParameter()
     {
         auto node = new TemplateTupleParameter;
-
+        // TODO
         return node;
     }
 
@@ -2823,7 +3281,7 @@ struct Parser
     TemplateTypeParameter parseTemplateTypeParameter()
     {
         auto node = new TemplateTypeParameter;
-
+        // TODO
         return node;
     }
 
@@ -2835,7 +3293,7 @@ struct Parser
     TemplateValueParameter parseTemplateValueParameter()
     {
         auto node = new TemplateValueParameter;
-
+        // TODO
         return node;
     }
 
@@ -2847,7 +3305,7 @@ struct Parser
     TemplateValueParameterDefault parseTemplateValueParameterDefault()
     {
         auto node = new TemplateValueParameterDefault;
-
+        // TODO
         return node;
     }
 
@@ -2892,7 +3350,7 @@ struct Parser
     TraitsArgument parseTraitsArgument()
     {
         auto node = new TraitsArgument;
-
+        // TODO
         return node;
     }
 
@@ -2904,7 +3362,7 @@ struct Parser
     TraitsExpression parseTraitsExpression()
     {
         auto node = new TraitsExpression;
-
+        // TODO
         return node;
     }
 
@@ -2916,7 +3374,7 @@ struct Parser
     TryStatement parseTryStatement()
     {
         auto node = new TryStatement;
-
+        // TODO
         return node;
     }
 
@@ -2928,7 +3386,7 @@ struct Parser
     Type parseType()
     {
         auto node = new Type;
-
+        // TODO
         return node;
     }
 
@@ -2940,7 +3398,7 @@ struct Parser
     Type2 parseType2()
     {
         auto node = new Type2;
-
+        // TODO
         return node;
     }
 
@@ -2952,7 +3410,7 @@ struct Parser
     Type3 parseType3()
     {
         auto node = new Type3;
-
+        // TODO
         return node;
     }
 
@@ -2964,7 +3422,7 @@ struct Parser
     TypeConstructor parseTypeConstructor()
     {
         auto node = new TypeConstructor;
-
+        // TODO
         return node;
     }
 
@@ -2976,7 +3434,7 @@ struct Parser
     TypeConstructors parseTypeConstructors()
     {
         auto node = new TypeConstructors;
-
+        // TODO
         return node;
     }
 
@@ -2988,7 +3446,7 @@ struct Parser
     TypeSpecialization parseTypeSpecialization()
     {
         auto node = new TypeSpecialization;
-
+        // TODO
         return node;
     }
 
@@ -3000,7 +3458,7 @@ struct Parser
     TypeSuffix parseTypeSuffix()
     {
         auto node = new TypeSuffix;
-
+        // TODO
         return node;
     }
 
@@ -3012,7 +3470,7 @@ struct Parser
     TypeidExpression parseTypeidExpression()
     {
         auto node = new TypeidExpression;
-
+        // TODO
         return node;
     }
 
@@ -3060,7 +3518,7 @@ struct Parser
     UnaryExpression parseUnaryExpression()
     {
         auto node = new UnaryExpression;
-
+        // TODO
         return node;
     }
 
@@ -3072,7 +3530,7 @@ struct Parser
     UnionDeclaration parseUnionDeclaration()
     {
         auto node = new UnionDeclaration;
-
+        // TODO
         return node;
     }
 
@@ -3099,7 +3557,7 @@ struct Parser
     VariableDeclaration parseVariableDeclaration()
     {
         auto node = new VariableDeclaration;
-
+        // TODO
         return node;
     }
 
