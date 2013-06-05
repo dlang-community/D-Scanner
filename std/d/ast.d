@@ -162,6 +162,7 @@ class ASTVisitor
 	/** */void visit(Parameter parameter) {}
 	/** */void visit(ParameterAttribute parameterAttribute) {}
 	/** */void visit(Parameters parameters) {}
+	/** */void visit(Postblit postblit) {}
 	/** */void visit(PostIncDecExpression postIncDecExpression) {}
 	/** */void visit(PowExpression powExpression) {}
 	/** */void visit(PragmaDeclaration pragmaDeclaration) {}
@@ -186,6 +187,7 @@ class ASTVisitor
 	/** */void visit(StaticIfCondition staticIfCondition) {}
 	/** */void visit(StorageClass storageClass) {}
 	/** */void visit(StructBody structBody) {}
+	/** */void visit(StructBodyItem structBodyItem) {}
 	/** */void visit(StructDeclaration structDeclaration) {}
 	/** */void visit(StructInitializer structInitializer) {}
 	/** */void visit(StructMemberInitializer structMemberInitializer) {}
@@ -1561,6 +1563,14 @@ public:
 }
 
 ///
+class Postblit : ASTNode
+{
+public:
+	mixin(DEFAULT_ACCEPT);
+	/** */ FunctionBody functionBody;
+}
+
+///
 class PostIncDecExpression : ASTNode
 {
 public:
@@ -1776,7 +1786,16 @@ class StructBody : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Declaration[] declarations;
+	/** */ StructBodyItem[] structBodyItems;
+}
+
+class StructBodyItem : ASTNode
+{
+public:
+	mixin(DEFAULT_ACCEPT);
+	/** */ Declaration declaration;
+	/** */ Invariant invariant_;
+	/** */ Postblit postblit;
 }
 
 ///

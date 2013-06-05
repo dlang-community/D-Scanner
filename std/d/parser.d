@@ -272,7 +272,9 @@ struct Parser
     /**
      * Parses an AsmAddExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmAddExp):
+     *     $(RULE asmMulExp) (($(LITERAL '+') | $(LITERAL '-')) $(RULE asmMulExp))?
+     *     ;)
      */
     AsmAddExp parseAsmAddExp()
     {
@@ -284,7 +286,9 @@ struct Parser
     /**
      * Parses an AsmAndExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmAndExp):
+     *     $(RULE asmEqualExp) ($(LITERAL '&') $(RULE asmEqualExp))?
+     *     ;)
      */
     AsmAndExp parseAsmAndExp()
     {
@@ -296,7 +300,10 @@ struct Parser
     /**
      * Parses an AsmBrExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmBrExp):
+     *     $(RULE asmUnaExp)
+     *     | $(RULE asmBrExp) $(LITERAL '[') $(RULE asmExp) $(LITERAL ']')
+     *     ;)
      */
     AsmBrExp parseAsmBrExp()
     {
@@ -308,7 +315,9 @@ struct Parser
     /**
      * Parses an AsmEqualExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmEqualExp):
+     *     $(RULE asmRelExp) (('==' | '!=') $(RULE asmRelExp))?
+     *     ;)
      */
     AsmEqualExp parseAsmEqualExp()
     {
@@ -320,7 +329,9 @@ struct Parser
     /**
      * Parses an AsmExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmExp):
+     *     $(RULE asmLogOrExp) ($(LITERAL '?') $(RULE asmExp) $(LITERAL ':') $(RULE asmExp))?
+     *     ;)
      */
     AsmExp parseAsmExp()
     {
@@ -332,7 +343,14 @@ struct Parser
     /**
      * Parses an AsmInstruction
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmInstruction):
+     *     $(LITERAL Identifier)
+     *     | $(LITERAL 'align') I$(RULE ntegerLiteral)
+     *     | $(LITERAL 'align') $(LITERAL Identifier)
+     *     | $(LITERAL Identifier) $(LITERAL ':') $(RULE asmInstruction)
+     *     | $(LITERAL Identifier) $(RULE asmExp)
+     *     | $(RULE opcode) $(RULE operands)
+     *     ;)
      */
     AsmInstruction parseAsmInstruction()
     {
@@ -344,7 +362,9 @@ struct Parser
     /**
      * Parses an AsmLogAndExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmLogAndExp):
+     *     $(RULE asmOrExp) ('&&' $(RULE asmOrExp))?
+     *     ;)
      */
     AsmLogAndExp parseAsmLogAndExp()
     {
@@ -356,7 +376,9 @@ struct Parser
     /**
      * Parses an AsmLogOrExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmLogOrExp):
+     *     $(RULE asmLogAndExp) ('||' $(RULE asmLogAndExp))?
+     *     ;)
      */
     AsmLogOrExp parseAsmLogOrExp()
     {
@@ -368,7 +390,9 @@ struct Parser
     /**
      * Parses an AsmMulExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmMulExp):
+     *     $(RULE asmBrExp) (($(LITERAL '*') | $(LITERAL '/') | $(LITERAL '%')) $(RULE asmBrExp))?
+     *     ;)
      */
     AsmMulExp parseAsmMulExp()
     {
@@ -380,7 +404,9 @@ struct Parser
     /**
      * Parses an AsmOrExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmOrExp):
+     *     $(RULE asmXorExp) ($(LITERAL '|') $(RULE asmXorExp))?
+     *     ;)
      */
     AsmOrExp parseAsmOrExp()
     {
@@ -392,7 +418,13 @@ struct Parser
     /**
      * Parses an AsmPrimaryExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmPrimaryExp):
+	 *       $(RULE IntegerLiteral)
+     *     | $(RULE FloatLiteral)
+     *     | $(RULE register)
+     *     | $(RULE identifierChain)
+	 *     | $(LITERAL '$')
+     *     ;)
      */
     AsmPrimaryExp parseAsmPrimaryExp()
     {
@@ -404,7 +436,9 @@ struct Parser
     /**
      * Parses an AsmRelExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmRelExp):
+     *     $(RULE asmShiftExp) (($(LITERAL '<') | $(LITERAL '<=') | $(LITERAL '>') | $(LITERAL '>=')) $(RULE asmShiftExp))?
+     *     ;)
      */
     AsmRelExp parseAsmRelExp()
     {
@@ -416,7 +450,9 @@ struct Parser
     /**
      * Parses an AsmShiftExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmShiftExp):
+     *     $(RULE asmAddExp) (($(LITERAL '<<') | $(LITERAL '>>') | $(LITERAL '>>>')) $(RULE asmAddExp))?
+     *     ;)
      */
     AsmShiftExp parseAsmShiftExp()
     {
@@ -428,7 +464,9 @@ struct Parser
     /**
      * Parses an AsmStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmStatement):
+	 *     $(RULE 'asm') $(LITERAL '{') $(RULE asmInstruction)+ $(LITERAL '}')
+     *     ;)
      */
     AsmStatement parseAsmStatement()
     {
@@ -440,7 +478,15 @@ struct Parser
     /**
      * Parses an AsmTypePrefix
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmTypePrefix):
+     *     $(LITERAL Identifier) $(LITERAL Identifier)
+     *     | $(LITERAL 'byte') $(LITERAL Identifier)
+     *     | $(LITERAL 'short') $(LITERAL Identifier)
+     *     | $(LITERAL 'int') $(LITERAL Identifier)
+     *     | $(LITERAL 'float') $(LITERAL Identifier)
+     *     | $(LITERAL 'double') $(LITERAL Identifier)
+     *     | $(LITERAL 'real') $(LITERAL Identifier)
+     *     ;)
      */
     AsmTypePrefix parseAsmTypePrefix()
     {
@@ -452,7 +498,15 @@ struct Parser
     /**
      * Parses an AsmUnaExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmUnaExp):
+     *     $(RULE asmTypePrefix) $(RULE asmExp)
+     *     | $(LITERAL Identifier) $(RULE asmExp)
+     *     | $(LITERAL '+') $(RULE asmUnaExp)
+     *     | $(LITERAL '-') $(RULE asmUnaExp)
+     *     | $(LITERAL '!') $(RULE asmUnaExp)
+     *     | $(LITERAL '~') $(RULE asmUnaExp)
+     *     | $(RULE asmPrimaryExp)
+     *     ;)
      */
     AsmUnaExp parseAsmUnaExp()
     {
@@ -464,7 +518,9 @@ struct Parser
     /**
      * Parses an AsmXorExp
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF asmXorExp):
+     *     $(RULE asmAndExp) ($(LITERAL '^') $(RULE asmAndExp))?
+     *     ;)
      */
     AsmXorExp parseAsmXorExp()
     {
@@ -779,9 +835,9 @@ struct Parser
      * Parses a BaseClass
      *
      * $(GRAMMAR $(RULEDEF baseClass):
-	 *       $(RULE typeofExpression) ($(LITERAL '.') $(RULE identifierOrTemplateChain))?
+     *       $(RULE typeofExpression) ($(LITERAL '.') $(RULE identifierOrTemplateChain))?
      *     | $(RULE identifierOrTemplateChain)
-	 *     ;)
+     *     ;)
      */
     BaseClass parseBaseClass()
     {
@@ -800,7 +856,7 @@ struct Parser
      *
      * $(GRAMMAR $(RULEDEF baseClassList):
      *     $(RULE baseClass) ($(LITERAL ',') $(RULE baseClass))*
-	 *     ;)
+     *     ;)
      */
     BaseClassList parseBaseClassList()
     {
@@ -1639,7 +1695,7 @@ struct Parser
     /**
      * Parses a Finally
      *
-     * $(GRAMMAR $(RULEDEF finally_):
+     * $(GRAMMAR $(RULEDEF finally):
      *     $(LITERAL 'finally') $(RULE nonEmptyStatementNoCaseNoDefault)
      *     ;)
      */
@@ -1768,8 +1824,8 @@ struct Parser
     /**
      * Parses a FunctionCallStatement
      *
-	 * $(GRAMMAR $(RULEDEF functionCallStatement):
-	 *     $(RULE functionCallExpression) $(LITERAL ';')
+     * $(GRAMMAR $(RULEDEF functionCallStatement):
+     *     $(RULE functionCallExpression) $(LITERAL ';')
      *     ;)
      */
     FunctionCallStatement parseFunctionCallStatement()
@@ -1818,7 +1874,7 @@ struct Parser
     GotoStatement parseGotoStatement()
     {
         auto node = new GotoStatement;
-		// TODO
+        // TODO
         return node;
     }
 
@@ -2014,7 +2070,7 @@ struct Parser
      *
      * $(GRAMMAR $(RULEDEF indexExpression):
      *     $(RULE unaryExpression) $(LITERAL '[') $(RULE argumentList) $(LITERAL ']')
-	 *     ;)
+     *     ;)
      */
     IndexExpression parseImportList()
     {
@@ -2446,8 +2502,8 @@ struct Parser
      * Parses Operands
      *
      * $(GRAMMAR $(RULEDEF operands):
-	 *     $(RULE asmExp)+
-	 *     ;)
+     *     $(RULE asmExp)+
+     *     ;)
      */
     Operands parseOperands()
     {
@@ -2461,7 +2517,7 @@ struct Parser
      *
      * $(GRAMMAR $(RULEDEF orExpression):
      *       $(RULE xorExpression)
-	 *     | $(RULE orExpression) $(LITERAL '|') $(RULE xorExpression)
+     *     | $(RULE orExpression) $(LITERAL '|') $(RULE xorExpression)
      *     ;)
      */
     OrExpression parseOrExpression()
@@ -2518,14 +2574,14 @@ struct Parser
      * Parses a ParameterAttribute
      *
      * $(GRAMMAR $(RULEDEF parameterAttribute):
-     *       $(LITERAL 'auto')
+     *       $(RULE typeConstructor)
      *     | $(LITERAL 'final')
      *     | $(LITERAL 'in')
      *     | $(LITERAL 'lazy')
      *     | $(LITERAL 'out')
      *     | $(LITERAL 'ref')
      *     | $(LITERAL 'scope')
-     *     | $(RULE typeConstructor)
+     *     | $(LITERAL 'auto')
      *     ;)
      */
     ParameterAttribute parseParameterAttribute()
@@ -2539,12 +2595,26 @@ struct Parser
      * Parses Parameters
      *
      * $(GRAMMAR $(RULEDEF parameters):
-     *     $(LITERAL '(') (($(RULE parameter) ($(LITERAL ',') $(RULE parameter))*)? ($(LITERAL ',') '...')? | '...') $(LITERAL ')')
+     *     $(LITERAL '$(LPAREN)') (($(RULE parameter) ($(LITERAL ',') $(RULE parameter))*)? ($(LITERAL ',') $(LITERAL '...'))? | $(LITERAL '...')) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     Parameters parseParameters()
     {
         auto node = new Parameters;
+        // TODO
+        return node;
+    }
+
+    /**
+     * Parses a Postblit
+     *
+     * $(GRAMMAR $(RULEDEF parameters):
+     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     ;)
+     */
+    Postblit parsePostblit()
+    {
+        auto node = new Postblit;
         // TODO
         return node;
     }
@@ -2624,17 +2694,16 @@ struct Parser
      * Parses a PrimaryExpression
      *
      * $(GRAMMAR $(RULEDEF primaryExpression):
-     *       $(RULE identifierOrTemplateInstance)
-     *     | $(LITERAL '.') $(RULE identifierOrTemplateInstance)
+     *       $(RULE symbol)
      *     | $(RULE type) $(LITERAL '.') $(LITERAL Identifier)
      *     | $(RULE typeofExpression)
      *     | $(RULE typeidExpression)
      *     | $(LITERAL '$')
      *     | $(LITERAL 'this')
      *     | $(LITERAL 'super')
-     *     | $(LITERAL 'null')
-     *     | $(LITERAL 'true')
-     *     | $(LITERAL 'false')
+     *     | $(LITERAL '_null')
+     *     | $(LITERAL '_true')
+     *     | $(LITERAL '_false')
      *     | $(LITERAL '___DATE__')
      *     | $(LITERAL '___TIME__')
      *     | $(LITERAL '___TIMESTAMP__')
@@ -2689,7 +2758,7 @@ struct Parser
      *     $(RULE shiftExpression)
      *     | $(RULE relExpression) $(RULE relOperator) $(RULE shiftExpression)
      *     ;
-	 *$(RULEDEF relOperator):
+     *$(RULEDEF relOperator):
      *       $(LITERAL '<')
      *     | $(LITERAL '<=')
      *     | $(LITERAL '>')
@@ -2702,7 +2771,7 @@ struct Parser
      *     | $(LITERAL '!>=')
      *     | $(LITERAL '!<')
      *     | $(LITERAL '!<=')
-	 *     ;)
+     *     ;)
      */
     RelExpression parseRelExpression()
     {
@@ -2773,7 +2842,7 @@ struct Parser
     /**
      * Parses a ShiftExpression
      *
-	 * $(GRAMMAR $(RULEDEF shiftExpression):
+     * $(GRAMMAR $(RULEDEF shiftExpression):
      *       $(RULE addExpression)
      *     | $(RULE shiftExpression) ($(LITERAL '<<') | $(LITERAL '>>') | $(LITERAL '>>>')) $(RULE addExpression)
      *     ;)
@@ -2852,7 +2921,7 @@ struct Parser
     /**
      * Parses a StaticAssertStatement
      *
-	 * $(GRAMMAR $(RULEDEF staticAssertStatement):
+     * $(GRAMMAR $(RULEDEF staticAssertStatement):
      *     $(LITERAL 'static') $(RULE assertStatement)
      *     ;)
      */
@@ -2885,7 +2954,7 @@ struct Parser
     /**
      * Parses a StaticDestructor
      *
-	 * $(GRAMMAR $(RULEDEF staticConstructor):
+     * $(GRAMMAR $(RULEDEF staticConstructor):
      *     $(LITERAL 'static') $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
      *     ;)
      */
@@ -2951,7 +3020,7 @@ struct Parser
      * Parses a StructBody
      *
      * $(GRAMMAR $(RULEDEF structBody):
-     *     $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')
+     *     $(LITERAL '{') $(RULE structBodyItem)* $(LITERAL '}')
      *     ;)
      */
     StructBody parseStructBody()
@@ -2959,8 +3028,24 @@ struct Parser
         auto node = new StructBody;
         expect(TokenType.lBrace);
         while (tokens[index] != TokenType.rBrace && moreTokens())
-            node.declarations ~= parseDeclaration();
+            node.structBodyItems ~= parseStructBodyItem();
         expect(TokenType.rBrace);
+        return node;
+    }
+
+    /**
+     * Parses a StructBodyItem
+     *
+     * $(GRAMMAR $(RULEDEF structBodyItem):
+     *       $(RULE declaration)
+     *     | $(RULE postBlit)
+     *     | $(RULE invariant)
+     *     ;)
+     */
+    StructBodyItem parseStructBodyItem()
+    {
+        auto node = new StructBodyItem;
+
         return node;
     }
 
@@ -3082,9 +3167,11 @@ struct Parser
     }
 
     /**
-     * Parses an Symbol
+     * Parses a Symbol
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF symbol):
+     *     $(LITERAL '.')? $(RULE identifierOrTemplateChain)
+     *     ;)
      */
     Symbol parseSymbol()
     {
@@ -3101,7 +3188,9 @@ struct Parser
     /**
      * Parses an SynchronizedStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF synchronizedStatement):
+     *     $(LITERAL 'synchronized') ($(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)'))? $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     ;)
      */
     SynchronizedStatement parseSynchronizedStatement()
     {
@@ -3120,7 +3209,9 @@ struct Parser
     /**
      * Parses an TemplateAliasParameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateAliasParameter):
+     *     $(LITERAL 'alias') $(RULE type)? $(LITERAL Identifier) ($(LITERAL ':') ($(RULE type) | $(RULE expression)))? ($(LITERAL '=') ($(RULE type) | $(RULE expression)))?
+     *     ;)
      */
     TemplateAliasParameter parseTemplateAliasParameter()
     {
@@ -3130,9 +3221,13 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateArgument
+     * Parses a TemplateArgument
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateArgument):
+     *       $(RULE type)
+     *     | $(RULE assignExpression)
+     *     | $(RULE symbol)
+     *     ;)
      */
     TemplateArgument parseTemplateArgument()
     {
@@ -3142,9 +3237,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateArgumentList
+     * Parses a TemplateArgumentList
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateArgumentList):
+     *     $(RULE templateArgument) ($(LITERAL ',') $(RULE templateArgument)?)*
+     *     ;)
      */
     TemplateArgumentList parseTemplateArgumentList()
     {
@@ -3154,9 +3251,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateArguments
+     * Parses TemplateArguments
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateArguments):
+     *     $(LITERAL '!') ($(LITERAL '$(LPAREN)') $(RULE templateArgumentList)? $(LITERAL '$(RPAREN)') | $(RULE templateSingleArgument))
+     *     ;)
      */
     TemplateArguments parseTemplateArguments()
     {
@@ -3168,7 +3267,9 @@ struct Parser
     /**
      * Parses an TemplateDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateDeclaration):
+     *     $(LITERAL 'template') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? $(LITERAL '{') $(RULE declaration)+ $(LITERAL '}')
+     *     ;)
      */
     TemplateDeclaration parseTemplateDeclaration()
     {
@@ -3178,9 +3279,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateInstance
+     * Parses a TemplateInstance
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateInstance):
+     *     $(LITERAL Identifier) $(RULE templateArguments)
+     *     ;)
      */
     TemplateInstance parseTemplateInstance()
     {
@@ -3190,9 +3293,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateMixinStatement
+     * Parses a TemplateMixinStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateMixinStatement):
+     *     $(LITERAL 'mixin') $(RULE mixinTemplateName) $(RULE templateArguments)? $(LITERAL Identifier)? $(LITERAL ';')
+     *     ;)
      */
     TemplateMixinStatement parseTemplateMixinStatement()
     {
@@ -3202,9 +3307,15 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateParameter
+     * Parses a TemplateParameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateParameter):
+     *       $(RULE templateTypeParameter)
+     *     | $(RULE templateValueParameter)
+     *     | $(RULE templateAliasParameter)
+     *     | $(RULE templateTupleParameter)
+     *     | $(RULE templateThisParameter)
+     *     ;)
      */
     TemplateParameter parseTemplateParameter()
     {
@@ -3216,7 +3327,9 @@ struct Parser
     /**
      * Parses an TemplateParameterList
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateParameterList):
+     *     $(RULE templateParameter) ($(LITERAL ',') $(RULE templateParameter)?)*
+     *     ;)
      */
     TemplateParameterList parseTemplateParameterList()
     {
@@ -3226,9 +3339,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateParameters
+     * Parses TemplateParameters
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateParameters):
+     *     $(LITERAL '$(LPAREN)') $(RULE templateParameterList)? $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     TemplateParameters parseTemplateParameters()
     {
@@ -3240,7 +3355,28 @@ struct Parser
     /**
      * Parses an TemplateSingleArgument
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateSingleArgument):
+     *       $(RULE basicType)
+     *     | $(LITERAL Identifier)
+     *     | $(LITERAL CharacterLiteral)
+     *     | $(LITERAL StringLiteral)
+     *     | $(LITERAL IntegerLiteral)
+     *     | $(LITERAL FloatLiteral)
+     *     | $(LITERAL '_true')
+     *     | $(LITERAL '_false')
+     *     | $(LITERAL '_null')
+     *     | $(LITERAL 'this')
+     *     | $(LITERAL '__DATE__')
+     *     | $(LITERAL '__TIME__')
+     *     | $(LITERAL '__TIMESTAMP__')
+     *     | $(LITERAL '__VENDOR__')
+     *     | $(LITERAL '__VERSION__')
+     *     | $(LITERAL '__FILE__')
+     *     | $(LITERAL '__LINE__')
+     *     | $(LITERAL '__MODULE__')
+     *     | $(LITERAL '__FUNCTION__')
+     *     | $(LITERAL '__PRETTY_FUNCTION__')
+     *     ;)
      */
     TemplateSingleArgument parseTemplateSingleArgument()
     {
@@ -3252,7 +3388,9 @@ struct Parser
     /**
      * Parses an TemplateThisParameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateThisParameter):
+     *     $(LITERAL 'this') $(RULE templateTypeParameter)
+     *     ;)
      */
     TemplateThisParameter parseTemplateThisParameter()
     {
@@ -3264,7 +3402,9 @@ struct Parser
     /**
      * Parses an TemplateTupleParameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateTupleParameter):
+     *     $(LITERAL Identifier) '...'
+     *     ;)
      */
     TemplateTupleParameter parseTemplateTupleParameter()
     {
@@ -3274,9 +3414,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateTypeParameter
+     * Parses a TemplateTypeParameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateTypeParameter):
+     *     $(LITERAL Identifier) ($(LITERAL ':') $(RULE type))? ($(LITERAL '=') $(RULE type))?
+     *     ;)
      */
     TemplateTypeParameter parseTemplateTypeParameter()
     {
@@ -3286,9 +3428,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateValueParameter
+     * Parses a TemplateValueParameter
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateValueParameter):
+     *     $(RULE type) $(LITERAL Identifier) ($(LITERAL ':') $(RULE expression))? $(RULE templateValueParameterDefault)?
+     *     ;)
      */
     TemplateValueParameter parseTemplateValueParameter()
     {
@@ -3298,9 +3442,11 @@ struct Parser
     }
 
     /**
-     * Parses an TemplateValueParameterDefault
+     * Parses a TemplateValueParameterDefault
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF templateValueParameterDefault):
+     *     $(LITERAL '=') ('__FILE__' | '__MODULE__' | '__LINE__' | '__FUNCTION__' | '__PRETTY_FUNCTION__' | $(RULE assignExpression))
+     *     ;)
      */
     TemplateValueParameterDefault parseTemplateValueParameterDefault()
     {
@@ -3310,9 +3456,11 @@ struct Parser
     }
 
     /**
-     * Parses an TernaryExpression
+     * Parses a TernaryExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF ternaryExpression):
+     *     $(RULE orOrExpression) ($(LITERAL '?') $(RULE expression) $(LITERAL ':') $(RULE ternaryExpression))?
+     *     ;)
      */
     TernaryExpression parseTernaryExpression()
     {
@@ -3329,9 +3477,11 @@ struct Parser
     }
 
     /**
-     * Parses an ThrowStatement
+     * Parses a ThrowStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF throwStatement):
+     *     $(LITERAL 'throw') $(RULE expression) $(LITERAL ';')
+     *     ;)
      */
     ThrowStatement parseThrowStatement()
     {
@@ -3345,7 +3495,10 @@ struct Parser
     /**
      * Parses an TraitsArgument
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF traitsArgument):
+     *     $(RULE assignExpression)
+     *     | $(RULE type)
+     *     ;)
      */
     TraitsArgument parseTraitsArgument()
     {
@@ -3357,7 +3510,9 @@ struct Parser
     /**
      * Parses an TraitsExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF traitsExpression):
+	 *     $(LITERAL '__traits') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL ',') $(RULE traitsArgument) ($(LITERAL ',') $(RULE traitsArgument))* $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     TraitsExpression parseTraitsExpression()
     {
@@ -3367,9 +3522,11 @@ struct Parser
     }
 
     /**
-     * Parses an TryStatement
+     * Parses a TryStatement
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF tryStatement):
+     *     $(LITERAL 'try') $(RULE nonEmptyStatementNoCaseNoDefault) ($(RULE catches) | $(RULE catches) $(RULE finally) | $(RULE finally))
+     *     ;)
      */
     TryStatement parseTryStatement()
     {
@@ -3379,9 +3536,11 @@ struct Parser
     }
 
     /**
-     * Parses an Type
+     * Parses a Type
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF type):
+     *     $(RULE typeConstructors)? $(RULE type2)
+     *     ;)
      */
     Type parseType()
     {
@@ -3391,9 +3550,12 @@ struct Parser
     }
 
     /**
-     * Parses an Type2
+     * Parses a Type2
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF type2):
+     *       $(RULE type3) $(RULE typeSuffix)?
+     *     | $(RULE type2) $(RULE typeSuffix)
+     *     ;)
      */
     Type2 parseType2()
     {
@@ -3403,9 +3565,14 @@ struct Parser
     }
 
     /**
-     * Parses an Type3
+     * Parses a Type3
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF type3):
+     *       $(RULE basicType)
+     *     | $(RULE symbol)
+     *     | $(RULE typeofExpression) ($(LITERAL '.') $(RULE identifierOrTemplateChain))?
+     *     | $(RULE typeConstructor) $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     Type3 parseType3()
     {
@@ -3415,9 +3582,14 @@ struct Parser
     }
 
     /**
-     * Parses an TypeConstructor
+     * Parses a TypeConstructor
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF typeConstructor):
+     *       $(LITERAL 'const')
+     *     | $(LITERAL 'immutable')
+     *     | $(LITERAL 'inout')
+     *     | $(LITERAL 'shared')
+     *     ;)
      */
     TypeConstructor parseTypeConstructor()
     {
@@ -3427,9 +3599,11 @@ struct Parser
     }
 
     /**
-     * Parses an TypeConstructors
+     * Parses TypeConstructors
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF typeConstructors):
+     *     $(RULE typeConstructor)+
+     *     ;)
      */
     TypeConstructors parseTypeConstructors()
     {
@@ -3439,9 +3613,25 @@ struct Parser
     }
 
     /**
-     * Parses an TypeSpecialization
+     * Parses a TypeSpecialization
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF typeSpecialization):
+     *       $(RULE type)
+     *     | $(LITERAL 'struct')
+     *     | $(LITERAL 'union')
+     *     | $(LITERAL 'class')
+     *     | $(LITERAL 'interface')
+     *     | $(LITERAL 'enum')
+     *     | $(LITERAL 'function')
+     *     | $(LITERAL 'delegate')
+     *     | $(LITERAL 'super')
+     *     | $(LITERAL 'const')
+     *     | $(LITERAL 'immutable')
+     *     | $(LITERAL 'inout')
+     *     | $(LITERAL 'shared')
+     *     | $(LITERAL 'return')
+     *     | $(RULE '___parameters')
+     *     ;)
      */
     TypeSpecialization parseTypeSpecialization()
     {
@@ -3451,9 +3641,13 @@ struct Parser
     }
 
     /**
-     * Parses an TypeSuffix
+     * Parses a TypeSuffix
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF typeSuffix):
+     *       $(LITERAL '*')
+     *     | $(LITERAL '[') ($(RULE type) | $(RULE assignExpression))? $(LITERAL ']')
+     *     | ($(LITERAL 'delegate') | $(LITERAL 'function')) $(RULE parameters) $(RULE memberFunctionAttribute)*
+     *     ;)
      */
     TypeSuffix parseTypeSuffix()
     {
@@ -3463,9 +3657,12 @@ struct Parser
     }
 
     /**
-     * Parses an TypeidExpression
+     * Parses a TypeidExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF typeidExpression):
+	 *     $(LITERAL 'typeid') $(LITERAL '$(LPAREN)')($(RULE type) | $(RULE expression)) $(LITERAL '$(RPAREN)')
+     *     ;)
+
      */
     TypeidExpression parseTypeidExpression()
     {
@@ -3475,9 +3672,11 @@ struct Parser
     }
 
     /**
-     * Parses an TypeofExpression
+     * Parses a TypeofExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF typeofExpression):
+	 *     $(LITERAL 'typeof') $(LITERAL '$(LPAREN)')($(RULE expression) | $(LITERAL 'return')) $(LITERAL '$(RPAREN)')
+     *     ;)
      */
     TypeofExpression parseTypeofExpression()
     {
@@ -3525,7 +3724,9 @@ struct Parser
     /**
      * Parses an UnionDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF unionDeclaration):
+	 *     '$(RULE union)' $(LITERAL Identifier) (($(RULE templateParameters) $(RULE constraint)? $(RULE structBody))? | ($(RULE structBody) | $(LITERAL ';')))
+     *     ;)
      */
     UnionDeclaration parseUnionDeclaration()
     {
@@ -3552,7 +3753,10 @@ struct Parser
     /**
      * Parses a VariableDeclaration
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF variableDeclaration):
+     *       $(RULE storageClass)? $(RULE type) $(RULE declarator) ($(LITERAL ',') $(RULE declarator))* $(LITERAL ';')
+     *     | $(RULE autoDeclaration)
+     *     ;)
      */
     VariableDeclaration parseVariableDeclaration()
     {
@@ -3648,7 +3852,9 @@ struct Parser
     /**
      * Parses an XorExpression
      *
-     * $(GRAMMAR )
+     * $(GRAMMAR $(RULEDEF xorExpression):
+     *     $(RULE andExpression) ($(LITERAL '^') $(RULE andExpression))?
+     *     ;)
      */
     XorExpression parseXorExpression()
     {
