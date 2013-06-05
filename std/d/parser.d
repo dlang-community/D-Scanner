@@ -160,8 +160,8 @@ struct Parser
      * Parses an AndExpression
      *
      * $(GRAMMAR $(RULEDEF andExpression):
-     *     $(RULE cmpExpression)
-     *     $(RULE andExpression) $(LITERAL '&') $(RULE cmpExpression)
+     *       $(RULE cmpExpression)
+     *     | $(RULE andExpression) $(LITERAL '&') $(RULE cmpExpression)
      *     ;)
      */
     AndExpression parseAndExpression()
@@ -2698,6 +2698,15 @@ struct Parser
      *     | $(RULE type) $(LITERAL '.') $(LITERAL Identifier)
      *     | $(RULE typeofExpression)
      *     | $(RULE typeidExpression)
+     *     | $(RULE arrayLiteral)
+     *     | $(RULE assocArrayLiteral)
+     *     | $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)')
+     *     | $(RULE isExpression)
+     *     | $(RULE lambdaExpression)
+     *     | $(RULE functionLiteralExpression)
+     *     | $(RULE traitsExpression)
+     *     | $(RULE mixinExpression)
+     *     | $(RULE importExpression)
      *     | $(LITERAL '$')
      *     | $(LITERAL 'this')
      *     | $(LITERAL 'super')
@@ -2714,19 +2723,10 @@ struct Parser
      *     | $(LITERAL '___MODULE__')
      *     | $(LITERAL '___FUNCTION__')
      *     | $(LITERAL '___PRETTY_FUNCTION__')
-     *     | $(RULE IntegerLiteral)
-     *     | $(RULE FloatLiteral)
-     *     | $(RULE StringLiteral)
-     *     | $(RULE CharacterLiteral)
-     *     | $(RULE arrayLiteral)
-     *     | $(RULE assocArrayLiteral)
-     *     | $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)')
-     *     | $(RULE isExpression)
-     *     | $(RULE lambdaExpression)
-     *     | $(RULE functionLiteralExpression)
-     *     | $(RULE traitsExpression)
-     *     | $(RULE mixinExpression)
-     *     | $(RULE importExpression)
+     *     | $(LITERAL IntegerLiteral)
+     *     | $(LITERAL FloatLiteral)
+     *     | $(LITERAL StringLiteral)
+     *     | $(LITERAL CharacterLiteral)
      *     ;)
      */
     PrimaryExpression parsePrimaryExpression()
@@ -3630,7 +3630,7 @@ struct Parser
      *     | $(LITERAL 'inout')
      *     | $(LITERAL 'shared')
      *     | $(LITERAL 'return')
-     *     | $(RULE '___parameters')
+     *     | $(LITERAL '___parameters')
      *     ;)
      */
     TypeSpecialization parseTypeSpecialization()
@@ -3853,7 +3853,8 @@ struct Parser
      * Parses an XorExpression
      *
      * $(GRAMMAR $(RULEDEF xorExpression):
-     *     $(RULE andExpression) ($(LITERAL '^') $(RULE andExpression))?
+     *       $(RULE andExpression)
+     *     | $(RULE xorExpression) $(LITERAL '^') $(RULE andExpression)
      *     ;)
      */
     XorExpression parseXorExpression()
