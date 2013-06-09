@@ -704,8 +704,8 @@ class Catches: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Catch[] catches;
-	/** */LastCatch lastCatch;
+	/** */ Catch[] catches;
+	/** */ LastCatch lastCatch;
 }
 
 ///
@@ -713,9 +713,9 @@ class Catch: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Type type;
-	/** */Token identifier;
-	/** */NonEmptyStatementNoCaseNoDefault nonEmptyStatementNoCaseNoDefault;
+	/** */ Type type;
+	/** */ Token identifier;
+	/** */ NonEmptyStatementNoCaseNoDefault nonEmptyStatementNoCaseNoDefault;
 }
 
 ///
@@ -723,7 +723,7 @@ class ClassBody: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */DeclarationOrInvariant[] declarationOrInvariants;
+	/** */ DeclarationOrInvariant[] declarationOrInvariants;
 }
 
 ///
@@ -731,11 +731,11 @@ class ClassDeclaration: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token name;
-	/** */TemplateParameters templateParameters;
-	/** */Constraint constraint;
-	/** */IdentifierList superClasses;
-	/** */ClassBody classBody;
+	/** */ Token name;
+	/** */ TemplateParameters templateParameters;
+	/** */ Constraint constraint;
+	/** */ BaseClassList baseClassList;
+	/** */ ClassBody classBody;
 }
 
 ///
@@ -743,11 +743,11 @@ class CmpExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ShiftExpression shiftExpression;
-	/** */EqualExpression equalExpression;
-	/** */IdentityExpression identityExpression;
-	/** */RelExpression relExpression;
-	/** */InExpression inExpression;
+	/** */ ShiftExpression shiftExpression;
+	/** */ EqualExpression equalExpression;
+	/** */ IdentityExpression identityExpression;
+	/** */ RelExpression relExpression;
+	/** */ InExpression inExpression;
 }
 
 ///
@@ -2136,6 +2136,7 @@ public:
 	/** */ bool star;
 	/** */ Type type;
 	/** */ AssignExpression assignExpression;
+	/** */ Parameters parameters;
 	/** */ MemberFunctionAttribute[] memberFunctionAttributes;
 }
 

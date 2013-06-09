@@ -3,6 +3,24 @@
 /**
  * This module contains a _parser for D source code.
  *
+ * Grammar:
+ * The grammar format used in the documentation of this module generally follows
+ * the format used by the ANTLR _parser generator.
+ * $(UL
+ * $(LI Literals are highlighted in green.)
+ * $(LI Rules are links to their definitions.)
+ * $(LI Tokens and rules can be grouped by parenthesis.)
+ * $(LI An asterisk (*) indicates that the previous rule, token, or group
+ * can repeat 0 or more times.)
+ * $(LI A question mark (?) indicates that the previous rule, token, or group
+ * will be present either 0 or 1 times.)
+ * $(LI A plus sign (+) indicates that the previous rule, token, or group
+ * repeats one or more times. (i.e. it is optional))
+ * $(LI If there is more than one way to match a rule, the alternatives will be
+ * separated by a pipe character (|).)
+ * $(LI Rule definitions begin with the rule name followed by a colon (:). Rule
+ * definitions end with a semicolon (;).)
+ * )
  * Examples:
  * ---
  * // TODO
@@ -13,10 +31,10 @@
  * Authors: Brian Schott
  * Source: $(PHOBOSSRC std/d/_parser.d)
  * MACROS:
- *     GRAMMAR = <pre style="font-weight: bold">$0</pre>
- *     RULEDEF = <a name="$0"><span>$0</span></a>
- *     RULE = <a href="#$0"><span style="font-weight: bold">$0</span></a>
- *     LITERAL = <span style="color: green; font-weight: normal;">$0</span>
+ *     GRAMMAR = $(D_CODE $0)
+ *     RULEDEF = $(DDOC_ANCHOR $0) $(B $0)
+ *     RULE = $(LINK2 #$0, $(B $0))
+ *     LITERAL = $(D_STRING $0)
  */
 
 module std.d.parser;
@@ -103,7 +121,8 @@ struct Parser
 
     /**
      * Parses an AliasThisDeclaration
-     * $(GRAMMAR $(RULEDEF aliasThisDeclaration): $(LITERAL 'alias') $(LITERAL Identifier) $(LITERAL 'this') $(LITERAL ';')
+     * $(GRAMMAR $(RULEDEF aliasThisDeclaration):
+     *     $(LITERAL 'alias') $(LITERAL Identifier) $(LITERAL 'this') $(LITERAL ';')
      *     ;)
      */
     AliasThisDeclaration parseAliasThisDeclaration()
@@ -118,7 +137,8 @@ struct Parser
 
     /**
      * Parses an AlignAttribute.
-     * $(GRAMMAR $(RULEDEF alignAttribute): $(LITERAL 'align') ($(LITERAL '$(LPAREN)') $(LITERAL IntegerLiteral) $(LITERAL '$(RPAREN)'))?
+     * $(GRAMMAR $(RULEDEF alignAttribute):
+     *     $(LITERAL 'align') ($(LITERAL '$(LPAREN)') $(LITERAL IntegerLiteral) $(LITERAL '$(RPAREN)'))?
      *     ;)
      */
     AlignAttribute parseAlignAttribute()
@@ -273,7 +293,8 @@ struct Parser
      * Parses an AsmAddExp
      *
      * $(GRAMMAR $(RULEDEF asmAddExp):
-     *     $(RULE asmMulExp) (($(LITERAL '+') | $(LITERAL '-')) $(RULE asmMulExp))?
+     *       $(RULE asmMulExp)
+     *     | $(RULE asmAddExp) ($(LITERAL '+') | $(LITERAL '-')) $(RULE asmMulExp)
      *     ;)
      */
     AsmAddExp parseAsmAddExp()
@@ -465,7 +486,7 @@ struct Parser
      * Parses an AsmStatement
      *
      * $(GRAMMAR $(RULEDEF asmStatement):
-	 *     $(RULE 'asm') $(LITERAL '{') $(RULE asmInstruction)+ $(LITERAL '}')
+	 *     $(LITERAL 'asm') $(LITERAL '{') $(RULE asmInstruction)+ $(LITERAL '}')
      *     ;)
      */
     AsmStatement parseAsmStatement()
@@ -1076,7 +1097,7 @@ struct Parser
     }
 
     /**
-     * Parses an ClassBody
+     * Parses a ClassBody
      *
      * $(GRAMMAR $(RULEDEF classBody):
      *     $(LITERAL '{') $(RULE declarationOrInvariant)* $(LITERAL '}')
@@ -1087,13 +1108,14 @@ struct Parser
         auto node = new ClassBody;
         expect(TokenType.lBrace);
         while (!currentIs(TokenType.rBrace))
-            node.declarationOrInvariants ~= parseDeclarationOrInvariant();
+            //node.declarationOrInvariants ~= parseDeclarationOrInvariant();
+            advance();
         expect(TokenType.rBrace);
         return node;
     }
 
     /**
-     * Parses an ClassDeclaration
+     * Parses a ClassDeclaration
      *
      * $(GRAMMAR $(RULEDEF classDeclaration):
      *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE classBody)
@@ -1111,9 +1133,37 @@ struct Parser
                 node.constraint = parseConstraint();
         }
         if (currentIs(TokenType.colon))
-            node.superClasses = parseIdentifierList();
+            node.baseClassList = parseBaseClassList();
         node.classBody = parseClassBody();
         return node;
+    }
+
+    unittest
+    {
+        string sourceCode =
+q{class ClassOne {}
+class ClassTwo : Super {}
+class ClassThree(A, B) : Super {}
+class ClassFour(A, B) if (someTest()) : Super {}};
+
+        LexerConfig config;
+        auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
+        Parser p;
+        p.fileName = "parseClassDeclaration.d";
+        p.tokens = r.array();
+
+        auto classOne = p.parseClassDeclaration();
+        assert (classOne.name == "ClassOne");
+        assert (classOne.classBody.declarationOrInvariants.length == 0);
+        assert (classOne.baseClassList is null);
+        assert (classOne.constraint is null);
+        assert (classOne.templateParameters is null);
+
+        auto classTwo = p.parseClassDeclaration();
+        assert (classOne.name == "ClassTwo");
+        assert (classOne.baseClassList !is null);
+        assert (classOne.baseClassList.baseClasses.length == 1);
+        assert (classOne.classBody.declarationOrInvariants.length == 0);
     }
 
     /**
@@ -1493,7 +1543,7 @@ struct Parser
     }
 
     /**
-     * Parses an DeleteExpression
+     * Parses a DeleteExpression
      *
      * $(GRAMMAR $(RULEDEF deleteExpression):
      *     $(LITERAL 'delete') $(RULE unaryExpression)
@@ -1603,7 +1653,7 @@ struct Parser
                     break;
                 else
                 {
-                    error(`",", "}" or enum member expected`);
+                    error(`",", "}", or enum member expected`);
                     goto ret;
                 }
             }
@@ -2552,7 +2602,14 @@ struct Parser
     OutStatement parseOutStatement()
     {
         auto node = new OutStatement;
-        // TODO
+        expect(TokenType.out_);
+        if (currentIs(TokenType.lParen))
+        {
+            advance();
+            node.parameter = *expect(TokenType.identifier);
+            expect(TokenType.rParen);
+        }
+        node.blockStatement = parseBlockStatement();
         return node;
     }
 
@@ -2974,7 +3031,7 @@ struct Parser
      * Parses an StaticIfCondition
      *
      * $(GRAMMAR $(RULEDEF staticIfCondition):
-     *     $(RULE 'static') $(LITERAL 'if') $(LITERAL '$(LPAREN)') $(RULE assignExpression) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'static') $(LITERAL 'if') $(LITERAL '$(LPAREN)') $(RULE assignExpression) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     StaticIfCondition parseStaticIfCondition()
@@ -3356,7 +3413,7 @@ struct Parser
      * Parses an TemplateSingleArgument
      *
      * $(GRAMMAR $(RULEDEF templateSingleArgument):
-     *       $(RULE basicType)
+     *       $(RULE builtinType)
      *     | $(LITERAL Identifier)
      *     | $(LITERAL CharacterLiteral)
      *     | $(LITERAL StringLiteral)
@@ -3568,7 +3625,7 @@ struct Parser
      * Parses a Type3
      *
      * $(GRAMMAR $(RULEDEF type3):
-     *       $(RULE basicType)
+     *       $(RULE builtinType)
      *     | $(RULE symbol)
      *     | $(RULE typeofExpression) ($(LITERAL '.') $(RULE identifierOrTemplateChain))?
      *     | $(RULE typeConstructor) $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL '$(RPAREN)')
@@ -3652,8 +3709,27 @@ struct Parser
     TypeSuffix parseTypeSuffix()
     {
         auto node = new TypeSuffix;
-        // TODO
-        return node;
+        switch(current().type)
+        {
+        case TokenType.star:
+            node.star = true;
+            advance();
+            return node;
+        case TokenType.lBracket:
+            advance();
+            // TODO: magic
+            expect(TokenType.rBracket);
+            return node;
+        case TokenType.delegate_:
+        case TokenType.function_:
+            advance();
+            node.parameters = parseParameters();
+            // TODO: memberFunctionAttribute
+            return node;
+        default:
+            error(`"*", "[", "delegate", or "function" expected.`);
+            return null;
+        }
     }
 
     /**
@@ -3667,7 +3743,10 @@ struct Parser
     TypeidExpression parseTypeidExpression()
     {
         auto node = new TypeidExpression;
+        expect(TokenType.typeid_);
+        expect(TokenType.lParen);
         // TODO
+        expect(TokenType.rParen);
         return node;
     }
 
@@ -3717,21 +3796,71 @@ struct Parser
     UnaryExpression parseUnaryExpression()
     {
         auto node = new UnaryExpression;
-        // TODO
-        return node;
+        switch (current().type)
+        {
+        case TokenType.bitAnd:
+        case TokenType.not:
+        case TokenType.star:
+        case TokenType.plus:
+        case TokenType.minus:
+        case TokenType.tilde:
+            node.prefix = advance;
+            node.unaryExpression = parseUnaryExpression();
+            return node;
+        case TokenType.new_:
+            node.newExpression = parseNewExpression();
+            return node;
+        case TokenType.delete_:
+            node.deleteExpression = parseDeleteExpression();
+            return node;
+        case TokenType.cast_:
+            node.castExpression = parseCastExpression;
+            return node;
+        case TokenType.increment:
+        case TokenType.decrement:
+            node.preIncDecExpression = parsePreIncDecExpression();
+            return node;
+        case TokenType.assert_:
+            node.assertExpression = parseAssertExpression();
+            return node;
+        default:
+            // TODO:
+            // primary
+            // functionCall
+            // postIncDec
+            // slice
+            // index
+            // unary.identifierOrTemplateInstance
+            return node;
+        }
     }
 
     /**
      * Parses an UnionDeclaration
      *
      * $(GRAMMAR $(RULEDEF unionDeclaration):
-	 *     '$(RULE union)' $(LITERAL Identifier) (($(RULE templateParameters) $(RULE constraint)? $(RULE structBody))? | ($(RULE structBody) | $(LITERAL ';')))
+	 *     $(LITERAL 'union') $(LITERAL Identifier) (($(RULE templateParameters) $(RULE constraint)? $(RULE structBody))? | ($(RULE structBody) | $(LITERAL ';')))
      *     ;)
      */
     UnionDeclaration parseUnionDeclaration()
     {
         auto node = new UnionDeclaration;
-        // TODO
+        expect(TokenType.union_);
+        node.identifier = *expect(TokenType.identifier);
+        if (currentIs(TokenType.lParen))
+        {
+            node.templateParameters = parseTemplateParameters();
+            if (currentIs(TokenType.if_))
+                node.constraint = parseConstraint();
+            node.structBody = parseStructBody;
+        }
+        else
+        {
+            if (currentIs(TokenType.semicolon))
+                advance;
+            else
+                node.structBody = parseStructBody();
+        }
         return node;
     }
 
@@ -3872,8 +4001,10 @@ struct Parser
             tokens[index].column, message);
         while (index < tokens.length)
         {
-            if (tokens[++index].type == TokenType.semicolon)
+            if (tokens[index].type == TokenType.semicolon)
                 break;
+            else
+                index++;
         }
     }
 
@@ -3939,13 +4070,14 @@ struct Parser
             return &tokens[index++];
         else
         {
-            error("Expected " ~ to!string(type));
+            error("Expected " ~ to!string(type) ~ " instead of "
+                ~ to!string(tokens[index].type));
             return null;
         }
     }
 
     /**
-     * Returns: the current token
+     * Returns: the _current token
      */
     Token current() const
     {
