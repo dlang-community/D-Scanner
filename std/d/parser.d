@@ -1,6 +1,7 @@
 // Written in the D programming language
 
 /**
+ * <script type="text/javascript">inhibitQuickIndex = 1</script>
  * This module contains a _parser for D source code.
  *
  * Grammar:
@@ -21,9 +22,31 @@
  * $(LI Rule definitions begin with the rule name followed by a colon (:). Rule
  * definitions end with a semicolon (;).)
  * )
+ *
+ * The grammar for D starts with the $(LINK2 #.module, module) rule.
+ *
  * Examples:
  * ---
- * // TODO
+ * import std.d.lexer;
+ * import std.d.parser;
+ * import std.d.ast;
+ * import std.array;
+ *
+ * string sourceCode = q{
+ * import std.stdio;
+ *
+ * void main()
+ * {
+ *     writeln("Hello, World.");
+ * }
+ * }c;
+ * void main()
+ * {
+ *     LexerConfig config;
+ *     auto tokens = byToken(cast(ubyte[]) sourceCode, config).array();
+ *     Module mod = parseModule(tokens);
+ *     // Use module here...
+ * }
  * ---
  *
  * Copyright: Brian Schott 2013
@@ -33,7 +56,7 @@
  * MACROS:
  *     GRAMMAR = $(D_CODE $0)
  *     RULEDEF = $(DDOC_ANCHOR $0) $(B $0)
- *     RULE = $(LINK2 #$0, $(B $0))
+ *     RULE = $(LINK2 #.$0, $(B $0))
  *     LITERAL = $(D_STRING $0)
  */
 
@@ -44,7 +67,9 @@ import std.d.ast;
 import std.conv;
 import std.algorithm;
 import std.array;
-version(unittest) import std.stdio;
+version (unittest) import std.stdio;
+
+version = development;
 
 /**
 * Params:
@@ -440,11 +465,11 @@ struct Parser
      * Parses an AsmPrimaryExp
      *
      * $(GRAMMAR $(RULEDEF asmPrimaryExp):
-	 *       $(RULE IntegerLiteral)
+     *       $(RULE IntegerLiteral)
      *     | $(RULE FloatLiteral)
      *     | $(RULE register)
      *     | $(RULE identifierChain)
-	 *     | $(LITERAL '$')
+     *     | $(LITERAL '$')
      *     ;)
      */
     AsmPrimaryExp parseAsmPrimaryExp()
@@ -486,7 +511,7 @@ struct Parser
      * Parses an AsmStatement
      *
      * $(GRAMMAR $(RULEDEF asmStatement):
-	 *     $(LITERAL 'asm') $(LITERAL '{') $(RULE asmInstruction)+ $(LITERAL '}')
+     *     $(LITERAL 'asm') $(LITERAL '{') $(RULE asmInstruction)+ $(LITERAL '}')
      *     ;)
      */
     AsmStatement parseAsmStatement()
@@ -1028,12 +1053,18 @@ struct Parser
         case TokenType.const_:
             node.first = advance().type;
             if (currentIs(TokenType.shared_))
+            {
+                node.hasSecond = true;
                 node.second = advance().type;
+            }
             break;
         case TokenType.shared_:
             node.first = advance().type;
             if (currentIsOneOf(TokenType.const_, TokenType.inout_))
+            {
+                node.hasSecond = true;
                 node.second = advance().type;
+            }
             break;
         case TokenType.immutable_:
             node.first = advance().type;
@@ -1043,6 +1074,73 @@ struct Parser
             return null;
         }
         return node;
+    }
+
+    unittest
+    {
+        auto sourceCode = q{
+const;
+const shared;
+immutable;
+inout;
+inout shared;
+shared;
+shared const;
+shared inout;
+incorrect;
+        };
+
+        Parser p = getParserForUnittest(sourceCode, "parseCastQualifier");
+
+        CastQualifier one = p.parseCastQualifier();
+        assert (one.first == TokenType.const_);
+        assert (!one.hasSecond);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier two = p.parseCastQualifier();
+        assert (two.first == TokenType.const_);
+        assert (two.hasSecond);
+        assert (two.second == TokenType.shared_);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier three = p.parseCastQualifier();
+        assert (three.first == TokenType.immutable_);
+        assert (!three.hasSecond);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier four = p.parseCastQualifier();
+        assert (four.first == TokenType.inout_);
+        assert (!four.hasSecond);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier five = p.parseCastQualifier();
+        assert (five.first == TokenType.inout_);
+        assert (five.hasSecond);
+        assert (five.second == TokenType.shared_);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier six = p.parseCastQualifier();
+        assert (six.first == TokenType.shared_);
+        assert (!six.hasSecond);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier seven = p.parseCastQualifier();
+        assert (seven.first == TokenType.shared_);
+        assert (seven.hasSecond);
+        assert (seven.second == TokenType.const_);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier eight = p.parseCastQualifier();
+        assert (eight.first == TokenType.shared_);
+        assert (eight.hasSecond);
+        assert (eight.second == TokenType.inout_);
+        p.expect(TokenType.semicolon);
+
+        CastQualifier nine = p.parseCastQualifier();
+        assert (nine is null);
+        assert (p.errorCount > 0);
+
+        stderr.writeln("Unittest for parseCastQualifier() passed.");
     }
 
     /**
@@ -1061,7 +1159,7 @@ struct Parser
         if (currentIs(TokenType.identifier))
             node.identifier = advance();
         expect(TokenType.rParen);
-        node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
 
@@ -1107,9 +1205,7 @@ struct Parser
     {
         auto node = new ClassBody;
         expect(TokenType.lBrace);
-        while (!currentIs(TokenType.rBrace))
-            //node.declarationOrInvariants ~= parseDeclarationOrInvariant();
-            advance();
+        version (development) skipBraceContent();
         expect(TokenType.rBrace);
         return node;
     }
@@ -1130,10 +1226,15 @@ struct Parser
         {
             node.templateParameters = parseTemplateParameters();
             if (currentIs(TokenType.if_))
+            {
                 node.constraint = parseConstraint();
+            }
         }
         if (currentIs(TokenType.colon))
+        {
+            advance();
             node.baseClassList = parseBaseClassList();
+        }
         node.classBody = parseClassBody();
         return node;
     }
@@ -1146,11 +1247,7 @@ class ClassTwo : Super {}
 class ClassThree(A, B) : Super {}
 class ClassFour(A, B) if (someTest()) : Super {}};
 
-        LexerConfig config;
-        auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
-        Parser p;
-        p.fileName = "parseClassDeclaration.d";
-        p.tokens = r.array();
+        Parser p = getParserForUnittest(sourceCode, "parseClassDeclaration");
 
         auto classOne = p.parseClassDeclaration();
         assert (classOne.name == "ClassOne");
@@ -1160,10 +1257,31 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         assert (classOne.templateParameters is null);
 
         auto classTwo = p.parseClassDeclaration();
-        assert (classOne.name == "ClassTwo");
-        assert (classOne.baseClassList !is null);
-        assert (classOne.baseClassList.baseClasses.length == 1);
-        assert (classOne.classBody.declarationOrInvariants.length == 0);
+        assert (classTwo.name == "ClassTwo", classTwo.name.value);
+        assert (classTwo.baseClassList !is null);
+        assert (classTwo.baseClassList.baseClasses.length == 1,
+            to!string(classTwo.baseClassList.baseClasses.length));
+        assert (classTwo.classBody.declarationOrInvariants.length == 0,
+            to!string(classTwo.classBody.declarationOrInvariants.length));
+
+        auto classThree = p.parseClassDeclaration();
+        assert (classThree.name == "ClassThree", classThree.name.value);
+        assert (classThree.templateParameters !is null);
+        assert (classThree.baseClassList !is null);
+        assert (classThree.baseClassList.baseClasses.length == 1);
+        assert (classThree.classBody.declarationOrInvariants.length == 0,
+            to!string(classThree.classBody.declarationOrInvariants.length));
+
+        auto classFour = p.parseClassDeclaration();
+        assert (classFour.name == "ClassFour", classFour.name.value);
+        assert (classFour.templateParameters !is null);
+        assert (classFour.baseClassList !is null);
+        assert (classFour.constraint !is null);
+        assert (classFour.baseClassList.baseClasses.length == 1);
+        assert (classFour.classBody.declarationOrInvariants.length == 0,
+            to!string(classFour.classBody.declarationOrInvariants.length));
+
+        stderr.writeln("Unittest for parseClassDeclaration() passed.");
     }
 
     /**
@@ -1254,7 +1372,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         auto node = new Constraint;
         expect(TokenType.if_);
         expect(TokenType.lParen);
-        node.expression = parseExpression();
+        version (development)
+            skipParenContent();
+        else
+            node.expression = parseExpression();
         expect(TokenType.rParen);
         return node;
     }
@@ -1853,8 +1974,74 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     FunctionBody parseFunctionBody()
     {
         auto node = new FunctionBody;
-        // TODO
+        if (currentIs(TokenType.lBrace))
+            node.blockStatement = parseBlockStatement();
+        else
+        {
+            if (currentIs(TokenType.in_))
+            {
+                node.inStatement = parseInStatement();
+                if (currentIs(TokenType.out_))
+                    node.outStatement = parseOutStatement();
+            }
+            else if (currentIs(TokenType.out_))
+            {
+                node.outStatement = parseOutStatement();
+                if (currentIs(TokenType.in_))
+                    node.inStatement = parseInStatement();
+            }
+            node.bodyStatement = parseBodyStatement();
+        }
         return node;
+    }
+
+    unittest
+    {
+        auto sourceCode = q{
+{} // one
+in {} body{} // two
+out {} body{} // three
+in {} out {} body {} // four
+out {} in {} body {} // five
+body {} // six
+        };
+
+        Parser p = getParserForUnittest(sourceCode, "parseFunctionBody");
+
+        FunctionBody functionBodyOne = p.parseFunctionBody();
+        assert (functionBodyOne.blockStatement !is null);
+
+        FunctionBody functionBodyTwo = p.parseFunctionBody();
+        assert (functionBodyTwo.blockStatement is null);
+        assert (functionBodyTwo.inStatement !is null);
+        assert (functionBodyTwo.outStatement is null);
+        assert (functionBodyTwo.bodyStatement !is null);
+
+        FunctionBody functionBodyThree = p.parseFunctionBody();
+        assert (functionBodyThree.blockStatement is null);
+        assert (functionBodyThree.inStatement is null);
+        assert (functionBodyThree.outStatement !is null);
+        assert (functionBodyThree.bodyStatement !is null);
+
+        FunctionBody functionBodyFour = p.parseFunctionBody();
+        assert (functionBodyFour.blockStatement is null);
+        assert (functionBodyFour.inStatement !is null);
+        assert (functionBodyFour.outStatement !is null);
+        assert (functionBodyFour.bodyStatement !is null);
+
+        FunctionBody functionBodyFive = p.parseFunctionBody();
+        assert (functionBodyFive.blockStatement is null);
+        assert (functionBodyFive.inStatement !is null);
+        assert (functionBodyFive.outStatement !is null);
+        assert (functionBodyFive.bodyStatement !is null);
+
+        FunctionBody functionBodySix = p.parseFunctionBody();
+        assert (functionBodySix.blockStatement is null);
+        assert (functionBodySix.inStatement is null);
+        assert (functionBodySix.outStatement is null);
+        assert (functionBodySix.bodyStatement !is null);
+
+        stderr.writeln("Unittest for parseFunctionBody() passed.");
     }
 
     /**
@@ -1998,7 +2185,12 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     IdentifierOrTemplateChain parseIdentifierOrTemplateChain()
     {
         auto node = new IdentifierOrTemplateChain;
-        // TODO
+        while (true)
+        {
+            node.identifierOrTemplateInstances ~= parseIdentifierOrTemplateInstance();
+            if (!currentIs(TokenType.dot))
+                break;
+        }
         return node;
     }
 
@@ -2013,7 +2205,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     IdentifierOrTemplateInstance parseIdentifierOrTemplateInstance()
     {
         auto node = new IdentifierOrTemplateInstance;
-        // TODO
+        if (peekIs(TokenType.not))
+            node.templateInstance = parseTemplateInstance();
+        else
+            node.identifier = *expect(TokenType.identifier);
         return node;
     }
 
@@ -2055,21 +2250,43 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     ImportBind parseImportBind()
     {
         auto node = new ImportBind;
-        // TODO
+        if (!currentIs(TokenType.identifier))
+        {
+            error("Identifier expected.");
+            return null;
+        }
+        if (peekIs(TokenType.assign))
+        {
+            node.left = advance();
+            advance();
+            node.hasRight = true;
+            node.right = *expect(TokenType.identifier);
+        }
+        else
+            node.left = advance();
         return node;
     }
 
     /**
-     * Parses an ImportBindings
+     * Parses ImportBindings
      *
      * $(GRAMMAR $(RULEDEF importBindings):
      *     $(RULE singleImport) $(LITERAL ':') $(RULE importBind) ($(LITERAL ',') $(RULE importBind))*
      *     ;)
      */
-    ImportBindings parseImportBindings()
+    ImportBindings parseImportBindings(SingleImport singleImport)
     {
         auto node = new ImportBindings;
-        // TODO
+        node.singleImport = singleImport is null ? parseSingleImport() : singleImport;
+        expect(TokenType.colon);
+        while (true)
+        {
+            node.importBinds ~= parseImportBind();
+            if (moreTokens() && currentIs(TokenType.comma))
+                advance();
+            else
+                break;
+        }
         return node;
     }
 
@@ -2077,14 +2294,80 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses an ImportDeclaration
      *
      * $(GRAMMAR $(RULEDEF importDeclaration):
-     *     $(LITERAL 'static')? $(LITERAL 'import') $(RULE importList) $(LITERAL ';')
+     *     $(LITERAL 'import') ($(RULE singleImport) ($(LITERAL ',') $(RULE singleImport))* | $(RULE importBindings)) $(LITERAL ';')
      *     ;)
      */
     ImportDeclaration parseImportDeclaration()
     {
         auto node = new ImportDeclaration;
-        // TODO
+        expect(TokenType.import_);
+        SingleImport si = parseSingleImport();
+        if (currentIs(TokenType.colon))
+            node.importBindings = parseImportBindings(si);
+        else
+        {
+            node.singleImports ~= si;
+            if (currentIs(TokenType.comma))
+            {
+                advance();
+                while (true)
+                {
+                    node.singleImports ~= parseSingleImport();
+                    if (moreTokens() && currentIs(TokenType.comma))
+                        advance();
+                    else
+                        break;
+                }
+            }
+        }
+        expect(TokenType.semicolon);
         return node;
+    }
+
+    unittest
+    {
+        auto sourceCode =
+q{import std.stdio;
+import foo, bar;
+import io = std.stdio;
+import std.stdio: writefln, foo = writef;
+import io = std.stdio : foo = writefln;
+import foo, bar, baz;
+}c;
+
+        Parser p = getParserForUnittest(sourceCode, "parseImportDeclaration");
+
+        ImportDeclaration one = p.parseImportDeclaration();
+        assert (one !is null);
+        assert (one.singleImports.length == 1);
+        assert (p.errorCount == 0);
+
+        ImportDeclaration two = p.parseImportDeclaration();
+        assert (two !is null);
+        assert (two.singleImports.length == 2);
+        assert (p.errorCount == 0);
+
+        ImportDeclaration three = p.parseImportDeclaration();
+        assert (three !is null);
+        assert (three.singleImports.length == 1);
+        assert (p.errorCount == 0);
+
+        ImportDeclaration four = p.parseImportDeclaration();
+        assert (four !is null);
+        assert (four.importBindings !is null);
+        assert (four.importBindings.importBinds.length == 2);
+        assert (p.errorCount == 0);
+
+        ImportDeclaration five = p.parseImportDeclaration();
+        assert (five !is null);
+        assert (p.errorCount == 0);
+
+        ImportDeclaration six = p.parseImportDeclaration();
+        assert (six !is null);
+        assert (six.singleImports.length == 3);
+        assert (p.errorCount == 0);
+
+        stderr.writeln("Unittest for parseImportDeclaration() passed.");
     }
 
     /**
@@ -2097,21 +2380,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     ImportExpression parseImportExpression()
     {
         auto node = new ImportExpression;
-        // TODO
-        return node;
-    }
-
-    /**
-     * Parses an ImportList
-     *
-     * $(GRAMMAR $(RULEDEF importList): $(RULE singleImport) ($(LITERAL ',') $(RULE importList))?
-     *     | $(RULE importBindings)
-     *     ;)
-     */
-    ImportList parseImportList()
-    {
-        auto node = new ImportList;
-        // TODO
+        expect(TokenType.import_);
+        expect(TokenType.lParen);
+        node.assignExpression = parseAssignExpression();
+        expect(TokenType.rParen);
         return node;
     }
 
@@ -2122,10 +2394,13 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      *     $(RULE unaryExpression) $(LITERAL '[') $(RULE argumentList) $(LITERAL ']')
      *     ;)
      */
-    IndexExpression parseImportList()
+    IndexExpression parseIndexExpression(UnaryExpression unaryExpression = null)
     {
         auto node = new IndexExpression;
-        // TODO
+        node.unaryExpression = unaryExpression is null ? parseUnaryExpression() : unaryExpression;
+        if (expect(TokenType.lBracket) is null) return null;
+        node.argumentList = parseArgumentList();
+        if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
 
@@ -2153,7 +2428,8 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     InStatement parseInStatement()
     {
         auto node = new InStatement;
-        // TODO
+        expect(TokenType.in_);
+        node.blockStatement = parseBlockStatement();
         return node;
     }
 
@@ -2162,7 +2438,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      *
      * $(GRAMMAR $(RULEDEF initialize):
      *       $(LITERAL ';')
-     *     | $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     | $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     Initialize parseInitialize()
@@ -2183,7 +2459,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Initializer parseInitializer()
     {
         auto node = new Initializer;
-        // TODO
+        if (currentIs(TokenType.void_))
+            advance();
+        else
+            node.nonVoidInitializer = parseNonVoidInitializer();
         return node;
     }
 
@@ -2197,7 +2476,71 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     InterfaceDeclaration parseInterfaceDeclaration()
     {
         auto node = new InterfaceDeclaration;
+        expect(TokenType.interface_);
+        if (!currentIs(TokenType.identifier))
+        {
+            error("Identifier expected");
+            return null;
+        }
+        node.identifier = advance();
+        if (currentIs(TokenType.lParen))
+        {
+            node.templateParameters = parseTemplateParameters();
+            if (currentIs(TokenType.if_))
+                node.constraint = parseConstraint();
+        }
+        if (currentIs(TokenType.colon))
+        {
+            advance();
+            node.baseClassList = parseBaseClassList();
+        }
+        node.structBody = parseStructBody();
         return node;
+    }
+
+    unittest
+    {
+        auto sourceCode =
+q{interface One {}
+interface Two : Number {}
+interface Three(T) if (someTest(T)) {}
+interface "Four"
+}c;
+
+        Parser p = getParserForUnittest(sourceCode, "parseInterfaceDeclaration");
+
+        InterfaceDeclaration one = p.parseInterfaceDeclaration();
+        assert (one !is null);
+        assert (one.identifier == "One");
+        assert (one.constraint is null);
+        assert (one.templateParameters is null);
+        assert (one.structBody !is null);
+        assert (one.baseClassList is null);
+        assert (p.errorCount == 0);
+
+        InterfaceDeclaration two = p.parseInterfaceDeclaration();
+        assert (two !is null);
+        assert (two.identifier == "Two");
+        assert (two.constraint is null);
+        assert (two.templateParameters is null);
+        assert (two.structBody !is null);
+        assert (two.baseClassList !is null);
+        assert (p.errorCount == 0);
+
+        InterfaceDeclaration three = p.parseInterfaceDeclaration();
+        assert (three !is null);
+        assert (three.identifier == "Three");
+        assert (three.constraint !is null);
+        assert (three.templateParameters !is null);
+        assert (three.structBody !is null);
+        assert (three.baseClassList is null);
+        assert (p.errorCount == 0);
+
+        InterfaceDeclaration four = p.parseInterfaceDeclaration();
+        assert (four is null);
+        assert (p.errorCount > 0);
+
+        stderr.writeln("Unittest for parseInterfaceDeclaration() passed.");
     }
 
     /**
@@ -2446,7 +2789,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     }
 
     /**
-     * Parses an NewAnonClassExpression
+     * Parses a NewAnonClassExpression
      *
      * $(GRAMMAR $(RULEDEF newAnonClassExpression):
      *     $(LITERAL 'new') $(RULE arguments)? $(LITERAL 'class') $(RULE arguments)? $(LITERAL Identifier) $(RULE identifierList)? $(RULE classBody)
@@ -2460,7 +2803,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     }
 
     /**
-     * Parses an NewExpression
+     * Parses a NewExpression
      *
      * $(GRAMMAR $(RULEDEF newExpression):
      *       $(LITERAL 'new') $(RULE type) ($(LITERAL '[') $(RULE assignExpression) $(LITERAL ']') | $(RULE arguments))?
@@ -2475,7 +2818,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     }
 
     /**
-     * Parses an NonEmptyStatement
+     * Parses a NonEmptyStatement
      *
      * $(GRAMMAR $(RULEDEF nonEmptyStatement):
      *       $(RULE nonEmptyStatementNoCaseNoDefault)
@@ -2491,9 +2834,9 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     }
 
     /**
-     * Parses an NonEmptyStatementNoCaseNoDefault
+     * Parses a StatementNoCaseNoDefault
      *
-     * $(GRAMMAR $(RULEDEF nonEmptyStatementNoCaseNoDefault):
+     * $(GRAMMAR $(RULEDEF statementNoCaseNoDefault):
      *       $(RULE labeledStatement)
      *     | $(RULE blockStatement)
      *     | $(RULE assignStatement)
@@ -2525,9 +2868,9 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      *     | $(RULE deleteStatement)
      *     ;)
      */
-    NonEmptyStatementNoCaseNoDefault parseNonEmptyStatementNoCaseNoDefault()
+    StatementNoCaseNoDefault parseStatementNoCaseNoDefault()
     {
-        auto node = new NonEmptyStatementNoCaseNoDefault;
+        auto node = new StatementNoCaseNoDefault;
         // TODO
         return node;
     }
@@ -2921,7 +3264,17 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     SingleImport parseSingleImport()
     {
         auto node = new SingleImport;
-        // TODO
+        if (!currentIs(TokenType.identifier))
+        {
+            error("Identifier expected");
+            return null;
+        }
+        if (peekIs(TokenType.assign))
+        {
+            node.identifier = advance();
+            advance();
+        }
+        node.identifierChain = parseIdentifierChain();
         return node;
     }
 
@@ -2929,35 +3282,27 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses a Statement
      *
      * $(GRAMMAR $(RULEDEF statement):
-     *       $(LITERAL ';')
-     *     | $(RULE nonEmptyStatement)
+     *       $(RULE statementNoCaseNoDefault)
+     *     | $(RULE caseStatement)
+     *     | $(RULE caseRangeStatement)
+     *     | $(RULE defaultStatement)
      *     ;)
      */
     Statement parseStatement()
     {
         auto node = new Statement;
-        if (currentIs(TokenType.semicolon))
-            advance();
-        else
-            node.nonEmptyStatement = parseNonEmptyStatement();
-        return node;
-    }
-
-    /**
-     * Parses a StatementNoCaseNoDefault
-     *
-     * $(GRAMMAR $(RULEDEF statementNoCaseNoDefault):
-     *       $(LITERAL ';')
-     *     | $(RULE nonEmptyStatementNoCaseNoDefault)
-     *     ;)
-     */
-    StatementNoCaseNoDefault parseStatementNoCaseNoDefault()
-    {
-        auto node = new StatementNoCaseNoDefault;
-        if (tokens[index] != TokenType.semicolon)
-            node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
-        else
-            expect(TokenType.semicolon);
+        switch (current().type)
+        {
+        case TokenType.case_:
+            // TODO
+            break;
+        case TokenType.default_:
+            node.defaultStatement = parseDefaultStatement();
+            break;
+        default:
+            node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+            break;
+        }
         return node;
     }
 
@@ -3259,7 +3604,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
             node.expression = parseExpression();
             expect(TokenType.rParen);
         }
-        node.nonEmptyStatementNoCaseNoDefault = parseNonEmptyStatementNoCaseNoDefault();
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
 
@@ -3405,7 +3750,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     TemplateParameters parseTemplateParameters()
     {
         auto node = new TemplateParameters;
+        expect(TokenType.lParen);
         // TODO
+        version (development) skipParenContent();
+        expect(TokenType.rParen);
         return node;
     }
 
@@ -3568,13 +3916,22 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses an TraitsExpression
      *
      * $(GRAMMAR $(RULEDEF traitsExpression):
-	 *     $(LITERAL '__traits') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL ',') $(RULE traitsArgument) ($(LITERAL ',') $(RULE traitsArgument))* $(LITERAL '$(RPAREN)')
+     *     $(LITERAL '__traits') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) ($(LITERAL ',') $(RULE traitsArgument))+ $(LITERAL '$(RPAREN)')
      *     ;)
      */
     TraitsExpression parseTraitsExpression()
     {
         auto node = new TraitsExpression;
-        // TODO
+        expect(TokenType.traits);
+        expect(TokenType.lParen);
+        node.identifier = *expect(TokenType.identifier);
+        do
+        {
+            expect(TokenType.comma);
+            node.traitsArguments ~= parseTraitsArgument();
+        }
+        while (moreTokens() && currentIs(TokenType.comma));
+        expect(TokenType.rParen);
         return node;
     }
 
@@ -3588,7 +3945,12 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     TryStatement parseTryStatement()
     {
         auto node = new TryStatement;
-        // TODO
+        expect(TokenType.try_);
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+        if (currentIs(TokenType.catch_))
+            node.catches = parseCatches();
+        if (currentIs(TokenType.finally_))
+            node.finally_ = parseFinally();
         return node;
     }
 
@@ -3736,7 +4098,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses a TypeidExpression
      *
      * $(GRAMMAR $(RULEDEF typeidExpression):
-	 *     $(LITERAL 'typeid') $(LITERAL '$(LPAREN)')($(RULE type) | $(RULE expression)) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'typeid') $(LITERAL '$(LPAREN)')($(RULE type) | $(RULE expression)) $(LITERAL '$(RPAREN)')
      *     ;)
 
      */
@@ -3754,7 +4116,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses a TypeofExpression
      *
      * $(GRAMMAR $(RULEDEF typeofExpression):
-	 *     $(LITERAL 'typeof') $(LITERAL '$(LPAREN)')($(RULE expression) | $(LITERAL 'return')) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'typeof') $(LITERAL '$(LPAREN)')($(RULE expression) | $(LITERAL 'return')) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     TypeofExpression parseTypeofExpression()
@@ -3839,7 +4201,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses an UnionDeclaration
      *
      * $(GRAMMAR $(RULEDEF unionDeclaration):
-	 *     $(LITERAL 'union') $(LITERAL Identifier) (($(RULE templateParameters) $(RULE constraint)? $(RULE structBody))? | ($(RULE structBody) | $(LITERAL ';')))
+     *     $(LITERAL 'union') $(LITERAL Identifier) (($(RULE templateParameters) $(RULE constraint)? $(RULE structBody))? | ($(RULE structBody) | $(LITERAL ';')))
      *     ;)
      */
     UnionDeclaration parseUnionDeclaration()
@@ -3974,7 +4336,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         expect(TokenType.lParen);
         // TODO: magic here
         expect(TokenType.rParen);
-        parseNonEmptyStatementNoCaseNoDefault();
+        parseStatementNoCaseNoDefault();
         return node;
     }
 
@@ -4006,6 +4368,46 @@ class ClassFour(A, B) if (someTest()) : Super {}};
             else
                 index++;
         }
+    }
+
+    void skipContent(alias O, alias C)()
+    {
+        int depth = 1;
+        while (moreTokens())
+        {
+            switch (tokens[index].type)
+            {
+                case O:
+                    depth++;
+                    advance();
+                    break;
+                case C:
+                    depth--;
+                    if (depth <= 0)
+                        return;
+                    else
+                        advance();
+                    break;
+                default:
+                    advance();
+                    break;
+            }
+        }
+    }
+
+    void skipBraceContent()
+    {
+        skipContent!(TokenType.lBrace, TokenType.rBrace)();
+    }
+
+    void skipParenContent()
+    {
+        skipContent!(TokenType.lParen, TokenType.rParen)();
+    }
+
+    void skipBracketContent()
+    {
+        skipContent!(TokenType.lBracket, TokenType.rBracket)();
     }
 
     const(Token)* peekPast(alias O, alias C)()
@@ -4124,6 +4526,17 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     bool moreTokens() const
     {
         return index < tokens.length;
+    }
+
+    version (unittest) static Parser getParserForUnittest(string sourceCode,
+        string testName)
+    {
+        LexerConfig config;
+        auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
+        Parser p;
+        p.fileName = testName ~ ".d";
+        p.tokens = r.array();
+        return p;
     }
 
     uint errorCount;
