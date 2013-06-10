@@ -23,217 +23,214 @@ import std.d.lexer;
  * for the various AST ///
 classes
  */
-abstract ///
-class ASTVisitor
+abstract class ASTVisitor
 {
-	/** */ void visit(AddExpression addExpression) {}
-	/** */ void visit(AliasDeclaration aliasDeclaration) {}
-	/** */ void visit(AliasInitializer aliasInitializer) {}
-	/** */ void visit(AliasThisDeclaration aliasThisDeclaration) {}
-	/** */ void visit(AlignAttribute alignAttribute) {}
-	/** */ void visit(AndAndExpression andAndExpression) {}
-	/** */ void visit(AndExpression andExpression) {}
-	/** */ void visit(ArgumentList argumentList) {}
-	/** */ void visit(Arguments arguments) {}
-	/** */ void visit(ArrayInitializer arrayInitializer) {}
-	/** */ void visit(ArrayLiteral arrayLiteral) {}
-	/** */ void visit(ArrayMemberInitialization arrayMemberInitialization) {}
-	/** */ void visit(AsmAddExp asmAddExp) {}
-	/** */ void visit(AsmAndExp asmAndExp) {}
-	/** */ void visit(AsmBrExp asmBrExp) {}
-	/** */ void visit(AsmEqualExp asmEqualExp) {}
-	/** */ void visit(AsmExp asmExp) {}
-	/** */ void visit(AsmInstruction asmInstruction) {}
-	/** */ void visit(AsmLogAndExp asmLogAndExp) {}
-	/** */ void visit(AsmLogOrExp asmLogOrExp) {}
-	/** */ void visit(AsmMulExp asmMulExp) {}
-	/** */ void visit(AsmOrExp asmOrExp) {}
-	/** */ void visit(AsmPrimaryExp asmPrimaryExp) {}
-	/** */ void visit(AsmRelExp asmRelExp) {}
-	/** */ void visit(AsmShiftExp asmShiftExp) {}
-	/** */ void visit(AsmStatement asmStatement) {}
-	/** */ void visit(AsmTypePrefix asmTypePrefix) {}
-	/** */ void visit(AsmUnaExp asmUnaExp) {}
-	/** */ void visit(AsmXorExp asmXorExp) {}
-	/** */ void visit(AssertExpression assertExpression) {}
-	/** */ void visit(AssertStatement assertStatement) {}
-	/** */ void visit(AssignExpression assignExpression) {}
-	/** */ void visit(AssignStatement assignStatement) {}
-	/** */ void visit(AssocArrayLiteral assocArrayLiteral) {}
-	/** */ void visit(AtAttribute atAttribute) {}
-	/** */ void visit(Attribute attribute) {}
-	/** */ void visit(AttributedDeclaration attributedDeclaration) {}
-	/** */ void visit(AutoDeclaration autoDeclaration) {}
-	/** */ void visit(BlockStatement blockStatement) {}
-	/** */ void visit(BodyStatement bodyStatement) {}
-	/** */ void visit(BreakStatement breakStatement) {}
-	/** */ void visit(BaseClass baseClass) {}
-	/** */ void visit(BaseClassList baseClassList) {}
-	/** */ void visit(BasicType builtinType) {}
-	/** */ void visit(CaseRangeStatement caseRangeStatement) {}
-	/** */ void visit(CaseStatement caseStatement) {}
-	/** */ void visit(CastExpression castExpression) {}
-	/** */ void visit(CastQualifier castQualifier) {}
-	/** */ void visit(Catch catch_) {}
-	/** */ void visit(Catches catches) {}
-	/** */ void visit(ClassBody classBody) {}
-	/** */ void visit(ClassDeclaration classDeclaration) {}
-	/** */ void visit(CmpExpression cmpExpression) {}
-	/** */ void visit(CompileCondition compileCondition) {}
-	/** */ void visit(ConditionalDeclaration conditionalDeclaration) {}
-	/** */ void visit(ConditionalStatement conditionalStatement) {}
-	/** */ void visit(Constraint constraint) {}
-	/** */ void visit(Constructor constructor) {}
-	/** */ void visit(ContinueStatement continueStatement) {}
-	/** */ void visit(DebugCondition debugCondition) {}
-	/** */ void visit(DebugSpecification debugSpecification) {}
-	/** */ void visit(Declaration declaration) {}
-	/** */ void visit(DeclarationsAndStatements declarationsAndStatements) {}
-	/** */ void visit(DeclarationOrInvariant declarationOrInvariant) {}
-	/** */ void visit(Declarator declarator) {}
-	/** */ void visit(DeclaratorSuffix declaratorSuffix) {}
-	/** */ void visit(DefaultStatement defaultStatement) {}
-	/** */ void visit(DeleteExpression deleteExpression) {}
-	/** */ void visit(DeleteStatement deleteStatement) {}
-	/** */ void visit(Deprecated deprecated_) {}
-	/** */ void visit(Destructor destructor) {}
-	/** */ void visit(DoStatement doStatement) {}
-	/** */ void visit(EnumBody enumBody) {}
-	/** */ void visit(EnumDeclaration enumDeclaration) {}
-	/** */ void visit(EnumMember enumMember) {}
-	/** */ void visit(EqualExpression equalExpression) {}
-	/** */ void visit(Expression expression) {}
-	/** */ void visit(FinalSwitchStatement finalSwitchStatement) {}
-	/** */ void visit(Finally finally_) {}
-	/** */ void visit(ForStatement forStatement) {}
-	/** */ void visit(ForeachRangeStatement foreachRangeStatement) {}
-	/** */ void visit(ForeachStatement foreachStatement) {}
-	/** */ void visit(ForeachType foreachType) {}
-	/** */ void visit(ForeachTypeList foreachTypeList) {}
-	/** */ void visit(FunctionAttribute functionAttribute) {}
-	/** */ void visit(FunctionBody functionBody) {}
-	/** */ void visit(FunctionCallExpression functionCallExpression) {}
-	/** */ void visit(FunctionCallStatement functionCallStatement) {}
-	/** */ void visit(FunctionDeclaration functionDeclaration) {}
-	/** */ void visit(FunctionLiteralExpression functionLiteralExpression) {}
-	/** */ void visit(GotoStatement gotoStatement) {}
-	/** */ void visit(IdentifierChain identifierChain) {}
-	/** */ void visit(IdentifierList identifierList) {}
-	/** */ void visit(IdentifierOrTemplateChain identifierOrTemplateChain) {}
-	/** */ void visit(IdentifierOrTemplateInstance identifierOrTemplateInstance) {}
-	/** */ void visit(IdentityExpression identityExpression) {}
-	/** */ void visit(IfStatement ifStatement) {}
-	/** */ void visit(ImportBind importBind) {}
-	/** */ void visit(ImportBindings importBindings) {}
-	/** */ void visit(ImportDeclaration importDeclaration) {}
-	/** */ void visit(ImportExpression importExpression) {}
-	/** */ void visit(ImportList importList) {}
-	/** */ void visit(IndexExpression indexExpression) {}
-	/** */ void visit(InExpression inExpression) {}
-	/** */ void visit(InStatement inStatement) {}
-	/** */ void visit(Initialize initialize) {}
-	/** */ void visit(Initializer initializer) {}
-	/** */ void visit(InterfaceDeclaration interfaceDeclaration) {}
-	/** */ void visit(Invariant invariant_) {}
-	/** */ void visit(IsExpression isExpression) {}
-	/** */ void visit(KeyValuePair keyValuePair) {}
-	/** */ void visit(KeyValuePairs keyValuePairs) {}
-	/** */ void visit(LabeledStatement labeledStatement) {}
-	/** */ void visit(LambdaExpression lambdaExpression) {}
-	/** */ void visit(LastCatch lastCatch) {}
-	/** */ void visit(LinkageAttribute linkageAttribute) {}
-	/** */ void visit(MemberFunctionAttribute memberFunctionAttribute) {}
-	/** */ void visit(MixinDeclaration mixinDeclaration) {}
-	/** */ void visit(MixinExpression mixinExpression) {}
-	/** */ void visit(MixinTemplateName mixinTemplateName) {}
-	/** */ void visit(Module module_) {}
-	/** */ void visit(ModuleDeclaration moduleDeclaration) {}
-	/** */ void visit(MulExpression mulExpression) {}
-	/** */ void visit(NewAnonClassExpression newAnonClassExpression) {}
-	/** */ void visit(NewExpression newExpression) {}
-	/** */ void visit(NonEmptyStatement nonEmptyStatement) {}
-	/** */ void visit(NonVoidInitializer nonVoidInitializer) {}
-	/** */ void visit(Operand operand) {}
-	/** */ void visit(Operands operands) {}
-	/** */ void visit(OrExpression orExpression) {}
-	/** */ void visit(OrOrExpression orOrExpression) {}
-	/** */ void visit(OutStatement outStatement) {}
-	/** */ void visit(Parameter parameter) {}
-	/** */ void visit(ParameterAttribute parameterAttribute) {}
-	/** */ void visit(Parameters parameters) {}
-	/** */ void visit(Postblit postblit) {}
-	/** */ void visit(PostIncDecExpression postIncDecExpression) {}
-	/** */ void visit(PowExpression powExpression) {}
-	/** */ void visit(PragmaDeclaration pragmaDeclaration) {}
-	/** */ void visit(PragmaExpression pragmaExpression) {}
-	/** */ void visit(PreIncDecExpression preIncDecExpression) {}
-	/** */ void visit(PrimaryExpression primaryExpression) {}
-	/** */ void visit(Register register) {}
-	/** */ void visit(RelExpression relExpression) {}
-	/** */ void visit(ReturnStatement returnStatement) {}
-	/** */ void visit(ScopeGuardStatement scopeGuardStatement) {}
-	/** */ void visit(SharedStaticConstructor sharedStaticConstructor) {}
-	/** */ void visit(SharedStaticDestructor sharedStaticDestructor) {}
-	/** */ void visit(ShiftExpression shiftExpression) {}
-	/** */ void visit(SingleImport singleImport) {}
-	/** */ void visit(SliceExpression sliceExpression) {}
-	/** */ void visit(Statement statement) {}
-	/** */ void visit(StatementNoCaseNoDefault statementNoCaseNoDefault) {}
-	/** */ void visit(StaticAssertDeclaration staticAssertDeclaration) {}
-	/** */ void visit(StaticAssertStatement staticAssertStatement) {}
-	/** */ void visit(StaticConstructor staticConstructor) {}
-	/** */ void visit(StaticDestructor staticDestructor) {}
-	/** */ void visit(StaticIfCondition staticIfCondition) {}
-	/** */ void visit(StorageClass storageClass) {}
-	/** */ void visit(StructBody structBody) {}
-	/** */ void visit(StructBodyItem structBodyItem) {}
-	/** */ void visit(StructDeclaration structDeclaration) {}
-	/** */ void visit(StructInitializer structInitializer) {}
-	/** */ void visit(StructMemberInitializer structMemberInitializer) {}
-	/** */ void visit(StructMemberInitializers structMemberInitializers) {}
-	/** */ void visit(SwitchBody switchBody) {}
-	/** */ void visit(SwitchStatement switchStatement) {}
-	/** */ void visit(Symbol symbol) {}
-	/** */ void visit(SynchronizedStatement synchronizedStatement) {}
-	/** */ void visit(TemplateAliasParameter templateAliasParameter) {}
-	/** */ void visit(TemplateArgument templateArgument) {}
-	/** */ void visit(TemplateArgumentList templateArgumentList) {}
-	/** */ void visit(TemplateArguments templateArguments) {}
-	/** */ void visit(TemplateDeclaration templateDeclaration) {}
-	/** */ void visit(TemplateInstance templateInstance) {}
-	/** */ void visit(TemplateMixinStatement templateMixinStatement) {}
-	/** */ void visit(TemplateParameter templateParameter) {}
-	/** */ void visit(TemplateParameterList templateParameterList) {}
-	/** */ void visit(TemplateParameters templateParameters) {}
-	/** */ void visit(TemplateSingleArgument templateSingleArgument) {}
-	/** */ void visit(TemplateThisParameter templateThisParameter) {}
-	/** */ void visit(TemplateTupleParameter templateTupleParameter) {}
-	/** */ void visit(TemplateTypeParameter templateTypeParameter) {}
-	/** */ void visit(TemplateValueParameter templateValueParameter) {}
-	/** */ void visit(TemplateValueParameterDefault templateValueParameterDefault) {}
-	/** */ void visit(TernaryExpression ternaryExpression) {}
-	/** */ void visit(ThrowStatement throwStatement) {}
-	/** */ void visit(TraitsArgument traitsArgument) {}
-	/** */ void visit(TraitsExpression traitsExpression) {}
-	/** */ void visit(TryStatement tryStatement) {}
-	/** */ void visit(Type type) {}
-	/** */ void visit(Type2 type2) {}
-	/** */ void visit(Type3 type3) {}
-	/** */ void visit(TypeConstructor typeConstructor) {}
-	/** */ void visit(TypeConstructors typeConstructors) {}
-	/** */ void visit(TypeSpecialization typeSpecialization) {}
-	/** */ void visit(TypeSuffix typeSuffix) {}
-	/** */ void visit(TypeidExpression typeidExpression) {}
-	/** */ void visit(TypeofExpression typeofExpression) {}
-	/** */ void visit(UnaryExpression unaryExpression) {}
-	/** */ void visit(UnionDeclaration unionDeclaration) {}
-	/** */ void visit(Unittest unittest_) {}
-	/** */ void visit(VariableDeclaration variableDeclaration) {}
-	/** */ void visit(VersionCondition versionCondition) {}
-	/** */ void visit(VersionSpecification versionSpecification) {}
-	/** */ void visit(WhileStatement whileStatement) {}
-	/** */ void visit(WithStatement withStatement) {}
-	/** */ void visit(XorExpression xorExpression) {}
+	/** */ void visit(AddExpression addExpression) { addExpression.accept(this); }
+	/** */ void visit(AliasDeclaration aliasDeclaration) { aliasDeclaration.accept(this); }
+	/** */ void visit(AliasInitializer aliasInitializer) { aliasInitializer.accept(this); }
+	/** */ void visit(AliasThisDeclaration aliasThisDeclaration) { aliasThisDeclaration.accept(this); }
+	/** */ void visit(AlignAttribute alignAttribute) { alignAttribute.accept(this); }
+	/** */ void visit(AndAndExpression andAndExpression) { andAndExpression.accept(this); }
+	/** */ void visit(AndExpression andExpression) { andExpression.accept(this); }
+	/** */ void visit(ArgumentList argumentList) { argumentList.accept(this); }
+	/** */ void visit(Arguments arguments) { arguments.accept(this); }
+	/** */ void visit(ArrayInitializer arrayInitializer) { arrayInitializer.accept(this); }
+	/** */ void visit(ArrayLiteral arrayLiteral) { arrayLiteral.accept(this); }
+	/** */ void visit(ArrayMemberInitialization arrayMemberInitialization) { arrayMemberInitialization.accept(this); }
+	/** */ void visit(AsmAddExp asmAddExp) { asmAddExp.accept(this); }
+	/** */ void visit(AsmAndExp asmAndExp) { asmAndExp.accept(this); }
+	/** */ void visit(AsmBrExp asmBrExp) { asmBrExp.accept(this); }
+	/** */ void visit(AsmEqualExp asmEqualExp) { asmEqualExp.accept(this); }
+	/** */ void visit(AsmExp asmExp) { asmExp.accept(this); }
+	/** */ void visit(AsmInstruction asmInstruction) { asmInstruction.accept(this); }
+	/** */ void visit(AsmLogAndExp asmLogAndExp) { asmLogAndExp.accept(this); }
+	/** */ void visit(AsmLogOrExp asmLogOrExp) { asmLogOrExp.accept(this); }
+	/** */ void visit(AsmMulExp asmMulExp) { asmMulExp.accept(this); }
+	/** */ void visit(AsmOrExp asmOrExp) { asmOrExp.accept(this); }
+	/** */ void visit(AsmPrimaryExp asmPrimaryExp) { asmPrimaryExp.accept(this); }
+	/** */ void visit(AsmRelExp asmRelExp) { asmRelExp.accept(this); }
+	/** */ void visit(AsmShiftExp asmShiftExp) { asmShiftExp.accept(this); }
+	/** */ void visit(AsmStatement asmStatement) { asmStatement.accept(this); }
+	/** */ void visit(AsmTypePrefix asmTypePrefix) { asmTypePrefix.accept(this); }
+	/** */ void visit(AsmUnaExp asmUnaExp) { asmUnaExp.accept(this); }
+	/** */ void visit(AsmXorExp asmXorExp) { asmXorExp.accept(this); }
+	/** */ void visit(AssertExpression assertExpression) { assertExpression.accept(this); }
+	/** */ void visit(AssertStatement assertStatement) { assertStatement.accept(this); }
+	/** */ void visit(AssignExpression assignExpression) { assignExpression.accept(this); }
+	/** */ void visit(AssignStatement assignStatement) { assignStatement.accept(this); }
+	/** */ void visit(AssocArrayLiteral assocArrayLiteral) { assocArrayLiteral.accept(this); }
+	/** */ void visit(AtAttribute atAttribute) { atAttribute.accept(this); }
+	/** */ void visit(Attribute attribute) { attribute.accept(this); }
+	/** */ void visit(AttributedDeclaration attributedDeclaration) { attributedDeclaration.accept(this); }
+	/** */ void visit(AutoDeclaration autoDeclaration) { autoDeclaration.accept(this); }
+	/** */ void visit(BlockStatement blockStatement) { blockStatement.accept(this); }
+	/** */ void visit(BodyStatement bodyStatement) { bodyStatement.accept(this); }
+	/** */ void visit(BreakStatement breakStatement) { breakStatement.accept(this); }
+	/** */ void visit(BaseClass baseClass) { baseClass.accept(this); }
+	/** */ void visit(BaseClassList baseClassList) { baseClassList.accept(this); }
+	/** */ void visit(BasicType builtinType) { builtinType.accept(this); }
+	/** */ void visit(CaseRangeStatement caseRangeStatement) { caseRangeStatement.accept(this); }
+	/** */ void visit(CaseStatement caseStatement) { caseStatement.accept(this); }
+	/** */ void visit(CastExpression castExpression) { castExpression.accept(this); }
+	/** */ void visit(CastQualifier castQualifier) { castQualifier.accept(this); }
+	/** */ void visit(Catch catch_) { catch_.accept(this); }
+	/** */ void visit(Catches catches) { catches.accept(this); }
+	/** */ void visit(ClassBody classBody) { classBody.accept(this); }
+	/** */ void visit(ClassDeclaration classDeclaration) { classDeclaration.accept(this); }
+	/** */ void visit(CmpExpression cmpExpression) { cmpExpression.accept(this); }
+	/** */ void visit(CompileCondition compileCondition) { compileCondition.accept(this); }
+	/** */ void visit(ConditionalDeclaration conditionalDeclaration) { conditionalDeclaration.accept(this); }
+	/** */ void visit(ConditionalStatement conditionalStatement) { conditionalStatement.accept(this); }
+	/** */ void visit(Constraint constraint) { constraint.accept(this); }
+	/** */ void visit(Constructor constructor) { constructor.accept(this); }
+	/** */ void visit(ContinueStatement continueStatement) { continueStatement.accept(this); }
+	/** */ void visit(DebugCondition debugCondition) { debugCondition.accept(this); }
+	/** */ void visit(DebugSpecification debugSpecification) { debugSpecification.accept(this); }
+	/** */ void visit(Declaration declaration) { declaration.accept(this); }
+	/** */ void visit(DeclarationsAndStatements declarationsAndStatements) { declarationsAndStatements.accept(this); }
+	/** */ void visit(DeclarationOrInvariant declarationOrInvariant) { declarationOrInvariant.accept(this); }
+	/** */ void visit(Declarator declarator) { declarator.accept(this); }
+	/** */ void visit(DefaultStatement defaultStatement) { defaultStatement.accept(this); }
+	/** */ void visit(DeleteExpression deleteExpression) { deleteExpression.accept(this); }
+	/** */ void visit(DeleteStatement deleteStatement) { deleteStatement.accept(this); }
+	/** */ void visit(Deprecated deprecated_) { deprecated_.accept(this); }
+	/** */ void visit(Destructor destructor) { destructor.accept(this); }
+	/** */ void visit(DoStatement doStatement) { doStatement.accept(this); }
+	/** */ void visit(EnumBody enumBody) { enumBody.accept(this); }
+	/** */ void visit(EnumDeclaration enumDeclaration) { enumDeclaration.accept(this); }
+	/** */ void visit(EnumMember enumMember) { enumMember.accept(this); }
+	/** */ void visit(EqualExpression equalExpression) { equalExpression.accept(this); }
+	/** */ void visit(Expression expression) { expression.accept(this); }
+	/** */ void visit(FinalSwitchStatement finalSwitchStatement) { finalSwitchStatement.accept(this); }
+	/** */ void visit(Finally finally_) { finally_.accept(this); }
+	/** */ void visit(ForStatement forStatement) { forStatement.accept(this); }
+	/** */ void visit(ForeachRangeStatement foreachRangeStatement) { foreachRangeStatement.accept(this); }
+	/** */ void visit(ForeachStatement foreachStatement) { foreachStatement.accept(this); }
+	/** */ void visit(ForeachType foreachType) { foreachType.accept(this); }
+	/** */ void visit(ForeachTypeList foreachTypeList) { foreachTypeList.accept(this); }
+	/** */ void visit(FunctionAttribute functionAttribute) { functionAttribute.accept(this); }
+	/** */ void visit(FunctionBody functionBody) { functionBody.accept(this); }
+	/** */ void visit(FunctionCallExpression functionCallExpression) { functionCallExpression.accept(this); }
+	/** */ void visit(FunctionCallStatement functionCallStatement) { functionCallStatement.accept(this); }
+	/** */ void visit(FunctionDeclaration functionDeclaration) { functionDeclaration.accept(this); }
+	/** */ void visit(FunctionLiteralExpression functionLiteralExpression) { functionLiteralExpression.accept(this); }
+	/** */ void visit(GotoStatement gotoStatement) { gotoStatement.accept(this); }
+	/** */ void visit(IdentifierChain identifierChain) { identifierChain.accept(this); }
+	/** */ void visit(IdentifierList identifierList) { identifierList.accept(this); }
+	/** */ void visit(IdentifierOrTemplateChain identifierOrTemplateChain) { identifierOrTemplateChain.accept(this); }
+	/** */ void visit(IdentifierOrTemplateInstance identifierOrTemplateInstance) { identifierOrTemplateInstance.accept(this); }
+	/** */ void visit(IdentityExpression identityExpression) { identityExpression.accept(this); }
+	/** */ void visit(IfStatement ifStatement) { ifStatement.accept(this); }
+	/** */ void visit(ImportBind importBind) { importBind.accept(this); }
+	/** */ void visit(ImportBindings importBindings) { importBindings.accept(this); }
+	/** */ void visit(ImportDeclaration importDeclaration) { importDeclaration.accept(this); }
+	/** */ void visit(ImportExpression importExpression) { importExpression.accept(this); }
+	/** */ void visit(ImportList importList) { importList.accept(this); }
+	/** */ void visit(IndexExpression indexExpression) { indexExpression.accept(this); }
+	/** */ void visit(InExpression inExpression) { inExpression.accept(this); }
+	/** */ void visit(InStatement inStatement) { inStatement.accept(this); }
+	/** */ void visit(Initialize initialize) { initialize.accept(this); }
+	/** */ void visit(Initializer initializer) { initializer.accept(this); }
+	/** */ void visit(InterfaceDeclaration interfaceDeclaration) { interfaceDeclaration.accept(this); }
+	/** */ void visit(Invariant invariant_) { invariant_.accept(this); }
+	/** */ void visit(IsExpression isExpression) { isExpression.accept(this); }
+	/** */ void visit(KeyValuePair keyValuePair) { keyValuePair.accept(this); }
+	/** */ void visit(KeyValuePairs keyValuePairs) { keyValuePairs.accept(this); }
+	/** */ void visit(LabeledStatement labeledStatement) { labeledStatement.accept(this); }
+	/** */ void visit(LambdaExpression lambdaExpression) { lambdaExpression.accept(this); }
+	/** */ void visit(LastCatch lastCatch) { lastCatch.accept(this); }
+	/** */ void visit(LinkageAttribute linkageAttribute) { linkageAttribute.accept(this); }
+	/** */ void visit(MemberFunctionAttribute memberFunctionAttribute) { memberFunctionAttribute.accept(this); }
+	/** */ void visit(MixinDeclaration mixinDeclaration) { mixinDeclaration.accept(this); }
+	/** */ void visit(MixinExpression mixinExpression) { mixinExpression.accept(this); }
+	/** */ void visit(MixinTemplateName mixinTemplateName) { mixinTemplateName.accept(this); }
+	/** */ void visit(Module module_) { module_.accept(this); }
+	/** */ void visit(ModuleDeclaration moduleDeclaration) { moduleDeclaration.accept(this); }
+	/** */ void visit(MulExpression mulExpression) { mulExpression.accept(this); }
+	/** */ void visit(NewAnonClassExpression newAnonClassExpression) { newAnonClassExpression.accept(this); }
+	/** */ void visit(NewExpression newExpression) { newExpression.accept(this); }
+	/** */ void visit(NonEmptyStatement nonEmptyStatement) { nonEmptyStatement.accept(this); }
+	/** */ void visit(NonVoidInitializer nonVoidInitializer) { nonVoidInitializer.accept(this); }
+	/** */ void visit(Operand operand) { operand.accept(this); }
+	/** */ void visit(Operands operands) { operands.accept(this); }
+	/** */ void visit(OrExpression orExpression) { orExpression.accept(this); }
+	/** */ void visit(OrOrExpression orOrExpression) { orOrExpression.accept(this); }
+	/** */ void visit(OutStatement outStatement) { outStatement.accept(this); }
+	/** */ void visit(Parameter parameter) { parameter.accept(this); }
+	/** */ void visit(ParameterAttribute parameterAttribute) { parameterAttribute.accept(this); }
+	/** */ void visit(Parameters parameters) { parameters.accept(this); }
+	/** */ void visit(Postblit postblit) { postblit.accept(this); }
+	/** */ void visit(PostIncDecExpression postIncDecExpression) { postIncDecExpression.accept(this); }
+	/** */ void visit(PowExpression powExpression) { powExpression.accept(this); }
+	/** */ void visit(PragmaDeclaration pragmaDeclaration) { pragmaDeclaration.accept(this); }
+	/** */ void visit(PragmaExpression pragmaExpression) { pragmaExpression.accept(this); }
+	/** */ void visit(PreIncDecExpression preIncDecExpression) { preIncDecExpression.accept(this); }
+	/** */ void visit(PrimaryExpression primaryExpression) { primaryExpression.accept(this); }
+	/** */ void visit(Register register) { register.accept(this); }
+	/** */ void visit(RelExpression relExpression) { relExpression.accept(this); }
+	/** */ void visit(ReturnStatement returnStatement) { returnStatement.accept(this); }
+	/** */ void visit(ScopeGuardStatement scopeGuardStatement) { scopeGuardStatement.accept(this); }
+	/** */ void visit(SharedStaticConstructor sharedStaticConstructor) { sharedStaticConstructor.accept(this); }
+	/** */ void visit(SharedStaticDestructor sharedStaticDestructor) { sharedStaticDestructor.accept(this); }
+	/** */ void visit(ShiftExpression shiftExpression) { shiftExpression.accept(this); }
+	/** */ void visit(SingleImport singleImport) { singleImport.accept(this); }
+	/** */ void visit(SliceExpression sliceExpression) { sliceExpression.accept(this); }
+	/** */ void visit(Statement statement) { statement.accept(this); }
+	/** */ void visit(StatementNoCaseNoDefault statementNoCaseNoDefault) { statementNoCaseNoDefault.accept(this); }
+	/** */ void visit(StaticAssertDeclaration staticAssertDeclaration) { staticAssertDeclaration.accept(this); }
+	/** */ void visit(StaticAssertStatement staticAssertStatement) { staticAssertStatement.accept(this); }
+	/** */ void visit(StaticConstructor staticConstructor) { staticConstructor.accept(this); }
+	/** */ void visit(StaticDestructor staticDestructor) { staticDestructor.accept(this); }
+	/** */ void visit(StaticIfCondition staticIfCondition) { staticIfCondition.accept(this); }
+	/** */ void visit(StorageClass storageClass) { storageClass.accept(this); }
+	/** */ void visit(StructBody structBody) { structBody.accept(this); }
+	/** */ void visit(StructBodyItem structBodyItem) { structBodyItem.accept(this); }
+	/** */ void visit(StructDeclaration structDeclaration) { structDeclaration.accept(this); }
+	/** */ void visit(StructInitializer structInitializer) { structInitializer.accept(this); }
+	/** */ void visit(StructMemberInitializer structMemberInitializer) { structMemberInitializer.accept(this); }
+	/** */ void visit(StructMemberInitializers structMemberInitializers) { structMemberInitializers.accept(this); }
+	/** */ void visit(SwitchBody switchBody) { switchBody.accept(this); }
+	/** */ void visit(SwitchStatement switchStatement) { switchStatement.accept(this); }
+	/** */ void visit(Symbol symbol) { symbol.accept(this); }
+	/** */ void visit(SynchronizedStatement synchronizedStatement) { synchronizedStatement.accept(this); }
+	/** */ void visit(TemplateAliasParameter templateAliasParameter) { templateAliasParameter.accept(this); }
+	/** */ void visit(TemplateArgument templateArgument) { templateArgument.accept(this); }
+	/** */ void visit(TemplateArgumentList templateArgumentList) { templateArgumentList.accept(this); }
+	/** */ void visit(TemplateArguments templateArguments) { templateArguments.accept(this); }
+	/** */ void visit(TemplateDeclaration templateDeclaration) { templateDeclaration.accept(this); }
+	/** */ void visit(TemplateInstance templateInstance) { templateInstance.accept(this); }
+	/** */ void visit(TemplateMixinStatement templateMixinStatement) { templateMixinStatement.accept(this); }
+	/** */ void visit(TemplateParameter templateParameter) { templateParameter.accept(this); }
+	/** */ void visit(TemplateParameterList templateParameterList) { templateParameterList.accept(this); }
+	/** */ void visit(TemplateParameters templateParameters) { templateParameters.accept(this); }
+	/** */ void visit(TemplateSingleArgument templateSingleArgument) { templateSingleArgument.accept(this); }
+	/** */ void visit(TemplateThisParameter templateThisParameter) { templateThisParameter.accept(this); }
+	/** */ void visit(TemplateTupleParameter templateTupleParameter) { templateTupleParameter.accept(this); }
+	/** */ void visit(TemplateTypeParameter templateTypeParameter) { templateTypeParameter.accept(this); }
+	/** */ void visit(TemplateValueParameter templateValueParameter) { templateValueParameter.accept(this); }
+	/** */ void visit(TemplateValueParameterDefault templateValueParameterDefault) { templateValueParameterDefault.accept(this); }
+	/** */ void visit(TernaryExpression ternaryExpression) { ternaryExpression.accept(this); }
+	/** */ void visit(ThrowStatement throwStatement) { throwStatement.accept(this); }
+	/** */ void visit(TraitsArgument traitsArgument) { traitsArgument.accept(this); }
+	/** */ void visit(TraitsExpression traitsExpression) { traitsExpression.accept(this); }
+	/** */ void visit(TryStatement tryStatement) { tryStatement.accept(this); }
+	/** */ void visit(Type type) { type.accept(this); }
+	/** */ void visit(Type2 type2) { type2.accept(this); }
+	/** */ void visit(TypeConstructor typeConstructor) { typeConstructor.accept(this); }
+	/** */ void visit(TypeConstructors typeConstructors) { typeConstructors.accept(this); }
+	/** */ void visit(TypeSpecialization typeSpecialization) { typeSpecialization.accept(this); }
+	/** */ void visit(TypeSuffix typeSuffix) { typeSuffix.accept(this); }
+	/** */ void visit(TypeidExpression typeidExpression) { typeidExpression.accept(this); }
+	/** */ void visit(TypeofExpression typeofExpression) { typeofExpression.accept(this); }
+	/** */ void visit(UnaryExpression unaryExpression) { unaryExpression.accept(this); }
+	/** */ void visit(UnionDeclaration unionDeclaration) { unionDeclaration.accept(this); }
+	/** */ void visit(Unittest unittest_) { unittest_.accept(this); }
+	/** */ void visit(VariableDeclaration variableDeclaration) { variableDeclaration.accept(this); }
+	/** */ void visit(VersionCondition versionCondition) { versionCondition.accept(this); }
+	/** */ void visit(VersionSpecification versionSpecification) { versionSpecification.accept(this); }
+	/** */ void visit(WhileStatement whileStatement) { whileStatement.accept(this); }
+	/** */ void visit(WithStatement withStatement) { withStatement.accept(this); }
+	/** */ void visit(XorExpression xorExpression) { xorExpression.accept(this); }
 }
 
 interface ASTNode
@@ -241,7 +238,6 @@ interface ASTNode
 	/** */ void accept(ASTVisitor visitor);
 }
 
-immutable string OVERRIDE_DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) { visitor.visit(this); }};
 immutable string DEFAULT_ACCEPT = q{void accept(ASTVisitor visitor) { visitor.visit(this); }};
 
 
@@ -262,10 +258,10 @@ public:
 }
 
 ///
-class AliasDeclaration : Declaration
+class AliasDeclaration : ASTNode
 {
 public:
-	mixin(OVERRIDE_DEFAULT_ACCEPT);
+	mixin(DEFAULT_ACCEPT);
 	/** */Type type;
 	/** */Declarator declarator;
 	/** */AliasInitializer[] initializations;
@@ -281,10 +277,10 @@ public:
 }
 
 ///
-class AliasThisDeclaration : Declaration
+class AliasThisDeclaration : ASTNode
 {
 public:
-	mixin(OVERRIDE_DEFAULT_ACCEPT);
+	mixin(DEFAULT_ACCEPT);
 	/** */Token identifier;
 }
 
@@ -826,7 +822,34 @@ public:
 class Declaration : ASTNode
 {
 public:
-	mixin(DEFAULT_ACCEPT);
+
+	override void accept(ASTVisitor visitor)
+	{
+        if (attributedDeclaration !is null) visitor.visit(attributedDeclaration);
+        if (importDeclaration !is null) visitor.visit(importDeclaration);
+        if (functionDeclaration !is null) visitor.visit(functionDeclaration);
+        if (variableDeclaration !is null) visitor.visit(variableDeclaration);
+        if (aliasThisDeclaration !is null) visitor.visit(aliasThisDeclaration);
+        if (structDeclaration !is null) visitor.visit(structDeclaration);
+        if (classDeclaration !is null) visitor.visit(classDeclaration);
+        if (interfaceDeclaration !is null) visitor.visit(interfaceDeclaration);
+        if (unionDeclaration !is null) visitor.visit(unionDeclaration);
+        if (enumDeclaration !is null) visitor.visit(enumDeclaration);
+        if (aliasDeclaration !is null) visitor.visit(aliasDeclaration);
+        if (mixinDeclaration !is null) visitor.visit(mixinDeclaration);
+        if (unittest_ !is null) visitor.visit(unittest_);
+        if (staticAssertDeclaration !is null) visitor.visit(staticAssertDeclaration);
+        if (templateDeclaration !is null) visitor.visit(templateDeclaration);
+        if (constructor !is null) visitor.visit(constructor);
+        if (destructor !is null) visitor.visit(destructor);
+        if (staticConstructor !is null) visitor.visit(staticConstructor);
+        if (staticDestructor !is null) visitor.visit(staticDestructor);
+        if (sharedStaticDestructor !is null) visitor.visit(sharedStaticDestructor);
+        if (sharedStaticConstructor !is null) visitor.visit(sharedStaticConstructor);
+        if (conditionalDeclaration !is null) visitor.visit(conditionalDeclaration);
+        if (pragmaDeclaration !is null) visitor.visit(pragmaDeclaration);
+	}
+
 	/** */ AttributedDeclaration attributedDeclaration;
 	/** */ ImportDeclaration importDeclaration;
 	/** */ FunctionDeclaration functionDeclaration;
@@ -873,17 +896,7 @@ class Declarator : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Token identifier;
-	/** */ DeclaratorSuffix declaratorSuffix;
 	/** */ Initializer initializer;
-}
-
-///
-class DeclaratorSuffix : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ Type type;
-	/** */ AssignExpression assignExpression;
 }
 
 ///
@@ -1086,16 +1099,17 @@ public:
 }
 
 ///
-class FunctionDeclaration : Declaration
+class FunctionDeclaration : ASTNode
 {
 public:
-	mixin(OVERRIDE_DEFAULT_ACCEPT);
+	mixin(DEFAULT_ACCEPT);
 	/** */ Type returnType;
 	/** */ Token name;
 	/** */ TemplateParameters templateParameters;
 	/** */ Parameters parameters;
 	/** */ Constraint constraint;
 	/** */ FunctionBody functionBody;
+    /** */ MemberFunctionAttribute[] memberFunctionAttributes;
 }
 
 ///
@@ -1191,10 +1205,10 @@ public:
 }
 
 ///
-class ImportDeclaration : Declaration
+class ImportDeclaration : ASTNode
 {
 public:
-	mixin(OVERRIDE_DEFAULT_ACCEPT);
+	mixin(DEFAULT_ACCEPT);
 	/** */ SingleImport[] singleImports;
 	/** */ ImportBindings importBindings;
 }
@@ -1384,7 +1398,13 @@ public:
 class Module : ASTNode
 {
 public:
-	mixin(DEFAULT_ACCEPT);
+	override void accept(ASTVisitor visitor)
+	{
+		if (moduleDeclaration !is null)
+			visitor.visit(moduleDeclaration);
+		foreach(d; declarations)
+			visitor.visit(d);
+	}
 	/** */ ModuleDeclaration moduleDeclaration;
 	/** */ Declaration[] declarations;
 }
@@ -2071,6 +2091,7 @@ class Type : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ TypeConstructors typeConstructors;
+    /** */ TypeSuffix[] typeSuffixes;
 	/** */ Type2 type2;
 }
 
@@ -2079,17 +2100,7 @@ class Type2 : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Type2 type2;
-	/** */ Type3 type3;
-	/** */ TypeSuffix typeSuffix;
-}
-
-///
-class Type3 : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ BasicType builtinType;
+	/** */ BasicType basicType;
 	/** */ Symbol symbol;
 	/** */ TypeofExpression typeofExpression;
 	/** */ IdentifierOrTemplateChain identifierOrTemplateChain;
@@ -2194,10 +2205,10 @@ public:
 }
 
 ///
-class VariableDeclaration : Declaration
+class VariableDeclaration : ASTNode
 {
 public:
-	mixin(OVERRIDE_DEFAULT_ACCEPT);
+	mixin(DEFAULT_ACCEPT);
 	/** */ Type type;
 	/** */ Declarator[] declarators;
 	/** */ StorageClass storageClass;

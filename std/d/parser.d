@@ -70,16 +70,17 @@ import std.array;
 version (unittest) import std.stdio;
 
 version = development;
+version(development) import std.stdio;
 
 /**
 * Params:
 *     tokens = the tokens parsed by std.d.lexer
 * Returns: the parsed module
 */
-Module parseModule(R)(R tokens) if (is (ElementType!R == Token))
+Module parseModule(const(Token)[] tokens)
 {
     auto parser = new Parser();
-    parser.tokens = tokens.array();
+    parser.tokens = tokens;
     return parser.parseModule();
 }
 
@@ -720,7 +721,7 @@ struct Parser
      *     | $(LITERAL 'const')
      *     | $(LITERAL 'auto')
      *     | $(LITERAL 'scope')
-     *     | $(LITERAL 'gshared')
+     *     | $(LITERAL '___gshared')
      *     | $(LITERAL 'shared')
      *     | $(LITERAL 'immutable')
      *     | $(LITERAL 'inout')
@@ -829,8 +830,9 @@ struct Parser
     {
         auto node = new BlockStatement();
         expect(TokenType.lBrace);
-        if (!currentIs(TokenType.rBrace))
-            node.declarationsAndStatements = parseDeclarationsAndStatements();
+        skipBraceContent();
+        //if (!currentIs(TokenType.rBrace))
+        //    node.declarationsAndStatements = parseDeclarationsAndStatements();
         expect(TokenType.rBrace);
         return node;
     }
@@ -1506,6 +1508,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      */
     Declaration parseDeclaration()
     {
+        import std.stdio;
         auto node = new Declaration;
         switch (current().type)
         {
@@ -1540,17 +1543,22 @@ class ClassFour(A, B) if (someTest()) : Super {}};
             node.pragmaDeclaration = parsePragmaDeclaration();
             break;
         case TokenType.shared_:
-            // TODO:
-            // sharedStaticConstructor shared static this
-            // sharedStaticDestructor shared static ~ this
-            // attributedDeclaration shared anything else
+            if (startsWith(TokenType.shared_, TokenType.static_, TokenType.this_))
+                node.sharedStaticConstructor = parseSharedStaticConstructor();
+            else if (startsWith(TokenType.shared_, TokenType.static_, TokenType.tilde))
+                node.sharedStaticDestructor = parseSharedStaticDestructor();
+            else
+                node.attributedDeclaration = parseAttributedDeclaration();
             break;
         case TokenType.static_:
-            // TODO:
-            // staticConstructor static this
-            // staticDestructor static ~
-            // attributedDeclaration static anything else
-            // conditionalDeclaration static if
+            if (startsWith(TokenType.static_, TokenType.this_))
+                node.staticConstructor = parseStaticConstructor();
+            else if (startsWith(TokenType.static_, TokenType.tilde))
+                node.staticDestructor = parseStaticDestructor();
+            else if (startsWith(TokenType.static_, TokenType.if_))
+                node.conditionalDeclaration = parseConditionalDeclaration();
+            else
+                node.attributedDeclaration = parseAttributedDeclaration();
             break;
         case TokenType.struct_:
             node.structDeclaration = parseStructDeclaration();
@@ -1564,17 +1572,53 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         case TokenType.unittest_:
             node.unittest_ = parseUnittest();
             break;
+        case TokenType.bool_: .. case TokenType.wchar_:
         case TokenType.identifier:
-            // TODO:
-            // variableDeclaration
-            // functionDeclaration
+            Type type = parseType();
+            if (!currentIs(TokenType.identifier))
+            {
+                error("Identifier expected");
+                return null;
+            }
+            if (peekIs(TokenType.lParen))
+                node.functionDeclaration = parseFunctionDeclaration(type);
+            else
+                node.variableDeclaration = parseVariableDeclaration(type);
             break;
         case TokenType.version_:
         case TokenType.debug_:
             node.conditionalDeclaration = parseConditionalDeclaration();
             break;
+		case TokenType.at:
+		case TokenType.extern_:
+		case TokenType.align_:
+		//case TokenType.pragma_:
+		case TokenType.deprecated_:
+		case TokenType.private_:
+		case TokenType.package_:
+		case TokenType.protected_:
+		case TokenType.public_:
+		case TokenType.export_:
+		//case TokenType.extern_:
+		case TokenType.final_:
+		case TokenType.synchronized_:
+		case TokenType.override_:
+		case TokenType.abstract_:
+		case TokenType.const_:
+		case TokenType.auto_:
+		case TokenType.scope_:
+		case TokenType.gshared:
+		//case TokenType.shared_:
+		case TokenType.immutable_:
+		case TokenType.inout_:
+		//case TokenType.static_:
+		case TokenType.pure_:
+		case TokenType.nothrow_:
+			node.attributedDeclaration = parseAttributedDeclaration();
+			break;
         default:
             error("Declaration expected");
+            advance();
             return null;
         }
         return node;
@@ -1616,34 +1660,25 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses a Declarator
      *
      * $(GRAMMAR $(RULEDEF declarator):
-     *     $(LITERAL Identifier) $(RULE declaratorSuffix)? ($(LITERAL '=') $(RULE initializer))?
+     *     $(LITERAL Identifier) ($(LITERAL '=') $(RULE initializer))?
      *     ;)
      */
     Declarator parseDeclarator()
     {
         auto node = new Declarator;
-        node.identifier = *expect(TokenType.identifier);
-        if (currentIs(TokenType.lBracket))
-            node.declaratorSuffix = parseDeclaratorSuffix();
+		auto id = expect(TokenType.identifier);
+		if (id is null) return null;
+        node.identifier = *id;
+        if (currentIsOneOf(TokenType.lBracket, TokenType.star))
+        {
+            error("C-style variable declarations are not supported.");
+            return null;
+        }
         if (currentIs(TokenType.assign))
         {
             advance();
             node.initializer = parseInitializer();
         }
-        return node;
-    }
-
-    /**
-     * Parses a DeclaratorSuffix
-     *
-     * $(GRAMMAR $(RULEDEF declaratorSuffix):
-     *     $(LITERAL '[') ($(RULE type) | $(RULE assignExpression))? $(LITERAL ']')
-     *     ;)
-     */
-    DeclaratorSuffix parseDeclaratorSuffix()
-    {
-        auto node = new DeclaratorSuffix;
-        // TODO
         return node;
     }
 
@@ -1728,6 +1763,17 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         expect(TokenType.rParen);
         node.functionBody = parseFunctionBody();
         return node;
+    }
+
+    unittest
+    {
+        auto sourceCode = q{~this(){}}c;
+        Parser p = getParserForUnittest(sourceCode, "parseDestructor");
+        Destructor d = p.parseDestructor();
+        assert (d !is null);
+        assert (d.functionBody !is null);
+        assert (p.errorCount == 0);
+        stderr.writeln("Unittest for parseDestructor() passed.");
     }
 
     /**
@@ -2080,10 +2126,56 @@ body {} // six
      *     | $(RULE memberFunctionAttribute)* ($(RULE type) | $(LITERAL 'auto') $(LITERAL 'ref')? | $(LITERAL 'ref') $(LITERAL 'auto')?) $(LITERAL Identifier) $(RULE parameters) $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
-    FunctionDeclaration parseFunctionDeclaration()
+    FunctionDeclaration parseFunctionDeclaration(Type type = null)
     {
         auto node = new FunctionDeclaration;
-        // TODO
+
+        while(moreTokens() && currentIsMemberFunctionAttribute())
+            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+
+        switch (current.type)
+        {
+        case TokenType.auto_:
+            break;
+        case TokenType.ref_:
+            break;
+        default:
+            break;
+        }
+
+        node.returnType = type is null ? parseType() : type;
+
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+
+        node.name = *ident;
+
+        if (!currentIs(TokenType.lParen))
+        {
+            error(`"(" expected`);
+            return null;
+        }
+
+        bool isTemplate = peekPastParens().type == TokenType.lParen;
+
+        if (isTemplate)
+            node.templateParameters = parseTemplateParameters();
+
+        node.parameters = parseParameters();
+
+        while(moreTokens() && currentIsMemberFunctionAttribute())
+            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+
+        if (isTemplate && currentIs(TokenType.if_))
+            node.constraint = parseConstraint();
+
+        if (isTemplate)
+            node.functionBody = parseFunctionBody();
+        else if (currentIs(TokenType.semicolon))
+            advance();
+        else
+            node.functionBody = parseFunctionBody();
+
         return node;
     }
 
@@ -2736,9 +2828,9 @@ interface "Four"
     Module parseModule()
     {
         Module m = new Module;
-        while (index < tokens.length)
+        while (moreTokens())
         {
-            switch (tokens[index].type)
+            switch (current().type)
             {
             case TokenType.module_:
                 if (m.moduleDeclaration is null)
@@ -2747,7 +2839,9 @@ interface "Four"
                     error("Only one module declaration is allowed per module");
                 break;
             default:
-                m.declarations ~= parseDeclaration();
+				auto declaration = parseDeclaration();
+				if (declaration !is null)
+					m.declarations ~= declaration;
             }
         }
         return m;
@@ -3001,7 +3095,9 @@ interface "Four"
     Parameters parseParameters()
     {
         auto node = new Parameters;
-        // TODO
+        expect(TokenType.lParen);
+        version(development) skipParenContent();
+        expect(TokenType.rParen);
         return node;
     }
 
@@ -3958,13 +4054,38 @@ interface "Four"
      * Parses a Type
      *
      * $(GRAMMAR $(RULEDEF type):
-     *     $(RULE typeConstructors)? $(RULE type2)
+     *     $(RULE typeConstructors)? $(RULE type2) $(RULE typeSuffix)*
      *     ;)
      */
     Type parseType()
     {
         auto node = new Type;
-        // TODO
+        switch(current.type)
+        {
+        case TokenType.const_:
+        case TokenType.immutable_:
+        case TokenType.inout_:
+        case TokenType.shared_:
+            node.typeConstructors = parseTypeConstructors();
+            break;
+        default:
+            break;
+        }
+        node.type2 = parseType2();
+        loop: while (true)
+        {
+            switch (current.type)
+            {
+            case TokenType.star:
+            case TokenType.lBracket:
+            case TokenType.delegate_:
+            case TokenType.function_:
+                node.typeSuffixes ~= parseTypeSuffix();
+                break;
+            default:
+                break loop;
+            }
+        }
         return node;
     }
 
@@ -3972,31 +4093,45 @@ interface "Four"
      * Parses a Type2
      *
      * $(GRAMMAR $(RULEDEF type2):
-     *       $(RULE type3) $(RULE typeSuffix)?
-     *     | $(RULE type2) $(RULE typeSuffix)
-     *     ;)
-     */
-    Type2 parseType2()
-    {
-        auto node = new Type2;
-        // TODO
-        return node;
-    }
-
-    /**
-     * Parses a Type3
-     *
-     * $(GRAMMAR $(RULEDEF type3):
      *       $(RULE builtinType)
      *     | $(RULE symbol)
      *     | $(RULE typeofExpression) ($(LITERAL '.') $(RULE identifierOrTemplateChain))?
      *     | $(RULE typeConstructor) $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL '$(RPAREN)')
      *     ;)
      */
-    Type3 parseType3()
+    Type2 parseType2()
     {
-        auto node = new Type3;
-        // TODO
+        auto node = new Type2;
+        switch (current.type)
+        {
+            case TokenType.identifier:
+            case TokenType.dot:
+                node.symbol = parseSymbol();
+                break;
+            case TokenType.bool_: .. case TokenType.wchar_:
+                node.basicType = parseBasicType();
+                break;
+            case TokenType.typeof_:
+                node.typeofExpression = parseTypeofExpression();
+                if (currentIs(TokenType.dot))
+                {
+                    advance();
+                    node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
+                }
+                break;
+            case TokenType.const_:
+            case TokenType.immutable_:
+            case TokenType.inout_:
+            case TokenType.shared_:
+                node.typeConstructor = parseTypeConstructor();
+                expect(TokenType.lParen);
+                node.type = parseType();
+                expect(TokenType.rParen);
+                break;
+            default:
+                error("Basic type, type constructor, symbol, or typeof expected");
+                break;
+        }
         return node;
     }
 
@@ -4086,7 +4221,8 @@ interface "Four"
         case TokenType.function_:
             advance();
             node.parameters = parseParameters();
-            // TODO: memberFunctionAttribute
+            while (currentIsMemberFunctionAttribute())
+				node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
             return node;
         default:
             error(`"*", "[", "delegate", or "function" expected.`);
@@ -4249,10 +4385,29 @@ interface "Four"
      *     | $(RULE autoDeclaration)
      *     ;)
      */
-    VariableDeclaration parseVariableDeclaration()
+    VariableDeclaration parseVariableDeclaration(Type type = null)
     {
         auto node = new VariableDeclaration;
-        // TODO
+
+		if (currentIs(TokenType.auto_))
+		{
+			node.autoDeclaration = parseAutoDeclaration();
+			return node;
+		}
+
+		node.type = type is null ? parseType() : type;
+
+		while(true)
+		{
+			auto declarator = parseDeclarator();
+			if (declarator is null) return null;
+			node.declarators ~= declarator;
+			if (moreTokens() && currentIs(TokenType.comma))
+				advance();
+			else
+				break;
+		}
+		expect(TokenType.semicolon);
         return node;
     }
 
@@ -4355,18 +4510,42 @@ interface "Four"
         return node;
     }
 
-    void error(string message)
+    private bool currentIsMemberFunctionAttribute() const
     {
-        ++errorCount;
-        import std.stdio;
-        stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
-            tokens[index].column, message);
-        while (index < tokens.length)
+        switch (current.type)
         {
-            if (tokens[index].type == TokenType.semicolon)
+        case TokenType.const_:
+        case TokenType.immutable_:
+        case TokenType.inout_:
+        case TokenType.shared_:
+        case TokenType.at:
+        case TokenType.pure_:
+        case TokenType.nothrow_:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    void error(lazy string message)
+    {
+        import std.stdio;
+        ++errorCount;
+        if (errorFunction is null)
+            stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
+                tokens[index].column, message);
+        else
+            errorFunction(fileName, tokens[index].line, tokens[index].column,
+                message);
+        while (moreTokens())
+        {
+            if (currentIsOneOf(TokenType.semicolon, TokenType.rBrace))
+			{
+				advance();
                 break;
+			}
             else
-                index++;
+                advance();
         }
     }
 
@@ -4472,8 +4651,8 @@ interface "Four"
             return &tokens[index++];
         else
         {
-            error("Expected " ~ to!string(type) ~ " instead of "
-                ~ to!string(tokens[index].type));
+            error("Expected " ~ tokenValues[type] ~ " instead of "
+                ~ tokens[index].value);
             return null;
         }
     }
@@ -4481,7 +4660,7 @@ interface "Four"
     /**
      * Returns: the _current token
      */
-    Token current() const
+    Token current() const @property
     {
         return tokens[index];
     }
@@ -4525,8 +4704,11 @@ interface "Four"
      */
     bool moreTokens() const
     {
-        return index < tokens.length;
+        return index + 1 < tokens.length;
     }
+
+    version (unittest) static void doNothingErrorFunction(string fileName,
+        int line, int column, string message) {}
 
     version (unittest) static Parser getParserForUnittest(string sourceCode,
         string testName)
@@ -4534,6 +4716,7 @@ interface "Four"
         LexerConfig config;
         auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
         Parser p;
+        p.errorFunction = &doNothingErrorFunction;
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
         return p;
@@ -4543,4 +4726,5 @@ interface "Four"
     const(Token)[] tokens;
     size_t index;
     string fileName;
+    void function(string, int, int, string) errorFunction;
 }

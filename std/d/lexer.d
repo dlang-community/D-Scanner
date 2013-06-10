@@ -2505,7 +2505,7 @@ bool isRangeEoF(R)(ref R range)
 }
 
 // Lookup table for token values
-immutable(string[TokenType.max + 1]) tokenValues = [
+package immutable(string[TokenType.max + 1]) tokenValues = [
     "=",
     "@",
     "&",
