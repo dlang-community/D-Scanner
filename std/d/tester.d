@@ -33,6 +33,17 @@ class TestVisitor : ASTVisitor
 		writeln("import declaration found");
 	}
 
+	override void visit(InterfaceDeclaration intDec)
+	{
+		writeln("Interface ", intDec.identifier.value,
+			" on line ", intDec.identifier.line);
+	}
+
+	override void visit(VersionSpecification verSpec)
+	{
+		writeln("Version specification");
+	}
+
 	alias ASTVisitor.visit visit;
 }
 

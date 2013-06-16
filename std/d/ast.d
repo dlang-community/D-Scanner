@@ -238,8 +238,7 @@ interface ASTNode
 	/** */ void accept(ASTVisitor visitor);
 }
 
-immutable string DEFAULT_ACCEPT = q{void accept(ASTVisitor visitor) { visitor.visit(this); }};
-
+immutable string DEFAULT_ACCEPT = q{void accept(ASTVisitor visitor) {}};
 
 immutable string SHIFT_SHIFT_BODY = q{
 	/** */ Token operator;
@@ -577,7 +576,16 @@ public:
 class AttributedDeclaration : ASTNode
 {
 public:
-	mixin(DEFAULT_ACCEPT);
+	override void accept(ASTVisitor visitor)
+	{
+		if (attribute !is null)
+			visitor.visit(attribute);
+		foreach (dec; declarations)
+		{
+			if (dec !is null)
+				visitor.visit(dec);
+		}
+	}
 	/** */Attribute attribute;
 	/** */Declaration[] declarations;
 }
@@ -848,6 +856,7 @@ public:
         if (sharedStaticConstructor !is null) visitor.visit(sharedStaticConstructor);
         if (conditionalDeclaration !is null) visitor.visit(conditionalDeclaration);
         if (pragmaDeclaration !is null) visitor.visit(pragmaDeclaration);
+        if (versionSpecification !is null) visitor.visit(versionSpecification);
 	}
 
 	/** */ AttributedDeclaration attributedDeclaration;
@@ -873,6 +882,7 @@ public:
 	/** */ SharedStaticConstructor sharedStaticConstructor;
 	/** */ ConditionalDeclaration conditionalDeclaration;
 	/** */ PragmaDeclaration pragmaDeclaration;
+	/** */ VersionSpecification versionSpecification;
 }
 
 ///

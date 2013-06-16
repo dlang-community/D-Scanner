@@ -1344,7 +1344,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     ConditionalDeclaration parseConditionalDeclaration()
     {
         auto node = new ConditionalDeclaration;
-        // TODO
+        node.compileCondition = parseCompileCondition();
         return node;
     }
 
@@ -1586,6 +1586,16 @@ class ClassFour(A, B) if (someTest()) : Super {}};
                 node.variableDeclaration = parseVariableDeclaration(type);
             break;
         case TokenType.version_:
+			if (peekIs(TokenType.lParen))
+				node.conditionalDeclaration = parseConditionalDeclaration();
+			else if (peekIs(TokenType.assign))
+				node.versionSpecification = parseVersionSpecification();
+			else
+			{
+				error(`"=" or "(" expected following "version"`);
+				return null;
+			}
+			break;
         case TokenType.debug_:
             node.conditionalDeclaration = parseConditionalDeclaration();
             break;
@@ -2982,6 +2992,12 @@ interface "Four"
     {
         auto node = new NonVoidInitializer;
         // TODO
+		if (curentIs(TokenType.lBrace))
+			node.structInitializer = parseStructInitializer()
+		else if (currentIs(TokenType.lBracket))
+			node.arrayInitializer = parseArrayInitializer()
+		else
+			node.assignExpression = parseAssignExpression();
         return node;
     }
 
@@ -3025,7 +3041,8 @@ interface "Four"
     OrOrExpression parseOrOrExpression()
     {
         auto node = new OrOrExpression;
-        // TODO
+        node.andAndExpression = parseAndAndExpression();
+
         return node;
     }
 
@@ -3525,8 +3542,12 @@ interface "Four"
     {
         auto node = new StructBody;
         expect(TokenType.lBrace);
-        while (tokens[index] != TokenType.rBrace && moreTokens())
-            node.structBodyItems ~= parseStructBodyItem();
+		version (development)
+			skipBraceContent();
+		else
+			assert (0);
+        //while (tokens[index] != TokenType.rBrace && moreTokens())
+        //    node.structBodyItems ~= parseStructBodyItem();
         expect(TokenType.rBrace);
         return node;
     }
@@ -3967,9 +3988,9 @@ interface "Four"
     {
         auto node = new TernaryExpression;
         node.orOrExpression = parseOrOrExpression();
-        if (tokens[index] == TokenType.ternary)
+        if (currentIs(TokenType.ternary))
         {
-            ++index;
+            advance();
             node.expression = parseExpression();
             expect(TokenType.colon);
             node.ternaryExpression = parseTernaryExpression();
