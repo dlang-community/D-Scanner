@@ -73,10 +73,10 @@ version = development;
 version(development) import std.stdio;
 
 /**
-* Params:
-*     tokens = the tokens parsed by std.d.lexer
-* Returns: the parsed module
-*/
+ * Params:
+ *     tokens = the tokens parsed by std.d.lexer
+ * Returns: the parsed module
+ */
 Module parseModule(const(Token)[] tokens)
 {
     auto parser = new Parser();
@@ -657,15 +657,19 @@ struct Parser
      * Parses an AssignStatement
      *
      * $(GRAMMAR $(RULEDEF assignStatement):
-     *       $(RULE unaryExpression) $(RULE assignOperator) $(RULE assignExpression) ($(LITERAL ',') $(RULE unaryExpression) $(RULE assignOperator) $(RULE assignExpression))* $(LITERAL ';')
-     *     | $(RULE preIncDecExpression) $(LITERAL ';')
-     *     | $(RULE postIncDecExpression) $(LITERAL ';')
+     *     $(RULE assignExpression) $(LITERAL ';')
      *     ;)
      */
     AssignStatement parseAssignStatement()
     {
         auto node = new AssignStatement;
-        // TODO
+        if (currentIsOneOf(TokenType.increment, TokenType.decrement))
+            node.preIncDecExpression = parsePreIncDecExpression();
+        else
+        {
+            // TODO
+        }
+        expect(TokenType.semicolon);
         return node;
     }
 
