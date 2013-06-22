@@ -251,9 +251,9 @@ class AddExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */TokenType operator;
-	/** */AddExpression left;
-	/** */MulExpression right;
+	/** */ TokenType operator;
+	/** */ AddExpression left;
+	/** */ MulExpression right;
 }
 
 ///
@@ -261,9 +261,9 @@ class AliasDeclaration : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Type type;
-	/** */Declarator declarator;
-	/** */AliasInitializer[] initializations;
+	/** */ Type type;
+	/** */ Declarator declarator;
+	/** */ AliasInitializer[] initializations;
 }
 
 ///
@@ -271,8 +271,8 @@ class AliasInitializer : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token identifier;
-	/** */Type type;
+	/** */ Token identifier;
+	/** */ Type type;
 }
 
 ///
@@ -280,7 +280,7 @@ class AliasThisDeclaration : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token identifier;
+	/** */ Token identifier;
 }
 
 ///
@@ -288,7 +288,7 @@ class AlignAttribute : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token intLiteral;
+	/** */ Token intLiteral;
 }
 
 ///
@@ -296,8 +296,8 @@ class AndAndExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AndAndExpression left;
-	/** */OrExpression right;
+	/** */ AndAndExpression left;
+	/** */ OrExpression right;
 }
 
 ///
@@ -305,8 +305,8 @@ class AndExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AndExpression andExpression;
-	/** */ShiftExpression shiftExpression;
+	/** */ AndExpression left;
+	/** */ CmpExpression right;
 }
 
 ///
@@ -314,7 +314,7 @@ class ArgumentList : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AssignExpression[] arguments;
+	/** */ AssignExpression[] arguments;
 }
 
 ///
@@ -322,7 +322,7 @@ class Arguments : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ArgumentList argumentList;
+	/** */ ArgumentList argumentList;
 }
 
 ///
@@ -330,7 +330,7 @@ class ArrayInitializer : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ArrayMemberInitialization[] arrayMemberInitializations;
+	/** */ ArrayMemberInitialization[] arrayMemberInitializations;
 }
 
 ///
@@ -338,7 +338,7 @@ class ArrayLiteral : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ArgumentList argumentList;
+	/** */ ArgumentList argumentList;
 }
 
 ///
@@ -346,8 +346,8 @@ class ArrayMemberInitialization : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AssignExpression assignExpression;
-	/** */NonVoidInitializer nonVoidInitializer;
+	/** */ AssignExpression assignExpression;
+	/** */ NonVoidInitializer nonVoidInitializer;
 }
 
 ///
@@ -355,9 +355,9 @@ class AsmAddExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token operator;
-	/** */AsmMulExp left;
-	/** */AsmMulExp right;
+	/** */ TokenType operator;
+	/** */ AsmAddExp left;
+	/** */ AsmMulExp right;
 }
 
 ///
@@ -365,8 +365,8 @@ class AsmAndExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmEqualExp left;
-	/** */AsmEqualExp right;
+	/** */ AsmEqualExp left;
+	/** */ AsmEqualExp right;
 }
 
 ///
@@ -374,9 +374,9 @@ class AsmBrExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmBrExp asmBrExp;
-	/** */AsmEqualExp asmEqualExp;
-	/** */AsmUnaExp asmUnaExp;
+	/** */ AsmBrExp asmBrExp;
+	/** */ AsmEqualExp asmEqualExp;
+	/** */ AsmUnaExp asmUnaExp;
 }
 
 ///
@@ -384,9 +384,9 @@ class AsmEqualExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmRelExp left;
-	/** */AsmRelExp right;
-	/** */Token operator;
+	/** */ AsmRelExp left;
+	/** */ AsmRelExp right;
+	/** */ Token operator;
 }
 
 ///
@@ -394,9 +394,9 @@ class AsmExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmLogOrExp left;
-	/** */AsmExp middle;
-	/** */AsmExp right;
+	/** */ AsmLogOrExp left;
+	/** */ AsmExp middle;
+	/** */ AsmExp right;
 }
 
 ///
@@ -404,10 +404,10 @@ class AsmInstruction : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token identifierOrIntegerOrOpcode;
-	/** */bool hasAlign;
-	/** */AsmExp asmExp;
-	/** */Operands operands;
+	/** */ Token identifierOrIntegerOrOpcode;
+	/** */ bool hasAlign;
+	/** */ AsmExp asmExp;
+	/** */ Operands operands;
 }
 
 ///
@@ -415,8 +415,8 @@ class AsmLogAndExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmOrExp left;
-	/** */AsmOrExp right;
+	/** */ AsmOrExp left;
+	/** */ AsmOrExp right;
 }
 
 ///
@@ -424,8 +424,8 @@ class AsmLogOrExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmLogAndExp left;
-	/** */AsmLogAndExp right;
+	/** */ AsmLogAndExp left;
+	/** */ AsmLogAndExp right;
 }
 
 ///
@@ -433,9 +433,10 @@ class AsmMulExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmBrExp left;
-	/** */AsmBrExp right;
-	/** */Token operator;
+	/** */ TokenType operator;
+    /** */ AsmMulExp left;
+	/** */ AsmBrExp right;
+
 }
 
 ///
@@ -443,8 +444,8 @@ class AsmOrExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmXorExp left;
-	/** */AsmXorExp right;
+	/** */ AsmXorExp left;
+	/** */ AsmXorExp right;
 }
 
 ///
@@ -452,9 +453,9 @@ class AsmPrimaryExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */IdentifierChain identifierChain;
-	/** */Register register;
-	/** */Token token;
+	/** */ IdentifierChain identifierChain;
+	/** */ Register register;
+	/** */ Token token;
 }
 
 ///
@@ -462,9 +463,9 @@ class AsmRelExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmShiftExp left;
-	/** */AsmShiftExp right;
-	/** */Token operator;
+	/** */ AsmShiftExp left;
+	/** */ AsmShiftExp right;
+	/** */ Token operator;
 }
 
 ///
@@ -472,9 +473,9 @@ class AsmShiftExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmAddExp left;
-	/** */AsmAddExp right;
-	/** */Token operator;
+	/** */ AsmAddExp left;
+	/** */ AsmAddExp right;
+	/** */ Token operator;
 }
 
 ///
@@ -482,7 +483,7 @@ class AsmStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmInstruction[] asmInstructions;
+	/** */ AsmInstruction[] asmInstructions;
 }
 
 ///
@@ -490,8 +491,8 @@ class AsmTypePrefix : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Token left;
-	/** */Token right;
+	/** */ Token left;
+	/** */ Token right;
 }
 
 ///
@@ -499,11 +500,11 @@ class AsmUnaExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmTypePrefix asmTypePrefix;
-	/** */AsmExp asmExp;
-	/** */Token prefix;
-	/** */AsmPrimaryExp asmPrimaryExp;
-	/** */AsmUnaExp asmUnaExp;
+	/** */ AsmTypePrefix asmTypePrefix;
+	/** */ AsmExp asmExp;
+	/** */ Token prefix;
+	/** */ AsmPrimaryExp asmPrimaryExp;
+	/** */ AsmUnaExp asmUnaExp;
 }
 
 ///
@@ -511,8 +512,8 @@ class AsmXorExp : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AsmAndExp left;
-	/** */AsmAndExp right;
+	/** */ AsmAndExp left;
+	/** */ AsmAndExp right;
 }
 
 ///
@@ -520,8 +521,8 @@ class AssertExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AssignExpression assertion;
-	/** */AssignExpression message;
+	/** */ AssignExpression assertion;
+	/** */ AssignExpression message;
 }
 
 ///
@@ -529,7 +530,7 @@ class AssertStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AssertExpression assertExpression;
+	/** */ AssertExpression assertExpression;
 }
 
 ///
@@ -537,9 +538,9 @@ class AssignExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */TernaryExpression ternaryExpression;
-	/** */AssignExpression assignExpression;
-	/** */TokenType operator;
+	/** */ TernaryExpression ternaryExpression;
+	/** */ AssignExpression assignExpression;
+	/** */ TokenType operator;
 }
 
 ///
@@ -547,11 +548,11 @@ class AssignStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */PreIncDecExpression preIncDecExpression;
-	/** */PostIncDecExpression postIncDecExpression;
-	/** */UnaryExpression[] unaryExpressions;
-	/** */AssignExpression[] assignExpressions;
-	/** */TokenType[] assignOperators;
+	/** */ PreIncDecExpression preIncDecExpression;
+	/** */ PostIncDecExpression postIncDecExpression;
+	/** */ UnaryExpression[] unaryExpressions;
+	/** */ AssignExpression[] assignExpressions;
+	/** */ TokenType[] assignOperators;
 }
 
 ///
@@ -559,7 +560,7 @@ class AssocArrayLiteral : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */KeyValuePairs keyValuePairs;
+	/** */ KeyValuePairs keyValuePairs;
 }
 
 ///
@@ -567,9 +568,9 @@ class AtAttribute : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */FunctionCallExpression functionCallExpression;
-	/** */ArgumentList argumentList;
-	/** */Token identifier;
+	/** */ FunctionCallExpression functionCallExpression;
+	/** */ ArgumentList argumentList;
+	/** */ Token identifier;
 }
 
 ///
@@ -586,8 +587,8 @@ public:
 				visitor.visit(dec);
 		}
 	}
-	/** */Attribute attribute;
-	/** */Declaration[] declarations;
+	/** */ Attribute attribute;
+	/** */ Declaration[] declarations;
 }
 
 ///
@@ -595,12 +596,12 @@ class Attribute : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */LinkageAttribute linkageAttribute;
-	/** */AlignAttribute alignAttribute;
-	/** */PragmaExpression pragmaExpression;
-	/** */Deprecated deprecated_;
-	/** */AtAttribute atAttribute;
-	/** */TokenType attribute;
+	/** */ LinkageAttribute linkageAttribute;
+	/** */ AlignAttribute alignAttribute;
+	/** */ PragmaExpression pragmaExpression;
+	/** */ Deprecated deprecated_;
+	/** */ AtAttribute atAttribute;
+	/** */ TokenType attribute;
 }
 
 ///
@@ -608,9 +609,9 @@ class AutoDeclaration : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */StorageClass storageClass;
-	/** */Token[] identifiers;
-	/** */Initializer[] initializers;
+	/** */ StorageClass storageClass;
+	/** */ Token[] identifiers;
+	/** */ Initializer[] initializers;
 }
 
 ///
@@ -618,7 +619,7 @@ class BlockStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */DeclarationsAndStatements declarationsAndStatements;
+	/** */ DeclarationsAndStatements declarationsAndStatements;
 }
 
 ///
@@ -626,7 +627,7 @@ class BodyStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */BlockStatement blockStatement;
+	/** */ BlockStatement blockStatement;
 }
 
 ///
@@ -660,7 +661,7 @@ class BasicType : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */TokenType type;
+	/** */ TokenType type;
 }
 
 ///
@@ -668,9 +669,9 @@ class CaseRangeStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */AssignExpression low;
-	/** */AssignExpression high;
-	/** */DeclarationsAndStatements declarationsAndStatements;
+	/** */ AssignExpression low;
+	/** */ AssignExpression high;
+	/** */ DeclarationsAndStatements declarationsAndStatements;
 }
 
 ///
@@ -678,8 +679,8 @@ class CaseStatement: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ArgumentList argumentList;
-	/** */DeclarationsAndStatements declarationsAndStatements;
+	/** */ ArgumentList argumentList;
+	/** */ DeclarationsAndStatements declarationsAndStatements;
 }
 
 ///
@@ -687,9 +688,9 @@ class CastExpression: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Type type;
-	/** */CastQualifier castQualifier;
-	/** */UnaryExpression unaryExpression;
+	/** */ Type type;
+	/** */ CastQualifier castQualifier;
+	/** */ UnaryExpression unaryExpression;
 }
 
 ///
@@ -697,9 +698,9 @@ class CastQualifier: ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */TokenType first;
-	/** */TokenType second;
-	/** */bool hasSecond;
+	/** */ TokenType first;
+	/** */ TokenType second;
+	/** */ bool hasSecond;
 }
 
 ///
@@ -758,9 +759,9 @@ class CompileCondition : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */VersionCondition versionCondition;
-	/** */DebugCondition debugCondition;
-	/** */StaticIfCondition staticIfCondition;
+	/** */ VersionCondition versionCondition;
+	/** */ DebugCondition debugCondition;
+	/** */ StaticIfCondition staticIfCondition;
 }
 
 ///
@@ -768,9 +769,9 @@ class ConditionalDeclaration : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */CompileCondition compileCondition;
-	/** */Declaration[] trueDeclarations;
-	/** */Declaration[] falseDeclarations;
+	/** */ CompileCondition compileCondition;
+	/** */ Declaration[] trueDeclarations;
+	/** */ Declaration[] falseDeclarations;
 }
 
 ///
@@ -778,9 +779,9 @@ class ConditionalStatement : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */CompileCondition compileCondition;
-	/** */StatementNoCaseNoDefault trueStatement;
-	/** */StatementNoCaseNoDefault falseStatement;
+	/** */ CompileCondition compileCondition;
+	/** */ StatementNoCaseNoDefault trueStatement;
+	/** */ StatementNoCaseNoDefault falseStatement;
 }
 
 ///
@@ -788,7 +789,7 @@ class Constraint : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Expression expression;
+	/** */ Expression expression;
 }
 
 ///
@@ -796,8 +797,8 @@ class Constructor : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */Parameters parameters;
-	/** */FunctionBody functionBody;
+	/** */ Parameters parameters;
+	/** */ FunctionBody functionBody;
 }
 
 ///
@@ -991,7 +992,9 @@ class EqualExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	mixin(SHIFT_SHIFT_BODY);
+	/** */ TokenType operator;
+	/** */ ShiftExpression left;
+	/** */ ShiftExpression right;
 }
 
 ///
@@ -999,7 +1002,7 @@ class Expression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ AssignExpression[] assignExpressions;
+	/** */ AssignExpression[] items;
 }
 
 ///
@@ -1140,8 +1143,7 @@ class GotoStatement : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Expression expression;
-	/** */ Token identifier;
-	/** */ bool isDefault;
+	/** */ Token token;
 }
 
 ///
@@ -1182,7 +1184,9 @@ class IdentityExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	mixin(SHIFT_SHIFT_BODY);
+    /** */ bool negated;
+	/** */ ShiftExpression left;
+	/** */ ShiftExpression right;
 }
 
 ///
@@ -1320,7 +1324,8 @@ class KeyValuePair : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ KeyValuePair[] keyValuePairs;
+    /** */ AssignExpression key;
+	/** */ AssignExpression value;
 }
 
 ///
@@ -1328,8 +1333,7 @@ class KeyValuePairs : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ AssignExpression key;
-	/** */ AssignExpression value;
+	/** */ KeyValuePair[] keyValuePairs;
 }
 
 ///
@@ -1433,8 +1437,8 @@ class MulExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Token operator;
-	/** */ UnaryExpression left;
+	/** */ TokenType operator;
+	/** */ MulExpression left;
 	/** */ UnaryExpression right;
 }
 
@@ -1445,10 +1449,8 @@ public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Arguments allocatorArguments;
 	/** */ Arguments constructorArguments;
-	/** */ IdentifierList identifierList;
-	/** */ ClassBody ///
-classBody;
-
+	/** */ BaseClassList baseClassList;
+	/** */ ClassBody classBody;
 }
 
 ///
@@ -1541,8 +1543,8 @@ class OrExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ XorExpression xorExpression;
-	/** */ OrExpression orExpression;
+	/** */ OrExpression left;
+    /** */ XorExpression right;
 }
 
 ///
@@ -1550,8 +1552,8 @@ class OrOrExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ OrOrExpression orOrExpression;
-	/** */ AndAndExpression andAndExpression;
+	/** */ OrOrExpression left;
+	/** */ AndAndExpression right;
 }
 
 ///
@@ -1614,8 +1616,8 @@ class PowExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ UnaryExpression unaryExpression;
-	/** */ PowExpression powExpression;
+	/** */ PowExpression left;
+    /** */ UnaryExpression right;
 }
 
 ///
@@ -1650,20 +1652,19 @@ class PrimaryExpression : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Token primary;
-	/** */ bool hasDot;
-    IdentifierOrTemplateInstance identifierOrTemplateInstance;
-    Type type;
-    TypeofExpression typeofExpression;
-    TypeidExpression typeidExpression;
-    ArrayLiteral arrayLiteral;
-    AssocArrayLiteral assocArrayLiteral;
-    Expression expression;
-    IsExpression isExpression;
-    LambdaExpression lambdaExpression;
-    FunctionLiteralExpression functionLiteralExpression;
-    TraitsExpression traitsExpression;
-    MixinExpression mixinExpression;
-    ImportExpression importExpression;
+    /** */ IdentifierOrTemplateInstance identifierOrTemplateInstance;
+    /** */ Type type;
+    /** */ TypeofExpression typeofExpression;
+    /** */ TypeidExpression typeidExpression;
+    /** */ ArrayLiteral arrayLiteral;
+    /** */ AssocArrayLiteral assocArrayLiteral;
+    /** */ Expression expression;
+    /** */ IsExpression isExpression;
+    /** */ LambdaExpression lambdaExpression;
+    /** */ FunctionLiteralExpression functionLiteralExpression;
+    /** */ TraitsExpression traitsExpression;
+    /** */ MixinExpression mixinExpression;
+    /** */ ImportExpression importExpression;
 }
 
 ///
@@ -1681,7 +1682,9 @@ class RelExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	mixin(SHIFT_SHIFT_BODY);
+    /** */ TokenType operator;
+	/** */ RelExpression left;
+	/** */ ShiftExpression right;
 }
 
 ///
@@ -1722,9 +1725,9 @@ class ShiftExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ AddExpression addExpression;
-	/** */ ShiftExpression shiftExpression;
-	/** */ Token operator;
+	/** */ TokenType operator;
+    /** */ ShiftExpression left;
+    /** */ AddExpression right;
 }
 
 ///

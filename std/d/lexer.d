@@ -2220,7 +2220,7 @@ private:
 
 // For now a private helper that is tailored to the way lexer works
 // hides away forwardness of range by buffering
-// RA-version is strightforward thin wrapping
+// random-access version is a strightforward thin wrapping
 // ATM it is byte-oriented
 private struct LexSource(R)
     if(isForwardRange!R && !isRandomAccessRange!R)
@@ -3038,21 +3038,20 @@ struct StringCache
         index = new Slot*[startSize];
     }
 
-    string get(R)(R range)
-        if(isRandomAccessRange!R
-            && is(Unqual!(ElementType!R) : const(ubyte)))
+    string get(R)(R range) if (isRandomAccessRange!R
+        && is(Unqual!(ElementType!R) : const(ubyte)))
     {
         uint h = hash(range);
         uint bucket = h & (index.length-1);
         Slot *s = index[bucket];
-        if(s == null)
+        if (s == null)
         {
             string str = putIntoCache(range);
             index[bucket] = allocateSlot(str, h);
             uniqueSlots++;
             return str;
         }
-        for(;;)
+        while (true)
         {
             if(s.hash == h && s.value.equal(range))
                 return s.value;
@@ -3064,7 +3063,7 @@ struct StringCache
         uniqueSlots++;
         // had at least 1 item in this bucket
         // and inserted another one - check load factor
-        if(uniqueSlots*loadDenom > index.length*loadQuot)
+        if (uniqueSlots * loadDenom > index.length * loadQuot)
             rehash();
         return str;
     }
