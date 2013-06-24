@@ -68,7 +68,6 @@ abstract class ASTVisitor
 	/** */ void visit(BreakStatement breakStatement) { breakStatement.accept(this); }
 	/** */ void visit(BaseClass baseClass) { baseClass.accept(this); }
 	/** */ void visit(BaseClassList baseClassList) { baseClassList.accept(this); }
-	/** */ void visit(BasicType builtinType) { builtinType.accept(this); }
 	/** */ void visit(CaseRangeStatement caseRangeStatement) { caseRangeStatement.accept(this); }
 	/** */ void visit(CaseStatement caseStatement) { caseStatement.accept(this); }
 	/** */ void visit(CastExpression castExpression) { castExpression.accept(this); }
@@ -101,6 +100,7 @@ abstract class ASTVisitor
 	/** */ void visit(EnumMember enumMember) { enumMember.accept(this); }
 	/** */ void visit(EqualExpression equalExpression) { equalExpression.accept(this); }
 	/** */ void visit(Expression expression) { expression.accept(this); }
+	/** */ void visit(ExpressionStatement expressionStatement) { expressionStatement.accept(this); }
 	/** */ void visit(FinalSwitchStatement finalSwitchStatement) { finalSwitchStatement.accept(this); }
 	/** */ void visit(Finally finally_) { finally_.accept(this); }
 	/** */ void visit(ForStatement forStatement) { forStatement.accept(this); }
@@ -157,7 +157,6 @@ abstract class ASTVisitor
 	/** */ void visit(OrOrExpression orOrExpression) { orOrExpression.accept(this); }
 	/** */ void visit(OutStatement outStatement) { outStatement.accept(this); }
 	/** */ void visit(Parameter parameter) { parameter.accept(this); }
-	/** */ void visit(ParameterAttribute parameterAttribute) { parameterAttribute.accept(this); }
 	/** */ void visit(Parameters parameters) { parameters.accept(this); }
 	/** */ void visit(Postblit postblit) { postblit.accept(this); }
 	/** */ void visit(PostIncDecExpression postIncDecExpression) { postIncDecExpression.accept(this); }
@@ -216,7 +215,6 @@ abstract class ASTVisitor
 	/** */ void visit(TryStatement tryStatement) { tryStatement.accept(this); }
 	/** */ void visit(Type type) { type.accept(this); }
 	/** */ void visit(Type2 type2) { type2.accept(this); }
-	/** */ void visit(TypeConstructor typeConstructor) { typeConstructor.accept(this); }
 	/** */ void visit(TypeConstructors typeConstructors) { typeConstructors.accept(this); }
 	/** */ void visit(TypeSpecialization typeSpecialization) { typeSpecialization.accept(this); }
 	/** */ void visit(TypeSuffix typeSuffix) { typeSuffix.accept(this); }
@@ -653,15 +651,7 @@ class BaseClassList : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ BaseClass[] baseClasses;
-}
-
-///
-class BasicType : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ TokenType type;
+	/** */ BaseClass[] items;
 }
 
 ///
@@ -1006,6 +996,14 @@ public:
 }
 
 ///
+class ExpressionStatement : ASTNode
+{
+public:
+	mixin(DEFAULT_ACCEPT);
+	/** */ Expression expression;
+}
+
+///
 class FinalSwitchStatement : ASTNode
 {
 public:
@@ -1070,7 +1068,7 @@ class ForeachTypeList : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ ForeachType[] foreachTypes;
+	/** */ ForeachType[] items;
 }
 
 ///
@@ -1078,7 +1076,7 @@ class FunctionAttribute : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Token pureOrNothrow;
+	/** */ Token token;
 	/** */ AtAttribute atAttribute;
 }
 
@@ -1130,7 +1128,7 @@ class FunctionLiteralExpression : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Token functionOrDelegate;
+	/** */ TokenType functionOrDelegate;
 	/** */ Type type;
 	/** */ Parameters parameters;
 	/** */ FunctionAttribute[] functionAttributes;
@@ -1503,12 +1501,11 @@ public:
 	/** */ ForeachRangeStatement foreachRangeStatement;
 	/** */ ConditionalStatement conditionalStatement;
 	/** */ StaticAssertStatement staticAssertStatement;
-	/** */ AssertStatement assertStatement;
 	/** */ TemplateMixinStatement templateMixinStatement;
 	/** */ VersionSpecification versionSpecification;
 	/** */ DebugSpecification debugSpecification;
 	/** */ FunctionCallStatement functionCallStatement;
-	/** */ DeleteStatement deleteStatement;
+	/** */ ExpressionStatement expressionStatement;
 }
 
 ///
@@ -1570,19 +1567,11 @@ class Parameter : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ ParameterAttribute[] paramaterAttributes;
+	/** */ TokenType[] parameterAttributes;
 	/** */ Type type;
 	/** */ Token name;
 	/** */ bool vararg;
-}
-
-///
-class ParameterAttribute: ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ Token attribute;
-	/** */ TypeConstructor typeConstructor;
+	/** */ AssignExpression default_;
 }
 
 ///
@@ -1590,7 +1579,7 @@ class Parameters : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Parameter[] paramaters;
+	/** */ Parameter[] parameters;
 	/** */ bool hasVarargs;
 }
 
@@ -1673,7 +1662,7 @@ class Register : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Token identifier;
-	/** */ Token integerLiteral;
+	/** */ Token intLiteral;
 	/** */ bool hasIntegerLiteral;
 }
 
@@ -1805,8 +1794,7 @@ class StorageClass : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ AtAttribute atAttribute;
-	/** */ TypeConstructor typeConstructor;
-	/** */ Token storageClass;
+	/** */ Token token;
 }
 
 ///
@@ -1927,7 +1915,7 @@ class TemplateArgumentList : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ TemplateArgument[] templateArguments;
+	/** */ TemplateArgument[] items;
 }
 
 ///
@@ -1955,7 +1943,7 @@ class TemplateInstance : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Token identifier;
+	/** */ Symbol symbol;
 	/** */ TemplateArguments templateArguments;
 }
 
@@ -1986,7 +1974,7 @@ class TemplateParameterList : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ TemplateParameter[] templateParameters;
+	/** */ TemplateParameter[] items;
 }
 
 ///
@@ -2003,7 +1991,6 @@ class TemplateSingleArgument : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Token token;
-	/** */ BasicType builtinType;
 }
 
 ///
@@ -2103,7 +2090,7 @@ class Type : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ TypeConstructors typeConstructors;
+	/** */ TokenType[] typeConstructors;
     /** */ TypeSuffix[] typeSuffixes;
 	/** */ Type2 type2;
 }
@@ -2113,20 +2100,12 @@ class Type2 : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ BasicType basicType;
+	/** */ Token basicType;
 	/** */ Symbol symbol;
 	/** */ TypeofExpression typeofExpression;
 	/** */ IdentifierOrTemplateChain identifierOrTemplateChain;
-	/** */ TypeConstructor typeConstructor;
+	/** */ TokenType typeConstructor;
 	/** */ Type type;
-}
-
-///
-class TypeConstructor : ASTNode
-{
-public:
-	mixin(DEFAULT_ACCEPT);
-	/** */ Token typeConstructor;
 }
 
 ///
@@ -2134,7 +2113,7 @@ class TypeConstructors : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ TypeConstructor[] typeConstructors;
+	/** */ TokenType[] items;
 }
 
 ///
@@ -2183,17 +2162,14 @@ class UnaryExpression : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ PrimaryExpression primaryExpression;
-	/** */ UnaryExpression unaryExpression;
 	/** */ Token prefix;
-	/** */ PreIncDecExpression preIncDecExpression;
-	/** */ PostIncDecExpression postIncDecExpression;
+	/** */ Token suffix;
+	/** */ UnaryExpression unaryExpression;
 	/** */ NewExpression newExpression;
 	/** */ DeleteExpression deleteExpression;
 	/** */ CastExpression castExpression;
 	/** */ FunctionCallExpression functionCallExpression;
 	/** */ ArgumentList argumentList;
-	/** */ AssignExpression low;
-	/** */ AssignExpression high;
 	/** */ IdentifierOrTemplateInstance identifierOrTemplateInstance;
 	/** */ AssertExpression assertExpression;
 }

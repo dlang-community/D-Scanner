@@ -24,8 +24,11 @@ class TestVisitor : ASTVisitor
 
 	override void visit(VariableDeclaration varDec)
 	{
-		writeln("variable ", varDec.declarators[0].identifier.value,
-			" on line ", varDec.declarators[0].identifier.line);
+		foreach (decl; varDec.declarators)
+		{
+			writeln("variable ", decl.identifier.value,
+				" on line ", decl.identifier.line);
+		}
 	}
 
 	override void visit(ImportDeclaration impDec)

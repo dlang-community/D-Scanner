@@ -2009,6 +2009,7 @@ pure nothrow bool isMisc(ref const Token t)
  */
 enum TokenType: ushort
 {
+	invalid, /// Not a valid token
     assign, /// =
     at, /// @
     bitAnd, /// &
@@ -2506,6 +2507,7 @@ bool isRangeEoF(R)(ref R range)
 
 // Lookup table for token values
 package immutable(string[TokenType.max + 1]) tokenValues = [
+	null,
     "=",
     "@",
     "&",
