@@ -12,6 +12,11 @@ class TestVisitor : ASTVisitor
 		writeln("class ", classDeclaration.name.value, " on line ", classDeclaration.name.line);
 	}
 
+    override void visit(StructDeclaration structDeclaration)
+	{
+		writeln("struct ", structDeclaration.name.value, " on line ", structDeclaration.name.line);
+	}
+
 	override void visit(ModuleDeclaration md)
 	{
 		writeln("module declaration found");
@@ -58,7 +63,7 @@ void main(string[] args)
 	ubyte[] rawSource = f.rawRead(sourceBuffer);
 	LexerConfig config;
 	auto tokens = byToken(rawSource, config).array();
-	Module m = parseModule(tokens);
+	Module m = parseModule(tokens, args[1]);
 	ASTVisitor visitor = new TestVisitor;
 	visitor.visit(m);
 }

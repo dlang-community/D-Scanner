@@ -70,7 +70,7 @@ import std.array;
 version (unittest) import std.stdio;
 
 version = development;
-//version = verbose;
+version = verbose;
 version(development) import std.stdio;
 version(verbose) import std.stdio;
 
@@ -81,9 +81,10 @@ version(verbose) import std.stdio;
 *     tokens = the tokens parsed by std.d.lexer
 * Returns: the parsed module
 */
-Module parseModule(const(Token)[] tokens)
+Module parseModule(const(Token)[] tokens, string fileName)
 {
     auto parser = new Parser();
+    parser.fileName = fileName;
     parser.tokens = tokens;
     return parser.parseModule();
 }
@@ -3285,6 +3286,7 @@ invariant() foo();
     Parameter parseParameter()
     {
         auto node = new Parameter;
+        version (verbose) writeln("parseParameter");
         while (moreTokens())
 		{
 			TokenType type = parseParameterAttribute(false);
@@ -3331,6 +3333,10 @@ invariant() foo();
 		case shared_:
 		case const_:
 		case inout_:
+            if (peekIs(TokenType.lParen))
+                return invalid;
+            else
+                goto case auto_;
 		case final_:
 		case in_:
 		case lazy_:
@@ -3356,6 +3362,7 @@ invariant() foo();
      */
     Parameters parseParameters()
     {
+        version (verbose) writeln("parseParameters");
         auto node = new Parameters;
         expect(TokenType.lParen);
 		if (currentIs(TokenType.rParen))
@@ -3518,10 +3525,11 @@ q{(int a, ...)
      * Parses a PrimaryExpression
      *
      * $(GRAMMAR $(RULEDEF primaryExpression):
-     *       $(RULE symbol)
-     *     | $(RULE type) $(LITERAL '.') $(LITERAL Identifier)
+     *       $(LITERAL Identifier)
+     *     | $(RULE basicType) $(LITERAL '.') $(LITERAL Identifier)
      *     | $(RULE typeofExpression)
      *     | $(RULE typeidExpression)
+     *     | $(RULE vector)
      *     | $(RULE arrayLiteral)
      *     | $(RULE assocArrayLiteral)
      *     | $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)')
@@ -3560,8 +3568,25 @@ q{(int a, ...)
         with (TokenType) switch (current().type)
         {
         case identifier:
-        // TODO
-            // symbol or type.identifier
+            if (peekIs(TokenType.goesTo))
+                node.lambdaExpression = parseLambdaExpression();
+            else
+                node.identifier = advance();
+            break;
+        mixin (BASIC_TYPE_CASE_RANGE);
+            node.basicType = advance().type;
+            expect(dot);
+            auto t = expect(identifier);
+            if (t !is null)
+                node.identifier = *t;
+            break;
+        case function_:
+        case delegate_:
+        case lBrace:
+        case in_:
+        case out_:
+        case body_:
+            node.functionLiteralExpression = parseFunctionLiteralExpression();
             break;
         case typeof_:
             node.typeofExpression = parseTypeofExpression();
@@ -3569,19 +3594,28 @@ q{(int a, ...)
         case typeid_:
             node.typeidExpression = parseTypeidExpression();
             break;
+        case vector:
+            node.vector = parseVector();
+            break;
         case lBracket:
-            // TODO: array literal or associative array literal
+            if (isAssociativeArrayLiteral())
+                node.assocArrayLiteral = parseAssocArrayLiteral();
+            else
+                node.arrayLiteral = parseArrayLiteral();
             break;
         case lParen:
-            advance();
-            node.expression = parseExpression();
-            expect(TokenType.rParen);
+            if (peekPastParens().type == TokenType.goesTo)
+                node.lambdaExpression = parseLambdaExpression();
+            else
+            {
+                advance();
+                node.expression = parseExpression();
+                expect(TokenType.rParen);
+            }
             break;
         case is_:
             node.isExpression = parseIsExpression();
             break;
-        // TODO: lambda
-        // TODO: function literal
         case traits:
             node.traitsExpression = parseTraitsExpression();
             break;
@@ -3596,8 +3630,8 @@ q{(int a, ...)
         case null_:
         case true_:
         case false_:
-        case specialDate: .. case specialPrettyFunction:
-        case doubleLiteral: .. case wstringLiteral:
+        mixin (SPECIAL_CASE_RANGE);
+        mixin (LITERAL_CASE_RANGE);
 			version(verbose) writeln("special or literal ", index, " ", current());
             node.primary = advance();
             break;
@@ -3954,7 +3988,7 @@ q{(int a, ...)
     {
         auto node = new StructDeclaration;
         expect(TokenType.struct_);
-        node.identifier = *expect(TokenType.identifier);
+        node.name = *expect(TokenType.identifier);
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -4308,9 +4342,9 @@ q{(int a, ...)
 		case null_:
 		case this_:
 		case identifier:
-		case specialDate: .. case specialTokenSequence:
-		case doubleLiteral: .. case wstringLiteral:
-		case bool_: .. case wchar_:
+		mixin (SPECIAL_CASE_RANGE);
+		mixin (LITERAL_CASE_RANGE);
+		mixin (BASIC_TYPE_CASE_RANGE);
 			node.token = advance();
 			break;
 		default:
@@ -4339,13 +4373,17 @@ q{(int a, ...)
      * Parses an TemplateTupleParameter
      *
      * $(GRAMMAR $(RULEDEF templateTupleParameter):
-     *     $(LITERAL Identifier) '...'
+     *     $(LITERAL Identifier) $(LITERAL '...')
      *     ;)
      */
     TemplateTupleParameter parseTemplateTupleParameter()
     {
         auto node = new TemplateTupleParameter;
-        // TODO
+        auto i = expect(TokenType.identifier);
+        if (i is null)
+            return null;
+        node.identifier = *i;
+        expect(TokenType.vararg);
         return node;
     }
 
@@ -4522,19 +4560,21 @@ q{(int a, ...)
             break;
         }
         node.type2 = parseType2();
-        loop: while (true)
+        if (node.type2 is null)
+            return null;
+        loop: while (true) with (TokenType) switch (current.type)
         {
-            switch (current.type)
-            {
-            case TokenType.star:
-            case TokenType.lBracket:
-            case TokenType.delegate_:
-            case TokenType.function_:
-                node.typeSuffixes ~= parseTypeSuffix();
-                break;
-            default:
-                break loop;
-            }
+        case TokenType.star:
+        case TokenType.lBracket:
+        case TokenType.delegate_:
+        case TokenType.function_:
+            auto suffix = parseTypeSuffix();
+            if (suffix !is null)
+                node.typeSuffixes ~= suffix;
+            else
+                return null;
+        default:
+            break loop;
         }
         return node;
     }
@@ -4552,35 +4592,40 @@ q{(int a, ...)
     Type2 parseType2()
     {
         auto node = new Type2;
-        switch (current.type)
+        with (TokenType) switch (current.type)
         {
-            case TokenType.identifier:
-            case TokenType.dot:
-                node.symbol = parseSymbol();
+            case identifier:
+            case dot:
+                if ((node.symbol = parseSymbol()) is null)
+                    return null;
                 break;
-            case TokenType.bool_: .. case TokenType.wchar_:
-                node.basicType = parseBasicType();
+            case bool_: .. case wchar_:
+                if ((node.basicType = parseBasicType()) == TokenType.invalid)
+                    return null;
                 break;
-            case TokenType.typeof_:
-                node.typeofExpression = parseTypeofExpression();
+            case typeof_:
+                if ((node.typeofExpression = parseTypeofExpression()) is null)
+                    return null;
                 if (currentIs(TokenType.dot))
                 {
                     advance();
                     node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
+                    if (node.identifierOrTemplateChain is null)
+                        return null;
                 }
                 break;
-            case TokenType.const_:
-            case TokenType.immutable_:
-            case TokenType.inout_:
-            case TokenType.shared_:
+            case const_:
+            case immutable_:
+            case inout_:
+            case shared_:
                 node.typeConstructor = parseTypeConstructor();
-                expect(TokenType.lParen);
-                node.type = parseType();
-                expect(TokenType.rParen);
+                if (expect(TokenType.lParen) is null) return null;
+                if ((node.type = parseType()) is null) return null;
+                if (expect(TokenType.rParen) is null) return null;
                 break;
             default:
                 error("Basic type, type constructor, symbol, or typeof expected");
-                break;
+                return null;
         }
         return node;
     }
@@ -4595,7 +4640,7 @@ q{(int a, ...)
      *     | $(LITERAL 'shared')
      *     ;)
      */
-    TokenType parseTypeConstructor(bool validate = false)
+    TokenType parseTypeConstructor(bool validate = true)
     {
         with (TokenType) switch (current().type)
 		{
@@ -4692,19 +4737,32 @@ q{(int a, ...)
     TypeSuffix parseTypeSuffix()
     {
         auto node = new TypeSuffix;
-        switch(current().type)
+        version (verbose) writeln("parseTypeSuffix");
+        with (TokenType) switch(current().type)
         {
-        case TokenType.star:
+        case star:
             node.star = true;
             advance();
             return node;
-        case TokenType.lBracket:
+        case lBracket:
+            node.array = true;
             advance();
-            // TODO: magic
+            if (currentIs(rBracket))
+                goto end;
+            auto bookmark = setBookmark();
+            auto type = parseType();
+            if (type is null)
+            {
+                goToBookmark(bookmark);
+                node.assignExpression = parseAssignExpression();
+            }
+            else
+                node.type = type;
+        end:
             expect(TokenType.rBracket);
             return node;
-        case TokenType.delegate_:
-        case TokenType.function_:
+        case delegate_:
+        case function_:
             advance();
             node.parameters = parseParameters();
             while (currentIsMemberFunctionAttribute())
@@ -4929,6 +4987,23 @@ q{(int a, ...)
     }
 
     /**
+     * Parses a Vector
+     *
+     * $(GRAMMAR $(RULEDEF vector):
+     *     $(LITERAL '__vector') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL '$(RPAREN)')
+     *     ;)
+     */
+    Vector parseVector()
+    {
+        auto node = new Vector;
+        expect(TokenType.vector);
+        expect(TokenType.lParen);
+        node.type = parseType();
+        expect(TokenType.rParen);
+        return node;
+    }
+
+    /**
      * Parses a VersionCondition
      *
      * $(GRAMMAR $(RULEDEF versionCondition):
@@ -5027,7 +5102,74 @@ q{(int a, ...)
             TokenType.xor)();
     }
 
-    private bool currentIsMemberFunctionAttribute() const
+private:
+
+    bool isAssociativeArrayLiteral()
+    {
+        auto i = index;
+        scope(exit) index = i;
+        if (!currentIs(TokenType.lBracket))
+            return false;
+        advance();
+        while (moreTokens()) with (TokenType) switch (current().type)
+        {
+        case lBrace: skipBraceContent(); break;
+        case lParen: skipParenContent(); break;
+        case lBracket: skipBracketContent(); break;
+        case rBracket: return false;
+        case colon: return true;
+        default: break;
+        }
+        return false;
+    }
+
+    bool isStatement() const
+    {
+        // TODO: Not complete
+        with (TokenType) switch (current().type)
+        {
+        case lBrace:
+        case if_:
+        case while_:
+        case do_:
+        case for_:
+        case foreach_:
+        case foreach_reverse_:
+        case switch_:
+        case continue_:
+        case break_:
+        case return_:
+        case goto_:
+        case with_:
+        case try_:
+        case throw_:
+        case asm_:
+        case default_:
+        case case_:
+        case new_:
+        mixin (SPECIAL_CASE_RANGE);
+        mixin (LITERAL_CASE_RANGE);
+        case true_:
+        case false_:
+            return true;
+        case extern_:
+        case union_:
+        case class_:
+        case interface_:
+        case function_:
+        case delegate_:
+        case typedef_:
+        case typeof_:
+        case invariant_:
+        case alias_:
+        mixin (BASIC_TYPE_CASE_RANGE);
+            return false;
+        default:
+            return false;
+        }
+    }
+
+    bool currentIsMemberFunctionAttribute() const
     {
         switch (current.type)
         {
@@ -5044,7 +5186,7 @@ q{(int a, ...)
         }
     }
 
-    private Left parseLeftAssocBinaryExpression(alias Left, alias Right, Operators ...)
+    Left parseLeftAssocBinaryExpression(alias Left, alias Right, Operators ...)
         (Right r = null)
     {
         auto node = new Left;
@@ -5063,7 +5205,7 @@ q{(int a, ...)
         return node;
     }
 
-    private ListType parseCommaSeparatedRule(alias ListType, alias ItemType)()
+    ListType parseCommaSeparatedRule(alias ListType, alias ItemType)()
     {
         auto node = new ListType;
         while (true)
@@ -5081,12 +5223,15 @@ q{(int a, ...)
     {
         import std.stdio;
         ++errorCount;
-        if (errorFunction is null)
-            stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
-                tokens[index].column, message);
-        else
-            errorFunction(fileName, tokens[index].line, tokens[index].column,
-                message);
+        if (!suppressMessages)
+        {
+            if (errorFunction is null)
+                stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
+                    tokens[index].column, message);
+            else
+                errorFunction(fileName, tokens[index].line, tokens[index].column,
+                    message);
+        }
         while (moreTokens())
         {
             if (currentIsOneOf(TokenType.semicolon, TokenType.rBrace))
@@ -5257,6 +5402,18 @@ q{(int a, ...)
         return index + 1 < tokens.length;
     }
 
+    size_t setBookmark()
+    {
+        suppressMessages = true;
+        return index;
+    }
+
+    void goToBookmark(size_t i)
+    {
+        suppressMessages = false;
+        index = i;
+    }
+
     version (unittest) static void doNothingErrorFunction(string fileName,
         int line, int column, string message) {}
 
@@ -5277,4 +5434,8 @@ q{(int a, ...)
     size_t index;
     string fileName;
     void function(string, int, int, string) errorFunction;
+    immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
+    immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
+    immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
+    bool suppressMessages;
 }

@@ -224,6 +224,7 @@ abstract class ASTVisitor
 	/** */ void visit(UnionDeclaration unionDeclaration) { unionDeclaration.accept(this); }
 	/** */ void visit(Unittest unittest_) { unittest_.accept(this); }
 	/** */ void visit(VariableDeclaration variableDeclaration) { variableDeclaration.accept(this); }
+	/** */ void visit(Vector vector) { vector.accept(this); }
 	/** */ void visit(VersionCondition versionCondition) { versionCondition.accept(this); }
 	/** */ void visit(VersionSpecification versionSpecification) { versionSpecification.accept(this); }
 	/** */ void visit(WhileStatement whileStatement) { whileStatement.accept(this); }
@@ -1641,8 +1642,9 @@ class PrimaryExpression : ASTNode
 public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Token primary;
+	/** */ Token identifier;
     /** */ IdentifierOrTemplateInstance identifierOrTemplateInstance;
-    /** */ Type type;
+    /** */ TokenType basicType;
     /** */ TypeofExpression typeofExpression;
     /** */ TypeidExpression typeidExpression;
     /** */ ArrayLiteral arrayLiteral;
@@ -1654,6 +1656,7 @@ public:
     /** */ TraitsExpression traitsExpression;
     /** */ MixinExpression mixinExpression;
     /** */ ImportExpression importExpression;
+    /** */ Vector vector;
 }
 
 ///
@@ -1819,7 +1822,7 @@ class StructDeclaration : ASTNode
 {
 public:
 	mixin(DEFAULT_ACCEPT);
-	/** */ Token identifier;
+	/** */ Token name;
 	/** */ TemplateParameters templateParameters;
 	/** */ Constraint constraint;
 	/** */ StructBody structBody;
@@ -2132,6 +2135,7 @@ public:
 	mixin(DEFAULT_ACCEPT);
 	/** */ Token delegateOrFunction;
 	/** */ bool star;
+	/** */ bool array;
 	/** */ Type type;
 	/** */ AssignExpression assignExpression;
 	/** */ Parameters parameters;
@@ -2202,6 +2206,14 @@ public:
 	/** */ Declarator[] declarators;
 	/** */ StorageClass storageClass;
 	/** */ AutoDeclaration autoDeclaration;
+}
+
+///
+class Vector : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    /** */ Type type;
 }
 
 ///

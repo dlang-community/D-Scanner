@@ -2084,7 +2084,6 @@ enum TokenType: ushort
     dchar_, /// $(D_KEYWORD dchar)
     double_, /// $(D_KEYWORD double)
     float_, /// $(D_KEYWORD float)
-    function_, /// $(D_KEYWORD function)
     idouble_, /// $(D_KEYWORD idouble)
     ifloat_, /// $(D_KEYWORD ifloat)
     int_, /// $(D_KEYWORD int)
@@ -2134,6 +2133,7 @@ enum TokenType: ushort
     debug_, /// $(D_KEYWORD debug)
     default_, /// $(D_KEYWORD default)
     delegate_, /// $(D_KEYWORD delegate)
+    function_, /// $(D_KEYWORD function)
     delete_, /// $(D_KEYWORD delete)
     do_, /// $(D_KEYWORD do)
     else_, /// $(D_KEYWORD else)
@@ -2581,7 +2581,6 @@ package immutable(string[TokenType.max + 1]) tokenValues = [
     "dchar",
     "double",
     "float",
-    "function",
     "idouble",
     "ifloat",
     "int",
@@ -2629,6 +2628,7 @@ package immutable(string[TokenType.max + 1]) tokenValues = [
     "debug",
     "default",
     "delegate",
+    "function",
     "delete",
     "do",
     "else",
