@@ -18,10 +18,11 @@ module std.d.ast;
 
 import std.d.lexer;
 
+// TODO: Many of these classes can be simplified by using std.variant.Algebraic
+
 /**
  * Implements the $(LINK2 http://en.wikipedia.org/wiki/Visitor_pattern, Visitor Pattern)
- * for the various AST ///
-classes
+ * for the various AST classes
  */
 abstract class ASTVisitor
 {
