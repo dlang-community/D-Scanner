@@ -1726,10 +1726,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case auto_:
             if (startsWith(auto_, ref_, identifier, lParen)
-                || startsWith(auto_, identifier, lParen))
-            {
+					|| startsWith(auto_, identifier, lParen))
                 node.functionDeclaration = parseFunctionDeclaration();
-            }
+			else
+				node.variableDeclaration = parseVariableDeclaration();
             break;
         case ref_:
             if (startsWith(ref_, auto_, identifier, lParen)
@@ -1744,7 +1744,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             }
             break;
         case at:
-        case extern_:
         case align_:
         case deprecated_:
         case private_:
@@ -1759,10 +1758,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case abstract_:
         case const_:
         case gshared:
-        case shared_:
         case immutable_:
         case inout_:
-        case static_:
         case pure_:
         case nothrow_:
             node.attributedDeclaration = parseAttributedDeclaration();
@@ -2129,16 +2126,29 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new ForeachStatement;
 
         if (currentIs(TokenType.foreach_))
-        {
-            expect(TokenType.foreach_);
-        }
+            advance();
         else
-        {
-            expect(TokenType.foreach_reverse_);
-        }
-        expect(TokenType.lParen);
-        expect(TokenType.rParen);
+            if (expect(TokenType.foreach_reverse_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
+		auto feType = parseForeachTypeList();
+		bool canBeRange = feType.items.length == 0;
+		expect(TokenType.semicolon);
+		node.low = parseExpression();
+		if (node.low is null) return null;
+		if (currentIs(TokenType.slice))
+		{
+			if (!canBeRange)
+			{
+				error(`Cannot have more than one foreach varible for a foreach range statement`);
+				return null;
+			}
+			advance();
+			node.high = parseExpression();
+			if (node.high is null) return null;
+		}
+        if (expect(TokenType.rParen) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+		if (node.statementNoCaseNoDefault is null) return null;
         return node;
     }
 
@@ -3350,9 +3360,8 @@ invariant() foo();
             break;
         case foreach_:
         case foreach_reverse_:
-            // TODO
-            advance();
-            return null;
+            node.foreachStatement = parseForeachStatement();
+			break;
         case switch_:
             node.switchStatement = parseSwitchStatement();
             break;
