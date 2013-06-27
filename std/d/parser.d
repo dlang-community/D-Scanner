@@ -2618,9 +2618,9 @@ body {} // six
         {
             advance();
             node.hasRight = true;
-			auto ident = expect(TokenType.identifier);
-			if (ident is null) return null;
-            node.right = *ident;
+			auto id = expect(TokenType.identifier);
+			if (id is null) return null;
+            node.right = *id;
         }
         return node;
     }
