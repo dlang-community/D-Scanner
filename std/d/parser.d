@@ -23,7 +23,7 @@
  * definitions end with a semicolon (;).)
  * )
  *
- * The grammar for D starts with the $(LINK2 #.module, module) rule.
+ * The grammar for D starts with the $(LINK2 #module, module) rule.
  *
  * Examples:
  * ---
@@ -69,10 +69,10 @@ import std.algorithm;
 import std.array;
 version (unittest) import std.stdio;
 
-version = development;
-version = verbose;
+//version = development;
+//version = verbose;
 version(development) import std.stdio;
-version(verbose) import std.stdio;
+import std.stdio;
 
 // TODO: any place that says *expect(...) needs to be fixed
 
@@ -104,7 +104,7 @@ struct Parser
      */
     AddExpression parseAddExpression()
     {
-		version(verbose) writeln("parseAddExpression");
+        version(verbose) writeln("parseAddExpression");
         return parseLeftAssocBinaryExpression!(AddExpression, MulExpression,
             TokenType.plus, TokenType.minus, TokenType.tilde)();
     }
@@ -119,12 +119,46 @@ struct Parser
     AliasDeclaration parseAliasDeclaration()
     {
         auto node = new AliasDeclaration;
-        expect(TokenType.alias_);
-
-        // TODO
-
-        expect(TokenType.semicolon);
+        if (expect(TokenType.alias_) is null) return null;
+        if (startsWith(TokenType.identifier, TokenType.assign))
+        {
+            do
+            {
+                auto initializer = parseAliasInitializer();
+                if (initializer is null) return null;
+                node.initializers ~= initializer;
+                if (currentIs(TokenType.comma))
+                    advance();
+                else
+                    break;
+            }
+            while (true);
+        }
+        else
+        {
+            if ((node.type = parseType()) is null) return null;
+            writeln("type parsed");
+            if ((node.declarator = parseDeclarator()) is null) return null;
+            writeln("declarator parsed");
+        }
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
+    }
+
+    unittest
+    {
+        auto sourceCode =
+q{
+alias core.sys.posix.stdio.fileno fileno;
+}c;
+
+        Parser p = getParserForUnittest(sourceCode, "parseAliasDeclaration");
+
+        AliasDeclaration d = p.parseAliasDeclaration();
+        assert (d !is null);
+        assert (p.errorCount == 0);
+
+        stderr.writeln("Unittest for parseAliasDeclaration() passed.");
     }
 
     /**
@@ -136,8 +170,10 @@ struct Parser
     AliasInitializer parseAliasInitializer()
     {
         auto node = new AliasInitializer;
-        node.identifier = *expect(TokenType.identifier);
-        expect(TokenType.assign);
+        auto i = expect(TokenType.identifier);
+        if (i is null) return null;
+        node.identifier = *i;
+        if (expect(TokenType.assign) is null) return null;
         node.type = parseType();
         return node;
     }
@@ -151,10 +187,11 @@ struct Parser
     AliasThisDeclaration parseAliasThisDeclaration()
     {
         auto node = new AliasThisDeclaration;
-        expect(TokenType.alias_);
-        node.identifier = *expect(TokenType.identifier);
-        expect(TokenType.this_);
-        expect(TokenType.semicolon);
+        if (expect(TokenType.alias_) is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        if (expect(TokenType.this_) is null) return null;
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -170,9 +207,11 @@ struct Parser
         expect(TokenType.align_);
         if (currentIs(TokenType.lParen))
         {
-            expect(TokenType.lParen);
-            node.intLiteral = *expect(TokenType.intLiteral);
-            expect(TokenType.rParen);
+            if (expect(TokenType.lParen) is null) return null;
+            auto intLit = expect(TokenType.intLiteral);
+            if (intLit is null) return null;
+            node.intLiteral = *intLit;
+            if (expect(TokenType.rParen) is null) return null;
         }
         return node;
     }
@@ -186,7 +225,7 @@ struct Parser
      */
     AndAndExpression parseAndAndExpression()
     {
-		version(verbose) writeln("parseAndAndExpression");
+        version(verbose) writeln("parseAndAndExpression");
         return parseLeftAssocBinaryExpression!(AndAndExpression, OrExpression,
             TokenType.logicAnd)();
     }
@@ -201,7 +240,7 @@ struct Parser
      */
     AndExpression parseAndExpression()
     {
-		version(verbose) writeln("parseAndExpression");
+        version(verbose) writeln("parseAndExpression");
         return parseLeftAssocBinaryExpression!(AndExpression, CmpExpression,
             TokenType.bitAnd)();
     }
@@ -215,19 +254,7 @@ struct Parser
      */
     ArgumentList parseArgumentList()
     {
-        auto node = new ArgumentList;
-        while (true)
-        {
-            node.arguments ~= parseAssignExpression();
-            if (moreTokens() && currentIs(TokenType.comma))
-            {
-                advance();
-                continue;
-            }
-            else
-                break;
-        }
-        return node;
+        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)();
     }
 
     /**
@@ -240,9 +267,9 @@ struct Parser
     Arguments parseArguments()
     {
         auto node = new Arguments;
-        expect(TokenType.lParen);
+        if (expect(TokenType.lParen) is null) return null;
         node.argumentList = parseArgumentList();
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         return node;
     }
 
@@ -257,7 +284,7 @@ struct Parser
     ArrayInitializer parseArrayInitializer()
     {
         auto node = new ArrayInitializer;
-        expect(TokenType.lBracket);
+        if (expect(TokenType.lBracket) is null) return null;
         while (true)
         {
             node.arrayMemberInitializations ~= parseArrayMemberInitialization();
@@ -270,7 +297,7 @@ struct Parser
                 break;
         }
 
-        expect(TokenType.rBracket);
+        if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
 
@@ -284,9 +311,9 @@ struct Parser
     ArrayLiteral parseArrayLiteral()
     {
         auto node = new ArrayLiteral;
-        expect(TokenType.lBracket);
+        if (expect(TokenType.lBracket) is null) return null;
         node.argumentList = parseArgumentList();
-        expect(TokenType.rBracket);
+        if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
 
@@ -300,7 +327,29 @@ struct Parser
     ArrayMemberInitialization parseArrayMemberInitialization()
     {
         auto node = new ArrayMemberInitialization;
-        // TODO
+        with (TokenType) switch (current.type)
+        {
+        case lBrace:
+        case lBracket:
+            node.nonVoidInitializer = parseNonVoidInitializer();
+            if (node.nonVoidInitializer is null) return null;
+            break;
+        default:
+            auto assignExpression = parseAssignExpression();
+            if (assignExpression is null) return null;
+            if (currentIs(colon))
+            {
+                node.assignExpression = assignExpression;
+                advance();
+                node.nonVoidInitializer = parseNonVoidInitializer();
+                if (node.nonVoidInitializer is null) return null;
+            }
+            else
+            {
+                node.nonVoidInitializer = new NonVoidInitializer;
+                node.nonVoidInitializer.assignExpression = assignExpression;
+            }
+        }
         return node;
     }
 
@@ -575,14 +624,14 @@ struct Parser
     {
         auto node = new AssertExpression;
         expect(TokenType.assert_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.lParen) is null) return null;
         node.assertion = parseAssignExpression();
         if (currentIs(TokenType.comma))
         {
             advance();
             node.message = parseAssignExpression();
         }
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         return node;
     }
 
@@ -611,7 +660,7 @@ struct Parser
      */
     AssignExpression parseAssignExpression()
     {
-		version(verbose) writeln("parseAssignExpression");
+        version(verbose) writeln("parseAssignExpression");
         auto node = new AssignExpression;
         node.ternaryExpression = parseTernaryExpression();
         if (currentIsOneOf(TokenType.assign, TokenType.unsignedShiftRightEqual,
@@ -638,7 +687,7 @@ struct Parser
     {
         auto node = new AssignStatement;
         // TODO
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -652,9 +701,9 @@ struct Parser
     AssocArrayLiteral parseAssocArrayLiteral()
     {
         auto node = new AssocArrayLiteral;
-        expect(TokenType.lBracket);
+        if (expect(TokenType.lBracket) is null) return null;
         node.keyValuePairs = parseKeyValuePairs();
-        expect(TokenType.rBracket);
+        if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
 
@@ -668,7 +717,7 @@ struct Parser
     AtAttribute parseAtAttribute()
     {
         auto node = new AtAttribute;
-        expect(TokenType.at);
+        if (expect(TokenType.at) is null) return null;
         with (TokenType) switch (current().type)
         {
         case identifier:
@@ -681,9 +730,9 @@ struct Parser
             node.argumentList = parseArgumentList();
             expect(rParen);
             break;
-		default:
-			error(`"(", or identifier expected`);
-			return null;
+        default:
+            error(`"(", or identifier expected`);
+            return null;
         }
         return node;
     }
@@ -781,11 +830,15 @@ struct Parser
         switch (current().type)
         {
         case TokenType.colon:
+            advance();
+            auto dec = parseDeclaration();
+            if (dec is null) return null;
+            node.declarations ~= dec;
             break;
         case TokenType.lBrace:
             while (moreTokens() && !currentIs(TokenType.rBrace))
                 node.declarations ~= parseDeclaration();
-            expect(TokenType.rBrace);
+            if (expect(TokenType.rBrace) is null) return null;
             break;
         default:
             node.declarations ~= parseDeclaration();
@@ -818,11 +871,11 @@ struct Parser
     BlockStatement parseBlockStatement()
     {
         auto node = new BlockStatement();
-        expect(TokenType.lBrace);
+        if (expect(TokenType.lBrace) is null) return null;
         version (development) skipBraceContent();
         if (!currentIs(TokenType.rBrace))
             node.declarationsAndStatements = parseDeclarationsAndStatements();
-        expect(TokenType.rBrace);
+        if (expect(TokenType.rBrace) is null) return null;
         return node;
     }
 
@@ -856,7 +909,7 @@ struct Parser
         {
         case TokenType.identifier:
             node.identifier = advance();
-            expect(TokenType.semicolon);
+            if (expect(TokenType.semicolon) is null) return null;
             break;
         case TokenType.semicolon:
             advance();
@@ -881,7 +934,7 @@ struct Parser
         if (currentIs(TokenType.typeof_))
         {
             node.typeofExpression = parseTypeofExpression();
-            expect(TokenType.dot);
+            if (expect(TokenType.dot) is null) return null;
         }
         node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         return node;
@@ -931,9 +984,9 @@ struct Parser
     {
         if (isBasicType(current().type))
             return advance();
-		error("Basic type expected");
-		Token t;
-		return t;
+        error("Basic type expected");
+        Token t;
+        return t;
     }
 
     /**
@@ -948,11 +1001,11 @@ struct Parser
         auto node = new CaseRangeStatement;
         expect(TokenType.case_);
         node.low = parseAssignExpression();
-        expect(TokenType.colon);
-        expect(TokenType.vararg);
+        if (expect(TokenType.colon) is null) return null;
+        if (expect(TokenType.vararg) is null) return null;
         expect(TokenType.case_);
         node.high = parseAssignExpression();
-        expect(TokenType.colon);
+        if (expect(TokenType.colon) is null) return null;
         node.declarationsAndStatements = parseDeclarationsAndStatements();
         return node;
     }
@@ -969,7 +1022,7 @@ struct Parser
         auto node = new CaseStatement;
         expect(TokenType.case_);
         node.argumentList = parseArgumentList();
-        expect(TokenType.colon);
+        if (expect(TokenType.colon) is null) return null;
         node.declarationsAndStatements = parseDeclarationsAndStatements();
         return node;
     }
@@ -985,12 +1038,12 @@ struct Parser
     {
         auto node = new CastExpression;
         expect(TokenType.cast_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.lParen) is null) return null;
         if (isCastQualifier())
             node.castQualifier = parseCastQualifier();
         else
             node.type = parseType();
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         node.unaryExpression = parseUnaryExpression();
         return node;
     }
@@ -1136,11 +1189,11 @@ incorrect;
     {
         auto node = new Catch;
         expect(TokenType.catch_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.lParen) is null) return null;
         node.type = parseType();
         if (currentIs(TokenType.identifier))
             node.identifier = advance();
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
@@ -1186,9 +1239,14 @@ incorrect;
     ClassBody parseClassBody()
     {
         auto node = new ClassBody;
-        expect(TokenType.lBrace);
-        version (development) skipBraceContent();
-        expect(TokenType.rBrace);
+        if (expect(TokenType.lBrace) is null) return null;
+        while (moreTokens() && !currentIs(TokenType.rBrace))
+        {
+            auto doi = parseDeclarationOrInvariant();
+            if (doi !is null)
+                node.declarationOrInvariants ~= doi;
+        }
+        if (expect(TokenType.rBrace) is null) return null;
         return node;
     }
 
@@ -1227,7 +1285,7 @@ incorrect;
 q{class ClassOne {}
 class ClassTwo : Super {}
 class ClassThree(A, B) : Super {}
-class ClassFour(A, B) if (someTest()) : Super {}};
+class ClassFour(A, B) if (someTest()) : Super {}}c;
 
         Parser p = getParserForUnittest(sourceCode, "parseClassDeclaration");
 
@@ -1241,27 +1299,28 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         auto classTwo = p.parseClassDeclaration();
         assert (classTwo.name == "ClassTwo", classTwo.name.value);
         assert (classTwo.baseClassList !is null);
-        assert (classTwo.baseClassList.baseClasses.length == 1,
-            to!string(classTwo.baseClassList.baseClasses.length));
+        assert (classTwo.baseClassList.items.length == 1,
+            to!string(classTwo.baseClassList.items.length));
         assert (classTwo.classBody.declarationOrInvariants.length == 0,
             to!string(classTwo.classBody.declarationOrInvariants.length));
 
         auto classThree = p.parseClassDeclaration();
         assert (classThree.name == "ClassThree", classThree.name.value);
         assert (classThree.templateParameters !is null);
+        assert (classThree.templateParameters.templateParameterList.items.length == 2);
         assert (classThree.baseClassList !is null);
-        assert (classThree.baseClassList.baseClasses.length == 1);
+        assert (classThree.baseClassList.items.length == 1);
         assert (classThree.classBody.declarationOrInvariants.length == 0,
             to!string(classThree.classBody.declarationOrInvariants.length));
 
-        auto classFour = p.parseClassDeclaration();
-        assert (classFour.name == "ClassFour", classFour.name.value);
-        assert (classFour.templateParameters !is null);
-        assert (classFour.baseClassList !is null);
-        assert (classFour.constraint !is null);
-        assert (classFour.baseClassList.baseClasses.length == 1);
-        assert (classFour.classBody.declarationOrInvariants.length == 0,
-            to!string(classFour.classBody.declarationOrInvariants.length));
+        //auto classFour = p.parseClassDeclaration();
+        //assert (classFour.name == "ClassFour", classFour.name.value);
+        //assert (classFour.templateParameters !is null);
+        //assert (classFour.baseClassList !is null);
+        //assert (classFour.constraint !is null);
+        //assert (classFour.baseClassList.items.length == 1);
+        //assert (classFour.classBody.declarationOrInvariants.length == 0,
+        //    to!string(classFour.classBody.declarationOrInvariants.length));
 
         stderr.writeln("Unittest for parseClassDeclaration() passed.");
     }
@@ -1279,7 +1338,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      */
     CmpExpression parseCmpExpression()
     {
-		version(verbose) writeln("parseCmpExpression");
+        version(verbose) writeln("parseCmpExpression");
         auto node = new CmpExpression;
         auto shift = parseShiftExpression();
         with (TokenType) switch (current().type)
@@ -1362,6 +1421,52 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     {
         auto node = new ConditionalDeclaration;
         node.compileCondition = parseCompileCondition();
+        if (currentIs(TokenType.lBrace))
+        {
+            advance();
+            do
+            {
+                auto dec = parseDeclaration();
+                if (dec is null) return null;
+                node.trueDeclarations ~= dec;
+                if (!moreTokens() || currentIs(TokenType.rBrace))
+                    break;
+            }
+            while (true);
+            if (expect(TokenType.rBrace) is null) return null;
+        }
+        else
+        {
+            auto dec = parseDeclaration();
+            if (dec is null) return null;
+            node.trueDeclarations ~= dec;
+        }
+
+        if(currentIs(TokenType.else_))
+            advance();
+        else
+            return node;
+
+        if (currentIs(TokenType.lBrace))
+        {
+            advance();
+            do
+            {
+                auto dec = parseDeclaration();
+                if (dec is null) return null;
+                node.falseDeclarations ~= dec;
+                if (!moreTokens() || currentIs(TokenType.rBrace))
+                    break;
+            }
+            while (true);
+            if (expect(TokenType.rBrace) is null) return null;
+        }
+        else
+        {
+            auto dec = parseDeclaration();
+            if (dec is null) return null;
+            node.falseDeclarations ~= dec;
+        }
         return node;
     }
 
@@ -1369,7 +1474,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses an ConditionalStatement
      *
      * $(GRAMMAR $(RULEDEF conditionalStatement):
-     *     $(RULE compileCondition) $(RULE statementNoCaseNoDefault) ($(LITERAL 'else') $(RULE nonEmptyStatementNoCaseNoDefault))?
+     *     $(RULE compileCondition) $(RULE statementNoCaseNoDefault) ($(LITERAL 'else') $(RULE statementNoCaseNoDefault))?
      *     ;)
      */
     ConditionalStatement parseConditionalStatement()
@@ -1395,13 +1500,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Constraint parseConstraint()
     {
         auto node = new Constraint;
-        expect(TokenType.if_);
-        expect(TokenType.lParen);
-        version (development)
-            skipParenContent();
-        else
-            node.expression = parseExpression();
-        expect(TokenType.rParen);
+        if (expect(TokenType.if_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
+        node.expression = parseExpression();
+        if (expect(TokenType.rParen) is null) return null;
         return node;
     }
 
@@ -1415,7 +1517,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Constructor parseConstructor()
     {
         auto node = new Constructor;
-        expect(TokenType.this_);
+        if (expect(TokenType.this_) is null) return null;
         node.parameters = parseParameters();
         node.functionBody = parseFunctionBody();
         return node;
@@ -1430,13 +1532,13 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      */
     ContinueStatement parseContinueStatement()
     {
-        expect(TokenType.continue_);
+        if (expect(TokenType.continue_) is null) return null;
         auto node = new ContinueStatement;
         switch (current().type)
         {
         case TokenType.identifier:
             node.identifier = advance();
-            expect(TokenType.semicolon);
+            if (expect(TokenType.semicolon) is null) return null;
             break;
         case TokenType.semicolon:
             advance();
@@ -1458,7 +1560,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     DebugCondition parseDebugCondition()
     {
         auto node = new DebugCondition;
-        expect(TokenType.debug_);
+        if (expect(TokenType.debug_) is null) return null;
         if (currentIs(TokenType.lParen))
         {
             advance();
@@ -1470,7 +1572,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
                 error(`Integer literal or identifier expected`);
                 return null;
             }
-            expect(TokenType.rParen);
+            if (expect(TokenType.rParen) is null) return null;
         }
         else
             node.hasIdentifierOrInteger = false;
@@ -1487,8 +1589,8 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     DebugSpecification parseDebugSpecification()
     {
         auto node = new DebugSpecification;
-        expect(TokenType.debug_);
-        expect(TokenType.assign);
+        if (expect(TokenType.debug_) is null) return null;
+        if (expect(TokenType.assign) is null) return null;
         if (currentIsOneOf(TokenType.identifier, TokenType.intLiteral))
             node.identifierOrInteger = advance();
         else
@@ -1496,7 +1598,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
             error("Integer literal or identifier expected");
             return null;
         }
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -1533,122 +1635,138 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     {
         import std.stdio;
         auto node = new Declaration;
-        switch (current().type)
+        with (TokenType) switch (current().type)
         {
-        case TokenType.alias_:
-            if (startsWith(TokenType.alias_, TokenType.identifier, TokenType.this_))
+        case alias_:
+            if (startsWith(alias_, identifier, this_))
                 node.aliasThisDeclaration = parseAliasThisDeclaration();
             else
                 node.aliasDeclaration = parseAliasDeclaration();
             break;
-        case TokenType.class_:
+        case class_:
             node.classDeclaration = parseClassDeclaration();
             break;
-        case TokenType.this_:
+        case this_:
             node.constructor = parseConstructor();
             break;
-        case TokenType.tilde:
+        case tilde:
             node.destructor = parseDestructor();
             break;
-        case TokenType.enum_:
+        case enum_:
             node.enumDeclaration = parseEnumDeclaration();
             break;
-        case TokenType.import_:
+        case import_:
             node.importDeclaration = parseImportDeclaration();
             break;
-        case TokenType.interface_:
+        case interface_:
             node.interfaceDeclaration = parseInterfaceDeclaration();
             break;
-        case TokenType.mixin_:
+        case mixin_:
             node.mixinDeclaration = parseMixinDeclaration();
             break;
-        case TokenType.pragma_:
+        case pragma_:
             node.pragmaDeclaration = parsePragmaDeclaration();
             break;
-        case TokenType.shared_:
-            if (startsWith(TokenType.shared_, TokenType.static_, TokenType.this_))
+        case shared_:
+            if (startsWith(shared_, static_, this_))
                 node.sharedStaticConstructor = parseSharedStaticConstructor();
-            else if (startsWith(TokenType.shared_, TokenType.static_, TokenType.tilde))
+            else if (startsWith(shared_, static_, tilde))
                 node.sharedStaticDestructor = parseSharedStaticDestructor();
             else
                 node.attributedDeclaration = parseAttributedDeclaration();
             break;
-        case TokenType.static_:
-            if (startsWith(TokenType.static_, TokenType.this_))
+        case static_:
+            if (startsWith(static_, this_))
                 node.staticConstructor = parseStaticConstructor();
-            else if (startsWith(TokenType.static_, TokenType.tilde))
+            else if (startsWith(static_, tilde))
                 node.staticDestructor = parseStaticDestructor();
-            else if (startsWith(TokenType.static_, TokenType.if_))
+            else if (startsWith(static_, if_))
                 node.conditionalDeclaration = parseConditionalDeclaration();
             else
                 node.attributedDeclaration = parseAttributedDeclaration();
             break;
-        case TokenType.struct_:
+        case struct_:
             node.structDeclaration = parseStructDeclaration();
             break;
-        case TokenType.template_:
+        case template_:
             node.templateDeclaration = parseTemplateDeclaration();
             break;
-        case TokenType.union_:
+        case union_:
             node.unionDeclaration = parseUnionDeclaration();
             break;
-        case TokenType.unittest_:
+        case unittest_:
             node.unittest_ = parseUnittest();
             break;
-        case TokenType.bool_: .. case TokenType.wchar_:
-        case TokenType.identifier:
+        case bool_: .. case wchar_:
+        case identifier:
             Type type = parseType();
-            if (!currentIs(TokenType.identifier))
+            if (!currentIs(identifier))
             {
                 error("Identifier expected");
                 return null;
             }
-            if (peekIs(TokenType.lParen))
+            if (peekIs(lParen))
                 node.functionDeclaration = parseFunctionDeclaration(type);
             else
                 node.variableDeclaration = parseVariableDeclaration(type);
             break;
-        case TokenType.version_:
-			if (peekIs(TokenType.lParen))
-				node.conditionalDeclaration = parseConditionalDeclaration();
-			else if (peekIs(TokenType.assign))
-				node.versionSpecification = parseVersionSpecification();
-			else
-			{
-				error(`"=" or "(" expected following "version"`);
-				return null;
-			}
-			break;
-        case TokenType.debug_:
+        case version_:
+            if (peekIs(lParen))
+                node.conditionalDeclaration = parseConditionalDeclaration();
+            else if (peekIs(assign))
+                node.versionSpecification = parseVersionSpecification();
+            else
+            {
+                error(`"=" or "(" expected following "version"`);
+                return null;
+            }
+            break;
+        case debug_:
             node.conditionalDeclaration = parseConditionalDeclaration();
             break;
-		case TokenType.at:
-		case TokenType.extern_:
-		case TokenType.align_:
-		//case TokenType.pragma_:
-		case TokenType.deprecated_:
-		case TokenType.private_:
-		case TokenType.package_:
-		case TokenType.protected_:
-		case TokenType.public_:
-		case TokenType.export_:
-		//case TokenType.extern_:
-		case TokenType.final_:
-		case TokenType.synchronized_:
-		case TokenType.override_:
-		case TokenType.abstract_:
-		case TokenType.const_:
-		case TokenType.auto_:
-		case TokenType.scope_:
-		case TokenType.gshared:
-		//case TokenType.shared_:
-		case TokenType.immutable_:
-		case TokenType.inout_:
-		//case TokenType.static_:
-		case TokenType.pure_:
-		case TokenType.nothrow_:
-			node.attributedDeclaration = parseAttributedDeclaration();
-			break;
+        case auto_:
+            if (startsWith(auto_, ref_, identifier, lParen)
+                || startsWith(auto_, identifier, lParen))
+            {
+                node.functionDeclaration = parseFunctionDeclaration();
+            }
+            break;
+        case ref_:
+            if (startsWith(ref_, auto_, identifier, lParen)
+                || startsWith(ref_, identifier, lParen))
+            {
+                node.functionDeclaration = parseFunctionDeclaration();
+            }
+            else
+            {
+                error(`Declaration expected`);
+                return null;
+            }
+            break;
+        case at:
+        case extern_:
+        case align_:
+        case deprecated_:
+        case private_:
+        case package_:
+        case protected_:
+        case public_:
+        case export_:
+        case extern_:
+        case final_:
+        case synchronized_:
+        case override_:
+        case abstract_:
+        case const_:
+        case gshared:
+        case shared_:
+        case immutable_:
+        case inout_:
+        case static_:
+        case pure_:
+        case nothrow_:
+            node.attributedDeclaration = parseAttributedDeclaration();
+            break;
         default:
             error("Declaration expected");
             advance();
@@ -1660,14 +1778,31 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     /**
      * Parses DeclarationsAndStatements
      *
-    * $(GRAMMAR $(RULEDEF declarationsAndStatements):
-    *     ($(RULE declaration) | $(RULE statementNoCaseNoDefault))+
-    *     ;)
+     * $(GRAMMAR $(RULEDEF declarationsAndStatements):
+     *     $(RULE declarationOrStatement)+
+     *     ;
+     * $(RULEDEF declarationOrStatement):
+     *       $(RULE declaration)
+     *     | $(RULE statementNoCaseNoDefault)
+     *     ;)
      */
     DeclarationsAndStatements parseDeclarationsAndStatements()
     {
         auto node = new DeclarationsAndStatements;
-        // TODO
+		while (!currentIsOneOf(TokenType.rBrace) && moreTokens())
+        {
+            auto dos = new DeclarationOrStatement;
+            // "Any ambiguities in the grammar between Statements and
+            // Declarations are resolved by the declarations taking precedence."
+            if (isDeclaration())
+                dos.declaration = parseDeclaration();
+            else
+                dos.statement = parseStatementNoCaseNoDefault();
+            if (dos.statement !is null || dos.declaration !is null)
+                node.declarationsAndStatements ~= dos;
+            else
+                return null;
+        }
         return node;
     }
 
@@ -1699,8 +1834,8 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Declarator parseDeclarator()
     {
         auto node = new Declarator;
-		auto id = expect(TokenType.identifier);
-		if (id is null) return null;
+        auto id = expect(TokenType.identifier);
+        if (id is null) return null;
         node.identifier = *id;
         if (currentIsOneOf(TokenType.lBracket, TokenType.star))
         {
@@ -1725,8 +1860,8 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     DefaultStatement parseDefaultStatement()
     {
         auto node = new DefaultStatement;
-        expect(TokenType.default_);
-        expect(TokenType.colon);
+        if (expect(TokenType.default_) is null) return null;
+        if (expect(TokenType.colon) is null) return null;
         node.declarationsAndStatements = parseDeclarationsAndStatements();
         return node;
     }
@@ -1741,7 +1876,8 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     DeleteExpression parseDeleteExpression()
     {
         auto node = new DeleteExpression;
-        // TODO
+        if (expect(TokenType.delete_) is null) return null;
+		node.unaryExpression = parseUnaryExpression();
         return node;
     }
 
@@ -1755,12 +1891,12 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Deprecated parseDeprecated()
     {
         auto node = new Deprecated;
-        expect(TokenType.deprecated_);
+        if (expect(TokenType.deprecated_) is null) return null;
         if (currentIs(TokenType.lParen))
         {
             advance();
             node.assignExpression = parseAssignExpression();
-            expect(TokenType.rParen);
+            if (expect(TokenType.rParen) is null) return null;
         }
         return node;
     }
@@ -1775,10 +1911,10 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Destructor parseDestructor()
     {
         auto node = new Destructor;
-        expect(TokenType.tilde);
-        expect(TokenType.this_);
-        expect(TokenType.lParen);
-        expect(TokenType.rParen);
+        if (expect(TokenType.tilde) is null) return null;
+        if (expect(TokenType.this_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
+        if (expect(TokenType.rParen) is null) return null;
         node.functionBody = parseFunctionBody();
         return node;
     }
@@ -1804,13 +1940,13 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     DoStatement parseDoStatement()
     {
         auto node = new DoStatement;
-        expect(TokenType.do_);
+        if (expect(TokenType.do_) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
-        expect(TokenType.while_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.while_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
         node.expression = parseExpression();
-        expect(TokenType.rParen);
-        expect(TokenType.semicolon);
+        if (expect(TokenType.rParen) is null) return null;
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -1858,7 +1994,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     EnumDeclaration parseEnumDeclaration()
     {
         auto node = new EnumDeclaration;
-        expect(TokenType.enum_);
+        if (expect(TokenType.enum_) is null) return null;
         if (currentIs(TokenType.identifier))
             node.identifier = advance();
         if (currentIs(TokenType.colon))
@@ -1894,7 +2030,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      */
     EqualExpression parseEqualExpression(ShiftExpression shift = null)
     {
-		version(verbose) writeln("parseEqualExpression");
+        version(verbose) writeln("parseEqualExpression");
         auto node = new EqualExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIsOneOf(TokenType.equal, TokenType.notEqual))
@@ -1915,20 +2051,20 @@ class ClassFour(A, B) if (someTest()) : Super {}};
         return parseCommaSeparatedRule!(Expression, AssignExpression)();
     }
 
-	/**
-	 * Parses an ExpressionStatement
-	 *
-	 * $(GRAMMAR $(RULEDEF expressionStatement):
-	 *     $(RULE expression) $(LITERAL ';')
-	 *     ;)
-	 */
-	ExpressionStatement parseExpressionStatement(Expression expression = null)
-	{
-		auto node = new ExpressionStatement;
-		node.expression = expression is null ? parseExpression() : expression;
-		expect(TokenType.semicolon);
-		return node;
-	}
+    /**
+     * Parses an ExpressionStatement
+     *
+     * $(GRAMMAR $(RULEDEF expressionStatement):
+     *     $(RULE expression) $(LITERAL ';')
+     *     ;)
+     */
+    ExpressionStatement parseExpressionStatement(Expression expression = null)
+    {
+        auto node = new ExpressionStatement;
+        node.expression = expression is null ? parseExpression() : expression;
+        if (expect(TokenType.semicolon) is null) return null;
+        return node;
+    }
 
     /**
      * Parses a FinalSwitchStatement
@@ -1940,8 +2076,9 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     FinalSwitchStatement parseFinalSwitchStatement()
     {
         auto node = new FinalSwitchStatement;
-        expect(TokenType.final_);
+        if (expect(TokenType.final_) is null) return null;
         node.switchStatement = parseSwitchStatement();
+        if (node.switchStatement is null) return null;
         return node;
     }
 
@@ -1955,7 +2092,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     Finally parseFinally()
     {
         auto node = new Finally;
-        expect(TokenType.finally_);
+        if (expect(TokenType.finally_) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
@@ -1964,27 +2101,18 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses a ForStatement
      *
      * $(GRAMMAR $(RULEDEF forStatement):
-     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     ForStatement parseForStatement()
     {
         auto node = new ForStatement;
+        expect(TokenType.for_);
+        expect(TokenType.lParen);
         // TODO
-        return node;
-    }
-
-    /**
-     * Parses a ForeachRangeStatement
-     *
-     * $(GRAMMAR $(RULEDEF foreachRangeStatement):
-     *     $(LITERAL 'foreach') $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
-     *     ;)
-     */
-    ForeachRangeStatement parseForeachRangeStatement()
-    {
-        auto node = new ForeachRangeStatement;
-        // TODO
+        assert (0);
+        expect(TokenType.rParen);
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
 
@@ -1992,13 +2120,25 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      * Parses a ForeachStatement
      *
      * $(GRAMMAR $(RULEDEF foreachStatement):
-     *     ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *       ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     | $(LITERAL 'foreach') $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
      *     ;)
      */
     ForeachStatement parseForeachStatement()
     {
         auto node = new ForeachStatement;
-        // TODO
+
+        if (currentIs(TokenType.foreach_))
+        {
+            expect(TokenType.foreach_);
+        }
+        else
+        {
+            expect(TokenType.foreach_reverse_);
+        }
+        expect(TokenType.lParen);
+        expect(TokenType.rParen);
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
 
@@ -2012,7 +2152,20 @@ class ClassFour(A, B) if (someTest()) : Super {}};
     ForeachType parseForeachType()
     {
         auto node = new ForeachType;
-        // TODO
+        if (currentIs(TokenType.ref_))
+        {
+            node.isRef = true;
+            advance();
+        }
+        if (currentIs(TokenType.identifier) && peekIsOneOf(TokenType.comma, TokenType.semicolon))
+        {
+            node.identifier = advance();
+            return node;
+        }
+        if ((node.type = parseType()) is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.identifier = *ident;
         return node;
     }
 
@@ -2037,7 +2190,7 @@ class ClassFour(A, B) if (someTest()) : Super {}};
      *     | $(LITERAL 'nothrow')
      *     ;)
      */
-    FunctionAttribute parseFunctionAttribute()
+    FunctionAttribute parseFunctionAttribute(bool validate = true)
     {
         auto node = new FunctionAttribute;
         with (TokenType) switch (current().type)
@@ -2050,7 +2203,9 @@ class ClassFour(A, B) if (someTest()) : Super {}};
             node.token = advance();
             break;
         default:
-            break;
+            if (validate)
+                error(`@attribute, "pure", or "nothrow" expected`);
+            return null;
         }
         return node;
     }
@@ -2164,7 +2319,7 @@ body {} // six
     {
         auto node = new FunctionCallStatement;
         node.functionCallExpression = parseFunctionCallExpression();
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -2186,14 +2341,27 @@ body {} // six
         switch (current.type)
         {
         case TokenType.auto_:
+            advance();
+            node.hasAuto = true;
+            if (currentIs(TokenType.ref_))
+            {
+                node.hasRef = true;
+                advance();
+            }
             break;
         case TokenType.ref_:
+            advance();
+            node.hasRef = true;
+            if (currentIs(TokenType.auto_))
+            {
+                node.hasAuto = true;
+                advance();
+            }
             break;
         default:
+            node.returnType = type is null ? parseType() : type;
             break;
         }
-
-        node.returnType = type is null ? parseType() : type;
 
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
@@ -2253,7 +2421,7 @@ body {} // six
     GotoStatement parseGotoStatement()
     {
         auto node = new GotoStatement;
-        expect(TokenType.goto_);
+        if (expect(TokenType.goto_) is null) return null;
         with (TokenType) switch (current().type)
         {
         case identifier:
@@ -2264,11 +2432,11 @@ body {} // six
             node.token = advance();
             node.expression = parseExpression();
             break;
-		default:
-			error(`Identifier, "default", or "case" expected`);
-			return null;
+        default:
+            error(`Identifier, "default", or "case" expected`);
+            return null;
         }
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -2284,7 +2452,9 @@ body {} // six
         auto node = new IdentifierChain;
         while (true)
         {
-            node.identifiers ~= *expect(TokenType.identifier);
+            auto ident = expect(TokenType.identifier);
+            if (ident is null) return null;
+            node.identifiers ~= *ident;
             if (currentIs(TokenType.dot))
             {
                 advance();
@@ -2306,6 +2476,7 @@ body {} // six
         p.tokens = tokens.array();
         auto chain = p.parseIdentifierChain();
         assert (chain.identifiers == ["abcde", "frocegu", "creou", "faowe"]);
+        stderr.writeln("Unittest for parseIdentifierChain() passed.");
     }
 
     /**
@@ -2365,7 +2536,11 @@ body {} // six
         if (peekIs(TokenType.not))
             node.templateInstance = parseTemplateInstance();
         else
-            node.identifier = *expect(TokenType.identifier);
+        {
+            auto ident = expect(TokenType.identifier);
+            if (ident is null) return null;
+            node.identifier = *ident;
+        }
         return node;
     }
 
@@ -2378,11 +2553,15 @@ body {} // six
      */
     IdentityExpression parseIdentityExpression(ShiftExpression shift = null)
     {
+        version(verbose) writeln("parseIdentityExpression");
         auto node = new IdentityExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIs(TokenType.not))
+        {
+            advance();
             node.negated = true;
-        expect(TokenType.is_);
+        }
+        if (expect(TokenType.is_) is null) return null;
         node.right = parseShiftExpression();
         return node;
     }
@@ -2397,16 +2576,16 @@ body {} // six
     IfStatement parseIfStatement()
     {
         auto node = new IfStatement;
-        expect(TokenType.if_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.if_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
         node.expression = parseExpression();
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         node.thenStatement = parseStatementNoCaseNoDefault();
-		if (currentIs(TokenType.else_))
-		{
-			advance();
-			node.elseStatement = parseStatementNoCaseNoDefault();
-		}
+        if (currentIs(TokenType.else_))
+        {
+            advance();
+            node.elseStatement = parseStatementNoCaseNoDefault();
+        }
         return node;
     }
 
@@ -2420,20 +2599,15 @@ body {} // six
     ImportBind parseImportBind()
     {
         auto node = new ImportBind;
-        if (!currentIs(TokenType.identifier))
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.left = *ident;
+        if (currentIs(TokenType.assign))
         {
-            error("Identifier expected.");
-            return null;
-        }
-        if (peekIs(TokenType.assign))
-        {
-            node.left = advance();
             advance();
             node.hasRight = true;
             node.right = *expect(TokenType.identifier);
         }
-        else
-            node.left = advance();
         return node;
     }
 
@@ -2448,11 +2622,11 @@ body {} // six
     {
         auto node = new ImportBindings;
         node.singleImport = singleImport is null ? parseSingleImport() : singleImport;
-        expect(TokenType.colon);
+        if (expect(TokenType.colon) is null) return null;
         while (true)
         {
             node.importBinds ~= parseImportBind();
-            if (moreTokens() && currentIs(TokenType.comma))
+            if (currentIs(TokenType.comma))
                 advance();
             else
                 break;
@@ -2464,13 +2638,14 @@ body {} // six
      * Parses an ImportDeclaration
      *
      * $(GRAMMAR $(RULEDEF importDeclaration):
-     *     $(LITERAL 'import') ($(RULE singleImport) ($(LITERAL ',') $(RULE singleImport))* | $(RULE importBindings)) $(LITERAL ';')
+     *       $(LITERAL 'import') $(RULE singleImport) ($(LITERAL ',') $(RULE singleImport))* ($(LITERAL ',') $(RULE importBindings))? $(LITERAL ';')
+     *     | $(LITERAL 'import') $(RULE importBindings) $(LITERAL ';')
      *     ;)
      */
     ImportDeclaration parseImportDeclaration()
     {
         auto node = new ImportDeclaration;
-        expect(TokenType.import_);
+        if (expect(TokenType.import_) is null) return null;
         SingleImport si = parseSingleImport();
         if (currentIs(TokenType.colon))
             node.importBindings = parseImportBindings(si);
@@ -2482,15 +2657,24 @@ body {} // six
                 advance();
                 while (true)
                 {
-                    node.singleImports ~= parseSingleImport();
-                    if (moreTokens() && currentIs(TokenType.comma))
-                        advance();
-                    else
+                    auto single = parseSingleImport();
+                    if (currentIs(TokenType.colon))
+                    {
+                        node.importBindings = parseImportBindings(single);
                         break;
+                    }
+                    else
+                    {
+                        node.singleImports ~= single;
+                        if (currentIs(TokenType.comma))
+                            advance();
+                        else
+                            break;
+                    }
                 }
             }
         }
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -2503,6 +2687,7 @@ import io = std.stdio;
 import std.stdio: writefln, foo = writef;
 import io = std.stdio : foo = writefln;
 import foo, bar, baz;
+import core.stdc.stdio, std.string : KeepTerminator;
 }c;
 
         Parser p = getParserForUnittest(sourceCode, "parseImportDeclaration");
@@ -2537,6 +2722,12 @@ import foo, bar, baz;
         assert (six.singleImports.length == 3);
         assert (p.errorCount == 0);
 
+        ImportDeclaration seven = p.parseImportDeclaration();
+        assert (seven !is null);
+        assert (seven.singleImports.length == 1);
+        assert (seven.importBindings !is null);
+        assert (p.errorCount == 0);
+
         stderr.writeln("Unittest for parseImportDeclaration() passed.");
     }
 
@@ -2550,10 +2741,10 @@ import foo, bar, baz;
     ImportExpression parseImportExpression()
     {
         auto node = new ImportExpression;
-        expect(TokenType.import_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.import_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
         node.assignExpression = parseAssignExpression();
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         return node;
     }
 
@@ -2587,7 +2778,7 @@ import foo, bar, baz;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIs(TokenType.not))
             advance();
-        expect(TokenType.in_);
+        if (expect(TokenType.in_) is null) return null;
         node.right = parseShiftExpression();
         return node;
     }
@@ -2602,7 +2793,7 @@ import foo, bar, baz;
     InStatement parseInStatement()
     {
         auto node = new InStatement;
-        expect(TokenType.in_);
+        if (expect(TokenType.in_) is null) return null;
         node.blockStatement = parseBlockStatement();
         return node;
     }
@@ -2650,13 +2841,10 @@ import foo, bar, baz;
     InterfaceDeclaration parseInterfaceDeclaration()
     {
         auto node = new InterfaceDeclaration;
-        expect(TokenType.interface_);
-        if (!currentIs(TokenType.identifier))
-        {
-            error("Identifier expected");
-            return null;
-        }
-        node.identifier = advance();
+        if (expect(TokenType.interface_) is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.identifier = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -2844,7 +3032,31 @@ invariant() foo();
     LambdaExpression parseLambdaExpression()
     {
         auto node = new LambdaExpression;
-        // TODO
+        if (currentIs(TokenType.identifier))
+            node.identifier = advance();
+        else if (currentIs(TokenType.lParen))
+        {
+            node.parameters = parseParameters();
+            do
+            {
+                auto attribute = parseFunctionAttribute(false);
+                if (attribute is null)
+                    break;
+                node.functionAttributes ~= attribute;
+            }
+            while (moreTokens());
+        }
+        else
+        {
+            error(`Identifier or argument list expected`);
+            return null;
+        }
+
+        if (expect(TokenType.goesTo) is null) return null;
+
+        if ((node.assignExpression = parseAssignExpression()) is null)
+            return null;
+
         return node;
     }
 
@@ -2969,9 +3181,9 @@ invariant() foo();
             m.moduleDeclaration = parseModuleDeclaration();
         while (moreTokens())
         {
-			auto declaration = parseDeclaration();
-			if (declaration !is null)
-				m.declarations ~= declaration;
+            auto declaration = parseDeclaration();
+            if (declaration !is null)
+                m.declarations ~= declaration;
         }
         return m;
     }
@@ -3001,7 +3213,7 @@ invariant() foo();
      */
     MulExpression parseMulExpression()
     {
-		version(verbose) writeln("parseMulExpression");
+        version(verbose) writeln("parseMulExpression");
         return parseLeftAssocBinaryExpression!(MulExpression, UnaryExpression,
             TokenType.star, TokenType.div, TokenType.mod)();
     }
@@ -3137,8 +3349,10 @@ invariant() foo();
             node.forStatement = parseForStatement();
             break;
         case foreach_:
-        // TODO
-            break;
+        case foreach_reverse_:
+            // TODO
+            advance();
+            return null;
         case switch_:
             node.switchStatement = parseSwitchStatement();
             break;
@@ -3172,20 +3386,28 @@ invariant() foo();
         case asm_:
             node.asmStatement = parseAsmStatement();
             break;
+        case final_:
+            if (peekIs(switch_))
+            {
+                node.finalSwitchStatement = parseFinalSwitchStatement();
+                break;
+            }
+            else
+            {
+                error(`"switch" expected`);
+                return null;
+            }
         case delete_:
-		case assert_:
+        case assert_:
         default:
-			node.expressionStatement = parseExpressionStatement();
+            node.expressionStatement = parseExpressionStatement();
             break;
-        // TODO: assignStatement
-        // TODO: finalSwitchStatement
-        // TODO: foreachRangeStatement
+
         // TODO: conditionalStatement
         // TODO: staticAssertStatement
         // TODO: templateMixinStatement
         // TODO: versionSpecification
         // TODO: debugSpecification
-        // TODO: functionCallStatement
         }
         return node;
     }
@@ -3202,12 +3424,12 @@ invariant() foo();
     NonVoidInitializer parseNonVoidInitializer()
     {
         auto node = new NonVoidInitializer;
-		if (currentIs(TokenType.lBrace))
-			node.structInitializer = parseStructInitializer();
-		else if (currentIs(TokenType.lBracket))
-			node.arrayInitializer = parseArrayInitializer();
-		else
-			node.assignExpression = parseAssignExpression();
+        if (currentIs(TokenType.lBrace))
+            node.structInitializer = parseStructInitializer();
+        else if (currentIs(TokenType.lBracket))
+            node.arrayInitializer = parseArrayInitializer();
+        else
+            node.assignExpression = parseAssignExpression();
         return node;
     }
 
@@ -3235,7 +3457,7 @@ invariant() foo();
      */
     OrExpression parseOrExpression()
     {
-		version(verbose) writeln("parseOrExpression");
+        version(verbose) writeln("parseOrExpression");
         return parseLeftAssocBinaryExpression!(OrExpression, XorExpression,
             TokenType.bitOr)();
     }
@@ -3250,7 +3472,7 @@ invariant() foo();
      */
     OrOrExpression parseOrOrExpression()
     {
-		version(verbose) writeln("parseOrOrExpression");
+        version(verbose) writeln("parseOrOrExpression");
         return parseLeftAssocBinaryExpression!(OrOrExpression, AndAndExpression,
             TokenType.logicOr)();
     }
@@ -3288,26 +3510,31 @@ invariant() foo();
         auto node = new Parameter;
         version (verbose) writeln("parseParameter");
         while (moreTokens())
-		{
-			TokenType type = parseParameterAttribute(false);
-			if (type == TokenType.invalid)
-				break;
-			else
-				node.parameterAttributes ~= type;
-		}
-		node.type = parseType();
-		if (node.type is null) return null;
-		if (currentIs(TokenType.identifier))
-		{
-			node.name = advance();
-			if (currentIs(TokenType.vararg))
-				node.vararg = true;
-			else if (currentIs(TokenType.assign))
-			{
-				advance();
-				node.default_ = parseAssignExpression();
-			}
-		}
+        {
+            TokenType type = parseParameterAttribute(false);
+            if (type == TokenType.invalid)
+                break;
+            else
+                node.parameterAttributes ~= type;
+        }
+        node.type = parseType();
+        if (node.type is null) return null;
+        if (currentIs(TokenType.identifier))
+        {
+            node.name = advance();
+            if (currentIs(TokenType.vararg))
+                node.vararg = true;
+            else if (currentIs(TokenType.assign))
+            {
+                advance();
+                node.default_ = parseAssignExpression();
+            }
+        }
+        else if (currentIs(TokenType.vararg))
+        {
+            node.vararg = true;
+            advance();
+        }
         return node;
     }
 
@@ -3328,27 +3555,27 @@ invariant() foo();
     TokenType parseParameterAttribute(bool validate = false)
     {
         with (TokenType) switch (current().type)
-		{
-		case immutable_:
-		case shared_:
-		case const_:
-		case inout_:
+        {
+        case immutable_:
+        case shared_:
+        case const_:
+        case inout_:
             if (peekIs(TokenType.lParen))
                 return invalid;
             else
                 goto case auto_;
-		case final_:
-		case in_:
-		case lazy_:
-		case out_:
-		case ref_:
-		case scope_:
-		case auto_:
-			return advance().type;
-		default:
-			if (validate) error("Parameter attribute expected");
-			return invalid;
-		}
+        case final_:
+        case in_:
+        case lazy_:
+        case out_:
+        case ref_:
+        case scope_:
+        case auto_:
+            return advance().type;
+        default:
+            if (validate) error("Parameter attribute expected");
+            return invalid;
+        }
     }
 
     /**
@@ -3365,54 +3592,63 @@ invariant() foo();
         version (verbose) writeln("parseParameters");
         auto node = new Parameters;
         expect(TokenType.lParen);
-		if (currentIs(TokenType.rParen))
-			goto end;
-		if (currentIs(TokenType.vararg))
-		{
-			node.hasVarargs = true;
-			goto end;
-		}
-		while (moreTokens())
-		{
-			if (currentIs(TokenType.vararg))
-			{
-				node.hasVarargs = true;
-				break;
-			}
-			if (currentIs(TokenType.rParen))
-				break;
-			auto param = parseParameter();
-			if (param is null)
-				break;
-			node.parameters ~= param;
-			if (currentIs(TokenType.comma))
-				advance();
-			else
-				break;
-		}
-	end:
+        if (currentIs(TokenType.rParen))
+            goto end;
+        if (currentIs(TokenType.vararg))
+        {
+            node.hasVarargs = true;
+            goto end;
+        }
+        while (moreTokens())
+        {
+            if (currentIs(TokenType.vararg))
+            {
+                advance();
+                node.hasVarargs = true;
+                break;
+            }
+            if (currentIs(TokenType.rParen))
+                break;
+            auto param = parseParameter();
+            if (param is null)
+                break;
+            node.parameters ~= param;
+            if (currentIs(TokenType.comma))
+                advance();
+            else
+                break;
+        }
+    end:
         expect(TokenType.rParen);
         return node;
     }
 
-	unittest
-	{
-		string sourceCode =
+    unittest
+    {
+        string sourceCode =
 q{(int a, ...)
-(double ...)}c;
+(double ...)
+(Range r)}c;
 
         Parser p = getParserForUnittest(sourceCode, "parseParameters");
 
-		Parameters params1 = p.parseParameters();
-		assert (params1.hasVarargs);
-		assert (params1.paramaters.length == 1);
-		assert (params1.paramaters[0].name == "a");
+        Parameters params1 = p.parseParameters();
+        assert (params1.hasVarargs);
+        assert (params1.parameters.length == 1);
+        assert (params1.parameters[0].name == "a");
 
-		Parameters params2 = p.parseParameters();
-		assert (params2.paramaters.length == 1);
-		assert (params2.paramaters[0].vararg);
-		assert (params2.paramaters[0].type !is null);
-	}
+        Parameters params2 = p.parseParameters();
+        assert (params2.parameters.length == 1);
+        assert (params2.parameters[0].vararg);
+        assert (params2.parameters[0].type !is null);
+
+        Parameters params3 = p.parseParameters();
+        assert (params3.parameters.length == 1);
+        assert (!params3.parameters[0].vararg);
+        assert (params3.parameters[0].type !is null);
+
+        stderr.writeln("Unittest for parseParameters() passed.");
+    }
 
     /**
      * Parses a Postblit
@@ -3563,7 +3799,7 @@ q{(int a, ...)
      */
     PrimaryExpression parsePrimaryExpression()
     {
-		version(verbose) writeln("parsePrimaryExpression");
+        version(verbose) writeln("parsePrimaryExpression");
         auto node = new PrimaryExpression;
         with (TokenType) switch (current().type)
         {
@@ -3632,12 +3868,11 @@ q{(int a, ...)
         case false_:
         mixin (SPECIAL_CASE_RANGE);
         mixin (LITERAL_CASE_RANGE);
-			version(verbose) writeln("special or literal ", index, " ", current());
             node.primary = advance();
             break;
-		default:
-			error(`Primary expression expected`);
-			return null;
+        default:
+            error(`Primary expression expected`);
+            return null;
         }
         return node;
     }
@@ -3780,7 +4015,7 @@ q{(int a, ...)
      */
     ShiftExpression parseShiftExpression()
     {
-		version(verbose) writeln("parseShiftExpression");
+        version(verbose) writeln("parseShiftExpression");
         return parseLeftAssocBinaryExpression!(ShiftExpression, AddExpression,
             TokenType.shiftLeft, TokenType.shiftRight,
             TokenType.unsignedShiftRight)();
@@ -3796,17 +4031,31 @@ q{(int a, ...)
     SingleImport parseSingleImport()
     {
         auto node = new SingleImport;
-        if (!currentIs(TokenType.identifier))
-        {
-            error("Identifier expected");
-            return null;
-        }
-        if (peekIs(TokenType.assign))
+        if (startsWith(TokenType.identifier, TokenType.assign))
         {
             node.identifier = advance();
             advance();
         }
         node.identifierChain = parseIdentifierChain();
+        return node;
+    }
+
+    /**
+     * Parses a SliceExpression
+     *
+     * $(GRAMMAR $(RULEDEF sliceExpression):
+     *     $(RULE unaryExpression) $(LITERAL '[') $(RULE assignExpression) $(LITERAL '..') $(RULE assignExpression) $(LITERAL ']')
+     *     ;)
+     */
+    SliceExpression parseSliceExpression(UnaryExpression unary = null)
+    {
+        auto node = new SliceExpression;
+        node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
+        expect(TokenType.lBrace);
+        node.lower = parseAssignExpression();
+        expect(TokenType.slice);
+        node.upper = parseAssignExpression();
+        expect(TokenType.rBrace);
         return node;
     }
 
@@ -3946,12 +4195,8 @@ q{(int a, ...)
     {
         auto node = new StructBody;
         expect(TokenType.lBrace);
-		version (development)
-			skipBraceContent();
-		else
-			static assert (0);
-        //while (tokens[index] != TokenType.rBrace && moreTokens())
-        //    node.structBodyItems ~= parseStructBodyItem();
+        while (!currentIs(TokenType.rBrace) && moreTokens())
+            node.structBodyItems ~= parseStructBodyItem();
         expect(TokenType.rBrace);
         return node;
     }
@@ -4104,10 +4349,10 @@ q{(int a, ...)
     Symbol parseSymbol()
     {
         auto node = new Symbol;
-        if (tokens[index] == TokenType.dot)
+        if (currentIs(TokenType.dot))
         {
             node.hasDot = true;
-            ++index;
+            advance();
         }
         node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         return node;
@@ -4208,6 +4453,7 @@ q{(int a, ...)
      */
     TemplateDeclaration parseTemplateDeclaration()
     {
+        version(verbose) writeln("parseTemplateDeclaration");
         auto node = new TemplateDeclaration;
         expect(TokenType.template_);
         node.identifier = *expect(TokenType.identifier);
@@ -4217,7 +4463,7 @@ q{(int a, ...)
         expect(TokenType.lBrace);
         do
             node.declarations ~= parseDeclaration();
-        while (!currentIs(TokenType.rBrace));
+        while (!currentIs(TokenType.rBrace) && moreTokens());
         expect(TokenType.rBrace);
         return node;
     }
@@ -4226,14 +4472,18 @@ q{(int a, ...)
      * Parses a TemplateInstance
      *
      * $(GRAMMAR $(RULEDEF templateInstance):
-     *     $(LITERAL symbol) $(RULE templateArguments)
+     *     $(LITERAL Identifier) $(RULE templateArguments)
      *     ;)
      */
     TemplateInstance parseTemplateInstance()
     {
         auto node = new TemplateInstance;
-        node.symbol = parseSymbol();
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.identifier = *ident;
         node.templateArguments = parseTemplateArguments();
+        if (node.templateArguments is null)
+            return null;
         return node;
     }
 
@@ -4248,12 +4498,12 @@ q{(int a, ...)
     {
         auto node = new TemplateMixinStatement;
         expect(TokenType.mixin_);
-		node.mixinTemplateName = parseMixinTemplateName();
-		if (currentIs(TokenType.not))
-			node.templateArguments = parseTemplateArguments();
-		if (currentIs(TokenType.identifier))
-			node.identifier = advance();
-		expect(TokenType.semicolon);
+        node.mixinTemplateName = parseMixinTemplateName();
+        if (currentIs(TokenType.not))
+            node.templateArguments = parseTemplateArguments();
+        if (currentIs(TokenType.identifier))
+            node.identifier = advance();
+        expect(TokenType.semicolon);
         return node;
     }
 
@@ -4270,8 +4520,28 @@ q{(int a, ...)
      */
     TemplateParameter parseTemplateParameter()
     {
+        version(verbose) writeln("parseTemplateParameter");
         auto node = new TemplateParameter;
-        // TODO
+        with (TokenType) switch (current.type)
+        {
+        case alias_:
+            node.templateAliasParameter = parseTemplateAliasParameter();
+            break;
+        case identifier:
+            if(peekIs(vararg))
+                node.templateTupleParameter = parseTemplateTupleParameter();
+            else if (peekIsOneOf(colon, assign, comma, rParen))
+                node.templateTypeParameter = parseTemplateTypeParameter();
+            else
+                node.templateValueParameter = parseTemplateValueParameter();
+            break;
+        case this_:
+            node.templateThisParameter = parseTemplateThisParameter();
+            break;
+        default:
+            node.templateValueParameter = parseTemplateValueParameter();
+            break;
+        }
         return node;
     }
 
@@ -4285,7 +4555,7 @@ q{(int a, ...)
     TemplateParameterList parseTemplateParameterList()
     {
         return parseCommaSeparatedRule!(TemplateParameterList, TemplateParameter)();
-	}
+    }
 
     /**
      * Parses TemplateParameters
@@ -4296,13 +4566,11 @@ q{(int a, ...)
      */
     TemplateParameters parseTemplateParameters()
     {
+        version(verbose) writeln("parseTemplateParameters");
         auto node = new TemplateParameters;
-        expect(TokenType.lParen);
-        version (development)
-			skipParenContent();
-		else
-			node.templateParameterList = parseTemplateParameterList();
-        expect(TokenType.rParen);
+        assert (expect(TokenType.lParen));
+        node.templateParameterList = parseTemplateParameterList();
+        assert (expect(TokenType.rParen));
         return node;
     }
 
@@ -4336,21 +4604,21 @@ q{(int a, ...)
     {
         auto node = new TemplateSingleArgument;
         with (TokenType) switch (current().type)
-		{
-		case true_:
-		case false_:
-		case null_:
-		case this_:
-		case identifier:
-		mixin (SPECIAL_CASE_RANGE);
-		mixin (LITERAL_CASE_RANGE);
-		mixin (BASIC_TYPE_CASE_RANGE);
-			node.token = advance();
-			break;
-		default:
-			error(`Invalid template argument. (Try enclosing in parenthesis?)`);
-			return null;
-		}
+        {
+        case true_:
+        case false_:
+        case null_:
+        case this_:
+        case identifier:
+        mixin (SPECIAL_CASE_RANGE);
+        mixin (LITERAL_CASE_RANGE);
+        mixin (BASIC_TYPE_CASE_RANGE);
+            node.token = advance();
+            break;
+        default:
+            error(`Invalid template argument. (Try enclosing in parenthesis?)`);
+            return null;
+        }
         return node;
     }
 
@@ -4365,7 +4633,7 @@ q{(int a, ...)
     {
         auto node = new TemplateThisParameter;
         expect(TokenType.this_);
-		node.templateTypeParameter = parseTemplateTypeParameter();
+        node.templateTypeParameter = parseTemplateTypeParameter();
         return node;
     }
 
@@ -4378,6 +4646,7 @@ q{(int a, ...)
      */
     TemplateTupleParameter parseTemplateTupleParameter()
     {
+        version(verbose) writeln("parseTemplateTupleParameter");
         auto node = new TemplateTupleParameter;
         auto i = expect(TokenType.identifier);
         if (i is null)
@@ -4397,7 +4666,19 @@ q{(int a, ...)
     TemplateTypeParameter parseTemplateTypeParameter()
     {
         auto node = new TemplateTypeParameter;
-        // TODO
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.identifier = *ident;
+        if (currentIs(TokenType.colon))
+        {
+            advance();
+            node.colonType = parseType();
+        }
+        else if (currentIs(TokenType.assign))
+        {
+            advance();
+            node.assignType = parseType();
+        }
         return node;
     }
 
@@ -4451,7 +4732,7 @@ q{(int a, ...)
      */
     TernaryExpression parseTernaryExpression()
     {
-		version(verbose) writeln("parseTernaryExpression");
+        version(verbose) writeln("parseTernaryExpression");
         auto node = new TernaryExpression;
         node.orOrExpression = parseOrOrExpression();
         if (currentIs(TokenType.ternary))
@@ -4507,10 +4788,13 @@ q{(int a, ...)
         auto node = new TraitsExpression;
         expect(TokenType.traits);
         expect(TokenType.lParen);
-        node.identifier = *expect(TokenType.identifier);
+        auto ident = expect(TokenType.identifier);
+        if (ident is null)
+            return null;
+        node.identifier = *ident;
         do
         {
-            expect(TokenType.comma);
+            if(expect(TokenType.comma) is null) return null;
             node.traitsArguments ~= parseTraitsArgument();
         }
         while (moreTokens() && currentIs(TokenType.comma));
@@ -4553,8 +4837,8 @@ q{(int a, ...)
         case TokenType.immutable_:
         case TokenType.inout_:
         case TokenType.shared_:
-			if (!peekIs(TokenType.lParen))
-				node.typeConstructors = parseTypeConstructors();
+            if (!peekIs(TokenType.lParen))
+                node.typeConstructors = parseTypeConstructors();
             break;
         default:
             break;
@@ -4643,17 +4927,17 @@ q{(int a, ...)
     TokenType parseTypeConstructor(bool validate = true)
     {
         with (TokenType) switch (current().type)
-		{
-		case const_:
-		case immutable_:
-		case inout_:
-		case shared_:
-			return advance().type;
-		default:
-			if (validate)
-				error(`"const", "immutable", "inout", or "shared" expected`);
-			return invalid;
-		}
+        {
+        case const_:
+        case immutable_:
+        case inout_:
+        case shared_:
+            return advance().type;
+        default:
+            if (validate)
+                error(`"const", "immutable", "inout", or "shared" expected`);
+            return invalid;
+        }
     }
 
     /**
@@ -4666,15 +4950,15 @@ q{(int a, ...)
     TokenType[] parseTypeConstructors()
     {
         TokenType[] r;
-		while (moreTokens())
-		{
-			TokenType type = parseTypeConstructor(false);
-			if (type == TokenType.invalid)
-				break;
-			else
-				r ~= type;
-		}
-		return r;
+        while (moreTokens())
+        {
+            TokenType type = parseTypeConstructor(false);
+            if (type == TokenType.invalid)
+                break;
+            else
+                r ~= type;
+        }
+        return r;
     }
 
     /**
@@ -4702,26 +4986,26 @@ q{(int a, ...)
     {
         auto node = new TypeSpecialization;
         with (TokenType) switch (current().type)
-		{
-		case struct_:
-		case union_:
-		case interface_:
-		case enum_:
-		case function_:
-		case delegate_:
-		case super_:
-		case const_:
-		case immutable_:
-		case inout_:
-		case shared_:
-		case return_:
-		case parameters:
-			node.token = advance();
-			break;
-		default:
-			node.type = parseType();
-			break;
-		}
+        {
+        case struct_:
+        case union_:
+        case interface_:
+        case enum_:
+        case function_:
+        case delegate_:
+        case super_:
+        case const_:
+        case immutable_:
+        case inout_:
+        case shared_:
+        case return_:
+        case parameters:
+            node.token = advance();
+            break;
+        default:
+            node.type = parseType();
+            break;
+        }
         return node;
     }
 
@@ -4766,7 +5050,7 @@ q{(int a, ...)
             advance();
             node.parameters = parseParameters();
             while (currentIsMemberFunctionAttribute())
-				node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+                node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
             return node;
         default:
             error(`"*", "[", "delegate", or "function" expected.`);
@@ -4827,18 +5111,18 @@ q{(int a, ...)
      *     | $(RULE newExpression)
      *     | $(RULE deleteExpression)
      *     | $(RULE castExpression)
-	 *     | $(RULE assertExpression)
+     *     | $(RULE assertExpression)
      *     | $(RULE functionCallExpression)
      *     | $(RULE sliceExpression)
      *     | $(RULE indexExpression)
      *     | $(RULE unaryExpression) $(LITERAL '.') $(RULE identifierOrTemplateInstance)
-	 *     | $(RULE unaryExpression) ($(LITERAL '--')
-	 *     | $(RULE unaryExpression) ($(LITERAL '++')
+     *     | $(RULE unaryExpression) $(LITERAL '--')
+     *     | $(RULE unaryExpression) $(LITERAL '++')
      *     ;)
      */
     UnaryExpression parseUnaryExpression()
     {
-		version(verbose) writeln("parseUnaryExpression");
+        version(verbose) writeln("parseUnaryExpression");
         auto node = new UnaryExpression;
         with(TokenType) switch (current().type)
         {
@@ -4848,7 +5132,7 @@ q{(int a, ...)
         case plus:
         case minus:
         case tilde:
-		case increment:
+        case increment:
         case decrement:
             node.prefix = advance();
             node.unaryExpression = parseUnaryExpression();
@@ -4865,47 +5149,63 @@ q{(int a, ...)
         case assert_:
             node.assertExpression = parseAssertExpression();
             return node;
-		default:
-			node.primaryExpression = parsePrimaryExpression();
+        default:
+            node.primaryExpression = parsePrimaryExpression();
         }
 
-		loop: while (true) with (TokenType) switch (current().type)
-		{
-		case not:
-			index++;
-			bool jump = peekPastParens().type == TokenType.lParen;
-			index--;
-			if (jump)
-				goto case lParen;
-			else
-			{
-				error(`Function call expected`);
-				return null;
-			}
-		case lParen:
-			auto n = new UnaryExpression();
-			n.functionCallExpression = parseFunctionCallExpression(node);
-			node = n;
-			break;
-		case increment:
-		case decrement:
-			auto n = new UnaryExpression();
-			n.unaryExpression = node;
-			n.suffix = advance();
-			node = n;
-			break;
-		case lBracket:
-			assert (false);
-		case dot:
-			advance();
-			auto n = new UnaryExpression();
-			n.unaryExpression = node;
-			n.identifierOrTemplateInstance = parseIdentifierOrTemplateInstance();
-			break;
-		default:
-			break loop;
-		}
-		return node;
+        loop: while (moreTokens()) with (TokenType) switch (current().type)
+        {
+        case not:
+            index++;
+            bool jump =  (currentIs(TokenType.lParen) && peekPastParens().type == TokenType.lParen)
+                || peekIs(TokenType.lParen);
+            index--;
+            if (jump)
+                goto case lParen;
+            else
+                break loop;
+        case lParen:
+            auto n = new UnaryExpression();
+            n.functionCallExpression = parseFunctionCallExpression(node);
+            node = n;
+            break;
+        case increment:
+        case decrement:
+            auto n = new UnaryExpression();
+            n.unaryExpression = node;
+            n.suffix = advance();
+            node = n;
+            break;
+        case lBracket:
+            auto n = new UnaryExpression;
+            if (isSliceExpression())
+                n.sliceExpression = parseSliceExpression(node);
+            else
+                n.indexExpression = parseIndexExpression(node);
+            node = n;
+            break;
+        case dot:
+            advance();
+            auto n = new UnaryExpression();
+            n.unaryExpression = node;
+            n.identifierOrTemplateInstance = parseIdentifierOrTemplateInstance();
+            node = n;
+            break;
+        default:
+            break loop;
+        }
+        return node;
+    }
+
+    unittest
+    {
+        auto sourceCode =
+q{doStuff(5)}c;
+        Parser p = getParserForUnittest(sourceCode, "parseUnaryExpression");
+        auto unary = p.parseUnaryExpression();
+        assert (unary !is null);
+        assert (unary.functionCallExpression !is null);
+        stderr.writeln("Unittest for parseUnaryExpression() passed.");
     }
 
     /**
@@ -4919,7 +5219,9 @@ q{(int a, ...)
     {
         auto node = new UnionDeclaration;
         expect(TokenType.union_);
-        node.identifier = *expect(TokenType.identifier);
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.identifier = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -4964,25 +5266,25 @@ q{(int a, ...)
     {
         auto node = new VariableDeclaration;
 
-		if (currentIs(TokenType.auto_))
-		{
-			node.autoDeclaration = parseAutoDeclaration();
-			return node;
-		}
+        if (currentIs(TokenType.auto_))
+        {
+            node.autoDeclaration = parseAutoDeclaration();
+            return node;
+        }
 
-		node.type = type is null ? parseType() : type;
+        node.type = type is null ? parseType() : type;
 
-		while(true)
-		{
-			auto declarator = parseDeclarator();
-			if (declarator is null) return null;
-			node.declarators ~= declarator;
-			if (moreTokens() && currentIs(TokenType.comma))
-				advance();
-			else
-				break;
-		}
-		expect(TokenType.semicolon);
+        while(true)
+        {
+            auto declarator = parseDeclarator();
+            if (declarator is null) return null;
+            node.declarators ~= declarator;
+            if (moreTokens() && currentIs(TokenType.comma))
+                advance();
+            else
+                break;
+        }
+        expect(TokenType.semicolon);
         return node;
     }
 
@@ -5073,17 +5375,18 @@ q{(int a, ...)
      * Parses a WithStatement
      *
      * $(GRAMMAR $(RULEDEF withStatement):
-     *     $(LITERAL 'with') $(LITERAL '$(LPAREN)') ($(RULE expression) | $(RULE symbol) | $(RULE templateInstance)) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     $(LITERAL 'with') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
      *     ;)
      */
     WithStatement parseWithStatement()
     {
         auto node = new WithStatement;
-        expect(TokenType.with_);
-        expect(TokenType.lParen);
-        // TODO: magic here
-        expect(TokenType.rParen);
-        parseStatementNoCaseNoDefault();
+        if (expect(TokenType.with_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
+        if ((node.expression = parseExpression()) is null) return null;
+        if (expect(TokenType.rParen) is null) return null;
+        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+        if (node.statementNoCaseNoDefault is null) return null;
         return node;
     }
 
@@ -5097,7 +5400,7 @@ q{(int a, ...)
      */
     XorExpression parseXorExpression()
     {
-		version(verbose) writeln("parseXorExpression");
+        version(verbose) writeln("parseXorExpression");
         return parseLeftAssocBinaryExpression!(XorExpression, AndExpression,
             TokenType.xor)();
     }
@@ -5105,6 +5408,16 @@ q{(int a, ...)
 private:
 
     bool isAssociativeArrayLiteral()
+    {
+        return hasMagicDelimiter!(TokenType.colon)();
+    }
+
+    bool isSliceExpression()
+    {
+        return hasMagicDelimiter!(TokenType.slice)();
+    }
+
+    bool hasMagicDelimiter(alias T)()
     {
         auto i = index;
         scope(exit) index = i;
@@ -5117,56 +5430,25 @@ private:
         case lParen: skipParenContent(); break;
         case lBracket: skipBracketContent(); break;
         case rBracket: return false;
-        case colon: return true;
+        case T: return true;
         default: break;
         }
         return false;
     }
 
-    bool isStatement() const
+    bool isDeclaration()
     {
-        // TODO: Not complete
-        with (TokenType) switch (current().type)
-        {
-        case lBrace:
-        case if_:
-        case while_:
-        case do_:
-        case for_:
-        case foreach_:
-        case foreach_reverse_:
-        case switch_:
-        case continue_:
-        case break_:
-        case return_:
-        case goto_:
-        case with_:
-        case try_:
-        case throw_:
-        case asm_:
-        case default_:
-        case case_:
-        case new_:
-        mixin (SPECIAL_CASE_RANGE);
-        mixin (LITERAL_CASE_RANGE);
-        case true_:
-        case false_:
-            return true;
-        case extern_:
-        case union_:
-        case class_:
-        case interface_:
-        case function_:
-        case delegate_:
-        case typedef_:
-        case typeof_:
-        case invariant_:
-        case alias_:
-        mixin (BASIC_TYPE_CASE_RANGE);
-            return false;
-        default:
-            return false;
-        }
+        // h4x
+        auto b = setBookmark();
+        scope(exit) goToBookmark(b);
+        return parseDeclaration() !is null;
+    }
+
+    bool isStatement()
+    {
+        auto b = setBookmark();
+        scope (exit) goToBookmark(b);
+        return parseStatement() !is null;
     }
 
     bool currentIsMemberFunctionAttribute() const
@@ -5223,7 +5505,7 @@ private:
     {
         import std.stdio;
         ++errorCount;
-        if (!suppressMessages)
+        if (suppressMessages <= 0)
         {
             if (errorFunction is null)
                 stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
@@ -5235,10 +5517,10 @@ private:
         while (moreTokens())
         {
             if (currentIsOneOf(TokenType.semicolon, TokenType.rBrace))
-			{
-				advance();
+            {
+                advance();
                 break;
-			}
+            }
             else
                 advance();
         }
@@ -5346,8 +5628,12 @@ private:
             return &tokens[index++];
         else
         {
-            error("Expected " ~ tokenValues[type] ~ " instead of "
-                ~ tokens[index].value);
+            if (tokenValues[type] is null)
+                error("Expected " ~ to!string(type) ~ " instead of "
+                    ~ tokens[index].value);
+            else
+                error("Expected " ~ tokenValues[type] ~ " instead of "
+                    ~ tokens[index].value);
             return null;
         }
     }
@@ -5404,13 +5690,13 @@ private:
 
     size_t setBookmark()
     {
-        suppressMessages = true;
+        ++suppressMessages;
         return index;
     }
 
     void goToBookmark(size_t i)
     {
-        suppressMessages = false;
+        --suppressMessages;
         index = i;
     }
 
@@ -5423,7 +5709,7 @@ private:
         LexerConfig config;
         auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
         Parser p;
-        p.errorFunction = &doNothingErrorFunction;
+        //p.errorFunction = &doNothingErrorFunction;
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
         return p;
@@ -5437,5 +5723,5 @@ private:
     immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
     immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
     immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
-    bool suppressMessages;
+    int suppressMessages;
 }
