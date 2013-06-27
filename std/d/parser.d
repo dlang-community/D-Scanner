@@ -74,8 +74,6 @@ version (unittest) import std.stdio;
 version(development) import std.stdio;
 import std.stdio;
 
-// TODO: any place that says *expect(...) needs to be fixed
-
 /**
 * Params:
 *     tokens = the tokens parsed by std.d.lexer
@@ -1261,7 +1259,9 @@ incorrect;
     {
         auto node = new ClassDeclaration;
         expect(TokenType.class_);
-        node.name = *expect(TokenType.identifier);
+        auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+		node.name = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -2499,9 +2499,11 @@ body {} // six
     IdentifierList parseIdentifierList()
     {
         auto node = new IdentifierList;
-        while (true)
+        do
         {
-            node.identifiers ~= *expect(TokenType.identifier);
+			auto ident = expect(TokenType.identifier);
+			if (ident is null) return null;
+            node.identifiers ~= *ident;
             if (currentIs(TokenType.comma))
             {
                 advance();
@@ -2509,7 +2511,7 @@ body {} // six
             }
             else
                 break;
-        }
+        } while (true);
         return node;
     }
 
@@ -2616,7 +2618,9 @@ body {} // six
         {
             advance();
             node.hasRight = true;
-            node.right = *expect(TokenType.identifier);
+			auto ident = expect(TokenType.identifier);
+			if (ident is null) return null;
+            node.right = *ident;
         }
         return node;
     }
@@ -3026,7 +3030,9 @@ invariant() foo();
     LabeledStatement parseLabeledStatement()
     {
         auto node = new LabeledStatement;
-        node.identifier = *expect(TokenType.identifier);
+		auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+        node.identifier = *ident;
         expect(TokenType.colon);
         node.statement = parseStatement();
         return node;
@@ -3098,7 +3104,9 @@ invariant() foo();
         auto node = new LinkageAttribute;
         expect(TokenType.extern_);
         expect(TokenType.lParen);
-        node.identifier = *expect(TokenType.identifier);
+		auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+        node.identifier = *ident;
         if (currentIs(TokenType.increment))
         {
             advance();
@@ -3243,7 +3251,7 @@ invariant() foo();
             node.allocatorArguments = parseArguments();
         expect(TokenType.class_);
         if (!currentIs(TokenType.lBrace))
-            node.baseClassList = parseBaseClassList;
+            node.baseClassList = parseBaseClassList();
         node.classBody = parseClassBody();
         return node;
     }
@@ -3500,7 +3508,9 @@ invariant() foo();
         if (currentIs(TokenType.lParen))
         {
             advance();
-            node.parameter = *expect(TokenType.identifier);
+			auto ident = expect(TokenType.identifier);
+			if (ident is null) return null;
+            node.parameter = *ident;
             expect(TokenType.rParen);
         }
         node.blockStatement = parseBlockStatement();
@@ -3897,11 +3907,15 @@ q{(int a, ...)
     Register parseRegister()
     {
         auto node = new Register;
-        node.identifier = *expect(TokenType.identifier);
+		auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+        node.identifier = *ident;
         if (currentIs(TokenType.lParen))
         {
             advance();
-            node.intLiteral = *expect(TokenType.intLiteral);
+			auto intLit = expect(TokenType.intLiteral);
+			if (intLit is null) return null;
+            node.intLiteral = *intLit;
             expect(TokenType.rParen);
         }
         return node;
@@ -3969,7 +3983,9 @@ q{(int a, ...)
         auto node = new ScopeGuardStatement;
         expect(TokenType.scope_);
         expect(TokenType.lParen);
-        node.identifier = *expect(TokenType.identifier);
+		auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+        node.identifier = *ident;
         expect(TokenType.rParen);
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
@@ -4242,7 +4258,9 @@ q{(int a, ...)
     {
         auto node = new StructDeclaration;
         expect(TokenType.struct_);
-        node.name = *expect(TokenType.identifier);
+		auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+        node.name = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -4465,7 +4483,9 @@ q{(int a, ...)
         version(verbose) writeln("parseTemplateDeclaration");
         auto node = new TemplateDeclaration;
         expect(TokenType.template_);
-        node.identifier = *expect(TokenType.identifier);
+		auto ident = expect(TokenType.identifier);
+		if (ident is null) return null;
+        node.identifier = *ident;
         node.templateParameters = parseTemplateParameters();
         if (currentIs(TokenType.if_))
             node.constraint = parseConstraint();
@@ -4866,6 +4886,7 @@ q{(int a, ...)
                 node.typeSuffixes ~= suffix;
             else
                 return null;
+			break;
         default:
             break loop;
         }
@@ -5153,7 +5174,7 @@ q{(int a, ...)
             node.deleteExpression = parseDeleteExpression();
             return node;
         case cast_:
-            node.castExpression = parseCastExpression;
+            node.castExpression = parseCastExpression();
             return node;
         case assert_:
             node.assertExpression = parseAssertExpression();
@@ -5236,12 +5257,12 @@ q{doStuff(5)}c;
             node.templateParameters = parseTemplateParameters();
             if (currentIs(TokenType.if_))
                 node.constraint = parseConstraint();
-            node.structBody = parseStructBody;
+            node.structBody = parseStructBody();
         }
         else
         {
             if (currentIs(TokenType.semicolon))
-                advance;
+                advance();
             else
                 node.structBody = parseStructBody();
         }
@@ -5729,8 +5750,8 @@ private:
     size_t index;
     string fileName;
     void function(string, int, int, string) errorFunction;
-    immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
-    immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
-    immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
+    static immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
+    static immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
+    static immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
     int suppressMessages;
 }
