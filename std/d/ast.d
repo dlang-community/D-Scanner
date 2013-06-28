@@ -209,12 +209,10 @@ abstract class ASTVisitor
     /** */ void visit(TemplateValueParameterDefault templateValueParameterDefault) { templateValueParameterDefault.accept(this); }
     /** */ void visit(TernaryExpression ternaryExpression) { ternaryExpression.accept(this); }
     /** */ void visit(ThrowStatement throwStatement) { throwStatement.accept(this); }
-    /** */ void visit(TraitsArgument traitsArgument) { traitsArgument.accept(this); }
     /** */ void visit(TraitsExpression traitsExpression) { traitsExpression.accept(this); }
     /** */ void visit(TryStatement tryStatement) { tryStatement.accept(this); }
     /** */ void visit(Type type) { type.accept(this); }
     /** */ void visit(Type2 type2) { type2.accept(this); }
-    /** */ void visit(TypeConstructors typeConstructors) { typeConstructors.accept(this); }
     /** */ void visit(TypeSpecialization typeSpecialization) { typeSpecialization.accept(this); }
     /** */ void visit(TypeSuffix typeSuffix) { typeSuffix.accept(this); }
     /** */ void visit(TypeidExpression typeidExpression) { typeidExpression.accept(this); }
@@ -1045,7 +1043,7 @@ class ForeachType : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ bool isRef;
+    /** */ TokenType[] typeConstructors;
     /** */ Type type;
     /** */ Token identifier;
 }
@@ -2048,21 +2046,12 @@ public:
 }
 
 ///
-class TraitsArgument : ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ AssignExpression assignExpression;
-    /** */ Type type;
-}
-
-///
 class TraitsExpression : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
     /** */ Token identifier;
-    /** */ TraitsArgument[] traitsArguments;
+    /** */ TemplateArgumentList templateArgumentList;
 }
 
 ///
@@ -2096,14 +2085,6 @@ public:
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
     /** */ TokenType typeConstructor;
     /** */ Type type;
-}
-
-///
-class TypeConstructors : ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ TokenType[] items;
 }
 
 ///
