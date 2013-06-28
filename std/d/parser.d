@@ -375,7 +375,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmAndExp parseAsmAndExp()
     {
         auto node = new AsmAndExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -390,7 +390,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmBrExp parseAsmBrExp()
     {
         auto node = new AsmBrExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -404,7 +404,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmEqualExp parseAsmEqualExp()
     {
         auto node = new AsmEqualExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -418,7 +418,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmExp parseAsmExp()
     {
         auto node = new AsmExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -437,7 +437,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmInstruction parseAsmInstruction()
     {
         auto node = new AsmInstruction;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -451,7 +451,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmLogAndExp parseAsmLogAndExp()
     {
         auto node = new AsmLogAndExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -465,7 +465,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmLogOrExp parseAsmLogOrExp()
     {
         auto node = new AsmLogOrExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -479,7 +479,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmMulExp parseAsmMulExp()
     {
         auto node = new AsmMulExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -493,7 +493,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmOrExp parseAsmOrExp()
     {
         auto node = new AsmOrExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -511,7 +511,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmPrimaryExp parseAsmPrimaryExp()
     {
         auto node = new AsmPrimaryExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -525,7 +525,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmRelExp parseAsmRelExp()
     {
         auto node = new AsmRelExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -539,7 +539,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmShiftExp parseAsmShiftExp()
     {
         auto node = new AsmShiftExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -553,7 +553,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmStatement parseAsmStatement()
     {
         auto node = new AsmStatement;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -573,7 +573,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmTypePrefix parseAsmTypePrefix()
     {
         auto node = new AsmTypePrefix;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -593,7 +593,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmUnaExp parseAsmUnaExp()
     {
         auto node = new AsmUnaExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -607,7 +607,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmXorExp parseAsmXorExp()
     {
         auto node = new AsmXorExp;
-        // TODO
+        // TODO asm
         return node;
     }
 
@@ -671,21 +671,6 @@ alias core.sys.posix.stdio.fileno fileno;
             node.operator = advance().type;
             node.assignExpression = parseAssignExpression();
         }
-        return node;
-    }
-
-    /**
-     * Parses an AssignStatement
-     *
-     * $(GRAMMAR $(RULEDEF assignStatement):
-     *       $(RULE unaryExpression) $(RULE assignOperator) $(RULE assignExpression) ($(LITERAL ',') $(RULE unaryExpression) $(RULE assignOperator) $(RULE assignExpression))* $(LITERAL ';')
-     *     ;)
-     */
-    AssignStatement parseAssignStatement()
-    {
-        auto node = new AssignStatement;
-        // TODO
-        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -855,7 +840,22 @@ alias core.sys.posix.stdio.fileno fileno;
     AutoDeclaration parseAutoDeclaration()
     {
         auto node = new AutoDeclaration;
-        // TODO
+        node.storageClass = parseStorageClass();
+        if (node.storageClass is null) return null;
+        do
+        {
+            auto ident = expect(TokenType.identifier);
+            if (ident is null) return null;
+            node.identifiers ~= *ident;
+            if (expect(TokenType.assign) is null) return null;
+            auto init = parseInitializer();
+            if (init is null) return null;
+            node.initializers ~= init;
+            if (currentIs(TokenType.comma))
+                advance();
+            else
+                break;
+        } while (true);
         return node;
     }
 
@@ -1260,8 +1260,8 @@ incorrect;
         auto node = new ClassDeclaration;
         expect(TokenType.class_);
         auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
-		node.name = *ident;
+        if (ident is null) return null;
+        node.name = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -1726,10 +1726,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case auto_:
             if (startsWith(auto_, ref_, identifier, lParen)
-					|| startsWith(auto_, identifier, lParen))
+                    || startsWith(auto_, identifier, lParen))
                 node.functionDeclaration = parseFunctionDeclaration();
-			else
-				node.variableDeclaration = parseVariableDeclaration();
+            else
+                node.variableDeclaration = parseVariableDeclaration();
             break;
         case ref_:
             if (startsWith(ref_, auto_, identifier, lParen)
@@ -1786,7 +1786,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DeclarationsAndStatements parseDeclarationsAndStatements()
     {
         auto node = new DeclarationsAndStatements;
-		while (!currentIsOneOf(TokenType.rBrace) && moreTokens())
+        while (!currentIsOneOf(TokenType.rBrace) && moreTokens())
         {
             auto dos = new DeclarationOrStatement;
             // "Any ambiguities in the grammar between Statements and
@@ -1874,7 +1874,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         auto node = new DeleteExpression;
         if (expect(TokenType.delete_) is null) return null;
-		node.unaryExpression = parseUnaryExpression();
+        node.unaryExpression = parseUnaryExpression();
         return node;
     }
 
@@ -2014,7 +2014,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     EnumMember parseEnumMember()
     {
         auto node = new EnumMember;
-        // TODO
+        // TODO: ambiguity between type and identifier
         return node;
     }
 
@@ -2103,13 +2103,17 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     ForStatement parseForStatement()
     {
+        // forStatement:
+        //     'for' '(' declarationOrStatement expression? ';' expression? ')' statementNoCaseNoDefault
+        //     ;
         auto node = new ForStatement;
-        expect(TokenType.for_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.for_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
         // TODO
         assert (0);
-        expect(TokenType.rParen);
+        if (expect(TokenType.rParen) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+        if (node.statementNoCaseNoDefault is null) return null;
         return node;
     }
 
@@ -2130,25 +2134,25 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         else
             if (expect(TokenType.foreach_reverse_) is null) return null;
         if (expect(TokenType.lParen) is null) return null;
-		auto feType = parseForeachTypeList();
-		bool canBeRange = feType.items.length == 0;
-		expect(TokenType.semicolon);
-		node.low = parseExpression();
-		if (node.low is null) return null;
-		if (currentIs(TokenType.slice))
-		{
-			if (!canBeRange)
-			{
-				error(`Cannot have more than one foreach varible for a foreach range statement`);
-				return null;
-			}
-			advance();
-			node.high = parseExpression();
-			if (node.high is null) return null;
-		}
+        auto feType = parseForeachTypeList();
+        bool canBeRange = feType.items.length == 0;
+        expect(TokenType.semicolon);
+        node.low = parseExpression();
+        if (node.low is null) return null;
+        if (currentIs(TokenType.slice))
+        {
+            if (!canBeRange)
+            {
+                error(`Cannot have more than one foreach varible for a foreach range statement`);
+                return null;
+            }
+            advance();
+            node.high = parseExpression();
+            if (node.high is null) return null;
+        }
         if (expect(TokenType.rParen) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
-		if (node.statementNoCaseNoDefault is null) return null;
+        if (node.statementNoCaseNoDefault is null) return null;
         return node;
     }
 
@@ -2417,7 +2421,31 @@ body {} // six
     FunctionLiteralExpression parseFunctionLiteralExpression()
     {
         auto node = new FunctionLiteralExpression;
-        // TODO
+        if (currentIsOneOf(TokenType.function_, TokenType.delegate_))
+		{
+			node.functionOrDelegate = advance().type;
+			if (!currentIsOneOf(TokenType.lParen, TokenType.in_, TokenType.body_,
+				TokenType.out_, TokenType.rBrace))
+			{
+				node.type = parseType();
+				if (node.type is null) return null;
+			}
+		}
+		if (currentIs(TokenType.lParen))
+		{
+			node.parameters = parseParameters();
+			if (node.parameters is null) return null;
+			do
+			{
+				auto attr = parseFunctionAttribute(false);
+				if (attr is null)
+					break;
+				else
+					node.functionAttributes ~= attr;
+			} while (true);
+		}
+		node.functionBody = parseFunctionBody();
+		if (node.functionBody is null) return null;
         return node;
     }
 
@@ -2501,8 +2529,8 @@ body {} // six
         auto node = new IdentifierList;
         do
         {
-			auto ident = expect(TokenType.identifier);
-			if (ident is null) return null;
+            auto ident = expect(TokenType.identifier);
+            if (ident is null) return null;
             node.identifiers ~= *ident;
             if (currentIs(TokenType.comma))
             {
@@ -2618,8 +2646,8 @@ body {} // six
         {
             advance();
             node.hasRight = true;
-			auto id = expect(TokenType.identifier);
-			if (id is null) return null;
+            auto id = expect(TokenType.identifier);
+            if (id is null) return null;
             node.right = *id;
         }
         return node;
@@ -3030,8 +3058,8 @@ invariant() foo();
     LabeledStatement parseLabeledStatement()
     {
         auto node = new LabeledStatement;
-		auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
         node.identifier = *ident;
         expect(TokenType.colon);
         node.statement = parseStatement();
@@ -3104,8 +3132,8 @@ invariant() foo();
         auto node = new LinkageAttribute;
         expect(TokenType.extern_);
         expect(TokenType.lParen);
-		auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
         node.identifier = *ident;
         if (currentIs(TokenType.increment))
         {
@@ -3319,7 +3347,6 @@ invariant() foo();
      * $(GRAMMAR $(RULEDEF statementNoCaseNoDefault):
      *       $(RULE labeledStatement)
      *     | $(RULE blockStatement)
-     *     | $(RULE assignStatement)
      *     | $(RULE ifStatement)
      *     | $(RULE whileStatement)
      *     | $(RULE doStatement)
@@ -3369,7 +3396,7 @@ invariant() foo();
         case foreach_:
         case foreach_reverse_:
             node.foreachStatement = parseForeachStatement();
-			break;
+            break;
         case switch_:
             node.switchStatement = parseSwitchStatement();
             break;
@@ -3508,8 +3535,8 @@ invariant() foo();
         if (currentIs(TokenType.lParen))
         {
             advance();
-			auto ident = expect(TokenType.identifier);
-			if (ident is null) return null;
+            auto ident = expect(TokenType.identifier);
+            if (ident is null) return null;
             node.parameter = *ident;
             expect(TokenType.rParen);
         }
@@ -3907,14 +3934,14 @@ q{(int a, ...)
     Register parseRegister()
     {
         auto node = new Register;
-		auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
         node.identifier = *ident;
         if (currentIs(TokenType.lParen))
         {
             advance();
-			auto intLit = expect(TokenType.intLiteral);
-			if (intLit is null) return null;
+            auto intLit = expect(TokenType.intLiteral);
+            if (intLit is null) return null;
             node.intLiteral = *intLit;
             expect(TokenType.rParen);
         }
@@ -3983,8 +4010,8 @@ q{(int a, ...)
         auto node = new ScopeGuardStatement;
         expect(TokenType.scope_);
         expect(TokenType.lParen);
-		auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
         node.identifier = *ident;
         expect(TokenType.rParen);
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
@@ -4258,8 +4285,8 @@ q{(int a, ...)
     {
         auto node = new StructDeclaration;
         expect(TokenType.struct_);
-		auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
         node.name = *ident;
         if (currentIs(TokenType.lParen))
         {
@@ -4483,8 +4510,8 @@ q{(int a, ...)
         version(verbose) writeln("parseTemplateDeclaration");
         auto node = new TemplateDeclaration;
         expect(TokenType.template_);
-		auto ident = expect(TokenType.identifier);
-		if (ident is null) return null;
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
         node.identifier = *ident;
         node.templateParameters = parseTemplateParameters();
         if (currentIs(TokenType.if_))
@@ -4801,7 +4828,7 @@ q{(int a, ...)
     TraitsArgument parseTraitsArgument()
     {
         auto node = new TraitsArgument;
-        // TODO
+        if ()
         return node;
     }
 
@@ -4886,7 +4913,7 @@ q{(int a, ...)
                 node.typeSuffixes ~= suffix;
             else
                 return null;
-			break;
+            break;
         default:
             break loop;
         }
@@ -5100,7 +5127,16 @@ q{(int a, ...)
         auto node = new TypeidExpression;
         expect(TokenType.typeid_);
         expect(TokenType.lParen);
-        // TODO
+        if (isExpression())
+		{
+			node.expression = parseExpression();
+			if (node.expression is null) return null;
+		}
+		else
+		{
+			node.type = parseType();
+			if (node.type is null) return null;
+		}
         expect(TokenType.rParen);
         return node;
     }
@@ -5480,6 +5516,13 @@ private:
         scope (exit) goToBookmark(b);
         return parseStatement() !is null;
     }
+
+	bool isExpression()
+	{
+		auto b = setBookmark();
+		scope (exit) goToBookmark(b);
+		return parseExpression() !is null;
+	}
 
     bool currentIsMemberFunctionAttribute() const
     {

@@ -58,7 +58,6 @@ abstract class ASTVisitor
     /** */ void visit(AssertExpression assertExpression) { assertExpression.accept(this); }
     /** */ void visit(AssertStatement assertStatement) { assertStatement.accept(this); }
     /** */ void visit(AssignExpression assignExpression) { assignExpression.accept(this); }
-    /** */ void visit(AssignStatement assignStatement) { assignStatement.accept(this); }
     /** */ void visit(AssocArrayLiteral assocArrayLiteral) { assocArrayLiteral.accept(this); }
     /** */ void visit(AtAttribute atAttribute) { atAttribute.accept(this); }
     /** */ void visit(Attribute attribute) { attribute.accept(this); }
@@ -540,18 +539,6 @@ public:
     /** */ TernaryExpression ternaryExpression;
     /** */ AssignExpression assignExpression;
     /** */ TokenType operator;
-}
-
-///
-class AssignStatement : ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ PreIncDecExpression preIncDecExpression;
-    /** */ PostIncDecExpression postIncDecExpression;
-    /** */ UnaryExpression[] unaryExpressions;
-    /** */ AssignExpression[] assignExpressions;
-    /** */ TokenType[] assignOperators;
 }
 
 ///
@@ -1482,7 +1469,6 @@ public:
     mixin(DEFAULT_ACCEPT);
     /** */ LabeledStatement labeledStatement;
     /** */ BlockStatement blockStatement;
-    /** */ AssignStatement assignStatement;
     /** */ IfStatement ifStatement;
     /** */ WhileStatement whileStatement;
     /** */ DoStatement doStatement;
