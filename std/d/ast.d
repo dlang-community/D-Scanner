@@ -56,7 +56,6 @@ abstract class ASTVisitor
     /** */ void visit(AsmUnaExp asmUnaExp) { asmUnaExp.accept(this); }
     /** */ void visit(AsmXorExp asmXorExp) { asmXorExp.accept(this); }
     /** */ void visit(AssertExpression assertExpression) { assertExpression.accept(this); }
-    /** */ void visit(AssertStatement assertStatement) { assertStatement.accept(this); }
     /** */ void visit(AssignExpression assignExpression) { assignExpression.accept(this); }
     /** */ void visit(AssocArrayLiteral assocArrayLiteral) { assocArrayLiteral.accept(this); }
     /** */ void visit(AtAttribute atAttribute) { atAttribute.accept(this); }
@@ -148,7 +147,6 @@ abstract class ASTVisitor
     /** */ void visit(MulExpression mulExpression) { mulExpression.accept(this); }
     /** */ void visit(NewAnonClassExpression newAnonClassExpression) { newAnonClassExpression.accept(this); }
     /** */ void visit(NewExpression newExpression) { newExpression.accept(this); }
-    /** */ void visit(NonEmptyStatement nonEmptyStatement) { nonEmptyStatement.accept(this); }
     /** */ void visit(NonVoidInitializer nonVoidInitializer) { nonVoidInitializer.accept(this); }
     /** */ void visit(Operand operand) { operand.accept(this); }
     /** */ void visit(Operands operands) { operands.accept(this); }
@@ -519,14 +517,6 @@ public:
     mixin(DEFAULT_ACCEPT);
     /** */ AssignExpression assertion;
     /** */ AssignExpression message;
-}
-
-///
-class AssertStatement : ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ AssertExpression assertExpression;
 }
 
 ///
@@ -1019,8 +1009,7 @@ class ForStatement : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ Declaration initializationDeclaration;
-    /** */ Statement initializationStatement;
+    /** */ DeclarationOrStatement declarationOrStatement;
     /** */ Expression test;
     /** */ Expression increment;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
@@ -1301,7 +1290,7 @@ public:
     /** */ Token identifier;
     /** */ TypeSpecialization typeSpecialization;
     /** */ TemplateParameterList templateParameterList;
-    /** */ Token equalsOrColon;
+    /** */ TokenType equalsOrColon;
 }
 
 ///
@@ -1363,8 +1352,8 @@ class MemberFunctionAttribute : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ Token token;
-    /** */ FunctionAttribute functionAttribute;
+    /** */ TokenType tokenType;
+    /** */ AtAttribute atAttribute;
 }
 
 ///
@@ -1449,16 +1438,6 @@ public:
     /** */ AssignExpression assignExpression;
 }
 
-///
-class NonEmptyStatement : ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
-    /** */ CaseStatement caseStatement;
-    /** */ CaseRangeStatement caseRangeStatement;
-    /** */ DefaultStatement defaultStatement;
-}
 
 ///
 class StatementNoCaseNoDefault : ASTNode
@@ -1749,7 +1728,7 @@ class StaticAssertStatement : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ AssertStatement assertStatement;
+    /** */ AssertExpression assertExpression;
 }
 
 ///

@@ -10,15 +10,19 @@ import std.d.lexer;
 
 pure nothrow bool isLineOfCode(TokenType t)
 {
-	switch(t)
+	with (TokenType) switch(t)
 	{
-	case TokenType.semicolon:
-	case TokenType.while_:
-	case TokenType.if_:
-	case TokenType.for_:
-	case TokenType.foreach_:
-	case TokenType.foreach_reverse_:
-	case TokenType.case_:
+	case semicolon:
+	case while_:
+	case if_:
+	case do_:
+	case else_:
+	case switch_:
+	case for_:
+	case foreach_:
+	case foreach_reverse_:
+	case default_:
+	case case_:
 		return true;
 	default:
 		return false;
