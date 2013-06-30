@@ -69,7 +69,7 @@ import std.algorithm;
 import std.array;
 version (unittest) import std.stdio;
 
-//version = development;
+version = development;
 version = verbose;
 version(development) import std.stdio;
 import std.stdio;
@@ -84,7 +84,10 @@ Module parseModule(const(Token)[] tokens, string fileName)
     auto parser = new Parser();
     parser.fileName = fileName;
     parser.tokens = tokens;
-    return parser.parseModule();
+    auto mod = parser.parseModule();
+    version (development) writeln("Parsing finished with ", parser.errorCount,
+        " errors");
+    return mod;
 }
 
 /**
@@ -102,7 +105,7 @@ struct Parser
      */
     AddExpression parseAddExpression()
     {
-        version(verbose) writeln(">parseAddExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(AddExpression, MulExpression,
             TokenType.plus, TokenType.minus, TokenType.tilde)();
     }
@@ -135,9 +138,7 @@ struct Parser
         else
         {
             if ((node.type = parseType()) is null) return null;
-            writeln("type parsed");
             if ((node.declarator = parseDeclarator()) is null) return null;
-            writeln("declarator parsed");
         }
         if (expect(TokenType.semicolon) is null) return null;
         return node;
@@ -223,7 +224,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AndAndExpression parseAndAndExpression()
     {
-        version(verbose) writeln(">parseAndAndExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(AndAndExpression, OrExpression,
             TokenType.logicAnd)();
     }
@@ -238,7 +239,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AndExpression parseAndExpression()
     {
-        version(verbose) writeln(">parseAndExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(AndExpression, CmpExpression,
             TokenType.bitAnd)();
     }
@@ -252,8 +253,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     ArgumentList parseArgumentList()
     {
-        version(verbose) writeln(">parseArgumentList ", current.line, " ", current.column);
-        version(verbose) scope(exit) writeln("<parseArgumentList ", current.line, " ", current.column);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseCommaSeparatedRule!(ArgumentList, AssignExpression)();
     }
 
@@ -267,9 +267,10 @@ alias core.sys.posix.stdio.fileno fileno;
     Arguments parseArguments()
     {
         auto node = new Arguments;
-        version (verbose) writeln(">parseArguments");
+        mixin(traceEnterAndExit!(__FUNCTION__));
         if (expect(TokenType.lParen) is null) return null;
-        node.argumentList = parseArgumentList();
+        if (!currentIs(TokenType.rParen))
+            node.argumentList = parseArgumentList();
         if (expect(TokenType.rParen) is null) return null;
         return node;
     }
@@ -663,7 +664,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AssignExpression parseAssignExpression()
     {
-        version(verbose) writeln(">parseAssignExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AssignExpression;
         node.ternaryExpression = parseTernaryExpression();
         if (currentIsOneOf(TokenType.assign, TokenType.unsignedShiftRightEqual,
@@ -844,8 +845,8 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AutoDeclaration parseAutoDeclaration()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AutoDeclaration;
-        version(verbose) writeln(">parseAutoDeclaration ", current.line);
         node.storageClass = parseStorageClass();
         if (node.storageClass is null) return null;
         do
@@ -862,6 +863,7 @@ alias core.sys.posix.stdio.fileno fileno;
             else
                 break;
         } while (true);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -1348,7 +1350,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     CmpExpression parseCmpExpression()
     {
-        version(verbose) writeln(">parseCmpExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new CmpExpression;
         auto shift = parseShiftExpression();
         with (TokenType) switch (current.type)
@@ -1643,7 +1645,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     Declaration parseDeclaration()
     {
-        import std.stdio;
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Declaration;
         with (TokenType) switch (current.type)
         {
@@ -1698,6 +1700,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 node.sharedStaticConstructor = parseSharedStaticConstructor();
             else if (startsWith(shared_, static_, tilde))
                 node.sharedStaticDestructor = parseSharedStaticDestructor();
+            else if (peekIs(lParen))
+                goto type;
             else
                 node.attributedDeclaration = parseAttributedDeclaration();
             break;
@@ -1725,6 +1729,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case bool_: .. case wchar_:
         case identifier:
+        type:
             Type type = parseType();
             if (!currentIs(identifier))
             {
@@ -1769,6 +1774,13 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 return null;
             }
             break;
+        case const_:
+        case immutable_:
+        case inout_:
+            if (peekIs(TokenType.lParen))
+                goto type;
+            else
+                goto case;
         case at:
         case align_:
         case deprecated_:
@@ -1782,10 +1794,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case synchronized_:
         case override_:
         case abstract_:
-        case const_:
         case gshared:
-        case immutable_:
-        case inout_:
         case pure_:
         case nothrow_:
             node.attributedDeclaration = parseAttributedDeclaration();
@@ -2086,7 +2095,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     EqualExpression parseEqualExpression(ShiftExpression shift = null)
     {
-        version(verbose) writeln(">parseEqualExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new EqualExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIsOneOf(TokenType.equal, TokenType.notEqual))
@@ -2380,8 +2389,8 @@ body {} // six
      */
     FunctionCallExpression parseFunctionCallExpression(UnaryExpression unary = null)
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new FunctionCallExpression;
-        version (verbose) writeln(">parseFunctionCallExpression ", current.line);
         node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
         if (currentIs(TokenType.not))
             node.templateArguments = parseTemplateArguments();
@@ -2628,9 +2637,13 @@ body {} // six
      */
     IdentifierOrTemplateInstance parseIdentifierOrTemplateInstance()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new IdentifierOrTemplateInstance;
-        if (peekIs(TokenType.not))
+        if (peekIs(TokenType.not) && !startsWith(TokenType.identifier,
+            TokenType.not, TokenType.is_))
+        {
             node.templateInstance = parseTemplateInstance();
+        }
         else
         {
             auto ident = expect(TokenType.identifier);
@@ -2649,7 +2662,7 @@ body {} // six
      */
     IdentityExpression parseIdentityExpression(ShiftExpression shift = null)
     {
-        version(verbose) writeln(">parseIdentityExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new IdentityExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIs(TokenType.not))
@@ -2671,6 +2684,7 @@ body {} // six
      */
     IfStatement parseIfStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new IfStatement;
         if (expect(TokenType.if_) is null) return null;
         if (expect(TokenType.lParen) is null) return null;
@@ -2855,8 +2869,8 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     IndexExpression parseIndexExpression(UnaryExpression unaryExpression = null)
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new IndexExpression;
-        version (verbose) writeln(">parseIndexExpression ", current.line);
         node.unaryExpression = unaryExpression is null ? parseUnaryExpression() : unaryExpression;
         if (expect(TokenType.lBracket) is null) return null;
         node.argumentList = parseArgumentList();
@@ -3357,7 +3371,7 @@ invariant() foo();
      */
     MulExpression parseMulExpression()
     {
-        version(verbose) writeln(">parseMulExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(MulExpression, UnaryExpression,
             TokenType.star, TokenType.div, TokenType.mod)();
     }
@@ -3582,7 +3596,7 @@ invariant() foo();
      */
     OrExpression parseOrExpression()
     {
-        version(verbose) writeln(">parseOrExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(OrExpression, XorExpression,
             TokenType.bitOr)();
     }
@@ -3597,7 +3611,7 @@ invariant() foo();
      */
     OrOrExpression parseOrOrExpression()
     {
-        version(verbose) writeln(">parseOrOrExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(OrOrExpression, AndAndExpression,
             TokenType.logicOr)();
     }
@@ -3634,8 +3648,8 @@ invariant() foo();
      */
     Parameter parseParameter()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Parameter;
-        version (verbose) writeln(">parseParameter");
         while (moreTokens())
         {
             TokenType type = parseParameterAttribute(false);
@@ -3650,7 +3664,10 @@ invariant() foo();
         {
             node.name = advance();
             if (currentIs(TokenType.vararg))
+            {
+                advance();
                 node.vararg = true;
+            }
             else if (currentIs(TokenType.assign))
             {
                 advance();
@@ -3716,7 +3733,7 @@ invariant() foo();
      */
     Parameters parseParameters()
     {
-        version (verbose) writeln(">parseParameters");
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Parameters;
         expect(TokenType.lParen);
         if (currentIs(TokenType.rParen))
@@ -3926,8 +3943,7 @@ q{(int a, ...)
      */
     PrimaryExpression parsePrimaryExpression()
     {
-        version(verbose) writeln(">parsePrimaryExpression ", current.line);
-        version(verbose) scope(exit) writeln("finished parsePrimaryExpression ", current.line, " ", current.column);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new PrimaryExpression;
         with (TokenType) switch (current.type)
         {
@@ -4149,7 +4165,7 @@ q{(int a, ...)
      */
     ShiftExpression parseShiftExpression()
     {
-        version(verbose) writeln(">parseShiftExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(ShiftExpression, AddExpression,
             TokenType.shiftLeft, TokenType.shiftRight,
             TokenType.unsignedShiftRight)();
@@ -4685,7 +4701,7 @@ q{(int a, ...)
      */
     TemplateDeclaration parseTemplateDeclaration()
     {
-        version(verbose) writeln(">parseTemplateDeclaration");
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateDeclaration;
         expect(TokenType.template_);
         auto ident = expect(TokenType.identifier);
@@ -4754,7 +4770,7 @@ q{(int a, ...)
      */
     TemplateParameter parseTemplateParameter()
     {
-        version(verbose) writeln(">parseTemplateParameter");
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateParameter;
         with (TokenType) switch (current.type)
         {
@@ -4800,7 +4816,7 @@ q{(int a, ...)
      */
     TemplateParameters parseTemplateParameters()
     {
-        version(verbose) writeln(">parseTemplateParameters");
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateParameters;
         assert (expect(TokenType.lParen));
         node.templateParameterList = parseTemplateParameterList();
@@ -4880,7 +4896,7 @@ q{(int a, ...)
      */
     TemplateTupleParameter parseTemplateTupleParameter()
     {
-        version(verbose) writeln(">parseTemplateTupleParameter");
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateTupleParameter;
         auto i = expect(TokenType.identifier);
         if (i is null)
@@ -4979,7 +4995,7 @@ q{(int a, ...)
      */
     TernaryExpression parseTernaryExpression()
     {
-        version(verbose) writeln(">parseTernaryExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TernaryExpression;
         node.orOrExpression = parseOrOrExpression();
         if (currentIs(TokenType.ternary))
@@ -5056,6 +5072,7 @@ q{(int a, ...)
      */
     Type parseType()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Type;
         switch(current.type)
         {
@@ -5247,8 +5264,8 @@ q{(int a, ...)
      */
     TypeSuffix parseTypeSuffix()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TypeSuffix;
-        version (verbose) writeln(">parseTypeSuffix");
         with (TokenType) switch(current.type)
         {
         case star:
@@ -5358,8 +5375,7 @@ q{(int a, ...)
      */
     UnaryExpression parseUnaryExpression()
     {
-        version(verbose) writeln(">parseUnaryExpression ", current.line, " ", current.column);
-        version(verbose) scope(exit) writeln("<parseUnaryExpression ", current.line, " ", current.column);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new UnaryExpression;
         with(TokenType) switch (current.type)
         {
@@ -5393,6 +5409,8 @@ q{(int a, ...)
         loop: while (moreTokens()) with (TokenType) switch (current.type)
         {
         case not:
+            if (peekIs(is_))
+                break loop;
             index++;
             bool jump =  (currentIs(TokenType.lParen) && peekPastParens().type == TokenType.lParen)
                 || peekIs(TokenType.lParen);
@@ -5501,13 +5519,15 @@ q{doStuff(5)}c;
      */
     VariableDeclaration parseVariableDeclaration(Type type = null)
     {
+        mixin (traceEnterAndExit!(__FUNCTION__));
         auto node = new VariableDeclaration;
-
         if (currentIs(TokenType.auto_))
         {
             node.autoDeclaration = parseAutoDeclaration();
             return node;
         }
+
+        // TODO: handle storage class here
 
         node.type = type is null ? parseType() : type;
 
@@ -5637,7 +5657,7 @@ q{doStuff(5)}c;
      */
     XorExpression parseXorExpression()
     {
-        version(verbose) writeln(">parseXorExpression ", current.line);
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(XorExpression, AndExpression,
             TokenType.xor)();
     }
@@ -5675,6 +5695,60 @@ private:
 
     bool isDeclaration()
     {
+        with (TokenType) switch (current.type)
+        {
+        mixin(BASIC_TYPE_CASE_RANGE);
+        case const_:
+        case immutable_:
+        case inout_:
+        case shared_:
+        case gshared:
+        case alias_:
+        case class_:
+        case enum_:
+        case interface_:
+        case struct_:
+        case union_:
+        case unittest_:
+        case auto_:
+        case ref_:
+        case at:
+        case align_:
+        case deprecated_:
+        case private_:
+        case package_:
+        case protected_:
+        case public_:
+        case export_:
+        case extern_:
+        case final_:
+        case synchronized_:
+        case override_:
+        case abstract_:
+        case pure_:
+        case nothrow_:
+            return true;
+        case case_:
+        case default_:
+        case return_:
+        case if_:
+        case while_:
+        case do_:
+        case for_:
+        case foreach_:
+        case switch_:
+        case continue_:
+        case break_:
+        case goto_:
+        case try_:
+        case throw_:
+        case scope_:
+        case asm_:
+        case foreach_reverse_:
+            return false;
+        default:
+            break;
+        }
         // h4x
         auto b = setBookmark();
         scope(exit) goToBookmark(b);
@@ -5755,11 +5829,11 @@ private:
     void error(lazy string message)
     {
         import std.stdio;
-        ++errorCount;
         if (suppressMessages <= 0)
         {
+            ++errorCount;
             if (errorFunction is null)
-                stderr.writefln("%s(%d:%d): %s", fileName, tokens[index].line,
+                stderr.writefln("!! %s(%d:%d): %s", fileName, tokens[index].line,
                     tokens[index].column, message);
             else
                 errorFunction(fileName, tokens[index].line, tokens[index].column,
@@ -5875,16 +5949,16 @@ private:
      */
     const(Token)* expect(TokenType type, string loc = __PRETTY_FUNCTION__)
     {
-        if (tokens[index].type == type)
+        if (index < tokens.length && tokens[index].type == type)
             return &tokens[index++];
         else
         {
             if (tokenValues[type] is null)
                 error("Expected " ~ to!string(type) ~ " instead of "
-                    ~ tokens[index].value ~ " at " ~ loc);
+                    ~ (index < tokens.length ? tokens[index].value : "EOF") ~ " at " ~ loc);
             else
                 error("Expected " ~ tokenValues[type] ~ " instead of "
-                    ~ tokens[index].value ~ " at " ~ loc);
+                    ~ (index < tokens.length ? tokens[index].value : "EOF") ~ " at " ~ loc);
             return null;
         }
     }
@@ -5964,6 +6038,20 @@ private:
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
         return p;
+    }
+
+    template traceEnterAndExit(string fun)
+    {
+        enum traceEnterAndExit = `version (verbose) trace(">> ` ~ fun ~ ` ");`
+            ~ `version (verbose) scope(exit) trace("<< ` ~ fun ~ ` ");`;
+    }
+
+    version (verbose) void trace(string message)
+    {
+        if (index < tokens.length)
+            stderr.writeln(message, "(", current.line, ":", current.column, ")");
+        else
+            stderr.writeln(message, "(EOF:0)");
     }
 
     uint errorCount;

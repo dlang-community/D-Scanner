@@ -128,32 +128,32 @@ public:
  */
 struct Token
 {
-    /**
-     * The token type.
-     */
-    TokenType type;
-
-    /**
+	/**
      * The representation of the token in the original source code.
      */
     string value;
+
+	/**
+     * The index of the start of the token in the original source.
+     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+     */
+    size_t startIndex;
 
     /**
      * The number of the line the token is on.
      */
     uint line;
 
-    /**
+	/**
      * The column number of the start of the token in the original source.
      * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
      */
-    uint column;
+    ushort column;
 
-    /**
-     * The index of the start of the token in the original source.
-     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+	/**
+     * The token type.
      */
-    size_t startIndex;
+    TokenType type;
 
     /**
      * Check to see if the token is of the same type and has the same string
@@ -190,7 +190,7 @@ struct Token
  * Configure the behavior of the byToken() function. These flags may be
  * combined using a bitwise or.
  */
-enum IterationStyle
+enum IterationStyle : ushort
 {
     /// Only include code, not whitespace or comments
     codeOnly = 0,
@@ -210,7 +210,7 @@ enum IterationStyle
  * Configuration of the token lexing style. These flags may be combined with a
  * bitwise or.
  */
-enum TokenStyle : uint
+enum TokenStyle : ushort
 {
     /**
      * Escape sequences will be replaced with their equivalent characters,
@@ -1836,7 +1836,7 @@ L_advance:
     enum initialTableSize = 2048;
     Token current;
     uint lineNumber;
-    uint column;
+    ushort column;
     LexSrc src;
     bool _empty;
     LexerConfig config;
