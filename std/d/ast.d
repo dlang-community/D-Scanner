@@ -555,14 +555,11 @@ public:
     {
         if (attribute !is null)
             visitor.visit(attribute);
-        foreach (dec; declarations)
-        {
-            if (dec !is null)
-                visitor.visit(dec);
-        }
+		if (declaration !is null)
+			visitor.visit(declaration);
     }
     /** */ Attribute attribute;
-    /** */ Declaration[] declarations;
+    /** */ Declaration declaration;
 }
 
 ///
@@ -765,6 +762,9 @@ public:
     mixin(DEFAULT_ACCEPT);
     /** */ Parameters parameters;
     /** */ FunctionBody functionBody;
+    /** */ Constraint constraint;
+    /** */ MemberFunctionAttribute[] memberFunctionAttributes;
+    /** */ TemplateParameters templateParameters;
 }
 
 ///
@@ -850,6 +850,7 @@ public:
     /** */ ConditionalDeclaration conditionalDeclaration;
     /** */ PragmaDeclaration pragmaDeclaration;
     /** */ VersionSpecification versionSpecification;
+	/** */ Declaration[] declarations;
 }
 
 ///
@@ -1605,7 +1606,6 @@ class PrimaryExpression : ASTNode
 public:
     mixin(DEFAULT_ACCEPT);
     /** */ Token primary;
-    /** */ Token identifier;
     /** */ IdentifierOrTemplateInstance identifierOrTemplateInstance;
     /** */ TokenType basicType;
     /** */ TypeofExpression typeofExpression;
