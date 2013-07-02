@@ -23,7 +23,7 @@
  * definitions end with a semicolon (;).)
  * )
  *
- * The grammar for D starts with the $(LINK2 #module, module) rule.
+ * The grammar for D starts with the $(LINK2 #.module, module) rule.
  *
  * Examples:
  * ---
@@ -56,7 +56,7 @@
  * MACROS:
  *     GRAMMAR = $(D_CODE $0)
  *     RULEDEF = $(DDOC_ANCHOR $0) $(B $0)
- *     RULE = $(LINK2 #$0, $(B $0))
+ *     RULE = $(LINK2 #.$0, $(B $0))
  *     LITERAL = $(D_STRING $0)
  */
 
@@ -391,7 +391,7 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an AsmBrExp
      *
      * $(GRAMMAR $(RULEDEF asmBrExp):
-     *     $(RULE asmUnaExp)
+     *       $(RULE asmUnaExp)
      *     | $(RULE asmBrExp) $(LITERAL '[') $(RULE asmExp) $(LITERAL ']')
      *     ;)
      */
@@ -571,7 +571,7 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an AsmTypePrefix
      *
      * $(GRAMMAR $(RULEDEF asmTypePrefix):
-     *     $(LITERAL Identifier) $(LITERAL Identifier)
+     *       $(LITERAL Identifier) $(LITERAL Identifier)
      *     | $(LITERAL 'byte') $(LITERAL Identifier)
      *     | $(LITERAL 'short') $(LITERAL Identifier)
      *     | $(LITERAL 'int') $(LITERAL Identifier)
@@ -591,7 +591,7 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an AsmUnaExp
      *
      * $(GRAMMAR $(RULEDEF asmUnaExp):
-     *     $(RULE asmTypePrefix) $(RULE asmExp)
+     *       $(RULE asmTypePrefix) $(RULE asmExp)
      *     | $(LITERAL Identifier) $(RULE asmExp)
      *     | $(LITERAL '+') $(RULE asmUnaExp)
      *     | $(LITERAL '-') $(RULE asmUnaExp)
@@ -1861,7 +1861,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * $(GRAMMAR $(RULEDEF declarationsAndStatements):
      *     $(RULE declarationOrStatement)+
      *     ;
-     * $(RULEDEF declarationOrStatement):
+     *$(RULEDEF declarationOrStatement):
      *       $(RULE declaration)
      *     | $(RULE statementNoCaseNoDefault)
      *     ;)
@@ -3144,7 +3144,7 @@ invariant() foo();
      * Parses an IsExpression
      *
      * $(GRAMMAR $(RULEDEF isExpression):
-     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') ($(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)?)) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)? $(LITERAL '$(RPAREN)')
      *     ;)
      */
     IsExpression parseIsExpression()
@@ -4914,16 +4914,16 @@ q{(int a, ...)
      *     | $(LITERAL '_false')
      *     | $(LITERAL '_null')
      *     | $(LITERAL 'this')
-     *     | $(LITERAL '__DATE__')
-     *     | $(LITERAL '__TIME__')
-     *     | $(LITERAL '__TIMESTAMP__')
-     *     | $(LITERAL '__VENDOR__')
-     *     | $(LITERAL '__VERSION__')
-     *     | $(LITERAL '__FILE__')
-     *     | $(LITERAL '__LINE__')
-     *     | $(LITERAL '__MODULE__')
-     *     | $(LITERAL '__FUNCTION__')
-     *     | $(LITERAL '__PRETTY_FUNCTION__')
+     *     | $(LITERAL '___DATE__')
+     *     | $(LITERAL '___TIME__')
+     *     | $(LITERAL '___TIMESTAMP__')
+     *     | $(LITERAL '___VENDOR__')
+     *     | $(LITERAL '___VERSION__')
+     *     | $(LITERAL '___FILE__')
+     *     | $(LITERAL '___LINE__')
+     *     | $(LITERAL '___MODULE__')
+     *     | $(LITERAL '___FUNCTION__')
+     *     | $(LITERAL '___PRETTY_FUNCTION__')
      *     ;)
      */
     TemplateSingleArgument parseTemplateSingleArgument()
@@ -5039,7 +5039,7 @@ q{(int a, ...)
      * Parses a TemplateValueParameterDefault
      *
      * $(GRAMMAR $(RULEDEF templateValueParameterDefault):
-     *     $(LITERAL '=') ('__FILE__' | '__MODULE__' | '__LINE__' | '__FUNCTION__' | '__PRETTY_FUNCTION__' | $(RULE assignExpression))
+     *     $(LITERAL '=') ($(LITERAL '___FILE__') | $(LITERAL '___MODULE__') | $(LITERAL '___LINE__') | $(LITERAL '___FUNCTION__') | $(LITERAL '___PRETTY_FUNCTION__') | $(RULE assignExpression))
      *     ;)
      */
     TemplateValueParameterDefault parseTemplateValueParameterDefault()
@@ -5104,7 +5104,7 @@ q{(int a, ...)
      * Parses an TraitsExpression
      *
      * $(GRAMMAR $(RULEDEF traitsExpression):
-     *     $(LITERAL '__traits') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) ($(LITERAL ',') $(RULE TemplateArgumentList)) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL '___traits') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL ',') $(RULE TemplateArgumentList) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     TraitsExpression parseTraitsExpression()
@@ -5115,6 +5115,7 @@ q{(int a, ...)
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
         node.identifier = *ident;
+        if (expect(TokenType.comma) is null) return null;
         if ((node.templateArgumentList = parseTemplateArgumentList()) is null) return null;
         if (expect(TokenType.rParen) is null) return null;
         return node;
@@ -5395,7 +5396,7 @@ q{(int a, ...)
      * Parses a TypeidExpression
      *
      * $(GRAMMAR $(RULEDEF typeidExpression):
-     *     $(LITERAL 'typeid') $(LITERAL '$(LPAREN)')($(RULE type) | $(RULE expression)) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'typeid') $(LITERAL '$(LPAREN)') ($(RULE type) | $(RULE expression)) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     TypeidExpression parseTypeidExpression()
@@ -5421,7 +5422,7 @@ q{(int a, ...)
      * Parses a TypeofExpression
      *
      * $(GRAMMAR $(RULEDEF typeofExpression):
-     *     $(LITERAL 'typeof') $(LITERAL '$(LPAREN)')($(RULE expression) | $(LITERAL 'return')) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'typeof') $(LITERAL '$(LPAREN)') ($(RULE expression) | $(LITERAL 'return')) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     TypeofExpression parseTypeofExpression()
@@ -5556,7 +5557,8 @@ q{doStuff(5)}c;
      * Parses an UnionDeclaration
      *
      * $(GRAMMAR $(RULEDEF unionDeclaration):
-     *       $(LITERAL 'union') $(LITERAL Identifier) (($(RULE templateParameters) $(RULE constraint)? $(RULE structBody))? | ($(RULE structBody) | $(LITERAL ';')))
+     *       $(LITERAL 'union') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? $(RULE structBody)
+     *     | $(LITERAL 'union') $(LITERAL Identifier) ($(RULE structBody) | $(LITERAL ';'))
      *     | $(LITERAL 'union') $(RULE structBody)
      *     ;)
      */
@@ -5646,7 +5648,7 @@ q{doStuff(5)}c;
      * Parses a Vector
      *
      * $(GRAMMAR $(RULEDEF vector):
-     *     $(LITERAL '__vector') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL '___vector') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     Vector parseVector()
