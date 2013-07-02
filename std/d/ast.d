@@ -1862,9 +1862,9 @@ public:
     /** */ Type type;
     /** */ Token identifier;
     /** */ Type colonType;
-    /** */ Expression colonExpression;
+    /** */ AssignExpression colonExpression;
     /** */ Type assignType;
-    /** */ Expression assignExpression;
+    /** */ AssignExpression assignExpression;
 }
 
 ///

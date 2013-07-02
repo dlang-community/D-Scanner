@@ -64,6 +64,6 @@ void main(string[] args)
     LexerConfig config;
     auto tokens = byToken(rawSource, config).array();
     Module m = parseModule(tokens, args[1]);
-    ASTVisitor visitor = new TestVisitor;
-    visitor.visit(m);
+    //ASTVisitor visitor = new TestVisitor;
+    //visitor.visit(m);
 }
