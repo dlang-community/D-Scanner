@@ -141,6 +141,7 @@ abstract class ASTVisitor
     /** */ void visit(MemberFunctionAttribute memberFunctionAttribute) { memberFunctionAttribute.accept(this); }
     /** */ void visit(MixinDeclaration mixinDeclaration) { mixinDeclaration.accept(this); }
     /** */ void visit(MixinExpression mixinExpression) { mixinExpression.accept(this); }
+    /** */ void visit(MixinTemplateDeclaration mixinTemplateDeclaration) { mixinTemplateDeclaration.accept(this); }
     /** */ void visit(MixinTemplateName mixinTemplateName) { mixinTemplateName.accept(this); }
     /** */ void visit(Module module_) { module_.accept(this); }
     /** */ void visit(ModuleDeclaration moduleDeclaration) { moduleDeclaration.accept(this); }
@@ -195,7 +196,7 @@ abstract class ASTVisitor
     /** */ void visit(TemplateArguments templateArguments) { templateArguments.accept(this); }
     /** */ void visit(TemplateDeclaration templateDeclaration) { templateDeclaration.accept(this); }
     /** */ void visit(TemplateInstance templateInstance) { templateInstance.accept(this); }
-    /** */ void visit(TemplateMixinStatement templateMixinStatement) { templateMixinStatement.accept(this); }
+    /** */ void visit(TemplateMixinExpression templateMixinExpression) { templateMixinExpression.accept(this); }
     /** */ void visit(TemplateParameter templateParameter) { templateParameter.accept(this); }
     /** */ void visit(TemplateParameterList templateParameterList) { templateParameterList.accept(this); }
     /** */ void visit(TemplateParameters templateParameters) { templateParameters.accept(this); }
@@ -812,6 +813,7 @@ public:
         if (enumDeclaration !is null) visitor.visit(enumDeclaration);
         if (aliasDeclaration !is null) visitor.visit(aliasDeclaration);
         if (mixinDeclaration !is null) visitor.visit(mixinDeclaration);
+        if (mixinTemplateDeclaration !is null) visitor.visit(mixinTemplateDeclaration);
         if (unittest_ !is null) visitor.visit(unittest_);
         if (staticAssertDeclaration !is null) visitor.visit(staticAssertDeclaration);
         if (templateDeclaration !is null) visitor.visit(templateDeclaration);
@@ -838,6 +840,7 @@ public:
     /** */ EnumDeclaration enumDeclaration;
     /** */ AliasDeclaration aliasDeclaration;
     /** */ MixinDeclaration mixinDeclaration;
+    /** */ MixinTemplateDeclaration mixinTemplateDeclaration;
     /** */ Unittest unittest_;
     /** */ StaticAssertDeclaration staticAssertDeclaration;
     /** */ TemplateDeclaration templateDeclaration;
@@ -1363,6 +1366,7 @@ class MixinDeclaration : ASTNode
 public:
     mixin(DEFAULT_ACCEPT);
     /** */ MixinExpression mixinExpression;
+    /** */ TemplateMixinExpression templateMixinExpression;
 }
 
 ///
@@ -1371,6 +1375,14 @@ class MixinExpression : ASTNode
 public:
     mixin(DEFAULT_ACCEPT);
     /** */ AssignExpression assignExpression;
+}
+
+///
+class MixinTemplateDeclaration : ASTNode
+{
+public:
+    mixin(DEFAULT_ACCEPT);
+    /** */ TemplateDeclaration templateDeclaration;
 }
 
 ///
@@ -1466,7 +1478,6 @@ public:
     /** */ AsmStatement asmStatement;
     /** */ ConditionalStatement conditionalStatement;
     /** */ StaticAssertStatement staticAssertStatement;
-    /** */ TemplateMixinStatement templateMixinStatement;
     /** */ VersionSpecification versionSpecification;
     /** */ DebugSpecification debugSpecification;
     /** */ FunctionCallStatement functionCallStatement;
@@ -1605,6 +1616,7 @@ class PrimaryExpression : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
+    /** */ bool hasDot;
     /** */ Token primary;
     /** */ IdentifierOrTemplateInstance identifierOrTemplateInstance;
     /** */ TokenType basicType;
@@ -1915,7 +1927,7 @@ public:
 }
 
 ///
-class TemplateMixinStatement : ASTNode
+class TemplateMixinExpression : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
