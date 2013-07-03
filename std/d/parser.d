@@ -75,10 +75,10 @@ version(development) import std.stdio;
 import std.stdio;
 
 /**
-* Params:
-*     tokens = the tokens parsed by std.d.lexer
-* Returns: the parsed module
-*/
+ * Params:
+ *     tokens = the tokens parsed by std.d.lexer
+ * Returns: the parsed module
+ */
 Module parseModule(const(Token)[] tokens, string fileName)
 {
     auto parser = new Parser();
@@ -86,7 +86,7 @@ Module parseModule(const(Token)[] tokens, string fileName)
     parser.tokens = tokens;
     auto mod = parser.parseModule();
     version (development) writeln("Parsing finished with ", parser.errorCount,
-        " errors");
+        " errors and ", parser.warningCount, " warnings.");
     return mod;
 }
 
@@ -289,6 +289,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     ArrayInitializer parseArrayInitializer()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ArrayInitializer;
         if (expect(TokenType.lBracket) is null) return null;
         while (true)
@@ -316,6 +317,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     ArrayLiteral parseArrayLiteral()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ArrayLiteral;
         if (expect(TokenType.lBracket) is null) return null;
         node.argumentList = parseArgumentList();
@@ -332,6 +334,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     ArrayMemberInitialization parseArrayMemberInitialization()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ArrayMemberInitialization;
         with (TokenType) switch (current.type)
         {
@@ -383,7 +386,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmAndExp parseAsmAndExp()
     {
         auto node = new AsmAndExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -398,7 +401,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmBrExp parseAsmBrExp()
     {
         auto node = new AsmBrExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -412,7 +415,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmEqualExp parseAsmEqualExp()
     {
         auto node = new AsmEqualExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -426,7 +429,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmExp parseAsmExp()
     {
         auto node = new AsmExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -445,7 +448,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmInstruction parseAsmInstruction()
     {
         auto node = new AsmInstruction;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -459,7 +462,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmLogAndExp parseAsmLogAndExp()
     {
         auto node = new AsmLogAndExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -473,7 +476,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmLogOrExp parseAsmLogOrExp()
     {
         auto node = new AsmLogOrExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -487,7 +490,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmMulExp parseAsmMulExp()
     {
         auto node = new AsmMulExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -501,7 +504,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmOrExp parseAsmOrExp()
     {
         auto node = new AsmOrExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -519,7 +522,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmPrimaryExp parseAsmPrimaryExp()
     {
         auto node = new AsmPrimaryExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -533,7 +536,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmRelExp parseAsmRelExp()
     {
         auto node = new AsmRelExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -547,7 +550,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmShiftExp parseAsmShiftExp()
     {
         auto node = new AsmShiftExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -583,7 +586,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmTypePrefix parseAsmTypePrefix()
     {
         auto node = new AsmTypePrefix;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -603,7 +606,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmUnaExp parseAsmUnaExp()
     {
         auto node = new AsmUnaExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -617,7 +620,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmXorExp parseAsmXorExp()
     {
         auto node = new AsmXorExp;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -630,6 +633,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AssertExpression parseAssertExpression()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AssertExpression;
         expect(TokenType.assert_);
         if (expect(TokenType.lParen) is null) return null;
@@ -693,6 +697,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AssocArrayLiteral parseAssocArrayLiteral()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AssocArrayLiteral;
         if (expect(TokenType.lBracket) is null) return null;
         node.keyValuePairs = parseKeyValuePairs();
@@ -709,6 +714,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AtAttribute parseAtAttribute()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AtAttribute;
         if (expect(TokenType.at) is null) return null;
         with (TokenType) switch (current.type)
@@ -879,6 +885,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     BlockStatement parseBlockStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new BlockStatement();
         if (expect(TokenType.lBrace) is null) return null;
         version (development) skipBraceContent();
@@ -897,6 +904,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     BodyStatement parseBodyStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new BodyStatement;
         expect(TokenType.body_);
         node.blockStatement = parseBlockStatement();
@@ -912,6 +920,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     BreakStatement parseBreakStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         expect(TokenType.break_);
         auto node = new BreakStatement;
         switch (current.type)
@@ -939,6 +948,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     BaseClass parseBaseClass()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new BaseClass;
         if (currentIs(TokenType.typeof_))
         {
@@ -958,6 +968,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     BaseClassList parseBaseClassList()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseCommaSeparatedRule!(BaseClassList, BaseClass)();
     }
 
@@ -991,6 +1002,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     Token parseBasicType()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         if (isBasicType(current.type))
             return advance();
         error("Basic type expected");
@@ -1007,6 +1019,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     CaseRangeStatement parseCaseRangeStatement(AssignExpression low = null)
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new CaseRangeStatement;
         if (low is null)
         {
@@ -1031,6 +1044,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     CaseStatement parseCaseStatement(ArgumentList argumentList = null)
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new CaseStatement;
         if (argumentList !is null)
             expect(TokenType.case_);
@@ -1049,6 +1063,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     CastExpression parseCastExpression()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new CastExpression;
         expect(TokenType.cast_);
         if (expect(TokenType.lParen) is null) return null;
@@ -1094,6 +1109,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     CastQualifier parseCastQualifier()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new CastQualifier;
         switch (current.type)
         {
@@ -1686,6 +1702,11 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new Declaration;
         with (TokenType) switch (current.type)
         {
+        case semicolon:
+            // http://d.puremagic.com/issues/show_bug.cgi?id=4559
+            warn("Empty declaration");
+            advance();
+            break;
         case lBrace:
             advance();
             while (moreTokens() && !currentIs(rBrace))
@@ -1718,22 +1739,24 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 goto storageClass;
             else
             {
-                trace("here");
                 auto b = setBookmark();
                 advance();
+                assert (current.type == identifier);
                 if (peekIs(TokenType.assign))
                 {
-                    trace("varDec");
+                    trace("** 'enum identifier =' ");
                     goToBookmark(b);
                     node.variableDeclaration = parseVariableDeclaration();
                 }
                 else if (peekIsOneOf(TokenType.lBrace, TokenType.colon, TokenType.semicolon))
                 {
+                    trace("** 'enum identifier { : ;' ");
                     goToBookmark(b);
                     node.enumDeclaration = parseEnumDeclaration();
                 }
                 else
                 {
+                    trace("** something else");
                     goToBookmark(b);
                     goto storageClass;
                 }
@@ -1768,6 +1791,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 node.staticDestructor = parseStaticDestructor();
             else if (startsWith(static_, if_))
                 node.conditionalDeclaration = parseConditionalDeclaration();
+            else if (startsWith(static_, assert_))
+                node.staticAssertDeclaration = parseStaticAssertDeclaration();
             else
                 node.attributedDeclaration = parseAttributedDeclaration();
             break;
@@ -1783,6 +1808,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case unittest_:
             node.unittest_ = parseUnittest();
             break;
+        case typeof_:
         case bool_: .. case wchar_:
         case identifier:
         type:
@@ -1822,8 +1848,19 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.functionDeclaration = parseFunctionDeclaration();
             break;
         case const_:
+            if (startsWith(const_, identifier, assign))
+                node.variableDeclaration = parseVariableDeclaration();
+            else
+                goto typeConstructor;
+            break;
         case immutable_:
+            if (startsWith(immutable_, identifier, assign))
+                node.variableDeclaration = parseVariableDeclaration();
+            else
+                goto typeConstructor;
+            break;
         case inout_:
+        typeConstructor:
             if (peekIs(TokenType.lParen))
                 goto type;
             else
@@ -2475,6 +2512,7 @@ body {} // six
      */
     FunctionCallStatement parseFunctionCallStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new FunctionCallStatement;
         node.functionCallExpression = parseFunctionCallExpression();
         if (expect(TokenType.semicolon) is null) return null;
@@ -2491,31 +2529,34 @@ body {} // six
      */
     FunctionDeclaration parseFunctionDeclaration(Type type = null)
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new FunctionDeclaration;
 
         while(moreTokens() && currentIsMemberFunctionAttribute())
             node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
 
-        switch (current.type)
+        with (TokenType) switch (current.type)
         {
-        case TokenType.auto_:
+        case auto_:
             advance();
             node.hasAuto = true;
-            if (currentIs(TokenType.ref_))
+            if (currentIs(ref_))
             {
                 node.hasRef = true;
                 advance();
             }
             break;
-        case TokenType.ref_:
+        case ref_:
             advance();
             node.hasRef = true;
-            if (currentIs(TokenType.auto_))
+            if (currentIs(auto_))
             {
                 node.hasAuto = true;
                 advance();
                 break;
             }
+            else if (startsWith(identifier, lParen))
+                break;
             else
                 goto default;
         default:
@@ -3657,7 +3698,7 @@ invariant() foo();
     Operands parseOperands()
     {
         auto node = new Operands;
-        assert (false); // TODO asm
+        assert (false, "asm"); // TODO asm
         return node;
     }
 
@@ -3964,6 +4005,7 @@ q{(int a, ...)
      */
     PreIncDecExpression parsePreIncDecExpression()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new PreIncDecExpression;
         if (currentIsOneOf(TokenType.increment, TokenType.decrement))
             advance();
@@ -4107,6 +4149,7 @@ q{(int a, ...)
      */
     Register parseRegister()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Register;
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
@@ -4164,6 +4207,7 @@ q{(int a, ...)
      */
     ReturnStatement parseReturnStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ReturnStatement;
         expect(TokenType.return_);
         if (tokens[index] != TokenType.semicolon)
@@ -4181,6 +4225,7 @@ q{(int a, ...)
      */
     ScopeGuardStatement parseScopeGuardStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ScopeGuardStatement;
         expect(TokenType.scope_);
         expect(TokenType.lParen);
@@ -4201,6 +4246,7 @@ q{(int a, ...)
      */
     SharedStaticConstructor parseSharedStaticConstructor()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SharedStaticConstructor;
         expect(TokenType.shared_);
         expect(TokenType.static_);
@@ -4220,6 +4266,7 @@ q{(int a, ...)
      */
     SharedStaticDestructor parseSharedStaticDestructor()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SharedStaticDestructor;
         expect(TokenType.shared_);
         expect(TokenType.static_);
@@ -4256,6 +4303,7 @@ q{(int a, ...)
      */
     SingleImport parseSingleImport()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SingleImport;
         if (startsWith(TokenType.identifier, TokenType.assign))
         {
@@ -4270,18 +4318,23 @@ q{(int a, ...)
      * Parses a SliceExpression
      *
      * $(GRAMMAR $(RULEDEF sliceExpression):
-     *     $(RULE unaryExpression) $(LITERAL '[') $(RULE assignExpression) $(LITERAL '..') $(RULE assignExpression) $(LITERAL ']')
+     *       $(RULE unaryExpression) $(LITERAL '[') $(RULE assignExpression) $(LITERAL '..') $(RULE assignExpression) $(LITERAL ']')
+     *     | $(RULE unaryExpression) $(LITERAL '[') $(LITERAL ']')
      *     ;)
      */
     SliceExpression parseSliceExpression(UnaryExpression unary = null)
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SliceExpression;
         node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
-        expect(TokenType.lBracket);
-        node.lower = parseAssignExpression();
-        expect(TokenType.slice);
-        node.upper = parseAssignExpression();
-        expect(TokenType.rBracket);
+        if (expect(TokenType.lBracket) is null) return null;
+        if (!currentIs(TokenType.rBracket))
+        {
+            node.lower = parseAssignExpression();
+            expect(TokenType.slice);
+            node.upper = parseAssignExpression();
+        }
+        if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
 
@@ -4297,6 +4350,7 @@ q{(int a, ...)
      */
     Statement parseStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Statement;
         switch (current.type)
         {
@@ -4326,6 +4380,7 @@ q{(int a, ...)
      */
     StaticAssertDeclaration parseStaticAssertDeclaration()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StaticAssertDeclaration;
         node.staticAssertStatement = parseStaticAssertStatement();
         if (node.staticAssertStatement is null) return null;
@@ -4342,6 +4397,7 @@ q{(int a, ...)
      */
     StaticAssertStatement parseStaticAssertStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StaticAssertStatement;
         if (expect(TokenType.static_) is null) return null;
         node.assertExpression = parseAssertExpression();
@@ -4359,6 +4415,7 @@ q{(int a, ...)
      */
     StaticConstructor parseStaticConstructor()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StaticConstructor;
         expect(TokenType.static_);
         expect(TokenType.this_);
@@ -4377,6 +4434,7 @@ q{(int a, ...)
      */
     StaticDestructor parseStaticDestructor()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StaticDestructor;
         expect(TokenType.static_);
         expect(TokenType.tilde);
@@ -4396,6 +4454,7 @@ q{(int a, ...)
      */
     StaticIfCondition parseStaticIfCondition()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StaticIfCondition;
         expect(TokenType.static_);
         expect(TokenType.if_);
@@ -4470,6 +4529,7 @@ q{(int a, ...)
      */
     StructBody parseStructBody()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructBody;
         expect(TokenType.lBrace);
         while (!currentIs(TokenType.rBrace) && moreTokens())
@@ -4489,6 +4549,7 @@ q{(int a, ...)
      */
     StructBodyItem parseStructBodyItem()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructBodyItem;
         if (currentIs(TokenType.invariant_))
             node.invariant_ = parseInvariant();
@@ -4508,6 +4569,7 @@ q{(int a, ...)
      */
     StructDeclaration parseStructDeclaration()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructDeclaration;
         expect(TokenType.struct_);
         auto ident = expect(TokenType.identifier);
@@ -4543,6 +4605,7 @@ q{(int a, ...)
      */
     StructInitializer parseStructInitializer()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructInitializer;
         expect(TokenType.lBrace);
         node.structMemberInitializers = parseStructMemberInitializers();
@@ -4559,6 +4622,7 @@ q{(int a, ...)
      */
     StructMemberInitializer parseStructMemberInitializer()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructMemberInitializer;
         if (startsWith(TokenType.identifier, TokenType.colon))
         {
@@ -4578,6 +4642,7 @@ q{(int a, ...)
      */
     StructMemberInitializers parseStructMemberInitializers()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructMemberInitializers;
         do
         {
@@ -4605,6 +4670,7 @@ q{(int a, ...)
      */
     SwitchBody parseSwitchBody()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SwitchBody;
         expect(TokenType.lBrace);
         while (moreTokens() && tokens[index] != TokenType.rBrace)
@@ -4622,6 +4688,7 @@ q{(int a, ...)
      */
     SwitchStatement parseSwitchStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SwitchStatement;
         expect(TokenType.switch_);
         expect(TokenType.lParen);
@@ -4640,6 +4707,7 @@ q{(int a, ...)
      */
     Symbol parseSymbol()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Symbol;
         if (currentIs(TokenType.dot))
         {
@@ -4659,6 +4727,7 @@ q{(int a, ...)
      */
     SynchronizedStatement parseSynchronizedStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SynchronizedStatement;
         expect(TokenType.synchronized_);
         if (tokens[index] == TokenType.lParen)
@@ -4675,17 +4744,18 @@ q{(int a, ...)
      * Parses a TemplateAliasParameter
      *
      * $(GRAMMAR $(RULEDEF templateAliasParameter):
-     *     $(LITERAL 'alias') $(RULE type)? $(LITERAL Identifier) ($(LITERAL ':') ($(RULE type) | $(RULE expression)))? ($(LITERAL '=') ($(RULE type) | $(RULE expression)))?
+     *     $(LITERAL 'alias') $(RULE type)? $(LITERAL Identifier) ($(LITERAL ':') ($(RULE type) | $(RULE assignExpression)))? ($(LITERAL '=') ($(RULE type) | $(RULE assignExpression)))?
      *     ;)
      */
     TemplateAliasParameter parseTemplateAliasParameter()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateAliasParameter;
         expect(TokenType.alias_);
-        if (currentIs(TokenType.identifier) && peekIsOneOf(TokenType.comma,
-            TokenType.rParen))
+        if (currentIs(TokenType.identifier))
         {
-            node.identifier = advance();
+            if (peekIsOneOf(TokenType.comma, TokenType.rParen, TokenType.assign))
+                node.identifier = advance();
         }
         else
         {
@@ -4694,20 +4764,22 @@ q{(int a, ...)
             if (ident is null) return null;
             node.identifier = *ident;
         }
+
         if (currentIs(TokenType.colon))
         {
             advance();
             if (isType())
                 node.colonType = parseType();
             else
-                node.colonExpression = parseExpression();
+                node.colonExpression = parseAssignExpression();
         }
         if (currentIs(TokenType.assign))
         {
+            advance();
             if (isType())
                 node.assignType = parseType();
             else
-                node.assignExpression = parseExpression();
+                node.assignExpression = parseAssignExpression();
         }
         return node;
     }
@@ -4722,6 +4794,7 @@ q{(int a, ...)
      */
     TemplateArgument parseTemplateArgument()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateArgument;
         if (isType())
         {
@@ -4743,6 +4816,7 @@ q{(int a, ...)
      */
     TemplateArgumentList parseTemplateArgumentList()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseCommaSeparatedRule!(TemplateArgumentList, TemplateArgument)();
     }
 
@@ -4755,6 +4829,7 @@ q{(int a, ...)
      */
     TemplateArguments parseTemplateArguments()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateArguments;
         expect(TokenType.not);
         if (currentIs(TokenType.lParen))
@@ -4803,6 +4878,7 @@ q{(int a, ...)
      */
     TemplateInstance parseTemplateInstance()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateInstance;
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
@@ -4822,6 +4898,7 @@ q{(int a, ...)
      */
     TemplateMixinStatement parseTemplateMixinStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateMixinStatement;
         expect(TokenType.mixin_);
         node.mixinTemplateName = parseMixinTemplateName();
@@ -4880,6 +4957,7 @@ q{(int a, ...)
      */
     TemplateParameterList parseTemplateParameterList()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseCommaSeparatedRule!(TemplateParameterList, TemplateParameter)();
     }
 
@@ -4895,7 +4973,8 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateParameters;
         if (expect(TokenType.lParen) is null) return null;
-        node.templateParameterList = parseTemplateParameterList();
+        if (!currentIs(TokenType.rParen))
+            node.templateParameterList = parseTemplateParameterList();
         if (expect(TokenType.rParen) is null) return null;
         return node;
     }
@@ -4928,6 +5007,7 @@ q{(int a, ...)
      */
     TemplateSingleArgument parseTemplateSingleArgument()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateSingleArgument;
         with (TokenType) switch (current.type)
         {
@@ -4957,6 +5037,7 @@ q{(int a, ...)
      */
     TemplateThisParameter parseTemplateThisParameter()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateThisParameter;
         expect(TokenType.this_);
         node.templateTypeParameter = parseTemplateTypeParameter();
@@ -4978,7 +5059,7 @@ q{(int a, ...)
         if (i is null)
             return null;
         node.identifier = *i;
-        expect(TokenType.vararg);
+        if (expect(TokenType.vararg) is null) return null;
         return node;
     }
 
@@ -4991,6 +5072,7 @@ q{(int a, ...)
      */
     TemplateTypeParameter parseTemplateTypeParameter()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateTypeParameter;
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
@@ -5017,6 +5099,7 @@ q{(int a, ...)
      */
     TemplateValueParameter parseTemplateValueParameter()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateValueParameter;
         if ((node.type = parseType()) is null) return null;
         auto ident = expect(TokenType.identifier);
@@ -5044,6 +5127,7 @@ q{(int a, ...)
      */
     TemplateValueParameterDefault parseTemplateValueParameterDefault()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateValueParameterDefault;
         expect(TokenType.assign);
         with (TokenType) switch (current.type)
@@ -5093,6 +5177,7 @@ q{(int a, ...)
      */
     ThrowStatement parseThrowStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ThrowStatement;
         expect(TokenType.throw_);
         node.expression = parseExpression();
@@ -5109,6 +5194,7 @@ q{(int a, ...)
      */
     TraitsExpression parseTraitsExpression()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TraitsExpression;
         if (expect(TokenType.traits) is null) return null;
         if (expect(TokenType.lParen) is null) return null;
@@ -5129,6 +5215,7 @@ q{(int a, ...)
      */
     TryStatement parseTryStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TryStatement;
         expect(TokenType.try_);
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
@@ -5273,6 +5360,7 @@ q{(int a, ...)
      */
     TokenType[] parseTypeConstructors()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         TokenType[] r;
         while (moreTokens())
         {
@@ -5303,6 +5391,7 @@ q{(int a, ...)
      *     | $(LITERAL 'inout')
      *     | $(LITERAL 'shared')
      *     | $(LITERAL 'return')
+     *     | $(LITERAL 'typedef')
      *     | $(LITERAL '___parameters')
      *     ;)
      */
@@ -5314,18 +5403,15 @@ q{(int a, ...)
         {
         case struct_:
         case union_:
+        case class_:
         case interface_:
         case enum_:
         case function_:
         case delegate_:
         case super_:
         case return_:
+        case typedef_:
         case parameters:
-            if (peekIsOneOf(rParen, comma))
-                node.token = advance();
-            else
-                goto default;
-            break;
         case const_:
         case immutable_:
         case inout_:
@@ -5372,11 +5458,12 @@ q{(int a, ...)
             {
                 goToBookmark(bookmark);
                 node.assignExpression = parseAssignExpression();
+                if (node.assignExpression is null) return null;
             }
             else
                 node.type = type;
         end:
-            expect(TokenType.rBracket);
+            if (expect(TokenType.rBracket) is null) return null;
             return node;
         case delegate_:
         case function_:
@@ -5400,6 +5487,7 @@ q{(int a, ...)
      */
     TypeidExpression parseTypeidExpression()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TypeidExpression;
         expect(TokenType.typeid_);
         expect(TokenType.lParen);
@@ -5426,6 +5514,7 @@ q{(int a, ...)
      */
     TypeofExpression parseTypeofExpression()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TypeofExpression;
         expect(TokenType.typeof_);
         expect(TokenType.lParen);
@@ -5562,6 +5651,7 @@ q{doStuff(5)}c;
      */
     UnionDeclaration parseUnionDeclaration()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new UnionDeclaration;
         expect(TokenType.union_);
         bool templated = false;
@@ -5599,6 +5689,7 @@ q{doStuff(5)}c;
      */
     Unittest parseUnittest()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Unittest;
         expect(TokenType.unittest_);
         node.blockStatement = parseBlockStatement();
@@ -5651,6 +5742,7 @@ q{doStuff(5)}c;
      */
     Vector parseVector()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Vector;
         expect(TokenType.vector);
         expect(TokenType.lParen);
@@ -5668,6 +5760,7 @@ q{doStuff(5)}c;
      */
     VersionCondition parseVersionCondition()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new VersionCondition;
         expect(TokenType.version_);
         expect(TokenType.lParen);
@@ -5694,6 +5787,7 @@ q{doStuff(5)}c;
      */
     VersionSpecification parseVersionSpecification()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new VersionSpecification;
         expect(TokenType.version_);
         expect(TokenType.assign);
@@ -5716,6 +5810,7 @@ q{doStuff(5)}c;
      */
     WhileStatement parseWhileStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new WhileStatement;
         expect(TokenType.while_);
         expect(TokenType.lParen);
@@ -5734,6 +5829,7 @@ q{doStuff(5)}c;
      */
     WithStatement parseWithStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new WithStatement;
         if (expect(TokenType.with_) is null) return null;
         if (expect(TokenType.lParen) is null) return null;
@@ -5768,6 +5864,8 @@ private:
 
     bool isSliceExpression()
     {
+        if (startsWith(TokenType.lBracket, TokenType.rBracket))
+            return true;
         return hasMagicDelimiter!(TokenType.slice)();
     }
 
@@ -5923,6 +6021,19 @@ private:
         return node;
     }
 
+    void warn(lazy string message)
+    {
+        if (suppressMessages > 0)
+            return;
+        ++warningCount;
+        auto column = index < tokens.length ? tokens[index].column : 0;
+        auto line = index < tokens.length ? tokens[index].line : 0;
+        if (messageFunction is null)
+            writefln("^^ %s(%d:%d): %s", fileName, line, column, message);
+        else
+            messageFunction(fileName, line, column, message);
+    }
+
     void error(lazy string message)
     {
         import std.stdio;
@@ -5931,10 +6042,10 @@ private:
             ++errorCount;
             auto column = index < tokens.length ? tokens[index].column : 0;
             auto line = index < tokens.length ? tokens[index].line : 0;
-            if (errorFunction is null)
-                stderr.writefln("!! %s(%d:%d): %s", fileName, line, column, message);
+            if (messageFunction is null)
+                writefln("!! %s(%d:%d): %s", fileName, line, column, message);
             else
-                errorFunction(fileName, line, column, message);
+                messageFunction(fileName, line, column, message);
         }
         while (moreTokens())
         {
@@ -6138,7 +6249,7 @@ private:
         LexerConfig config;
         auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
         Parser p;
-        //p.errorFunction = &doNothingErrorFunction;
+        //p.messageFunction = &doNothingErrorFunction;
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
         return p;
@@ -6150,21 +6261,29 @@ private:
             ~ `version (verbose) scope(exit) trace("<< ` ~ fun ~ ` ");`;
     }
 
-    version (verbose) void trace(string message)
+    version (verbose)
     {
-        if (suppressMessages > 0)
-            return;
-        if (index < tokens.length)
-            stderr.writeln(message, "(", current.line, ":", current.column, ")");
-        else
-            stderr.writeln(message, "(EOF:0)");
+        void trace(lazy string message)
+        {
+            if (suppressMessages > 0)
+                return;
+            if (index < tokens.length)
+                writeln(message, "(", current.line, ":", current.column, ")");
+            else
+                writeln(message, "(EOF:0)");
+        }
+    }
+    else
+    {
+        void trace(lazy string message) {}
     }
 
     uint errorCount;
+    uint warningCount;
     const(Token)[] tokens;
     size_t index;
     string fileName;
-    void function(string, int, int, string) errorFunction;
+    void function(string, int, int, string) messageFunction;
     static immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
     static immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
     static immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
