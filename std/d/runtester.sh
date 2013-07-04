@@ -8,8 +8,5 @@ for file in /usr/include/d/std/*.d; do
     ./tester $file > $outFile
 done
 echo
-echo "Good files:"
-grep -l "Parsing finished with 0 errors" runs/*.txt | sed -e "s/runs\///" -e "s/.txt//"
-echo
-echo "Bad files:"
-grep -L "Parsing finished with 0 errors" runs/*.txt | sed -e "s/runs\///" -e "s/.txt//"
+grep -l "Parsing finished with 0 errors" runs/*.txt | sed -e "s/runs\//Pass /" -e "s/.txt//"
+grep -L "Parsing finished with 0 errors" runs/*.txt | sed -e "s/runs\//Fail /" -e "s/.txt//"

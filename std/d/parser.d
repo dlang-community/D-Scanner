@@ -5200,7 +5200,11 @@ q{(int a, ...)
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
         node.identifier = *ident;
-        if ((node.templateArgumentList = parseTemplateArgumentList()) is null) return null;
+        if (currentIs(TokenType.comma))
+        {
+            advance();
+            if ((node.templateArgumentList = parseTemplateArgumentList()) is null) return null;
+        }
         if (expect(TokenType.rParen) is null) return null;
         return node;
     }
