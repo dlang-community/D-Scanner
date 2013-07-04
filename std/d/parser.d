@@ -255,10 +255,10 @@ alias core.sys.posix.stdio.fileno fileno;
      *     $(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression)?)*
      *     ;)
      */
-    ArgumentList parseArgumentList()
+    ArgumentList parseArgumentList(bool allowTrailingComma = false)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)();
+        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)(allowTrailingComma);
     }
 
     /**
@@ -284,7 +284,7 @@ alias core.sys.posix.stdio.fileno fileno;
      *
      * $(GRAMMAR $(RULEDEF arrayInitializer):
      *       $(LITERAL '[') $(LITERAL ']')
-     *     | $(LITERAL '[') $(RULE arrayMemberInitialization) ($(LITERAL ',') $(RULE arrayMemberInitialization))* $(LITERAL ']')
+     *     | $(LITERAL '[') $(RULE arrayMemberInitialization) ($(LITERAL ',') $(RULE arrayMemberInitialization)?)* $(LITERAL ']')
      *     ;)
      */
     ArrayInitializer parseArrayInitializer()
@@ -298,7 +298,10 @@ alias core.sys.posix.stdio.fileno fileno;
             if (currentIs(TokenType.comma))
             {
                 advance();
-                continue;
+                if (currentIs(TokenType.rBracket))
+                    break;
+                else
+                    continue;
             }
             else
                 break;
@@ -312,7 +315,7 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an ArrayLiteral
      *
      * $(GRAMMAR $(RULEDEF arrayLiteral):
-     *     $(LITERAL '[') $(RULE argumentList) $(LITERAL ']')
+     *     $(LITERAL '[') ($(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression))*)? $(LITERAL ']')
      *     ;)
      */
     ArrayLiteral parseArrayLiteral()
@@ -320,7 +323,7 @@ alias core.sys.posix.stdio.fileno fileno;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ArrayLiteral;
         if (expect(TokenType.lBracket) is null) return null;
-        node.argumentList = parseArgumentList();
+        node.argumentList = parseArgumentList(true);
         if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
@@ -1458,52 +1461,19 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ConditionalDeclaration;
         node.compileCondition = parseCompileCondition();
-        if (currentIs(TokenType.lBrace))
-        {
-            advance();
-            do
-            {
-                auto dec = parseDeclaration();
-                if (dec is null) return null;
-                node.trueDeclarations ~= dec;
-                if (!moreTokens() || currentIs(TokenType.rBrace))
-                    break;
-            }
-            while (true);
-            if (expect(TokenType.rBrace) is null) return null;
-        }
-        else
-        {
-            auto dec = parseDeclaration();
-            if (dec is null) return null;
-            node.trueDeclarations ~= dec;
-        }
+
+        auto dec = parseDeclaration();
+        if (dec is null) return null;
+        node.trueDeclarations ~= dec;
 
         if(currentIs(TokenType.else_))
             advance();
         else
             return node;
 
-        if (currentIs(TokenType.lBrace))
-        {
-            advance();
-            do
-            {
-                auto dec = parseDeclaration();
-                if (dec is null) return null;
-                node.falseDeclarations ~= dec;
-                if (!moreTokens() || currentIs(TokenType.rBrace))
-                    break;
-            }
-            while (true);
-            if (expect(TokenType.rBrace) is null) return null;
-        }
-        else
-        {
-            auto dec = parseDeclaration();
-            if (dec is null) return null;
-            node.falseDeclarations ~= dec;
-        }
+        auto elseDec = parseDeclaration();
+        if (elseDec is null) return null;
+        node.falseDeclarations ~= elseDec;
         return node;
     }
 
@@ -1682,6 +1652,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      *     | $(RULE importDeclaration)
      *     | $(RULE interfaceDeclaration)
      *     | $(RULE mixinDeclaration)
+     *     | $(RULE mixinTemplateDeclaration)
      *     | $(RULE pragmaDeclaration)
      *     | $(RULE sharedStaticConstructor)
      *     | $(RULE sharedStaticDestructor)
@@ -1769,7 +1740,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.interfaceDeclaration = parseInterfaceDeclaration();
             break;
         case mixin_:
-            node.mixinDeclaration = parseMixinDeclaration();
+            if (peekIs(TokenType.template_))
+                node.mixinTemplateDeclaration = parseMixinTemplateDeclaration();
+            else
+                node.mixinDeclaration = parseMixinDeclaration();
             break;
         case pragma_:
             node.pragmaDeclaration = parsePragmaDeclaration();
@@ -3185,7 +3159,7 @@ invariant() foo();
      * Parses an IsExpression
      *
      * $(GRAMMAR $(RULEDEF isExpression):
-     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)? $(LITERAL '$(RPAREN)')
+     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') ($(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)?)) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     IsExpression parseIsExpression()
@@ -3391,14 +3365,18 @@ invariant() foo();
      * Parses a MixinDeclaration
      *
      * $(GRAMMAR $(RULEDEF mixinDeclaration):
-     *     $(RULE mixinExpression) $(LITERAL ';')
+     *       $(RULE mixinExpression) $(LITERAL ';')
+     *     | $(RULE templateMixinStatement) $(LITERAL ';')
      *     ;)
      */
     MixinDeclaration parseMixinDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new MixinDeclaration;
-        node.mixinExpression = parseMixinExpression();
+        if (peekIs(TokenType.identifier))
+            node.templateMixinExpression = parseTemplateMixinExpression();
+        else
+            node.mixinExpression = parseMixinExpression();
         expect(TokenType.semicolon);
         return node;
     }
@@ -3418,6 +3396,23 @@ invariant() foo();
         expect(TokenType.lParen);
         node.assignExpression = parseAssignExpression();
         expect(TokenType.rParen);
+        return node;
+    }
+
+    /**
+     * Parses a MixinTemplateDeclaration
+     *
+     * $(GRAMMAR $(RULEDEF mixinTemplateDeclaration):
+     *     $(LITERAL 'mixin') $RULE templateDeclaration
+     *     ;)
+     */
+    MixinTemplateDeclaration parseMixinTemplateDeclaration()
+    {
+        mixin(traceEnterAndExit!(__FUNCTION__));
+        auto node = new MixinTemplateDeclaration;
+        if (expect(TokenType.mixin_) is null) return null;
+        node.templateDeclaration = parseTemplateDeclaration();
+        if (node.templateDeclaration is null) return null;
         return node;
     }
 
@@ -4023,6 +4018,7 @@ q{(int a, ...)
      *
      * $(GRAMMAR $(RULEDEF primaryExpression):
      *       $(RULE identifierOrTemplateInstance)
+     *     | $(LITERAL '.') $(RULE identifierOrTemplateInstance)
      *     | $(RULE basicType) $(LITERAL '.') $(LITERAL Identifier)
      *     | $(RULE typeofExpression)
      *     | $(RULE typeidExpression)
@@ -4064,6 +4060,10 @@ q{(int a, ...)
         auto node = new PrimaryExpression;
         with (TokenType) switch (current.type)
         {
+        case dot:
+            node.hasDot = true;
+            advance();
+            goto case;
         case identifier:
             if (peekIs(TokenType.goesTo))
                 node.lambdaExpression = parseLambdaExpression();
@@ -4209,10 +4209,10 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ReturnStatement;
-        expect(TokenType.return_);
-        if (tokens[index] != TokenType.semicolon)
+        if (expect(TokenType.return_) is null) return null;
+        if (!currentIs(TokenType.semicolon))
             node.expression = parseExpression();
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         return node;
     }
 
@@ -4890,23 +4890,22 @@ q{(int a, ...)
     }
 
     /**
-     * Parses a TemplateMixinStatement
+     * Parses a TemplateMixinExpression
      *
-     * $(GRAMMAR $(RULEDEF templateMixinStatement):
-     *     $(LITERAL 'mixin') $(RULE mixinTemplateName) $(RULE templateArguments)? $(LITERAL Identifier)? $(LITERAL ';')
+     * $(GRAMMAR $(RULEDEF templateMixinExpression):
+     *     $(LITERAL 'mixin') $(RULE mixinTemplateName) $(RULE templateArguments)? $(LITERAL Identifier)?
      *     ;)
      */
-    TemplateMixinStatement parseTemplateMixinStatement()
+    TemplateMixinExpression parseTemplateMixinExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateMixinStatement;
-        expect(TokenType.mixin_);
+        auto node = new TemplateMixinExpression;
+        if (expect(TokenType.mixin_) is null) return null;
         node.mixinTemplateName = parseMixinTemplateName();
         if (currentIs(TokenType.not))
             node.templateArguments = parseTemplateArguments();
         if (currentIs(TokenType.identifier))
             node.identifier = advance();
-        expect(TokenType.semicolon);
         return node;
     }
 
@@ -5201,8 +5200,11 @@ q{(int a, ...)
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
         node.identifier = *ident;
-        if (expect(TokenType.comma) is null) return null;
-        if ((node.templateArgumentList = parseTemplateArgumentList()) is null) return null;
+        if (currentIs(TokenType.comma))
+        {
+            advance();
+            if ((node.templateArgumentList = parseTemplateArgumentList()) is null) return null;
+        }
         if (expect(TokenType.rParen) is null) return null;
         return node;
     }
@@ -6009,14 +6011,23 @@ private:
         return node;
     }
 
-    ListType parseCommaSeparatedRule(alias ListType, alias ItemType)()
+    ListType parseCommaSeparatedRule(alias ListType, alias ItemType)(bool allowTrailingComma = false)
     {
         auto node = new ListType;
         while (true)
         {
             mixin ("node.items ~= parse" ~ ItemType.stringof ~ "();");
             if (currentIs(TokenType.comma))
+            {
                 advance();
+                if (allowTrailingComma && currentIsOneOf(TokenType.rParen,
+                    TokenType.rBrace, TokenType.rBracket))
+                {
+                    break;
+                }
+                else
+                    continue;
+            }
             else
                 break;
         }
