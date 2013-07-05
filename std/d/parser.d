@@ -23,7 +23,7 @@
  * definitions end with a semicolon (;).)
  * )
  *
- * The grammar for D starts with the $(LINK2 #.module, module) rule.
+ * The grammar for D starts with the $(LINK2 #module, module) rule.
  *
  * Examples:
  * ---
@@ -56,7 +56,7 @@
  * MACROS:
  *     GRAMMAR = $(D_CODE $0)
  *     RULEDEF = $(DDOC_ANCHOR $0) $(B $0)
- *     RULE = $(LINK2 #.$0, $(B $0))
+ *     RULE = $(LINK2 #$0, $(B $0))
  *     LITERAL = $(D_STRING $0)
  */
 
@@ -323,7 +323,8 @@ alias core.sys.posix.stdio.fileno fileno;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ArrayLiteral;
         if (expect(TokenType.lBracket) is null) return null;
-        node.argumentList = parseArgumentList(true);
+        if (!currentIs(TokenType.rBracket))
+            node.argumentList = parseArgumentList(true);
         if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
@@ -743,32 +744,15 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an Attribute
      *
      * $(GRAMMAR $(RULEDEF attribute):
-     *       $(RULE linkageAttribute)
-     *     | $(RULE alignAttribute)
+     *       $(RULE alignAttribute)
+     *     | $(RULE linkageAttribute)
      *     | $(RULE pragmaExpression)
-     *     | $(RULE deprecated)
-     *     | $(RULE atAttribute)
-     *     | $(LITERAL 'private')
+     *     | $(RULE storageClass)
+     *     | $(LITERAL 'export')
      *     | $(LITERAL 'package')
+     *     | $(LITERAL 'private')
      *     | $(LITERAL 'protected')
      *     | $(LITERAL 'public')
-     *     | $(LITERAL 'export')
-     *     | $(LITERAL 'extern')
-     *     | $(LITERAL 'final')
-     *     | $(LITERAL 'synchronized')
-     *     | $(LITERAL 'override')
-     *     | $(LITERAL 'abstract')
-     *     | $(LITERAL 'const')
-     *     | $(LITERAL 'auto')
-     *     | $(LITERAL 'scope')
-     *     | $(LITERAL '___gshared')
-     *     | $(LITERAL 'shared')
-     *     | $(LITERAL 'immutable')
-     *     | $(LITERAL 'inout')
-     *     | $(LITERAL 'static')
-     *     | $(LITERAL 'pure')
-     *     | $(LITERAL 'nothrow')
-     *     | $(LITERAL 'enum')
      *     ;)
      */
     Attribute parseAttribute()
@@ -781,7 +765,7 @@ alias core.sys.posix.stdio.fileno fileno;
             if (peekIs(TokenType.lParen))
                 node.linkageAttribute = parseLinkageAttribute();
             else
-                node.attribute = advance().type;
+                goto default;
             break;
         case TokenType.align_:
             node.alignAttribute = parseAlignAttribute();
@@ -789,62 +773,32 @@ alias core.sys.posix.stdio.fileno fileno;
         case TokenType.pragma_:
             node.pragmaExpression = parsePragmaExpression();
             break;
-        case TokenType.deprecated_:
-            node.deprecated_ = parseDeprecated();
-            break;
         case TokenType.private_:
         case TokenType.package_:
         case TokenType.protected_:
         case TokenType.public_:
         case TokenType.export_:
-        case TokenType.final_:
-        case TokenType.synchronized_:
-        case TokenType.override_:
-        case TokenType.abstract_:
-        case TokenType.const_:
-        case TokenType.auto_:
-        case TokenType.scope_:
-        case TokenType.gshared:
-        case TokenType.shared_:
-        case TokenType.immutable_:
-        case TokenType.inout_:
-        case TokenType.static_:
-        case TokenType.pure_:
-        case TokenType.nothrow_:
-        case TokenType.enum_:
             node.attribute = advance().type;
             break;
-        case TokenType.at:
-            node.atAttribute = parseAtAttribute();
-            break;
         default:
-            error("Attribute expected");
-            return null;
+            node.storageClass = parseStorageClass();
+            break;
         }
         return node;
     }
 
     /**
-     * Parses an AttributedDeclaration
+     * Parses an AttributeDeclaration
      *
-     * $(GRAMMAR $(RULEDEF attributedDeclaration):
-     *     $(RULE attribute) ($(LITERAL ':') | $(RULE declaration) | $(LITERAL '{') $(RULE declaration)* $(LITERAL '}'))
+     * $(GRAMMAR $(RULEDEF attributeDeclaration):
+     *     $(RULE attribute) $(LITERAL ':')
      *     ;)
      */
-    AttributedDeclaration parseAttributedDeclaration()
+    AttributeDeclaration parseAttributeDeclaration(Attribute attribute = null)
     {
-        mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AttributedDeclaration;
-        node.attribute = parseAttribute();
-        switch (current.type)
-        {
-        case TokenType.colon:
-            advance();
-            break;
-        default:
-            node.declaration = parseDeclaration();
-            break;
-        }
+        auto node = new AttributeDeclaration;
+        node.attribute = attribute is null ? parseAttribute() : attribute;
+        expect(TokenType.colon);
         return node;
     }
 
@@ -859,8 +813,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AutoDeclaration;
-        node.storageClass = parseStorageClass();
-        if (node.storageClass is null) return null;
         do
         {
             auto ident = expect(TokenType.identifier);
@@ -1464,7 +1416,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
 
         auto dec = parseDeclaration();
         if (dec is null) return null;
-        node.trueDeclarations ~= dec;
+        node.trueDeclaration = dec;
 
         if(currentIs(TokenType.else_))
             advance();
@@ -1473,7 +1425,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
 
         auto elseDec = parseDeclaration();
         if (elseDec is null) return null;
-        node.falseDeclarations ~= elseDec;
+        node.falseDeclaration = elseDec;
         return node;
     }
 
@@ -1520,8 +1472,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a Constructor
      *
      * $(GRAMMAR $(RULEDEF constructor):
-     *       $(LITERAL 'this') $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? $(RULE functionBody)
-     *     | $(LITERAL 'this') $(RULE parameters) $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
+     *       $(LITERAL 'this') $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Constructor parseConstructor()
@@ -1544,9 +1495,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (isTemplate && currentIs(TokenType.if_))
             node.constraint = parseConstraint();
 
-        if (isTemplate)
-            node.functionBody = parseFunctionBody();
-        else if (currentIs(TokenType.semicolon))
+        if (currentIs(TokenType.semicolon))
             advance();
         else
             node.functionBody = parseFunctionBody();
@@ -1640,9 +1589,11 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a Declaration
      *
      * $(GRAMMAR $(RULEDEF declaration):
+     *     $(RULE attribute)* $(declaration2)
+     *     ;
+     * $(RULEDEF declaration2):
      *       $(RULE aliasDeclaration)
      *     | $(RULE aliasThisDeclaration)
-     *     | $(RULE attributedDeclaration)
      *     | $(RULE classDeclaration)
      *     | $(RULE conditionalDeclaration)
      *     | $(RULE constructor)
@@ -1664,6 +1615,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      *     | $(RULE unionDeclaration)
      *     | $(RULE unittest)
      *     | $(RULE variableDeclaration)
+     *     | $(RULE attributeDeclaration)
      *     | $(LITERAL '{') $(RULE declaration)+ $(LITERAL '}')
      *     ;)
      */
@@ -1671,6 +1623,23 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Declaration;
+
+        do
+        {
+            if (!isAttribute())
+                break;
+            auto attr = parseAttribute();
+            if (attr is null)
+            {
+                error("attribute is null");
+                break;
+            }
+            if (currentIs(TokenType.colon))
+                node.attributeDeclaration = parseAttributeDeclaration(attr);
+            else
+                node.attributes ~= attr;
+        } while (true);
+
         with (TokenType) switch (current.type)
         {
         case semicolon:
@@ -1704,34 +1673,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.destructor = parseDestructor();
             break;
         case enum_:
-            if (peekIsOneOf(TokenType.lBrace, TokenType.colon))
-                node.enumDeclaration = parseEnumDeclaration();
-            else if (!peekIs(TokenType.identifier))
-                goto storageClass;
-            else
-            {
-                auto b = setBookmark();
-                advance();
-                assert (current.type == identifier);
-                if (peekIs(TokenType.assign))
-                {
-                    trace("** 'enum identifier =' ");
-                    goToBookmark(b);
-                    node.variableDeclaration = parseVariableDeclaration();
-                }
-                else if (peekIsOneOf(TokenType.lBrace, TokenType.colon, TokenType.semicolon))
-                {
-                    trace("** 'enum identifier { : ;' ");
-                    goToBookmark(b);
-                    node.enumDeclaration = parseEnumDeclaration();
-                }
-                else
-                {
-                    trace("** something else");
-                    goToBookmark(b);
-                    goto storageClass;
-                }
-            }
+            node.enumDeclaration = parseEnumDeclaration();
             break;
         case import_:
             node.importDeclaration = parseImportDeclaration();
@@ -1753,22 +1695,20 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 node.sharedStaticConstructor = parseSharedStaticConstructor();
             else if (startsWith(shared_, static_, tilde))
                 node.sharedStaticDestructor = parseSharedStaticDestructor();
-            else if (peekIs(lParen))
-                goto type;
             else
-                node.attributedDeclaration = parseAttributedDeclaration();
+                goto type;
             break;
         case static_:
-            if (startsWith(static_, this_))
+            if (peekIs(this_))
                 node.staticConstructor = parseStaticConstructor();
-            else if (startsWith(static_, tilde))
+            else if (peekIs(tilde))
                 node.staticDestructor = parseStaticDestructor();
-            else if (startsWith(static_, if_))
+            else if (peekIs(if_))
                 node.conditionalDeclaration = parseConditionalDeclaration();
-            else if (startsWith(static_, assert_))
+            else if (peekIs(assert_))
                 node.staticAssertDeclaration = parseStaticAssertDeclaration();
             else
-                node.attributedDeclaration = parseAttributedDeclaration();
+                goto type;
             break;
         case struct_:
             node.structDeclaration = parseStructDeclaration();
@@ -1782,9 +1722,26 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case unittest_:
             node.unittest_ = parseUnittest();
             break;
-        case typeof_:
-        case bool_: .. case wchar_:
         case identifier:
+            if (node.attributes.length > 0
+                && node.attributes[$ - 1].storageClass !is null)
+            {
+                if (peekIs(assign))
+                    node.variableDeclaration = parseVariableDeclaration(null, true);
+                else if (peekIs(lParen))
+                    node.functionDeclaration = parseFunctionDeclaration(null, true);
+				else
+					goto type;
+            }
+            else
+                goto type;
+            break;
+        case const_:
+        case immutable_:
+        case inout_:
+        case scope_:
+        case typeof_:
+        mixin (BASIC_TYPE_CASE_RANGE);
         type:
             Type type = parseType();
             if (!currentIs(identifier))
@@ -1810,53 +1767,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case debug_:
             node.conditionalDeclaration = parseConditionalDeclaration();
-            break;
-        case auto_:
-            if (startsWith(auto_, ref_, identifier, lParen)
-                    || startsWith(auto_, identifier, lParen))
-                node.functionDeclaration = parseFunctionDeclaration();
-            else
-                goto storageClass;
-            break;
-        case ref_:
-            node.functionDeclaration = parseFunctionDeclaration();
-            break;
-        case const_:
-            if (startsWith(const_, identifier, assign))
-                node.variableDeclaration = parseVariableDeclaration();
-            else
-                goto typeConstructor;
-            break;
-        case immutable_:
-            if (startsWith(immutable_, identifier, assign))
-                node.variableDeclaration = parseVariableDeclaration();
-            else
-                goto typeConstructor;
-            break;
-        case inout_:
-        typeConstructor:
-            if (peekIs(TokenType.lParen))
-                goto type;
-            else
-                goto case;
-        case at:
-        case align_:
-        case deprecated_:
-        case private_:
-        case package_:
-        case protected_:
-        case public_:
-        case export_:
-        case extern_:
-        case final_:
-        case synchronized_:
-        case override_:
-        case abstract_:
-        case gshared:
-        case pure_:
-        case nothrow_:
-        storageClass:
-            node.attributedDeclaration = parseAttributedDeclaration();
             break;
         default:
             error("Declaration expected");
@@ -2017,7 +1927,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a Destructor
      *
      * $(GRAMMAR $(RULEDEF destructor):
-     *     $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Destructor parseDestructor()
@@ -2028,7 +1938,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (expect(TokenType.this_) is null) return null;
         if (expect(TokenType.lParen) is null) return null;
         if (expect(TokenType.rParen) is null) return null;
-        node.functionBody = parseFunctionBody();
+        if (currentIs(TokenType.semicolon))
+            advance();
+        else
+            node.functionBody = parseFunctionBody();
         return node;
     }
 
@@ -2497,47 +2410,23 @@ body {} // six
      * Parses a FunctionDeclaration
      *
      * $(GRAMMAR $(RULEDEF functionDeclaration):
-     *       $(RULE memberFunctionAttribute)* ($(RULE type) | $(LITERAL 'auto') $(LITERAL 'ref')? | $(LITERAL 'ref') $(LITERAL 'auto')?) $(LITERAL Identifier) $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? $(RULE functionBody)
-     *     | $(RULE memberFunctionAttribute)* ($(RULE type) | $(LITERAL 'auto') $(LITERAL 'ref')? | $(LITERAL 'ref') $(LITERAL 'auto')?) $(LITERAL Identifier) $(RULE parameters) $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
+     *       ($(RULE storageClass) | $(RULE _type)) $(LITERAL Identifier) $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
-    FunctionDeclaration parseFunctionDeclaration(Type type = null)
+    FunctionDeclaration parseFunctionDeclaration(Type type = null, bool isAuto = false)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new FunctionDeclaration;
 
+        if (isAuto)
+            goto functionName;
+
         while(moreTokens() && currentIsMemberFunctionAttribute())
             node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
 
-        with (TokenType) switch (current.type)
-        {
-        case auto_:
-            advance();
-            node.hasAuto = true;
-            if (currentIs(ref_))
-            {
-                node.hasRef = true;
-                advance();
-            }
-            break;
-        case ref_:
-            advance();
-            node.hasRef = true;
-            if (currentIs(auto_))
-            {
-                node.hasAuto = true;
-                advance();
-                break;
-            }
-            else if (startsWith(identifier, lParen))
-                break;
-            else
-                goto default;
-        default:
-            node.returnType = type is null ? parseType() : type;
-            break;
-        }
+        node.returnType = type is null ? parseType() : type;
 
+    functionName:
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
 
@@ -2549,6 +2438,7 @@ body {} // six
             return null;
         }
 
+        assert (currentIs(TokenType.lParen));
         auto p = peekPastParens();
         bool isTemplate = p !is null && p.type == TokenType.lParen;
 
@@ -2563,9 +2453,7 @@ body {} // six
         if (isTemplate && currentIs(TokenType.if_))
             node.constraint = parseConstraint();
 
-        if (isTemplate)
-            node.functionBody = parseFunctionBody();
-        else if (currentIs(TokenType.semicolon))
+        if (currentIs(TokenType.semicolon))
             advance();
         else
             node.functionBody = parseFunctionBody();
@@ -3159,7 +3047,7 @@ invariant() foo();
      * Parses an IsExpression
      *
      * $(GRAMMAR $(RULEDEF isExpression):
-     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') ($(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)?)) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') ($(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)?) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     IsExpression parseIsExpression()
@@ -3851,6 +3739,7 @@ invariant() foo();
             goto end;
         if (currentIs(TokenType.vararg))
         {
+            advance();
             node.hasVarargs = true;
             goto end;
         }
@@ -3909,7 +3798,7 @@ q{(int a, ...)
      * Parses a Postblit
      *
      * $(GRAMMAR $(RULEDEF parameters):
-     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') $(RULE functionBody)
+     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Postblit parsePostblit()
@@ -3919,7 +3808,10 @@ q{(int a, ...)
         expect(TokenType.lParen);
         expect(TokenType.this_);
         expect(TokenType.rParen);
-        node.functionBody = parseFunctionBody();
+        if (currentIs(TokenType.semicolon))
+            advance();
+        else
+            node.functionBody = parseFunctionBody();
         return node;
     }
 
@@ -4467,18 +4359,19 @@ q{(int a, ...)
     /**
      * Parses an StorageClass
      *
-     * $(GRAMMAR $(RULE storageClass):
+     * $(GRAMMAR $(RULEDEF storageClass):
      *       $(RULE atAttribute)
      *     | $(RULE typeConstructor)
+     *     | $(RULE deprecated)
      *     | $(LITERAL 'abstract')
      *     | $(LITERAL 'auto')
-     *     | $(LITERAL 'deprecated')
      *     | $(LITERAL 'enum')
      *     | $(LITERAL 'extern')
      *     | $(LITERAL 'final')
      *     | $(LITERAL 'nothrow')
      *     | $(LITERAL 'override')
      *     | $(LITERAL 'pure')
+     *     | $(LITERAL 'ref')
      *     | $(LITERAL '___gshared')
      *     | $(LITERAL 'scope')
      *     | $(LITERAL 'static')
@@ -4494,23 +4387,26 @@ q{(int a, ...)
             node.atAttribute = parseAtAttribute();
             if (node.atAttribute is null) return null;
             break;
+        case deprecated_:
+            node.deprecated_ = parseDeprecated();
+            break;
+        case const_:
+        case immutable_:
+        case inout_:
+        case shared_:
         case abstract_:
         case auto_:
-        case deprecated_:
         case enum_:
         case extern_:
         case final_:
         case nothrow_:
         case override_:
         case pure_:
+        case ref_:
         case gshared:
         case scope_:
         case static_:
         case synchronized_:
-        case const_:
-        case immutable_:
-        case inout_:
-        case shared_:
             node.token = advance();
             break;
         default:
@@ -4564,7 +4460,7 @@ q{(int a, ...)
      * Parses a StructDeclaration
      *
      * $(GRAMMAR $(RULEDEF structDeclaration):
-     *     $(LITERAL 'struct') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)? $(RULE structBody) | ($(RULE structBody) | $(LITERAL ';')))
+     *     $(LITERAL 'struct') $(LITERAL Identifier)? ($(RULE templateParameters) $(RULE constraint)? $(RULE structBody) | ($(RULE structBody) | $(LITERAL ';')))
      *     ;)
      */
     StructDeclaration parseStructDeclaration()
@@ -4572,9 +4468,11 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructDeclaration;
         expect(TokenType.struct_);
-        auto ident = expect(TokenType.identifier);
-        if (ident is null) return null;
-        node.name = *ident;
+		if (currentIs(TokenType.identifier))
+		{
+			node.name = advance();
+		}
+
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -4796,7 +4694,8 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateArgument;
-        if (isType())
+
+        if (isBasicType(current.type) || !isExpression())
         {
             if ((node.type = parseType()) is null) return null;
         }
@@ -5708,14 +5607,11 @@ q{doStuff(5)}c;
      *     | $(RULE autoDeclaration)
      *     ;)
      */
-    VariableDeclaration parseVariableDeclaration(Type type = null)
+    VariableDeclaration parseVariableDeclaration(Type type = null, bool isAuto = false)
     {
         mixin (traceEnterAndExit!(__FUNCTION__));
         auto node = new VariableDeclaration;
-        with (TokenType) if (currentIsOneOf(const_, immutable_, inout_, shared_,
-            abstract_, auto_, deprecated_, enum_, extern_, final_, nothrow_,
-            override_, pure_, gshared, scope_, static_, synchronized_)
-            && !(peekIs(lParen)))
+        if (isAuto)
         {
             node.autoDeclaration = parseAutoDeclaration();
             return node;
@@ -5975,6 +5871,58 @@ private:
         return parseType() !is null;
     }
 
+    bool isAttribute()
+    {
+        if (!moreTokens()) return false;
+        with (TokenType) switch (current.type)
+        {
+        case const_:
+        case immutable_:
+        case inout_:
+            return !peekIs(TokenType.lParen);
+        case static_:
+            return !peekIsOneOf(assert_, this_, if_, tilde);
+        case shared_:
+            return !(startsWith(shared_, static_, this_)
+                || startsWith(shared_, static_, tilde)
+                || peekIs(TokenType.lParen));
+        case enum_:
+            if (peekIsOneOf(lBrace, colon, semicolon))
+                return false;
+            else if (peekIs(TokenType.identifier))
+            {
+                auto b = setBookmark();
+                scope(exit) goToBookmark(b);
+                advance();
+                if (peekIsOneOf(lBrace, colon, semicolon))
+                    return false;
+                return true;
+            }
+            return true;
+        case deprecated_:
+        case private_:
+        case package_:
+        case protected_:
+        case public_:
+        case export_:
+        case final_:
+        case synchronized_:
+        case override_:
+        case abstract_:
+        case auto_:
+        case scope_:
+        case gshared:
+        case pure_:
+        case nothrow_:
+        case at:
+        case ref_:
+        case extern_:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     bool currentIsMemberFunctionAttribute() const
     {
         switch (current.type)
@@ -6118,21 +6066,19 @@ private:
     }
 
     const(Token)* peekPast(alias O, alias C)()
-    in
     {
-        assert (tokens[index].type == O);
-    }
-    body
-    {
+        if (index >= tokens.length)
+            return null;
         int depth = 1;
         auto i = index;
         ++i;
         while (i < tokens.length)
         {
-            if (i >= tokens.length)
-                return null;
             if (tokens[i] == O)
+            {
                 ++depth;
+                ++i;
+            }
             else if (tokens[i] == C)
             {
                 --depth;
@@ -6140,7 +6086,8 @@ private:
                 if (depth <= 0)
                     break;
             }
-            ++i;
+            else
+                ++i;
         }
         return depth == 0 ? &tokens[i] : null;
     }
@@ -6270,8 +6217,8 @@ private:
 
     template traceEnterAndExit(string fun)
     {
-        enum traceEnterAndExit = `version (verbose) trace(">> ` ~ fun ~ ` ");`
-            ~ `version (verbose) scope(exit) trace("<< ` ~ fun ~ ` ");`;
+        enum traceEnterAndExit = `version (verbose) trace(">>> ` ~ fun ~ ` ");`
+            ~ `version (verbose) scope(exit) trace("<<< ` ~ fun ~ ` ");`;
     }
 
     version (verbose)

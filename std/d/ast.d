@@ -60,7 +60,6 @@ abstract class ASTVisitor
     /** */ void visit(AssocArrayLiteral assocArrayLiteral) { assocArrayLiteral.accept(this); }
     /** */ void visit(AtAttribute atAttribute) { atAttribute.accept(this); }
     /** */ void visit(Attribute attribute) { attribute.accept(this); }
-    /** */ void visit(AttributedDeclaration attributedDeclaration) { attributedDeclaration.accept(this); }
     /** */ void visit(AutoDeclaration autoDeclaration) { autoDeclaration.accept(this); }
     /** */ void visit(BlockStatement blockStatement) { blockStatement.accept(this); }
     /** */ void visit(BodyStatement bodyStatement) { bodyStatement.accept(this); }
@@ -549,21 +548,6 @@ public:
 }
 
 ///
-class AttributedDeclaration : ASTNode
-{
-public:
-    override void accept(ASTVisitor visitor)
-    {
-        if (attribute !is null)
-            visitor.visit(attribute);
-		if (declaration !is null)
-			visitor.visit(declaration);
-    }
-    /** */ Attribute attribute;
-    /** */ Declaration declaration;
-}
-
-///
 class Attribute : ASTNode
 {
 public:
@@ -571,9 +555,15 @@ public:
     /** */ LinkageAttribute linkageAttribute;
     /** */ AlignAttribute alignAttribute;
     /** */ PragmaExpression pragmaExpression;
-    /** */ Deprecated deprecated_;
-    /** */ AtAttribute atAttribute;
+    /** */ StorageClass storageClass;
     /** */ TokenType attribute;
+}
+
+///
+class AttributeDeclaration : ASTNode
+{
+	mixin(DEFAULT_ACCEPT);
+	/** */ Attribute attribute;
 }
 
 ///
@@ -581,7 +571,6 @@ class AutoDeclaration : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ StorageClass storageClass;
     /** */ Token[] identifiers;
     /** */ Initializer[] initializers;
 }
@@ -734,8 +723,8 @@ class ConditionalDeclaration : ASTNode
 public:
     mixin(DEFAULT_ACCEPT);
     /** */ CompileCondition compileCondition;
-    /** */ Declaration[] trueDeclarations;
-    /** */ Declaration[] falseDeclarations;
+    /** */ Declaration trueDeclaration;
+    /** */ Declaration falseDeclaration;
 }
 
 ///
@@ -801,7 +790,6 @@ public:
 
     override void accept(ASTVisitor visitor)
     {
-        if (attributedDeclaration !is null) visitor.visit(attributedDeclaration);
         if (importDeclaration !is null) visitor.visit(importDeclaration);
         if (functionDeclaration !is null) visitor.visit(functionDeclaration);
         if (variableDeclaration !is null) visitor.visit(variableDeclaration);
@@ -828,7 +816,8 @@ public:
         if (versionSpecification !is null) visitor.visit(versionSpecification);
     }
 
-    /** */ AttributedDeclaration attributedDeclaration;
+    /** */ Attribute[] attributes;
+	/** */ AttributeDeclaration attributeDeclaration;
     /** */ ImportDeclaration importDeclaration;
     /** */ FunctionDeclaration functionDeclaration;
     /** */ VariableDeclaration variableDeclaration;
@@ -1773,6 +1762,7 @@ class StorageClass : ASTNode
 public:
     mixin(DEFAULT_ACCEPT);
     /** */ AtAttribute atAttribute;
+    /** */ Deprecated deprecated_;
     /** */ Token token;
 }
 
