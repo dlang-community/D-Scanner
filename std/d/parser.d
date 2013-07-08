@@ -2,6 +2,11 @@
 
 /**
  * <script type="text/javascript">inhibitQuickIndex = 1</script>
+ * <style type="text/css">
+ * .grammar_ruledef { font-weight: bold; }
+ * .grammar_rule { font-weight: bold; }
+ * .grammar_literal { color: crimson; }
+ * </style>
  * This module contains a _parser for D source code.
  *
  * Grammar:
@@ -54,10 +59,10 @@
  * Authors: Brian Schott
  * Source: $(PHOBOSSRC std/d/_parser.d)
  * MACROS:
- *     GRAMMAR = $(D_CODE $0)
- *     RULEDEF = $(DDOC_ANCHOR $0) $(B $0)
- *     RULE = $(LINK2 #$0, $(B $0))
- *     LITERAL = $(D_STRING $0)
+ *     GRAMMAR = <pre class="grammar">$0</pre>
+ *     RULEDEF = <a name="$0"><span class="grammar_ruledef">$0</span></a>
+ *     RULE = <a href="#$0"><span class="grammar_rule">$0</span></a>
+ *     LITERAL = <span class="grammar_literal">$0</span>
  */
 
 module std.d.parser;
@@ -67,12 +72,10 @@ import std.d.ast;
 import std.conv;
 import std.algorithm;
 import std.array;
-version (unittest) import std.stdio;
-
-version = development;
-version = verbose;
-version(development) import std.stdio;
 import std.stdio;
+import std.string : format;
+
+version = verbose;
 
 /**
  * Params:
@@ -85,8 +88,8 @@ Module parseModule(const(Token)[] tokens, string fileName)
     parser.fileName = fileName;
     parser.tokens = tokens;
     auto mod = parser.parseModule();
-    version (development) writeln("Parsing finished with ", parser.errorCount,
-        " errors and ", parser.warningCount, " warnings.");
+    writefln("Parsing finished with %d errors and %d warnings.",
+        parser.errorCount, parser.warningCount);
     return mod;
 }
 
@@ -442,11 +445,11 @@ alias core.sys.posix.stdio.fileno fileno;
      *
      * $(GRAMMAR $(RULEDEF asmInstruction):
      *     $(LITERAL Identifier)
-     *     | $(LITERAL 'align') I$(RULE ntegerLiteral)
+     *     | $(LITERAL 'align') $(RULE IntegerLiteral)
      *     | $(LITERAL 'align') $(LITERAL Identifier)
      *     | $(LITERAL Identifier) $(LITERAL ':') $(RULE asmInstruction)
      *     | $(LITERAL Identifier) $(RULE asmExp)
-     *     | $(RULE opcode) $(RULE operands)
+     *     | $(LITERAL Identifier) $(RULE operands)
      *     ;)
      */
     AsmInstruction parseAsmInstruction()
@@ -843,7 +846,6 @@ alias core.sys.posix.stdio.fileno fileno;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new BlockStatement();
         if (expect(TokenType.lBrace) is null) return null;
-        version (development) skipBraceContent();
         if (!currentIs(TokenType.rBrace))
             node.declarationsAndStatements = parseDeclarationsAndStatements();
         if (expect(TokenType.rBrace) is null) return null;
@@ -1166,7 +1168,7 @@ incorrect;
      * Parses a Catch
      *
      * $(GRAMMAR $(RULEDEF catch):
-     *     $(LITERAL 'catch') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL Identifier)? $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     $(LITERAL 'catch') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL Identifier)? $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     Catch parseCatch()
@@ -1197,14 +1199,11 @@ incorrect;
         auto node = new Catches;
         while (true)
         {
-            expect(TokenType.catch_);
-            if (currentIs(TokenType.lParen))
+            if (!currentIs(TokenType.catch_))
+                break;
+            if (peekIs(TokenType.lParen))
             {
                 node.catches ~= parseCatch();
-                if (currentIs(TokenType.catch_))
-                    continue;
-                else
-                    break;
             }
             else
             {
@@ -1216,32 +1215,10 @@ incorrect;
     }
 
     /**
-     * Parses a ClassBody
-     *
-     * $(GRAMMAR $(RULEDEF classBody):
-     *     $(LITERAL '{') $(RULE declarationOrInvariant)* $(LITERAL '}')
-     *     ;)
-     */
-    ClassBody parseClassBody()
-    {
-        mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ClassBody;
-        if (expect(TokenType.lBrace) is null) return null;
-        while (moreTokens() && !currentIs(TokenType.rBrace))
-        {
-            auto doi = parseDeclarationOrInvariant();
-            if (doi !is null)
-                node.declarationOrInvariants ~= doi;
-        }
-        if (expect(TokenType.rBrace) is null) return null;
-        return node;
-    }
-
-    /**
      * Parses a ClassDeclaration
      *
      * $(GRAMMAR $(RULEDEF classDeclaration):
-     *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE classBody)
+     *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
      *     ;)
      */
     ClassDeclaration parseClassDeclaration()
@@ -1265,7 +1242,7 @@ incorrect;
             advance();
             node.baseClassList = parseBaseClassList();
         }
-        node.classBody = parseClassBody();
+        node.structBody = parseStructBody();
         return node;
     }
 
@@ -1430,7 +1407,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     }
 
     /**
-     * Parses an ConditionalStatement
+     * Parses a ConditionalStatement
      *
      * $(GRAMMAR $(RULEDEF conditionalStatement):
      *     $(RULE compileCondition) $(RULE statementNoCaseNoDefault) ($(LITERAL 'else') $(RULE statementNoCaseNoDefault))?
@@ -1616,6 +1593,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      *     | $(RULE unittest)
      *     | $(RULE variableDeclaration)
      *     | $(RULE attributeDeclaration)
+     *     | $(RULE invariant)
      *     | $(LITERAL '{') $(RULE declaration)+ $(LITERAL '}')
      *     ;)
      */
@@ -1655,7 +1633,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 if (declaration !is null)
                     node.declarations ~= declaration;
             }
-            expect(TokenType.rBrace);
+            if (expect(TokenType.rBrace) is null) return null;
             break;
         case alias_:
             if (startsWith(alias_, identifier, this_))
@@ -1667,7 +1645,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.classDeclaration = parseClassDeclaration();
             break;
         case this_:
-            node.constructor = parseConstructor();
+			if (startsWith(this_, lParen, this_))
+				node.postblit = parsePostblit();
+			else
+				node.constructor = parseConstructor();
             break;
         case tilde:
             node.destructor = parseDestructor();
@@ -1719,6 +1700,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case union_:
             node.unionDeclaration = parseUnionDeclaration();
             break;
+		case invariant_:
+			node.invariant_ = parseInvariant();
+			break;
         case unittest_:
             node.unittest_ = parseUnittest();
             break;
@@ -1767,6 +1751,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case debug_:
             node.conditionalDeclaration = parseConditionalDeclaration();
+            if (node.conditionalDeclaration is null) return null;
             break;
         default:
             error("Declaration expected");
@@ -1782,10 +1767,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * $(GRAMMAR $(RULEDEF declarationsAndStatements):
      *     $(RULE declarationOrStatement)+
      *     ;
-     *$(RULEDEF declarationOrStatement):
-     *       $(RULE declaration)
-     *     | $(RULE statementNoCaseNoDefault)
-     *     ;)
      */
     DeclarationsAndStatements parseDeclarationsAndStatements()
     {
@@ -1794,30 +1775,11 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         while (!currentIsOneOf(TokenType.rBrace) && moreTokens())
         {
             auto dos = parseDeclarationOrStatement();
-            if (dos.statement !is null || dos.declaration !is null)
+            if (dos !is null)
                 node.declarationsAndStatements ~= dos;
             else
                 return null;
         }
-        return node;
-    }
-
-    /**
-     * Parses a DeclarationOrInvariant
-     *
-     * $(GRAMMAR $(RULEDEF declarationOrInvariant):
-     *       $(RULE declaration)
-     *     | $(RULE invariant)
-     *     ;)
-     */
-    DeclarationOrInvariant parseDeclarationOrInvariant()
-    {
-        mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DeclarationOrInvariant;
-        if (currentIs(TokenType.invariant_))
-            node.invariant_ = parseInvariant();
-        else
-            node.declaration = parseDeclaration();
         return node;
     }
 
@@ -1836,9 +1798,21 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         // "Any ambiguities in the grammar between Statements and
         // Declarations are resolved by the declarations taking precedence."
         if (isDeclaration())
+        {
+            trace("+++ parsing declaration");
             node.declaration = parseDeclaration();
+        }
         else
+        {
+            trace("+++ parsing statement");
             node.statement = parseStatementNoCaseNoDefault();
+        }
+
+        if (node.statement is null && node.declaration is null)
+        {
+            error("Could not parse declaration or statement");
+            return null;
+        }
         return node;
     }
 
@@ -1960,7 +1934,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a DoStatement
      *
      * $(GRAMMAR $(RULEDEF doStatement):
-     *     $(LITERAL 'do') $(RULE nonEmptyStatementNoCaseNoDefault) $(LITERAL 'while') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(LITERAL ';')
+     *     $(LITERAL 'do') $(RULE statementNoCaseNoDefault) $(LITERAL 'while') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(LITERAL ';')
      *     ;)
      */
     DoStatement parseDoStatement()
@@ -2184,14 +2158,14 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a ForeachStatement
      *
      * $(GRAMMAR $(RULEDEF foreachStatement):
-     *       ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
-     *     | ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *       ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
+     *     | ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     ForeachStatement parseForeachStatement()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ForeachStatement;
-
         if (currentIsOneOf(TokenType.foreach_, TokenType.foreach_reverse_))
             node.foreachType = advance().type;
         else
@@ -2202,7 +2176,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (expect(TokenType.lParen) is null) return null;
         auto feType = parseForeachTypeList();
         bool canBeRange = feType.items.length == 1;
-        expect(TokenType.semicolon);
+        if (expect(TokenType.semicolon) is null) return null;
         node.low = parseExpression();
         if (node.low is null) return null;
         if (currentIs(TokenType.slice))
@@ -2231,10 +2205,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     ForeachType parseForeachType()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ForeachType;
         if (currentIsOneOf(TokenType.ref_, TokenType.const_, TokenType.immutable_,
             TokenType.shared_, TokenType.inout_))
         {
+            trace("+++ Type constructor");
             if ((node.typeConstructors = parseTypeConstructors()) is null)
                 return null;
         }
@@ -2259,6 +2235,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     ForeachTypeList parseForeachTypeList()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         return parseCommaSeparatedRule!(ForeachTypeList, ForeachType)();
     }
 
@@ -3177,7 +3154,7 @@ invariant() foo();
      * Parses a LastCatch
      *
      * $(GRAMMAR $(RULEDEF lastCatch):
-     *     $(LITERAL 'catch') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     $(LITERAL 'catch') $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     LastCatch parseLastCatch()
@@ -3254,7 +3231,7 @@ invariant() foo();
      *
      * $(GRAMMAR $(RULEDEF mixinDeclaration):
      *       $(RULE mixinExpression) $(LITERAL ';')
-     *     | $(RULE templateMixinStatement) $(LITERAL ';')
+     *     | $(RULE templateMixinExpression) $(LITERAL ';')
      *     ;)
      */
     MixinDeclaration parseMixinDeclaration()
@@ -3291,7 +3268,7 @@ invariant() foo();
      * Parses a MixinTemplateDeclaration
      *
      * $(GRAMMAR $(RULEDEF mixinTemplateDeclaration):
-     *     $(LITERAL 'mixin') $RULE templateDeclaration
+     *     $(LITERAL 'mixin') $(RULE templateDeclaration)
      *     ;)
      */
     MixinTemplateDeclaration parseMixinTemplateDeclaration()
@@ -3379,7 +3356,7 @@ invariant() foo();
      * Parses a NewAnonClassExpression
      *
      * $(GRAMMAR $(RULEDEF newAnonClassExpression):
-     *     $(LITERAL 'new') $(RULE arguments)? $(LITERAL 'class') $(RULE arguments)? $(RULE baseClassList)? $(RULE classBody)
+     *     $(LITERAL 'new') $(RULE arguments)? $(LITERAL 'class') $(RULE arguments)? $(RULE baseClassList)? $(RULE structBody)
      *     ;)
      */
     NewAnonClassExpression parseNewAnonClassExpression()
@@ -3391,7 +3368,7 @@ invariant() foo();
         expect(TokenType.class_);
         if (!currentIs(TokenType.lBrace))
             node.baseClassList = parseBaseClassList();
-        node.classBody = parseClassBody();
+        node.structBody = parseStructBody();
         return node;
     }
 
@@ -3447,7 +3424,6 @@ invariant() foo();
      *     | $(RULE throwStatement)
      *     | $(RULE scopeGuardStatement)
      *     | $(RULE asmStatement)
-     *     | $(RULE foreachRangeStatement)
      *     | $(RULE conditionalStatement)
      *     | $(RULE staticAssertStatement)
      *     | $(RULE versionSpecification)
@@ -3642,7 +3618,7 @@ invariant() foo();
      * Parses a Parameter
      *
      * $(GRAMMAR $(RULEDEF parameter):
-     *     $(RULE parameterAttribute)* $(RULE type) ($(LITERAL Identifier)? $(LITERAL '...') | ($(LITERAL Identifier) ($(LITERAL '=') $(RULE assignExpression))?))?
+     *     $(RULE parameterAttribute)* $(RULE type) ($(LITERAL Identifier)? $(LITERAL '...') | ($(LITERAL Identifier)? ($(LITERAL '=') $(RULE assignExpression))?))?
      *     ;)
      */
     Parameter parseParameter()
@@ -3678,6 +3654,11 @@ invariant() foo();
             node.vararg = true;
             advance();
         }
+		else if (currentIs(TokenType.assign))
+		{
+			advance();
+			node.default_ = parseAssignExpression();
+		}
         return node;
     }
 
@@ -3697,6 +3678,7 @@ invariant() foo();
      */
     TokenType parseParameterAttribute(bool validate = false)
     {
+		mixin(traceEnterAndExit!(__FUNCTION__));
         with (TokenType) switch (current.type)
         {
         case immutable_:
@@ -3797,7 +3779,7 @@ q{(int a, ...)
     /**
      * Parses a Postblit
      *
-     * $(GRAMMAR $(RULEDEF parameters):
+     * $(GRAMMAR $(RULEDEF postblit):
      *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
@@ -3911,7 +3893,7 @@ q{(int a, ...)
      * $(GRAMMAR $(RULEDEF primaryExpression):
      *       $(RULE identifierOrTemplateInstance)
      *     | $(LITERAL '.') $(RULE identifierOrTemplateInstance)
-     *     | $(RULE basicType) $(LITERAL '.') $(LITERAL Identifier)
+     *     | $(RULE builtinType) $(LITERAL '.') $(LITERAL Identifier)
      *     | $(RULE typeofExpression)
      *     | $(RULE typeidExpression)
      *     | $(RULE vector)
@@ -3996,6 +3978,8 @@ q{(int a, ...)
             auto p = peekPastParens();
             if (p !is null && p.type == TokenType.goesTo)
                 node.lambdaExpression = parseLambdaExpression();
+			else if (p !is null && p.type == TokenType.lBrace)
+				node.functionLiteralExpression = parseFunctionLiteralExpression();
             else
             {
                 advance();
@@ -4320,7 +4304,7 @@ q{(int a, ...)
     /**
      * Parses a StaticDestructor
      *
-     * $(GRAMMAR $(RULEDEF staticConstructor):
+     * $(GRAMMAR $(RULEDEF staticDestructor):
      *     $(LITERAL 'static') $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE functionBody)
      *     ;)
      */
@@ -4420,7 +4404,7 @@ q{(int a, ...)
      * Parses a StructBody
      *
      * $(GRAMMAR $(RULEDEF structBody):
-     *     $(LITERAL '{') $(RULE structBodyItem)* $(LITERAL '}')
+     *     $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')
      *     ;)
      */
     StructBody parseStructBody()
@@ -4429,30 +4413,8 @@ q{(int a, ...)
         auto node = new StructBody;
         expect(TokenType.lBrace);
         while (!currentIs(TokenType.rBrace) && moreTokens())
-            node.structBodyItems ~= parseStructBodyItem();
+            node.declarations ~= parseDeclaration();
         expect(TokenType.rBrace);
-        return node;
-    }
-
-    /**
-     * Parses a StructBodyItem
-     *
-     * $(GRAMMAR $(RULEDEF structBodyItem):
-     *       $(RULE declaration)
-     *     | $(RULE postBlit)
-     *     | $(RULE invariant)
-     *     ;)
-     */
-    StructBodyItem parseStructBodyItem()
-    {
-        mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StructBodyItem;
-        if (currentIs(TokenType.invariant_))
-            node.invariant_ = parseInvariant();
-        else if (startsWith(TokenType.this_, TokenType.lParen, TokenType.this_))
-            node.postblit = parsePostblit();
-        else
-            node.declaration = parseDeclaration();
         return node;
     }
 
@@ -4620,7 +4582,7 @@ q{(int a, ...)
      * Parses a SynchronizedStatement
      *
      * $(GRAMMAR $(RULEDEF synchronizedStatement):
-     *     $(LITERAL 'synchronized') ($(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)'))? $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     $(LITERAL 'synchronized') ($(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)'))? $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     SynchronizedStatement parseSynchronizedStatement()
@@ -4695,7 +4657,7 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateArgument;
 
-        if (isBasicType(current.type) || !isExpression())
+        if (isBasicType(current.type) || isAttribute() || !isExpression())
         {
             if ((node.type = parseType()) is null) return null;
         }
@@ -4734,7 +4696,8 @@ q{(int a, ...)
         if (currentIs(TokenType.lParen))
         {
             advance();
-            node.templateArgumentList = parseTemplateArgumentList();
+			if (!currentIs(TokenType.rParen))
+				node.templateArgumentList = parseTemplateArgumentList();
             expect(TokenType.rParen);
         }
         else
@@ -4746,7 +4709,7 @@ q{(int a, ...)
      * Parses a TemplateDeclaration
      *
      * $(GRAMMAR $(RULEDEF templateDeclaration):
-     *     $(LITERAL 'template') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? $(LITERAL '{') $(RULE declaration)+ $(LITERAL '}')
+     *     $(LITERAL 'template') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')
      *     ;)
      */
     TemplateDeclaration parseTemplateDeclaration()
@@ -4760,11 +4723,14 @@ q{(int a, ...)
         node.templateParameters = parseTemplateParameters();
         if (currentIs(TokenType.if_))
             node.constraint = parseConstraint();
-        expect(TokenType.lBrace);
-        do
-            node.declarations ~= parseDeclaration();
-        while (!currentIs(TokenType.rBrace) && moreTokens());
-        expect(TokenType.rBrace);
+        if (expect(TokenType.lBrace) is null) return null;
+		while (moreTokens() && !currentIs(TokenType.rBrace))
+		{
+			auto decl = parseDeclaration();
+			if (decl !is null)
+				node.declarations ~= decl;
+		}
+		expect(TokenType.rBrace);
         return node;
     }
 
@@ -4980,7 +4946,7 @@ q{(int a, ...)
             advance();
             node.colonType = parseType();
         }
-        else if (currentIs(TokenType.assign))
+        if (currentIs(TokenType.assign))
         {
             advance();
             node.assignType = parseType();
@@ -5112,7 +5078,7 @@ q{(int a, ...)
      * Parses a TryStatement
      *
      * $(GRAMMAR $(RULEDEF tryStatement):
-     *     $(LITERAL 'try') $(RULE nonEmptyStatementNoCaseNoDefault) ($(RULE catches) | $(RULE catches) $(RULE finally) | $(RULE finally))
+     *     $(LITERAL 'try') $(RULE statementNoCaseNoDefault) ($(RULE catches) | $(RULE catches) $(RULE finally) | $(RULE finally))
      *     ;)
      */
     TryStatement parseTryStatement()
@@ -5245,6 +5211,7 @@ q{(int a, ...)
         case inout_:
         case shared_:
         case scope_:
+        case ref_:
             return advance().type;
         default:
             if (validate)
@@ -5335,7 +5302,9 @@ q{(int a, ...)
      *
      * $(GRAMMAR $(RULEDEF typeSuffix):
      *       $(LITERAL '*')
-     *     | $(LITERAL '[') ($(RULE type) | $(RULE assignExpression))? $(LITERAL ']')
+     *     | $(LITERAL '[') $(RULE type)? $(LITERAL ']')
+     *     | $(LITERAL '[') $(RULE assignExpression) $(LITERAL ']')
+     *     | $(LITERAL '[') $(RULE assignExpression) $(LITERAL '..')  $(RULE assignExpression) $(LITERAL ']')
      *     | ($(LITERAL 'delegate') | $(LITERAL 'function')) $(RULE parameters) $(RULE memberFunctionAttribute)*
      *     ;)
      */
@@ -5359,11 +5328,20 @@ q{(int a, ...)
             if (type is null)
             {
                 goToBookmark(bookmark);
-                node.assignExpression = parseAssignExpression();
-                if (node.assignExpression is null) return null;
+                node.low = parseAssignExpression();
+                if (node.low is null) return null;
+				if (currentIs(slice))
+				{
+					advance();
+					node.high = parseAssignExpression();
+					if (node.high is null) return null;
+				}
             }
             else
+            {
+                goToBookmark(bookmark);
                 node.type = type;
+            }
         end:
             if (expect(TokenType.rBracket) is null) return null;
             return node;
@@ -5724,7 +5702,7 @@ q{doStuff(5)}c;
      * Parses a WithStatement
      *
      * $(GRAMMAR $(RULEDEF withStatement):
-     *     $(LITERAL 'with') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE nonEmptyStatementNoCaseNoDefault)
+     *     $(LITERAL 'with') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
      *     ;)
      */
     WithStatement parseWithStatement()
@@ -5790,8 +5768,20 @@ private:
 
     bool isDeclaration()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         with (TokenType) switch (current.type)
         {
+        case debug_:
+        case version_:
+            return peekIs(TokenType.assign);
+        case static_:
+            if (startsWith(static_, if_))
+                return false;
+            break;
+        case scope_:
+            if (peekIs(TokenType.lParen))
+                return false;
+            goto case;
         mixin(BASIC_TYPE_CASE_RANGE);
         case const_:
         case immutable_:
@@ -5837,16 +5827,17 @@ private:
         case goto_:
         case try_:
         case throw_:
-        case scope_:
         case asm_:
         case foreach_reverse_:
+        case lBrace:
             return false;
         default:
+            trace("+++ no clue");
             break;
         }
-        // h4x
         auto b = setBookmark();
         scope(exit) goToBookmark(b);
+
         return parseDeclaration() !is null;
     }
 
@@ -5879,6 +5870,7 @@ private:
         case const_:
         case immutable_:
         case inout_:
+        case scope_:
             return !peekIs(TokenType.lParen);
         case static_:
             return !peekIsOneOf(assert_, this_, if_, tilde);
@@ -5910,7 +5902,6 @@ private:
         case override_:
         case abstract_:
         case auto_:
-        case scope_:
         case gshared:
         case pure_:
         case nothrow_:
@@ -6002,6 +5993,7 @@ private:
         {
             ++errorCount;
             auto column = index < tokens.length ? tokens[index].column : 0;
+            column++;
             auto line = index < tokens.length ? tokens[index].line : 0;
             if (messageFunction is null)
                 writefln("!! %s(%d:%d): %s", fileName, line, column, message);
@@ -6010,7 +6002,8 @@ private:
         }
         while (moreTokens())
         {
-            if (currentIsOneOf(TokenType.semicolon, TokenType.rBrace))
+            if (currentIsOneOf(TokenType.semicolon, TokenType.rBrace,
+                TokenType.rParen, TokenType.rBracket))
             {
                 advance();
                 break;
@@ -6167,11 +6160,15 @@ private:
      */
     bool currentIsOneOf(TokenType[] types...) const
     {
+        if (index >= tokens.length)
+            return false;
         return canFind(types, current.type);
     }
 
     bool startsWith(TokenType[] types...) const
     {
+        if (index >= tokens.length)
+            return false;
         for (size_t i = 0; i != types.length; ++i)
         {
             if (tokens[index + i].type != types[i])
@@ -6185,13 +6182,15 @@ private:
      */
     bool moreTokens() const
     {
-        return index + 1 < tokens.length;
+        return index < tokens.length;
     }
 
     size_t setBookmark()
     {
-        ++suppressMessages;
-        return index;
+        mixin(traceEnterAndExit!(__FUNCTION__));
+        suppressMessages++;
+        auto i = index;
+        return i;
     }
 
     void goToBookmark(size_t i)
@@ -6228,7 +6227,7 @@ private:
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
-                writeln(message, "(", current.line, ":", current.column, ")");
+                writeln(message, "(", current.line, ":", current.column + 1, ")");
             else
                 writeln(message, "(EOF:0)");
         }

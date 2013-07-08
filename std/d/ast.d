@@ -72,7 +72,6 @@ abstract class ASTVisitor
     /** */ void visit(CastQualifier castQualifier) { castQualifier.accept(this); }
     /** */ void visit(Catch catch_) { catch_.accept(this); }
     /** */ void visit(Catches catches) { catches.accept(this); }
-    /** */ void visit(ClassBody classBody) { classBody.accept(this); }
     /** */ void visit(ClassDeclaration classDeclaration) { classDeclaration.accept(this); }
     /** */ void visit(CmpExpression cmpExpression) { cmpExpression.accept(this); }
     /** */ void visit(CompileCondition compileCondition) { compileCondition.accept(this); }
@@ -180,7 +179,6 @@ abstract class ASTVisitor
     /** */ void visit(StaticIfCondition staticIfCondition) { staticIfCondition.accept(this); }
     /** */ void visit(StorageClass storageClass) { storageClass.accept(this); }
     /** */ void visit(StructBody structBody) { structBody.accept(this); }
-    /** */ void visit(StructBodyItem structBodyItem) { structBodyItem.accept(this); }
     /** */ void visit(StructDeclaration structDeclaration) { structDeclaration.accept(this); }
     /** */ void visit(StructInitializer structInitializer) { structInitializer.accept(this); }
     /** */ void visit(StructMemberInitializer structMemberInitializer) { structMemberInitializer.accept(this); }
@@ -676,14 +674,6 @@ public:
 }
 
 ///
-class ClassBody: ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ DeclarationOrInvariant[] declarationOrInvariants;
-}
-
-///
 class ClassDeclaration: ASTNode
 {
 public:
@@ -692,7 +682,7 @@ public:
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ BaseClassList baseClassList;
-    /** */ ClassBody classBody;
+    /** */ StructBody structBody;
 }
 
 ///
@@ -842,6 +832,8 @@ public:
     /** */ ConditionalDeclaration conditionalDeclaration;
     /** */ PragmaDeclaration pragmaDeclaration;
     /** */ VersionSpecification versionSpecification;
+	/** */ Invariant invariant_;
+	/** */ Postblit postblit;
 	/** */ Declaration[] declarations;
 }
 
@@ -1426,7 +1418,7 @@ public:
     /** */ Arguments allocatorArguments;
     /** */ Arguments constructorArguments;
     /** */ BaseClassList baseClassList;
-    /** */ ClassBody classBody;
+    /** */ StructBody structBody;
 }
 
 ///
@@ -1771,16 +1763,7 @@ class StructBody : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ StructBodyItem[] structBodyItems;
-}
-
-class StructBodyItem : ASTNode
-{
-public:
-    mixin(DEFAULT_ACCEPT);
-    /** */ Declaration declaration;
-    /** */ Invariant invariant_;
-    /** */ Postblit postblit;
+    /** */ Declaration[] declarations;
 }
 
 ///
@@ -2086,7 +2069,8 @@ public:
     /** */ bool star;
     /** */ bool array;
     /** */ Type type;
-    /** */ AssignExpression assignExpression;
+    /** */ AssignExpression low;
+    /** */ AssignExpression high;
     /** */ Parameters parameters;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
 }
