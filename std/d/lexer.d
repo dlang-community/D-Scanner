@@ -945,9 +945,30 @@ L_advance:
                     break decimalLoop;
                 if (src.canPeek() && src.peek() == '.')
                     break decimalLoop;
-                nextCharNonLF();
-                foundDot = true;
-                current.type = TokenType.doubleLiteral;
+                else
+                {
+                    // The following bit of silliness tries to tell the
+                    // difference between "int dot identifier" and
+                    // "double identifier".
+                    if (src.canPeek())
+                    {
+                        switch (src.peek())
+                        {
+                        case 'u': case 'U': case 'i': case 'L': case 'f': case 'F':
+                        case 'e': case 'E':
+                            break decimalLoop;
+                        default:
+                            goto doubleLiteral;
+                        }
+                    }
+                    else
+                    {
+                    doubleLiteral:
+                        nextCharNonLF();
+                        foundDot = true;
+                        current.type = TokenType.doubleLiteral;
+                    }
+                }
                 break;
             default:
                 break decimalLoop;
