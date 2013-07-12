@@ -1038,23 +1038,6 @@ alias core.sys.posix.stdio.fileno fileno;
         return node;
     }
 
-    private bool isCastQualifier() const
-    {
-        switch (current.type)
-        {
-        case TokenType.const_:
-            return peekIsOneOf(TokenType.shared_, TokenType.rParen);
-        case TokenType.immutable_:
-            return peekIs(TokenType.rParen);
-        case TokenType.inout_:
-            return peekIsOneOf(TokenType.shared_, TokenType.rParen);
-        case TokenType.shared_:
-            return peekIsOneOf(TokenType.const_, TokenType.inout_, TokenType.rParen);
-        default:
-            return false;
-        }
-    }
-
     /**
      * Parses a CastQualifier
      *
@@ -5770,10 +5753,10 @@ q{doStuff(5)}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Vector;
-        expect(TokenType.vector);
-        expect(TokenType.lParen);
-        node.type = parseType();
-        expect(TokenType.rParen);
+        if (expect(TokenType.vector) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
+        if ((node.type = parseType()) is null) return null;
+        if (expect(TokenType.rParen) is null) return null;
         return node;
     }
 
@@ -5788,8 +5771,8 @@ q{doStuff(5)}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new VersionCondition;
-        expect(TokenType.version_);
-        expect(TokenType.lParen);
+        if (expect(TokenType.version_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
         if (currentIsOneOf(TokenType.intLiteral, TokenType.identifier,
             TokenType.unittest_, TokenType.assert_))
         {
@@ -5881,7 +5864,44 @@ q{doStuff(5)}c;
             TokenType.xor)();
     }
 
+    /**
+     * Current error count
+     */
+    uint errorCount;
+
+    /**
+     * Current warning count
+     */
+    uint warningCount;
+
+    /**
+     * Name used when reporting warnings and errors
+     */
+    string fileName;
+
+    /**
+     * Function that is called when a warning or error is encountered
+     */
+    void function(string, int, int, string) messageFunction;
+
 private:
+
+    bool isCastQualifier() const
+    {
+        switch (current.type)
+        {
+        case TokenType.const_:
+            return peekIsOneOf(TokenType.shared_, TokenType.rParen);
+        case TokenType.immutable_:
+            return peekIs(TokenType.rParen);
+        case TokenType.inout_:
+            return peekIsOneOf(TokenType.shared_, TokenType.rParen);
+        case TokenType.shared_:
+            return peekIsOneOf(TokenType.const_, TokenType.inout_, TokenType.rParen);
+        default:
+            return false;
+        }
+    }
 
     bool isAssociativeArrayLiteral()
     {
@@ -6213,17 +6233,17 @@ private:
         skip!(TokenType.lBracket, TokenType.rBracket)();
     }
 
-    const(Token)* peek()
+    const(Token)* peek() const
     {
         return index + 1 < tokens.length ? &tokens[index + 1] : null;
     }
 
-    const(Token)* peekPast(alias O, alias C)()
+    const(Token)* peekPast(alias O, alias C)() const nothrow
     {
         if (index >= tokens.length)
             return null;
         int depth = 1;
-        auto i = index;
+        size_t i = index;
         ++i;
         while (i < tokens.length)
         {
@@ -6245,27 +6265,27 @@ private:
         return depth == 0 ? &tokens[i] : null;
     }
 
-    const(Token)* peekPastParens()
+    const(Token)* peekPastParens() const nothrow
     {
         return peekPast!(TokenType.lParen, TokenType.rParen)();
     }
 
-    const(Token)* peekPastBrackets()
+    const(Token)* peekPastBrackets() const nothrow
     {
         return peekPast!(TokenType.lBracket, TokenType.rBracket)();
     }
 
-    const(Token)* peekPastBraces()
+    const(Token)* peekPastBraces() const nothrow
     {
         return peekPast!(TokenType.lBrace, TokenType.rBrace)();
     }
 
-    bool peekIs(TokenType t) const
+    bool peekIs(TokenType t) const nothrow
     {
         return index + 1 < tokens.length && tokens[index + 1].type == t;
     }
 
-    bool peekIsOneOf(TokenType[] types...) const
+    bool peekIsOneOf(TokenType[] types...) const nothrow
     {
         if (index + 1 >= tokens.length) return false;
         return canFind(types, tokens[index + 1].type);
@@ -6397,14 +6417,10 @@ private:
         void trace(lazy string message) {}
     }
 
-    uint errorCount;
-    uint warningCount;
-    const(Token)[] tokens;
-    size_t index;
-    string fileName;
-    void function(string, int, int, string) messageFunction;
     static immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
     static immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
     static immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
+    const(Token)[] tokens;
     int suppressMessages;
+    size_t index;
 }
