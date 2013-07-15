@@ -77,21 +77,23 @@ import std.string : format;
 
 // Uncomment this if you want ALL THE OUTPUT
 // Caution: generates 180 megabytes of logging for std.datetime
-// version = std_parser_verbose;
+//version = std_parser_verbose;
 
 /**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
  * Returns: the parsed module
  */
-Module parseModule(const(Token)[] tokens, string fileName)
+Module parseModule(const(Token)[] tokens, string fileName,
+	void function(string, int, int, string) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
     parser.tokens = tokens;
+	parser.messageFunction = messageFunction;
     auto mod = parser.parseModule();
-    writefln("Parsing finished with %d errors and %d warnings.",
-        parser.errorCount, parser.warningCount);
+    // writefln("Parsing finished with %d errors and %d warnings.",
+    //     parser.errorCount, parser.warningCount);
     return mod;
 }
 
@@ -1637,14 +1639,14 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.classDeclaration = parseClassDeclaration();
             break;
         case this_:
-			if (startsWith(this_, lParen, this_))
+            if (startsWith(this_, lParen, this_))
             {
-				node.postblit = parsePostblit();
+                node.postblit = parsePostblit();
                 if (node.postblit is null) return null;
             }
-			else
+            else
             {
-				node.constructor = parseConstructor();
+                node.constructor = parseConstructor();
                 if (node.constructor is null) return null;
             }
             break;
@@ -1702,9 +1704,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case union_:
             node.unionDeclaration = parseUnionDeclaration();
             break;
-		case invariant_:
-			node.invariant_ = parseInvariant();
-			break;
+        case invariant_:
+            node.invariant_ = parseInvariant();
+            break;
         case unittest_:
             node.unittest_ = parseUnittest();
             break;
@@ -1716,8 +1718,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                     node.variableDeclaration = parseVariableDeclaration(null, true);
                 else if (peekIs(lParen))
                     node.functionDeclaration = parseFunctionDeclaration(null, true);
-				else
-					goto type;
+                else
+                    goto type;
             }
             else
                 goto type;
@@ -1757,7 +1759,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         default:
             error("Declaration expected");
-            advance();
+            if (moreTokens())
+                advance();
             return null;
         }
         return node;
@@ -1768,7 +1771,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      *
      * $(GRAMMAR $(RULEDEF declarationsAndStatements):
      *     $(RULE declarationOrStatement)+
-     *     ;
+     *     ;)
      */
     DeclarationsAndStatements parseDeclarationsAndStatements()
     {
@@ -1831,7 +1834,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new Declarator;
         auto id = expect(TokenType.identifier);
         if (id is null) return null;
-        node.identifier = *id;
+        node.name = *id;
         if (currentIsOneOf(TokenType.lBracket, TokenType.star))
         {
             error("C-style variable declarations are not supported.");
@@ -2004,7 +2007,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new EnumDeclaration;
         if (expect(TokenType.enum_) is null) return null;
         if (currentIs(TokenType.identifier))
-            node.identifier = advance();
+            node.name = advance();
         if (currentIs(TokenType.colon))
         {
             advance();
@@ -2667,7 +2670,8 @@ body {} // six
         {
             auto b = setBookmark();
             auto t = parseType();
-            if (t is null || !currentIs(TokenType.identifier))
+            if (t is null || !currentIs(TokenType.identifier)
+				|| !peekIs(TokenType.assign))
             {
                 goToBookmark(b);
                 node.expression = parseExpression();
@@ -2958,7 +2962,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
         if (expect(TokenType.interface_) is null) return null;
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
-        node.identifier = *ident;
+        node.name = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -3159,17 +3163,26 @@ invariant() foo();
      * Parses a LambdaExpression
      *
      * $(GRAMMAR $(RULEDEF lambdaExpression):
-     *     ($(LITERAL Identifier) | $(RULE parameters) $(RULE functionAttribute)* ) $(LITERAL '=>') $(RULE assignExpression)
+     *       $(LITERAL Identifier) $(LITERAL '=>') $(RULE assignExpression)
+     *     | $(LITERAL 'function') $(RULE parameters) $(RULE functionAttribute)* $(LITERAL '=>') $(RULE assignExpression)
+     *     | $(LITERAL 'delegate') $(RULE parameters) $(RULE functionAttribute)* $(LITERAL '=>') $(RULE assignExpression)
+     *     | $(RULE parameters) $(RULE functionAttribute)* $(LITERAL '=>') $(RULE assignExpression)
      *     ;)
      */
     LambdaExpression parseLambdaExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new LambdaExpression;
-        if (currentIs(TokenType.identifier))
+        if (currentIsOneOf(TokenType.function_, TokenType.delegate_))
+        {
+            node.functionType = advance().type;
+            goto lParen;
+        }
+        else if (currentIs(TokenType.identifier))
             node.identifier = advance();
         else if (currentIs(TokenType.lParen))
         {
+        lParen:
             node.parameters = parseParameters();
             do
             {
@@ -3284,8 +3297,13 @@ invariant() foo();
         auto node = new MixinDeclaration;
         if (peekIs(TokenType.identifier))
             node.templateMixinExpression = parseTemplateMixinExpression();
-        else
+        else if (peekIs(TokenType.lParen))
             node.mixinExpression = parseMixinExpression();
+        else
+        {
+            error(`"(" or identifier expected`);
+            return null;
+        }
         expect(TokenType.semicolon);
         return node;
     }
@@ -3718,11 +3736,11 @@ invariant() foo();
             node.vararg = true;
             advance();
         }
-		else if (currentIs(TokenType.assign))
-		{
-			advance();
-			node.default_ = parseAssignExpression();
-		}
+        else if (currentIs(TokenType.assign))
+        {
+            advance();
+            node.default_ = parseAssignExpression();
+        }
         return node;
     }
 
@@ -3742,7 +3760,7 @@ invariant() foo();
      */
     TokenType parseParameterAttribute(bool validate = false)
     {
-		mixin(traceEnterAndExit!(__FUNCTION__));
+        mixin(traceEnterAndExit!(__FUNCTION__));
         with (TokenType) switch (current.type)
         {
         case immutable_:
@@ -4017,6 +4035,20 @@ q{(int a, ...)
             break;
         case function_:
         case delegate_:
+            if (peekIs(lParen))
+            {
+                auto b = setBookmark();
+                advance(); // function | delegate
+                skipParens();
+                if (currentIs(goesTo))
+                {
+                    goToBookmark(b);
+                    goto lambda;
+                }
+                else
+                    goToBookmark(b);
+            }
+            goto case;
         case lBrace:
         case in_:
         case out_:
@@ -4046,6 +4078,7 @@ q{(int a, ...)
             if (currentIs(goesTo))
             {
                 goToBookmark(b);
+        lambda:
                 node.lambdaExpression = parseLambdaExpression();
             }
             else if (currentIs(lBrace))
@@ -4516,10 +4549,10 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructDeclaration;
         expect(TokenType.struct_);
-		if (currentIs(TokenType.identifier))
-		{
-			node.name = advance();
-		}
+        if (currentIs(TokenType.identifier))
+        {
+            node.name = advance();
+        }
 
         if (currentIs(TokenType.lParen))
         {
@@ -4785,8 +4818,8 @@ q{(int a, ...)
         if (currentIs(TokenType.lParen))
         {
             advance();
-			if (!currentIs(TokenType.rParen))
-				node.templateArgumentList = parseTemplateArgumentList();
+            if (!currentIs(TokenType.rParen))
+                node.templateArgumentList = parseTemplateArgumentList();
             expect(TokenType.rParen);
         }
         else
@@ -4813,13 +4846,13 @@ q{(int a, ...)
         if (currentIs(TokenType.if_))
             node.constraint = parseConstraint();
         if (expect(TokenType.lBrace) is null) return null;
-		while (moreTokens() && !currentIs(TokenType.rBrace))
-		{
-			auto decl = parseDeclaration();
-			if (decl !is null)
-				node.declarations ~= decl;
-		}
-		expect(TokenType.rBrace);
+        while (moreTokens() && !currentIs(TokenType.rBrace))
+        {
+            auto decl = parseDeclaration();
+            if (decl !is null)
+                node.declarations ~= decl;
+        }
+        expect(TokenType.rBrace);
         return node;
     }
 
@@ -5432,12 +5465,12 @@ q{(int a, ...)
                 goToBookmark(bookmark);
                 node.low = parseAssignExpression();
                 if (node.low is null) return null;
-				if (currentIs(slice))
-				{
-					advance();
-					node.high = parseAssignExpression();
-					if (node.high is null) return null;
-				}
+                if (currentIs(slice))
+                {
+                    advance();
+                    node.high = parseAssignExpression();
+                    if (node.high is null) return null;
+                }
             }
         end:
             if (expect(TokenType.rBracket) is null) return null;
@@ -6160,7 +6193,7 @@ private:
         auto column = index < tokens.length ? tokens[index].column : 0;
         auto line = index < tokens.length ? tokens[index].line : 0;
         if (messageFunction is null)
-            writefln("^^ %s(%d:%d): %s", fileName, line, column, message);
+            writefln("%s(%d:%d)[warn]: %s", fileName, line, column, message);
         else
             messageFunction(fileName, line, column, message);
     }
@@ -6175,7 +6208,7 @@ private:
             column++;
             auto line = index < tokens.length ? tokens[index].line : 0;
             if (messageFunction is null)
-                stderr.writefln("!! %s(%d:%d): %s", fileName, line, column, message);
+                writefln("%s(%d:%d)[error]: %s", fileName, line, column, message);
             else
                 messageFunction(fileName, line, column, message);
         }
@@ -6295,7 +6328,7 @@ private:
      * Returns a token of the specified type if it was the next token, otherwise
      * calls the error function and returns null.
      */
-    const(Token)* expect(TokenType type, string loc = __PRETTY_FUNCTION__)
+    const(Token)* expect(TokenType type)
     {
         if (index < tokens.length && tokens[index].type == type)
             return &tokens[index++];
@@ -6303,10 +6336,10 @@ private:
         {
             if (tokenValues[type] is null)
                 error("Expected " ~ to!string(type) ~ " instead of "
-                    ~ (index < tokens.length ? tokens[index].value : "EOF") ~ " at " ~ loc);
+                    ~ (index < tokens.length ? tokens[index].value : "EOF"));
             else
                 error("Expected " ~ tokenValues[type] ~ " instead of "
-                    ~ (index < tokens.length ? tokens[index].value : "EOF") ~ " at " ~ loc);
+                    ~ (index < tokens.length ? tokens[index].value : "EOF"));
             return null;
         }
     }
@@ -6407,9 +6440,9 @@ private:
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
-                stderr.writeln(message, "(", current.line, ":", current.column + 1, ")");
+                writeln(message, "(", current.line, ":", current.column + 1, ")");
             else
-                stderr.writeln(message, "(EOF:0)");
+                writeln(message, "(EOF:0)");
         }
     }
     else
