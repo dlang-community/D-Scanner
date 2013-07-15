@@ -26,6 +26,7 @@ import std.d.lexer;
  */
 abstract class ASTVisitor
 {
+public:
     /** */ void visit(AddExpression addExpression) { addExpression.accept(this); }
     /** */ void visit(AliasDeclaration aliasDeclaration) { aliasDeclaration.accept(this); }
     /** */ void visit(AliasInitializer aliasInitializer) { aliasInitializer.accept(this); }
@@ -846,7 +847,7 @@ class Declarator : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ Token identifier;
+    /** */ Token name;
     /** */ Initializer initializer;
 }
 
@@ -912,7 +913,7 @@ class EnumDeclaration : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ Token identifier;
+    /** */ Token name;
     /** */ Type type;
     /** */ EnumBody enumBody;
 }
@@ -1231,7 +1232,7 @@ class InterfaceDeclaration : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
-    /** */ Token identifier;
+    /** */ Token name;
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ BaseClassList baseClassList;
@@ -1290,6 +1291,7 @@ class LambdaExpression : ExpressionNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
+    /** */ TokenType functionType;
     /** */ Token identifier;
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;

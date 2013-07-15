@@ -16,10 +16,12 @@ import std.regex;
 import std.stdio;
 import std.range;
 import std.d.lexer;
+import std.d.parser;
 
 import highlighter;
 import autocomplete;
 import stats;
+import ctags;
 
 /**
  * Loads any import directories specified in /etc/dmd.conf.
@@ -92,13 +94,14 @@ int main(string[] args)
 	bool format;
 	bool help;
 	bool tokenCount;
+	bool syntaxCheck;
 
 	try
 	{
 		getopt(args, "I", &importDirs, "dotComplete|d", &dotComplete, "sloc|l", &sloc,
 			"json|j", &json, "parenComplete|p", &parenComplete, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount", &tokenCount,
+			"tokenCount", &tokenCount, "syntaxCheck", &syntaxCheck,
             "declaration|e", &declaration, "symbolComplete|s", &symbolComplete);
 	}
 	catch (Exception e)
@@ -112,7 +115,8 @@ int main(string[] args)
         return 0;
     }
 
-    auto optionCount = count!"a"([sloc, highlight, ctags, json, tokenCount]);
+    auto optionCount = count!"a"([sloc, highlight, ctags, json, tokenCount,
+		syntaxCheck]);
     if (optionCount > 1)
     {
         stderr.writeln("Too many options specified");
@@ -171,6 +175,14 @@ int main(string[] args)
 			else if (symbolComplete)
 			{
 			}
+		}
+		else if (ctags)
+		{
+			printCtags(stdout, tokens, args[1]);
+		}
+		else if (syntaxCheck)
+		{
+			parseModule(tokens.array(), args[1]);
 		}
 	}
 

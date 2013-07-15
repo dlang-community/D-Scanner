@@ -77,18 +77,20 @@ import std.string : format;
 
 // Uncomment this if you want ALL THE OUTPUT
 // Caution: generates 180 megabytes of logging for std.datetime
-// version = std_parser_verbose;
+//version = std_parser_verbose;
 
 /**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
  * Returns: the parsed module
  */
-Module parseModule(const(Token)[] tokens, string fileName)
+Module parseModule(const(Token)[] tokens, string fileName,
+	void function(string, int, int, string) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
     parser.tokens = tokens;
+	parser.messageFunction = messageFunction;
     auto mod = parser.parseModule();
     // writefln("Parsing finished with %d errors and %d warnings.",
     //     parser.errorCount, parser.warningCount);
@@ -1832,7 +1834,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new Declarator;
         auto id = expect(TokenType.identifier);
         if (id is null) return null;
-        node.identifier = *id;
+        node.name = *id;
         if (currentIsOneOf(TokenType.lBracket, TokenType.star))
         {
             error("C-style variable declarations are not supported.");
@@ -2005,7 +2007,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new EnumDeclaration;
         if (expect(TokenType.enum_) is null) return null;
         if (currentIs(TokenType.identifier))
-            node.identifier = advance();
+            node.name = advance();
         if (currentIs(TokenType.colon))
         {
             advance();
@@ -2668,7 +2670,8 @@ body {} // six
         {
             auto b = setBookmark();
             auto t = parseType();
-            if (t is null || !currentIs(TokenType.identifier))
+            if (t is null || !currentIs(TokenType.identifier)
+				|| !peekIs(TokenType.assign))
             {
                 goToBookmark(b);
                 node.expression = parseExpression();
@@ -2959,7 +2962,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
         if (expect(TokenType.interface_) is null) return null;
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
-        node.identifier = *ident;
+        node.name = *ident;
         if (currentIs(TokenType.lParen))
         {
             node.templateParameters = parseTemplateParameters();
@@ -3170,10 +3173,16 @@ invariant() foo();
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new LambdaExpression;
-        if (currentIs(TokenType.identifier))
+        if (currentIsOneOf(TokenType.function_, TokenType.delegate_))
+        {
+            node.functionType = advance().type;
+            goto lParen;
+        }
+        else if (currentIs(TokenType.identifier))
             node.identifier = advance();
         else if (currentIs(TokenType.lParen))
         {
+        lParen:
             node.parameters = parseParameters();
             do
             {
@@ -6431,9 +6440,9 @@ private:
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
-                stderr.writeln(message, "(", current.line, ":", current.column + 1, ")");
+                writeln(message, "(", current.line, ":", current.column + 1, ")");
             else
-                stderr.writeln(message, "(EOF:0)");
+                writeln(message, "(EOF:0)");
         }
     }
     else

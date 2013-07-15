@@ -128,12 +128,12 @@ public:
  */
 struct Token
 {
-	/**
+    /**
      * The representation of the token in the original source code.
      */
     string value;
 
-	/**
+    /**
      * The index of the start of the token in the original source.
      * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
      */
@@ -144,13 +144,13 @@ struct Token
      */
     uint line;
 
-	/**
+    /**
      * The column number of the start of the token in the original source.
      * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
      */
     ushort column;
 
-	/**
+    /**
      * The token type.
      */
     TokenType type;
@@ -159,7 +159,7 @@ struct Token
      * Check to see if the token is of the same type and has the same string
      * representation as the given token.
      */
-    bool opEquals(ref const(Token) other) const
+    bool opEquals(ref const(Token) other) const nothrow pure
     {
         return other.type == type && other.value == value;
     }
@@ -168,17 +168,23 @@ struct Token
      * Checks to see if the token's string representation is equal to the given
      * string.
      */
-    bool opEquals(string value) const { return this.value == value; }
+    bool opEquals(string value) const nothrow pure
+    {
+        return this.value == value;
+    }
 
     /**
      * Checks to see if the token is of the given type.
      */
-    bool opEquals(TokenType type) const { return this.type == type; }
+    bool opEquals(TokenType type) const nothrow pure
+    {
+        return this.type == type;
+    }
 
     /**
      * Comparison operator orders tokens by start index.
      */
-    int opCmp(ref const(Token) other) const
+    int opCmp(ref const(Token) other) const nothrow pure
     {
         if (startIndex < other.startIndex) return -1;
         if (startIndex > other.startIndex) return 1;
@@ -216,7 +222,7 @@ enum TokenStyle : ushort
      * Escape sequences will be replaced with their equivalent characters,
      * enclosing quote characters will not be included. Special tokens such as
      * $(D_KEYWORD ___VENDOR__) will be replaced with their equivalent strings.
-	 * Useful for creating a compiler or interpreter.
+     * Useful for creating a compiler or interpreter.
      */
     default_ = 0b0000,
 
@@ -237,7 +243,7 @@ enum TokenStyle : ushort
 
     /**
      * Do not replace the value field of the special tokens such as
-	 * $(D_KEYWORD ___DATE__) with their string equivalents.
+     * $(D_KEYWORD ___DATE__) with their string equivalents.
      */
     doNotReplaceSpecial = 0b0100,
 
@@ -449,7 +455,7 @@ L_advance:
             ">>>",             "TokenType.unsignedShiftRight",
             ">>>=",            "TokenType.unsignedShiftRightEqual",
             "^",               "TokenType.xor",
-            "^=",              "TokenType.xorEqual",
+            "^=",              "TokenType.xorEqual"
         ));
         case '/':
             nextCharNonLF();
@@ -2030,7 +2036,7 @@ pure nothrow bool isMisc(ref const Token t)
  */
 enum TokenType: ushort
 {
-	invalid, /// Not a valid token
+    invalid, /// Not a valid token
     assign, /// =
     at, /// @
     bitAnd, /// &
@@ -2528,7 +2534,7 @@ bool isRangeEoF(R)(ref R range)
 
 // Lookup table for token values
 package immutable(string[TokenType.max + 1]) tokenValues = [
-	null,
+    null,
     "=",
     "@",
     "&",
@@ -3109,7 +3115,7 @@ private:
         string value;
         Slot* next;
         uint hash;
-    };
+    }
 
     void printLoadFactor()
     {
