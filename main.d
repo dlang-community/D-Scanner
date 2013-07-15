@@ -19,77 +19,16 @@ import std.d.lexer;
 import std.d.parser;
 
 import highlighter;
-import autocomplete;
 import stats;
 import ctags;
-
-/**
- * Loads any import directories specified in /etc/dmd.conf.
- * Bugs: Only works on Linux
- * Returns: the paths specified as -I options in /etc/dmd.conf
- */
-string[] loadDefaultImports()
-{
-version(linux)
-{
-	string path = "/etc/dmd.conf";
-	if (!exists(path))
-		return [];
-	string[] rVal;
-	auto file = File(path, "r");
-	foreach(char[] line; file.byLine())
-	{
-		if (!line.startsWith("DFLAGS"))
-			continue;
-		while ((line = line.find("-I")).length > 0)
-		{
-			auto end = std.string.indexOf(line, " ");
-			auto importDir = line[2 .. end].idup;
-			rVal ~= importDir;
-			line = line[end .. $];
-		}
-	}
-	return rVal;
-}
-else
-{
-	return [];
-}
-}
-
-
-string[] loadConfig()
-{
-	string path = expandTilde("~" ~ dirSeparator ~ ".dscanner");
-	string[] dirs;
-	if (exists(path))
-	{
-		auto f = File(path, "r");
-		scope(exit) f.close();
-
-		auto trimRegex = ctRegex!(`\s*$`);
-		foreach(string line; lines(f))
-		{
-			dirs ~= replace(line, trimRegex, "");
-		}
-	}
-	foreach(string importDir; loadDefaultImports()) {
-		dirs ~= importDir;
-	}
-	return dirs;
-}
 
 int main(string[] args)
 {
 	string[] importDirs;
 	bool sloc;
-	bool dotComplete;
-	bool parenComplete;
-	bool symbolComplete;
 	bool highlight;
 	bool ctags;
     bool json;
-    bool declaration;
 	bool recursive;
 	bool format;
 	bool help;
@@ -98,11 +37,10 @@ int main(string[] args)
 
 	try
 	{
-		getopt(args, "I", &importDirs, "dotComplete|d", &dotComplete, "sloc|l", &sloc,
-			"json|j", &json, "parenComplete|p", &parenComplete, "highlight", &highlight,
+		getopt(args, "I", &importDirs, "sloc|l", &sloc,
+			"json|j", &json, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount", &tokenCount, "syntaxCheck", &syntaxCheck,
-            "declaration|e", &declaration, "symbolComplete|s", &symbolComplete);
+			"tokenCount", &tokenCount, "syntaxCheck", &syntaxCheck);
 	}
 	catch (Exception e)
 	{
@@ -159,23 +97,6 @@ int main(string[] args)
 		{
 			printTokenCount(stdout, tokens, f.size);
 		}
-		else if (dotComplete || parenComplete || symbolComplete)
-		{
-			auto app = appender!(Token[])();
-			app.reserve(byteCount / 13);
-			while (!tokens.empty)
-				app.put(tokens.moveFront());
-			Token[] tokenArr = app.data;
-			if (dotComplete)
-			{
-			}
-			else if (parenComplete)
-			{
-			}
-			else if (symbolComplete)
-			{
-			}
-		}
 		else if (ctags)
 		{
 			printCtags(stdout, tokens, args[1]);
@@ -206,26 +127,6 @@ options:
     --json | -j [sourceFile]
         Generate a JSON summary of the given source file. If no file is
         specifed, the file is read from stdin.
-
-    --dotComplete | -d [sourceFile] cursorPosition
-        Provide autocompletion for the insertion of the dot operator. The cursor
-        position is the character position in the *file*, not the position in
-        the line. If no file is specified, the file is read from stdin.
-
-    --parenComplete | -p [sourceFile] cursorPosition
-        Provide a listing of function parameters or pre-defined version
-        identifiers at the cursor position. The cursor position is the character
-        position in the *file*, not the line. If no file is specified, the
-        contents are read from stdin.
-
-    --symbolComplete | -s [sourceFile] cursorPosition
-        Provide a listing of classes, structs, interfaces, variables, functions,
-        and methods available in the current scope that begin with the text
-        before the cursor position.
-
-    --declaration | -e [sourceFile] cursorPosition
-        Prints the absolute path to the file in which the symbol at the cursor
-        position was declared, as well as its line number.
 
     --highlight [sourceFile] - Syntax-highlight the given source file. The
         resulting HTML will be written to standard output.
