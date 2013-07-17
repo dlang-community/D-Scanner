@@ -82,6 +82,9 @@ import std.string : format;
 /**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
+ *     messageFunction = a function to call on error or warning messages.
+ *         The parameters are the file name, line number, column number,
+ *         and the error or warning message.
  * Returns: the parsed module
  */
 Module parseModule(const(Token)[] tokens, string fileName,
@@ -4117,9 +4120,15 @@ q{(int a, ...)
             if (currentIsOneOf(stringLiteral, wstringLiteral, dstringLiteral))
             {
                 node.primary = advance();
+                bool alreadyWarned = false;
                 while (currentIsOneOf(stringLiteral, wstringLiteral,
                     dstringLiteral))
                 {
+                    if (!alreadyWarned)
+                    {
+                        warn("Implicit concatenation of string literals");
+                        alreadyWarned = true;
+                    }
                     node.primary.value ~= advance().value;
                 }
             }
@@ -5913,7 +5922,9 @@ q{doStuff(5)}c;
     string fileName;
 
     /**
-     * Function that is called when a warning or error is encountered
+     * Function that is called when a warning or error is encountered.
+     * The parameters are the file name, line number, column number,
+     * and the error or warning message.
      */
     void function(string, int, int, string) messageFunction;
 

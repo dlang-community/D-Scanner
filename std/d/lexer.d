@@ -190,6 +190,13 @@ struct Token
         if (startIndex > other.startIndex) return 1;
         return 0;
     }
+
+    int opCmp(size_t index) const nothrow pure
+    {
+        if (startIndex < index) return -1;
+        if (startIndex > index) return 1;
+        return 0;
+    }
 }
 
 /**

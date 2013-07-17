@@ -40,40 +40,40 @@ int main(string[] args)
 		getopt(args, "I", &importDirs, "sloc|l", &sloc,
 			"json|j", &json, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount", &tokenCount, "syntaxCheck", &syntaxCheck);
+			"tokenCount", &tokenCount, "syntaxCheck|s", &syntaxCheck);
 	}
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
 	}
 
-    if (help)
-    {
-        printHelp(args[0]);
-        return 0;
-    }
+	if (help)
+	{
+		printHelp(args[0]);
+		return 0;
+	}
 
-    auto optionCount = count!"a"([sloc, highlight, ctags, json, tokenCount,
+	auto optionCount = count!"a"([sloc, highlight, ctags, json, tokenCount,
 		syntaxCheck]);
-    if (optionCount > 1)
-    {
-        stderr.writeln("Too many options specified");
-        return 1;
-    }
-    else if (optionCount < 1)
-    {
-        printHelp(args[0]);
-        return 1;
-    }
+	if (optionCount > 1)
+	{
+		stderr.writeln("Too many options specified");
+		return 1;
+	}
+	else if (optionCount < 1)
+	{
+		printHelp(args[0]);
+		return 1;
+	}
 
-    if (highlight)
+	if (highlight)
 	{
 		LexerConfig config;
 		config.iterStyle = IterationStyle.everything;
 		config.tokenStyle = TokenStyle.source;
-        File f = args.length == 1 ? stdin : File(args[1]);
-        ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
-        highlighter.highlight(byToken(f.rawRead(buffer), config),
+		File f = args.length == 1 ? stdin : File(args[1]);
+		ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
+		highlighter.highlight(byToken(f.rawRead(buffer), config),
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
@@ -85,7 +85,6 @@ int main(string[] args)
 		config.fileName = usingStdin ? "stdin" : args[1];
 		File f = usingStdin ? stdin : File(args[1]);
 		auto bytes = usingStdin ? cast(ubyte[]) [] : uninitializedArray!(ubyte[])(f.size);
-		auto byteCount = f.size;
 		f.rawRead(bytes);
 
 		auto tokens = byToken(bytes, config);
@@ -140,6 +139,10 @@ options:
         well as any paths specified in /etc/dmd.conf. This is only used for the
         --parenComplete and --dotComplete options.
 
+    --syntaxCheck | -s [sourceFile]
+        Lexes and parses sourceFile, printing the line and column number of any
+        syntax errors to stdout. One error or warning is printed per line.
+
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
         ctags information requires a filename, so stdin cannot be used in place
@@ -147,6 +150,7 @@ options:
 
     --recursive | -R | -r directory
         When used with --ctags, dscanner will produce ctags output for all .d
-        and .di files contained within directory and its sub-directories.`,
+        and .di files contained within the given directory and its
+        sub-directories.`,
         programName);
 }

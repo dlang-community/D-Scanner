@@ -317,7 +317,8 @@ local keywords = {
 
 -- For this module to work the dscanner program must be installed. Configure the
 -- path to the executable here
-M.PATH_TO_DSCANNER = "/home/alaran/src/dscanner/dscanner"
+M.PATH_TO_DSCANNER = "/home/brian/src/dscanner/dscanner"
+M.PATH_TO_DCD_CLIENT = "/home/brian/src/dcd/dcd-client"
 
 _M.textadept.editing.comment_string.dmd = '//'
 _M.textadept.run.compile_command.dmd = 'dmd -c -o- %(filename)'
@@ -341,7 +342,7 @@ local function showCompletionList(r)
 	buffer.auto_c_choose_single = false;
 	buffer.auto_c_max_width = 0
 	local completions = {}
-	for symbol, kind in r:gmatch("([@%w_]+) (%a)\n") do
+	for symbol, kind in r:gmatch("([@%w_]+)\t(%a)\n") do
 		completion = symbol
 		if kind == "k" then
 			completion = completion .. "?5"
@@ -368,34 +369,25 @@ local function showCompletionList(r)
 	buffer.auto_c_choose_single = setting
 end
 
---events.connect(events.CHAR_ADDED, function(ch)
---	if buffer:get_lexer() ~= "dmd" then return end
---	if ch > 255 then return end
---	local character = string.char(ch)
---	if character == "." or character == "(" then
---		local fileName = os.tmpname()
---		local tmpFile = io.open(fileName, "w")
---		tmpFile:write(buffer:get_text())
---		local command = M.PATH_TO_DSCANNER
---			.. (character == "." and " --dotComplete " or " --parenComplete ")
---			.. fileName .. " " .. buffer.current_pos .. " -I" .. buffer.filename:match(".+[\\/]")
---		local p = io.popen(command)
---		local r = p:read("*a")
---		if r ~= "\n" then
---			if character == "." then
---				showCompletionList(r)
---			elseif character == "(" then
---				if r:find("^completions\n") then
---					showCompletionList(r)
---				elseif r:find("^calltips\n.*") then
---					r = r:gsub("^calltips\n", "")
---					buffer:call_tip_show(buffer.current_pos, r:gsub("\\n", "\n"):gsub("\\t", "\t"):match("(.*)%s+$"))
---				end
---			end
---		end
---		os.remove(fileName)
---	end
---end)
+events.connect(events.CHAR_ADDED, function(ch)
+	if buffer:get_lexer() ~= "dmd" then return end
+	if ch > 255 then return end
+	local character = string.char(ch)
+	if character == "." or character == "(" then
+		local fileName = os.tmpname()
+		local tmpFile = io.open(fileName, "w")
+		tmpFile:write(buffer:get_text())
+		local command = M.PATH_TO_DCD_CLIENT .. " -c" .. buffer.current_pos
+            .. " " .. fileName
+        print(command)
+		local p = io.popen(command)
+		local r = p:read("*a")
+		if r ~= "\n" then
+            showCompletionList(r)
+		end
+		os.remove(fileName)
+	end
+end)
 
 events.connect(events.FILE_AFTER_SAVE, function()
 	if buffer:get_lexer() ~= "dmd" then return end
@@ -406,18 +398,20 @@ events.connect(events.FILE_AFTER_SAVE, function()
 	for line in p:lines() do
 		lineNumber, column, level, message = string.match(line, "^.-%((%d+):(%d+)%)%[(%w+)%]: (.+)$")
 		local l = tonumber(lineNumber) - 1
-		local c = tonumber(column)
-		if level == "error" then
-			buffer.annotation_style[l] = 8
-		else
-			buffer.annotation_style[l] = 2
-		end
-		local t = buffer.annotation_text[l]
-		if #t > 0 then
-			buffer.annotation_text[l] = buffer.annotation_text[l] .. "\n" .. message
-		else
-			buffer.annotation_text[l] = message
-		end
+        if l >= 0 then
+            local c = tonumber(column)
+            if level == "error" then
+                buffer.annotation_style[l] = 8
+            else
+                buffer.annotation_style[l] = 2
+            end
+            local t = buffer.annotation_text[l]
+            if #t > 0 then
+                buffer.annotation_text[l] = buffer.annotation_text[l] .. "\n" .. message
+            else
+                buffer.annotation_text[l] = message
+            end
+        end
 	end
 end)
 
