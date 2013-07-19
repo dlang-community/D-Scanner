@@ -567,6 +567,17 @@ class BlockStatement : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
+
+    /**
+     * Byte position of the opening brace
+     */
+    size_t startLocation;
+
+    /**
+     * Byte position of the closing brace
+     */
+    size_t endLocation;
+
     /** */ DeclarationsAndStatements declarationsAndStatements;
 }
 
@@ -1740,6 +1751,15 @@ class StructBody : ASTNode
 {
 public:
     mixin(DEFAULT_ACCEPT);
+    /**
+     * Byte position of the opening brace
+     */
+    size_t startLocation;
+
+    /**
+     * Byte position of the closing brace
+     */
+    size_t endLocation;
     /** */ Declaration[] declarations;
 }
 

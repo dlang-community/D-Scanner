@@ -848,10 +848,14 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new BlockStatement();
-        if (expect(TokenType.lBrace) is null) return null;
+        auto openBrace = expect(TokenType.lBrace);
+        if (openBrace is null) return null;
+        node.startLocation = openBrace.startIndex;
         if (!currentIs(TokenType.rBrace))
             node.declarationsAndStatements = parseDeclarationsAndStatements();
-        if (expect(TokenType.rBrace) is null) return null;
+        auto closeBrace = expect(TokenType.rBrace);
+        if (closeBrace is null) return null;
+        node.endLocation = closeBrace.startIndex;
         return node;
     }
 
@@ -4539,10 +4543,10 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructBody;
-        expect(TokenType.lBrace);
+        node.startLocation = expect(TokenType.lBrace).startIndex;
         while (!currentIs(TokenType.rBrace) && moreTokens())
             node.declarations ~= parseDeclaration();
-        expect(TokenType.rBrace);
+        node.endLocation  = expect(TokenType.rBrace).startIndex;
         return node;
     }
 
