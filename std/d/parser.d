@@ -1,20 +1,12 @@
 // Written in the D programming language
 
 /**
- * <script type="text/javascript">inhibitQuickIndex = 1</script>
- * <style type="text/css">
- * .grammar_ruledef { font-weight: bold; }
- * .grammar_rule { font-weight: bold; }
- * .grammar_literal { color: crimson; }
- * </style>
  * This module contains a _parser for D source code.
  *
  * Grammar:
  * The grammar format used in the documentation of this module generally follows
  * the format used by the ANTLR _parser generator.
  * $(UL
- * $(LI Literals are highlighted in green.)
- * $(LI Rules are links to their definitions.)
  * $(LI Tokens and rules can be grouped by parenthesis.)
  * $(LI An asterisk (*) indicates that the previous rule, token, or group
  * can repeat 0 or more times.)
@@ -55,14 +47,9 @@
  * ---
  *
  * Copyright: Brian Schott 2013
- * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors: Brian Schott
  * Source: $(PHOBOSSRC std/d/_parser.d)
- * MACROS:
- *     GRAMMAR = <pre class="grammar">$0</pre>
- *     RULEDEF = <a name="$0"><span class="grammar_ruledef">$0</span></a>
- *     RULE = <a href="#$0"><span class="grammar_rule">$0</span></a>
- *     LITERAL = <span class="grammar_literal">$0</span>
  */
 
 module std.d.parser;

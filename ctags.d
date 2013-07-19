@@ -31,24 +31,33 @@ class CTagsPrinter : ASTVisitor
 	override void visit(ClassDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tc".format(dec.name.value, fileName, dec.name.line);
-		dec.structBody.accept(this);
+		dec.accept(this);
 	}
 
 	override void visit(InterfaceDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tc".format(dec.name.value, fileName, dec.name.line);
-		dec.structBody.accept(this);
+		dec.accept(this);
 	}
 
 	override void visit(FunctionDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tf\tarity:%d".format(dec.name.value, fileName,
 			dec.name.line, dec.parameters.parameters.length);
+		dec.accept(this);
 	}
 
 	override void visit(EnumDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tg".format(dec.name.value, fileName, dec.name.line);
+		dec.accept(this);
+	}
+
+	override void visit(VariableDeclaration dec)
+	{
+		foreach (d; dec.declarators)
+			tagLines ~= "%s\t%s\t%d;\"\tv".format(d.name.value, fileName, d.name.line);
+		dec.accept(this);
 	}
 
 	void print(File output)

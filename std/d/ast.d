@@ -84,6 +84,7 @@ public:
     /** */ void visit(DebugCondition debugCondition) { debugCondition.accept(this); }
     /** */ void visit(DebugSpecification debugSpecification) { debugSpecification.accept(this); }
     /** */ void visit(Declaration declaration) { declaration.accept(this); }
+    /** */ void visit(DeclarationOrStatement declarationsOrStatement) { declarationsOrStatement.accept(this); }
     /** */ void visit(DeclarationsAndStatements declarationsAndStatements) { declarationsAndStatements.accept(this); }
     /** */ void visit(Declarator declarator) { declarator.accept(this); }
     /** */ void visit(DefaultStatement defaultStatement) { defaultStatement.accept(this); }
@@ -566,7 +567,10 @@ public:
 class BlockStatement : ASTNode
 {
 public:
-    mixin(DEFAULT_ACCEPT);
+    override void accept(ASTVisitor visitor)
+	{
+		visitor.visit(declarationsAndStatements);
+	}
 
     /**
      * Byte position of the opening brace
@@ -840,7 +844,12 @@ public:
 ///
 class DeclarationsAndStatements : ASTNode
 {
-    mixin(DEFAULT_ACCEPT);
+    override void accept(ASTVisitor visitor)
+	{
+		foreach (das; declarationsAndStatements)
+			visitor.visit(das);
+	}
+
     /** */ DeclarationOrStatement[] declarationsAndStatements;
 }
 
@@ -848,7 +857,14 @@ class DeclarationsAndStatements : ASTNode
 class DeclarationOrStatement : ASTNode
 {
 public:
-    mixin(DEFAULT_ACCEPT);
+    override void accept(ASTVisitor visitor)
+	{
+		if (declaration !is null)
+			visitor.visit(declaration);
+		else if (statement !is null)
+			visitor.visit(statement);
+	}
+
     /** */ Declaration declaration;
     /** */ Statement statement;
 }
@@ -1034,7 +1050,14 @@ public:
 class FunctionBody : ASTNode
 {
 public:
-    mixin(DEFAULT_ACCEPT);
+    override void accept(ASTVisitor visitor)
+	{
+		if (inStatement !is null) visitor.visit(inStatement);
+		if (outStatement !is null) visitor.visit(outStatement);
+		if (bodyStatement !is null) visitor.visit(bodyStatement);
+		if (blockStatement !is null) visitor.visit(blockStatement);
+	}
+
     /** */ BlockStatement blockStatement;
     /** */ BodyStatement bodyStatement;
     /** */ OutStatement outStatement;
@@ -1063,7 +1086,11 @@ public:
 class FunctionDeclaration : ASTNode
 {
 public:
-    mixin(DEFAULT_ACCEPT);
+    override void accept(ASTVisitor visitor)
+	{
+		if (functionBody !is null) visitor.visit(functionBody);
+	}
+
     /** */ bool hasAuto;
     /** */ bool hasRef;
     /** */ Type returnType;
