@@ -62,10 +62,10 @@ class CTagsPrinter : ASTVisitor
 
 	void print(File output)
 	{
-		output.write("!_TAG_FILE_FORMAT 2\n"
-			~ "!_TAG_FILE_SORTED 1\n"
-			~ "!_TAG_FILE_AUTHOR Brian Schott\n"
-			~ "!_TAG_PROGRAM_URL https://github.com/Hackerpilot/Dscanner/\n");
+		output.write("!_TAG_FILE_FORMAT\t2\n"
+			~ "!_TAG_FILE_SORTED\t1\n"
+			~ "!_TAG_FILE_AUTHOR\tBrian Schott\n"
+			~ "!_TAG_PROGRAM_URL\thttps://github.com/Hackerpilot/Dscanner/\n");
 		foreach (str; sort(tagLines))
 		{
 			output.writeln(str);
