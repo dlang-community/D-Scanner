@@ -21,6 +21,7 @@ import std.d.parser;
 import highlighter;
 import stats;
 import ctags;
+import astprinter;
 
 int main(string[] args)
 {
@@ -28,19 +29,20 @@ int main(string[] args)
 	bool sloc;
 	bool highlight;
 	bool ctags;
-    bool json;
 	bool recursive;
 	bool format;
 	bool help;
 	bool tokenCount;
 	bool syntaxCheck;
+	bool ast;
 
 	try
 	{
 		getopt(args, "I", &importDirs, "sloc|l", &sloc,
-			"json|j", &json, "highlight", &highlight,
+			"highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount", &tokenCount, "syntaxCheck|s", &syntaxCheck);
+			"tokenCount", &tokenCount, "syntaxCheck|s", &syntaxCheck,
+			"ast|xml", &ast);
 	}
 	catch (Exception e)
 	{
@@ -53,8 +55,8 @@ int main(string[] args)
 		return 0;
 	}
 
-	auto optionCount = count!"a"([sloc, highlight, ctags, json, tokenCount,
-		syntaxCheck]);
+	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
+		syntaxCheck, ast]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -104,6 +106,13 @@ int main(string[] args)
 		{
 			parseModule(tokens.array(), args[1]);
 		}
+		else if (ast)
+		{
+			auto mod = parseModule(tokens.array(), args[1]);
+			auto printer = new XMLPrinter;
+			printer.output = stdout;
+			printer.visit(mod);
+		}
 	}
 
 	return 0;
@@ -122,10 +131,6 @@ options:
     --sloc | -l [sourceFiles]
         count the number of logical lines of code in the given
         source files. If no files are specified, a file is read from stdin.
-
-    --json | -j [sourceFile]
-        Generate a JSON summary of the given source file. If no file is
-        specifed, the file is read from stdin.
 
     --highlight [sourceFile] - Syntax-highlight the given source file. The
         resulting HTML will be written to standard output.
@@ -147,6 +152,9 @@ options:
         Generates ctags information from the given source code file. Note that
         ctags information requires a filename, so stdin cannot be used in place
         of a filename.
+
+	--ast | --xml sourceFile
+		Generates an XML representation of the source files abstract syntax tree
 
     --recursive | -R | -r directory
         When used with --ctags, dscanner will produce ctags output for all .d

@@ -2002,6 +2002,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (expect(TokenType.enum_) is null) return null;
         if (currentIs(TokenType.identifier))
             node.name = advance();
+		else
+			node.name.line = tokens[index - 1].line; // preserve line number if anonymous
         if (currentIs(TokenType.colon))
         {
             advance();
@@ -2026,10 +2028,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIs(TokenType.identifier))
         {
             if (peekIsOneOf(TokenType.comma, TokenType.rBrace))
-                node.identifier = advance();
+                node.name = advance();
             else if (peekIs(TokenType.assign))
             {
-                node.identifier = advance();
+                node.name = advance();
                 goto assign;
             }
             else
