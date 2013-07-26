@@ -591,7 +591,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(VariableDeclaration variableDeclaration)
 	{
-		mixin (tagAndAccept!"variableDeclaration")
+		mixin (tagAndAccept!"variableDeclaration");
 	}
 
 	alias ASTVisitor.visit visit;

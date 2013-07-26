@@ -1159,7 +1159,7 @@ public:
     override void accept(ASTVisitor visitor)
 	{
 		mixin (visitIfNotNull!(declarationOrStatement, test, increment,
-            StatementNoCaseNoDefault));
+            statementNoCaseNoDefault));
 	}
     /** */ DeclarationOrStatement declarationOrStatement;
     /** */ ExpressionStatement test;
