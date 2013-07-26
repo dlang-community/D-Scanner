@@ -265,7 +265,6 @@ int main(string[] args)
 		{
 			auto tokens = tokenize(readText(args[1]));
 			auto mod = parseModule(tokens);
-			//mod.writeCtagsTo(stdout, args[1]);
 			foreach (tag; mod.getCtags(args[1]))
 				stdout.writeln(tag);
 		}
