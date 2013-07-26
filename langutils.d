@@ -45,7 +45,7 @@ pure nothrow TokenType lookupTokenType(const string input)
 		return TokenType.Identifier;
 }
 
-string combineTokens(ref const Token[] tokens)
+string combineTokens(const(Token)[] tokens)
 {
 	auto app = appender!string();
 	foreach (t; tokens)
