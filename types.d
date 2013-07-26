@@ -559,7 +559,7 @@ public:
 	/**
 	 * Standards: http://ctags.sourceforge.net/FORMAT
 	 */
-	void writeCtagsTo(File file, string fileName)
+	string[] getCtags(string fileName)
 	{
 		string[] tags;
 		foreach (Enum e; enums)
@@ -589,15 +589,7 @@ public:
 		{
 			tags ~= s.getCtags(fileName);
 		}
-
-		sort(tags);
-		file.writeln("!_TAG_FILE_FORMAT 2");
-		file.writeln("!_TAG_FILE_SORTED 1");
-		file.writeln("!_TAG_PROGRAM_URL https://github.com/Hackerpilot/Dscanner/");
-		foreach (tag; tags)
-		{
-			file.writeln(tag);
-		}
+		return tags;
 	}
 }
 
