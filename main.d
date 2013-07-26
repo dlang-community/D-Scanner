@@ -258,30 +258,31 @@ int main(string[] args)
 
 	if (ctags)
 	{
+		stdout.writeln("!_TAG_FILE_FORMAT 2");
+		stdout.writeln("!_TAG_FILE_SORTED 1");
+		stdout.writeln("!_TAG_PROGRAM_URL https://github.com/Hackerpilot/Dscanner/");
 		if (!recursiveCtags)
 		{
 			auto tokens = tokenize(readText(args[1]));
 			auto mod = parseModule(tokens);
-			mod.writeCtagsTo(stdout, args[1]);
+			foreach (tag; mod.getCtags(args[1]))
+				stdout.writeln(tag);
 		}
 		else
 		{
-			Module m;
+			string[] allTags;
 			foreach (dirEntry; dirEntries(args[1], SpanMode.breadth))
 			{
 				if (!dirEntry.name.endsWith(".d", ".di"))
 					continue;
 				stderr.writeln("Generating tags for ", dirEntry.name);
 				auto tokens = tokenize(readText(dirEntry.name));
-				if (m is null)
-					m = parseModule(tokens);
-				else
-				{
-					auto mod = parseModule(tokens);
-					m.merge(mod);
-				}
+				auto mod = parseModule(tokens);
+				allTags ~= mod.getCtags(dirEntry.name);
 			}
-			m.writeCtagsTo(stdout, "");
+			allTags.sort();
+			foreach (tag; allTags)
+				stdout.writeln(tag);
 		}
 	}
 	return 0;
