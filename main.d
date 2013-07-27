@@ -79,6 +79,17 @@ int main(string[] args)
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
+    else if (ctags)
+    {
+        if (recursive)
+        {
+            stdout.printCtags(dirEntries(args[1], SpanMode.depth)
+                .filter!(a => a.name.endsWith(".d") || a.name.endsWith(".di"))()
+                .map!(a => a.name)().array());
+        }
+        else
+            stdout.printCtags(args[1 .. $]);
+    }
 	else
 	{
 		LexerConfig config;
@@ -97,10 +108,6 @@ int main(string[] args)
 		else if (tokenCount)
 		{
 			printTokenCount(stdout, tokens, f.size);
-		}
-		else if (ctags)
-		{
-			printCtags(stdout, tokens, args[1]);
 		}
 		else if (syntaxCheck)
 		{

@@ -2250,6 +2250,18 @@ enum TokenType: ushort
     wstringLiteral, /// $(D_STRING "16-bit string"w)
 }
 
+/**
+ * Look up a token's string representation by its type.
+ * Params:
+ *     type = the token type
+ * Returns: a string representing the token, or null for token types such as
+ *     identifier or integer literal whose string representations vary
+ */
+pure string getTokenValue(const TokenType type)
+{
+    return tokenValues[type];
+}
+
 // Implementation details follow
 private:
 
@@ -2539,8 +2551,8 @@ bool isRangeEoF(R)(ref R range)
     return range.empty || range.front == 0 || range.front == 0x1a;
 }
 
-// Lookup table for token values
-package immutable(string[TokenType.max + 1]) tokenValues = [
+// Lookup table for token string representations
+immutable(string[TokenType.max + 1]) tokenValues = [
     null,
     "=",
     "@",
@@ -2743,11 +2755,6 @@ package immutable(string[TokenType.max + 1]) tokenValues = [
     null,
 ];
 
-pure string getTokenValue(const TokenType type)
-{
-    return tokenValues[type];
-}
-
 template tokenValue(TokenType val)
 {
     enum tokenValue = getTokenValue(val);
@@ -2939,8 +2946,7 @@ pure TokenType lookupTokenType(R)(R input)
         }
         break;
     case 11:
-        if (input[1..$].equal("_VERSION__"))
-            return TokenType.specialVersion;
+        if (input.equal("__VERSION__")) return TokenType.specialVersion;
         break;
     case 12:
         switch (input[0])
@@ -2952,16 +2958,13 @@ pure TokenType lookupTokenType(R)(R input)
         }
         break;
     case 13:
-        if (input[1..$].equal("_TIMESTAMP__"))
-            return TokenType.specialTimestamp;
+        if (input.equal("__TIMESTAMP__")) return TokenType.specialTimestamp;
         break;
     case 15:
-        if (input[1..$].equal("oreach_reverse"))
-            return TokenType.foreach_reverse_;
+        if (input.equal("foreach_reverse")) return TokenType.foreach_reverse_;
         break;
     case 19:
-        if (input[1..$].equal("_PRETTY_FUNCTION__"))
-            return TokenType.specialPrettyFunction;
+        if (input.equal("__PRETTY_FUNCTION__")) return TokenType.specialPrettyFunction;
         break;
     default: break;
     }

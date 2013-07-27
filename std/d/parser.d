@@ -877,7 +877,7 @@ alias core.sys.posix.stdio.fileno fileno;
         switch (current.type)
         {
         case TokenType.identifier:
-            node.identifier = advance();
+            node.label = advance();
             if (expect(TokenType.semicolon) is null) return null;
             break;
         case TokenType.semicolon:
@@ -951,14 +951,13 @@ alias core.sys.posix.stdio.fileno fileno;
      *    | $(LITERAL 'void')
      *    ;)
      */
-    Token parseBasicType()
+    TokenType parseBasicType()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (isBasicType(current.type))
-            return advance();
+            return advance().type;
         error("Basic type expected");
-        Token t;
-        return t;
+        return TokenType.invalid;
     }
 
     /**
@@ -1483,7 +1482,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         switch (current.type)
         {
         case TokenType.identifier:
-            node.identifier = advance();
+            node.label = advance();
             if (expect(TokenType.semicolon) is null) return null;
             break;
         case TokenType.semicolon:
@@ -1511,7 +1510,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIs(TokenType.lParen))
         {
             advance();
-            node.hasIdentifierOrInteger = true;
             if (currentIsOneOf(TokenType.intLiteral, TokenType.identifier))
                 node.identifierOrInteger = advance();
             else
@@ -1521,8 +1519,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             }
             if (expect(TokenType.rParen) is null) return null;
         }
-        else
-            node.hasIdentifierOrInteger = false;
         return node;
     }
 
@@ -3116,7 +3112,7 @@ invariant() foo();
      * Parses KeyValuePairs
      *
      * $(GRAMMAR $(RULEDEF keyValuePairs):
-     *     $(RULE keyValuePair) ($(LITERAL ',') $(RULE keyValuePair))*
+     *     $(RULE keyValuePair) ($(LITERAL ',') $(RULE keyValuePair))* $(LITERAL ',')?
      *     ;)
      */
     KeyValuePairs parseKeyValuePairs()
@@ -3129,7 +3125,11 @@ invariant() foo();
             if (kvPair !is null)
                 node.keyValuePairs ~= kvPair;
             if (currentIs(TokenType.comma))
+            {
                 advance();
+                if (currentIs(TokenType.rBracket))
+                    break;
+            }
             else
                 break;
         }
@@ -5287,7 +5287,7 @@ q{(int a, ...)
                     return null;
                 break;
             case bool_: .. case wchar_:
-                if ((node.basicType = parseBasicType()) == TokenType.invalid)
+                if ((node.builtinType = parseBasicType()) == TokenType.invalid)
                     return null;
                 break;
             case typeof_:
@@ -5479,7 +5479,7 @@ q{(int a, ...)
             return node;
         case delegate_:
         case function_:
-            advance();
+            node.delegateOrFunction = advance();
             node.parameters = parseParameters();
             while (currentIsMemberFunctionAttribute())
                 node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
@@ -6338,11 +6338,11 @@ private:
             return &tokens[index++];
         else
         {
-            if (tokenValues[type] is null)
+            if (getTokenValue(type) is null)
                 error("Expected " ~ to!string(type) ~ " instead of "
                     ~ (index < tokens.length ? tokens[index].value : "EOF"));
             else
-                error("Expected " ~ tokenValues[type] ~ " instead of "
+                error("Expected " ~ getTokenValue(type) ~ " instead of "
                     ~ (index < tokens.length ? tokens[index].value : "EOF"));
             return null;
         }
