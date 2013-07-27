@@ -1055,23 +1055,17 @@ alias core.sys.posix.stdio.fileno fileno;
         {
         case TokenType.inout_:
         case TokenType.const_:
-            node.first = advance().type;
+            node.first = advance();
             if (currentIs(TokenType.shared_))
-            {
-                node.hasSecond = true;
-                node.second = advance().type;
-            }
+                node.second = advance();
             break;
         case TokenType.shared_:
-            node.first = advance().type;
+            node.first = advance();
             if (currentIsOneOf(TokenType.const_, TokenType.inout_))
-            {
-                node.hasSecond = true;
-                node.second = advance().type;
-            }
+                node.second = advance();
             break;
         case TokenType.immutable_:
-            node.first = advance().type;
+            node.first = advance();
             break;
         default:
             error("const, immutable, inout, or shared expected");
@@ -2494,10 +2488,10 @@ body {} // six
         {
         case identifier:
         case default_:
-            node.token = advance();
+            node.label = advance();
             break;
         case case_:
-            node.token = advance();
+            node.label = advance();
             if (!currentIs(semicolon))
                 node.expression = parseExpression();
             break;
@@ -3891,7 +3885,7 @@ q{(int a, ...)
     {
         auto node = new PostIncDecExpression;
         node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
-        node.operator = advance();
+        node.operator = advance().type;
         return node;
     }
 
@@ -3976,7 +3970,7 @@ q{(int a, ...)
      * $(GRAMMAR $(RULEDEF primaryExpression):
      *       $(RULE identifierOrTemplateInstance)
      *     | $(LITERAL '.') $(RULE identifierOrTemplateInstance)
-     *     | $(RULE builtinType) $(LITERAL '.') $(LITERAL Identifier)
+     *     | $(RULE basicType) $(LITERAL '.') $(LITERAL Identifier)
      *     | $(RULE typeofExpression)
      *     | $(RULE typeidExpression)
      *     | $(RULE vector)
@@ -4018,8 +4012,7 @@ q{(int a, ...)
         with (TokenType) switch (current.type)
         {
         case dot:
-            node.hasDot = true;
-            advance();
+            node.dot = advance();
             goto case;
         case identifier:
             if (peekIs(TokenType.goesTo))
@@ -4028,7 +4021,7 @@ q{(int a, ...)
                 node.identifierOrTemplateInstance = parseIdentifierOrTemplateInstance();
             break;
         mixin (BASIC_TYPE_CASE_RANGE);
-            node.basicType = advance().type;
+            node.basicType = advance();
             expect(dot);
             auto t = expect(identifier);
             if (t !is null)
@@ -4696,10 +4689,7 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Symbol;
         if (currentIs(TokenType.dot))
-        {
-            node.hasDot = true;
-            advance();
-        }
+            node.dot = advance();
         node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         return node;
     }
@@ -5705,11 +5695,12 @@ q{doStuff(5)}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new UnionDeclaration;
-        expect(TokenType.union_);
+		// grab line number even if it's anonymous
+		auto l = expect(TokenType.union_).line;
         bool templated = false;
         if (currentIs(TokenType.identifier))
         {
-            node.identifier = advance();
+            node.name = advance();
             if (currentIs(TokenType.lParen))
             {
                 templated = true;
@@ -5723,6 +5714,7 @@ q{doStuff(5)}c;
         }
         else
         {
+			node.name.line = l;
     semiOrStructBody:
             if (currentIs(TokenType.semicolon))
                 advance();

@@ -1,6 +1,7 @@
 import std.d.lexer;
 import std.d.ast;
 import std.stdio;
+import std.string;
 
 template tagAndAccept(string tagName)
 {
@@ -545,10 +546,10 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(GotoStatement gotoStatement)
 	{
-		if (gotoStatement.token.type == TokenType.default_)
+		if (gotoStatement.label.type == TokenType.default_)
 			output.writeln("<gotoStatement default=\"true\"/>");
-		else if (gotoStatement.token.type == TokenType.identifier)
-			output.writeln("<gotoStatement label=\"", gotoStatement.token.value, "\">");
+		else if (gotoStatement.label.type == TokenType.identifier)
+			output.writeln("<gotoStatement label=\"", gotoStatement.label.value, "\">");
 		else
 		{
 			output.writeln("<gotoStatement>");
@@ -863,21 +864,17 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(OrExpression orExpression)
 	{
-		mixin(tagAndAccept!"orExpression");
+		mixin (tagAndAccept!"orExpression");
 	}
 
-	override void visit(OrExpression orOrExpression)
+	override void visit(OrOrExpression orOrExpression)
 	{
-		mixin(tagAndAccept!"orOrExpression");
+		mixin (tagAndAccept!"orOrExpression");
 	}
 
-	/***************************************************************************
-	 * BOOKMARK
-	 **************************************************************************/
-
-	override void visit(Parameters parameters)
+	override void visit(OutStatement outStatement)
 	{
-		mixin (tagAndAccept!"parameters");
+		mixin (tagAndAccept!"outStatement");
 	}
 
 	override void visit(Parameter param)
@@ -895,6 +892,117 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</parameter>");
 	}
 
+	override void visit(Parameters parameters)
+	{
+		mixin (tagAndAccept!"parameters");
+	}
+
+	override void visit(Postblit postblit)
+	{
+		mixin (tagAndAccept!"postblit");
+	}
+
+	override void visit(PostIncDecExpression postIncDecExpression)
+	{
+		output.writeln("<postIncDecExpression operator=\"",
+			getTokenValue(postIncDecExpression.operator), "\">");
+		postIncDecExpression.accept(this);
+		output.writeln("</postIncDecExpression>");
+	}
+
+	override void visit(PowExpression powExpression)
+	{
+		output.writeln("<powExpression>");
+		output.writeln("<left>");
+		powExpression.left.accept(this);
+		output.writeln("</left>");
+		if (powExpression.right !is null)
+		{
+			output.writeln("<right>");
+			powExpression.right.accept(this);
+			output.writeln("</right>");
+		}
+		output.writeln("</powExpression>");
+	}
+
+	override void visit(PragmaDeclaration pragmaDeclaration)
+	{
+		mixin (tagAndAccept!"pragmaDeclaration");
+	}
+
+	override void visit(PragmaExpression pragmaExpression)
+	{
+		mixin (tagAndAccept!"pragmaExpression");
+	}
+
+	override void visit(PreIncDecExpression preIncDecExpression)
+	{
+		output.writeln("<preIncDecExpression operator=\"",
+			getTokenValue(preIncDecExpression.operator), "\">");
+		preIncDecExpression.accept(this);
+		output.writeln("</preIncDecExpression>");
+	}
+
+	override void visit(PrimaryExpression primaryExpression)
+	{
+		mixin (tagAndAccept!"primaryExpression");
+	}
+
+	// TODO: Register
+
+	override void visit(RelExpression relExpression)
+	{
+		output.writeln("<relExpression operator=\"",
+			xmlEscape(getTokenValue(relExpression.operator)), "\">");
+		output.writeln("<left>");
+		visit(relExpression.left);
+		output.writeln("</left>");
+		output.writeln("<right>");
+		visit(relExpression.right);
+		output.writeln("</right>");
+		output.writeln("</relExpression>");
+	}
+
+	override void visit(ReturnStatement returnStatement)
+	{
+		if (returnStatement.expression is null)
+			output.writeln("<returnStatement/>");
+		else
+		{
+			output.writeln("<returnStatement>");
+			returnStatement.accept(this);
+			output.writeln("</returnStatement>");
+		}
+	}
+
+	override void visit(ScopeGuardStatement scopeGuardStatement)
+	{
+		mixin (tagAndAccept!"scopeGuardStatement");
+	}
+
+	override void visit(SharedStaticConstructor sharedStaticConstructor)
+	{
+		mixin (tagAndAccept!"sharedStaticConstructor");
+	}
+
+	override void visit(SharedStaticDestructor sharedStaticDestructor)
+	{
+		mixin (tagAndAccept!"sharedStaticDestructor");
+	}
+
+	override void visit(ShiftExpression shiftExpression)
+	{
+		output.writeln("<shiftExpression operator=\"",
+			xmlEscape(getTokenValue(shiftExpression.operator)), "\">");
+		output.writeln("<left>");
+		visit(shiftExpression.left);
+		output.writeln("</left>");
+		output.writeln("<right>");
+		visit(shiftExpression.right);
+		output.writeln("</right>");
+		output.writeln("</shiftExpression>");
+	}
+
 	override void visit(SingleImport singleImport)
 	{
 		if (singleImport.rename.type == TokenType.invalid)
@@ -905,6 +1013,63 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</singleImport>");
 	}
 
+	override void visit(SliceExpression sliceExpression)
+	{
+		output.writeln("<sliceExpression>");
+		if (sliceExpression.unaryExpression is null)
+		{
+			output.writeln("<low");
+			visit(sliceExpression.lower);
+			output.writeln("</low");
+			output.writeln("<high");
+			visit(sliceExpression.upper);
+			output.writeln("</high");
+		}
+		else
+			visit(sliceExpression.unaryExpression);
+		output.writeln("<sliceExpression>");
+	}
+
+	override void visit(Statement statement)
+	{
+		mixin (tagAndAccept!"statement");
+	}
+
+	override void visit(StaticAssertDeclaration staticAssertDeclaration)
+	{
+		mixin (tagAndAccept!"staticAssertDeclaration");
+	}
+
+	override void visit(StaticAssertStatement staticAssertStatement)
+	{
+		mixin (tagAndAccept!"staticAssertStatement");
+	}
+
+	override void visit(StaticConstructor staticConstructor)
+	{
+		mixin (tagAndAccept!"staticConstructor");
+	}
+
+	override void visit(StaticDestructor staticDestructor)
+	{
+		mixin (tagAndAccept!"staticDestructor");
+	}
+
+	override void visit(StaticIfCondition staticIfCondition)
+	{
+		mixin (tagAndAccept!"staticIfCondition");
+	}
+
+	override void visit(StorageClass storageClass)
+	{
+		mixin (tagAndAccept!"storageClass");
+	}
+
+	override void visit(StructBody structBody)
+	{
+		mixin (tagAndAccept!"structBody");
+	}
+
 	override void visit(StructDeclaration structDec)
 	{
 		output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
@@ -913,11 +1078,177 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</structDeclaration>");
 	}
 
+	override void visit(StructInitializer structInitializer)
+	{
+		mixin (tagAndAccept!"structInitializer");
+	}
+
+	override void visit(StructMemberInitializer structMemberInitializer)
+	{
+		mixin (tagAndAccept!"structMemberInitializer");
+	}
+
+	override void visit(StructMemberInitializers structMemberInitializers)
+	{
+		mixin (tagAndAccept!"structMemberInitializers");
+	}
+
+	override void visit(SwitchBody switchBody)
+	{
+		mixin (tagAndAccept!"switchBody");
+	}
+
+	override void visit(SwitchStatement switchStatement)
+	{
+		mixin (tagAndAccept!"switchStatement");
+	}
+
+	override void visit(Symbol symbol)
+	{
+		mixin (tagAndAccept!"symbol");
+	}
+
+	override void visit(SynchronizedStatement synchronizedStatement)
+	{
+		mixin (tagAndAccept!"synchronizedStatement");
+	}
+
+	override void visit(TemplateAliasParameter templateAliasParameter)
+	{
+		output.writeln("<templateAliasParameter>");
+		if (templateAliasParameter.type !is null)
+			visit(templateAliasParameter.type);
+		visit(templateAliasParameter.identifier);
+		if (templateAliasParameter.colonExpression !is null)
+		{
+			output.writeln("<specialization>");
+			visit(templateAliasParameter.colonExpression);
+			output.writeln("</specialization>");
+		}
+		else if (templateAliasParameter.colonType !is null)
+		{
+			output.writeln("<specialization>");
+			visit(templateAliasParameter.colonType);
+			output.writeln("</specialization>");
+		}
+
+		if (templateAliasParameter.assignExpression !is null)
+		{
+			output.writeln("<specialization>");
+			visit(templateAliasParameter.assignExpression);
+			output.writeln("</specialization>");
+		}
+		else if (templateAliasParameter.colonType !is null)
+		{
+			output.writeln("<specialization>");
+			visit(templateAliasParameter.assignType);
+			output.writeln("</specialization>");
+		}
+
+		output.writeln("</templateAliasParameter>");
+	}
+
+	override void visit(TemplateArgument templateArgument)
+	{
+		mixin (tagAndAccept!"templateArgument");
+	}
+
+	override void visit(TemplateArgumentList templateArgumentList)
+	{
+		mixin (tagAndAccept!"templateArgumentList");
+	}
+
+	override void visit(TemplateArguments templateArguments)
+	{
+		mixin (tagAndAccept!"templateArguments");
+	}
+
+	override void visit(TemplateDeclaration templateDeclaration)
+	{
+		output.writeln("<templateDeclaration line=\"",
+			templateDeclaration.identifier.line, "\">");
+		output.writeln("<name>", templateDeclaration.identifier, "</name>");
+		visit(templateDeclaration.templateParameters);
+		if (templateDeclaration.constraint !is null)
+			visit(templateDeclaration.constraint);
+		foreach (dec; templateDeclaration.declarations)
+		{
+			if (dec !is null) visit(dec);
+		}
+		output.writeln("<templateDeclaration>");
+	}
+
+	override void visit(TemplateInstance templateInstance)
+	{
+		mixin (tagAndAccept!"templateInstance");
+	}
+
+	override void visit(TemplateMixinExpression templateMixinExpression)
+	{
+		mixin (tagAndAccept!"templateMixinExpression");
+	}
+
+	override void visit(TemplateParameter templateParameter)
+	{
+		mixin (tagAndAccept!"templateParameter");
+	}
+
+	override void visit(TemplateParameterList templateParameterList)
+	{
+		mixin (tagAndAccept!"templateParameterList");
+	}
+
+	override void visit(TemplateParameters templateParameters)
+	{
+		mixin (tagAndAccept!"templateParameters");
+	}
+
+	override void visit(TemplateSingleArgument templateSingleArgument)
+	{
+		mixin (tagAndAccept!"templateSingleArgument");
+	}
+
+	override void visit(TemplateThisParameter templateThisParameter)
+	{
+		mixin (tagAndAccept!"templateThisParameter");
+	}
+
+	override void visit(TemplateTupleParameter templateTupleParameter)
+	{
+		mixin (tagAndAccept!"templateTupleParameter");
+	}
+
+	override void visit(TemplateTypeParameter templateTypeParameter)
+	{
+		mixin (tagAndAccept!"templateTypeParameter");
+	}
+
+	override void visit(TemplateValueParameter templateValueParameter)
+	{
+		mixin (tagAndAccept!"templateValueParameter");
+	}
+
+	override void visit(TemplateValueParameterDefault templateValueParameterDefault)
+	{
+		mixin (tagAndAccept!"templateValueParameterDefault");
+	}
+
+	override void visit(TernaryExpression ternaryExpression)
+	{
+		mixin (tagAndAccept!"ternaryExpression");
+	}
+
+	override void visit(ThrowStatement throwStatement)
+	{
+		mixin (tagAndAccept!"throwStatement");
+	}
+
 	override void visit(Token token)
 	{
 		string tagName;
 		with (TokenType) switch (token.type)
 		{
+		case invalid: return;
 		case identifier: tagName = "identifier"; break;
 		case doubleLiteral: tagName = "doubleLiteral"; break;
 		case idoubleLiteral: tagName = "idoubleLiteral"; break;
@@ -933,9 +1264,20 @@ class XMLPrinter : ASTVisitor
 		case stringLiteral: tagName = "stringLiteral"; break;
 		case dstringLiteral: tagName = "dstringLiteral"; break;
 		case wstringLiteral: tagName = "wstringLiteral"; break;
-		default: tagName = "token";
+		case dollar: output.writeln("<dollar/>"); return;
+		default: output.writeln("<", getTokenValue(token.type), "/>"); return;
 		}
 		output.writeln("<", tagName, "><![CDATA[", token.value, "]]></", tagName, ">");
+	}
+
+	override void visit(TraitsExpression traitsExpression)
+	{
+		mixin (tagAndAccept!"traitsExpression");
+	}
+
+	override void visit(TryStatement tryStatement)
+	{
+		mixin (tagAndAccept!"tryStatement");
 	}
 
 	override void visit(Type type)
@@ -943,6 +1285,110 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<type pretty=\"", type.toString(), "\">");
 		type.accept(this);
 		output.writeln("</type>");
+	}
+
+	override void visit(Type2 type2)
+	{
+		output.writeln("<type2>");
+		if (type2.builtinType != TokenType.invalid)
+			output.writeln(getTokenValue(type2.builtinType));
+		else
+			type2.accept(this);
+		output.writeln("</type2>");
+	}
+
+	override void visit(TypeSpecialization typeSpecialization)
+	{
+		mixin (tagAndAccept!"typeSpecialization");
+	}
+
+	override void visit(TypeSuffix typeSuffix)
+	{
+		if (typeSuffix.star)
+			output.writeln("<typeSuffix type=\"*\"/>");
+		else if (typeSuffix.array)
+		{
+			if (typeSuffix.low is null && typeSuffix.type is null)
+				output.writeln("<typeSuffix type=\"[]\"/>");
+			else
+			{
+				if (typeSuffix.low is null)
+				{
+					output.writeln("<typeSuffix type=\"[]\">");
+					visit(typeSuffix.type);
+					output.writeln("</typeSuffix>");
+				}
+				else
+				{
+					output.writeln("<typeSuffix type=\"[]\">");
+					if (typeSuffix.high !is null)
+					{
+						output.writeln("<low>");
+						visit(typeSuffix.low);
+						output.writeln("</low>");
+						output.writeln("<high>");
+						visit(typeSuffix.high);
+						output.writeln("</high>");
+					}
+					else
+						visit(typeSuffix.low);
+					output.writeln("</typeSuffix>");
+				}
+			}
+		}
+		else
+		{
+			visit(typeSuffix.delegateOrFunction);
+			visit(typeSuffix.parameters);
+			foreach (attr; typeSuffix.memberFunctionAttributes)
+			{
+				if (attr !is null) visit(attr);
+			}
+		}
+	}
+
+	override void visit(TypeidExpression typeidExpression)
+	{
+		mixin (tagAndAccept!"typeidExpression");
+	}
+
+	override void visit(TypeofExpression typeofExpression)
+	{
+		mixin (tagAndAccept!"typeofExpression");
+	}
+
+	override void visit(UnaryExpression unaryExpression)
+	{
+		output.writeln("<unaryExpression>");
+		if (unaryExpression.prefix != TokenType.invalid)
+		{
+			output.writeln("<prefix>", xmlEscape(unaryExpression.prefix.value),
+				"</prefix>");
+			visit(unaryExpression.unaryExpression);
+		}
+		if (unaryExpression.suffix != TokenType.invalid)
+		{
+			visit(unaryExpression.unaryExpression);
+			output.writeln("<suffix>", unaryExpression.suffix.value,
+				"</suffix>");
+		}
+		else
+			unaryExpression.accept(this);
+		output.writeln("</unaryExpression>");
+	}
+
+	override void visit(UnionDeclaration unionDeclaration)
+	{
+		output.writeln("<unionDeclaration line=\"", unionDeclaration.name.line, "\">");
+		if (unionDeclaration.name != TokenType.invalid)
+			output.writeln("<name>", unionDeclaration.name.value, "</name>");
+		if (unionDeclaration.templateParameters !is null)
+			visit(unionDeclaration.templateParameters);
+		if (unionDeclaration.constraint !is null)
+			visit(unionDeclaration.constraint);
+		if (unionDeclaration.structBody !is null)
+			visit(unionDeclaration.structBody);
+		output.writeln("</unionDeclaration>");
 	}
 
 	override void visit(Unittest unittest_)
@@ -957,7 +1403,52 @@ class XMLPrinter : ASTVisitor
 		mixin (tagAndAccept!"variableDeclaration");
 	}
 
+	override void visit(Vector vector)
+	{
+		mixin (tagAndAccept!"vector");
+	}
+
+	override void visit(VersionCondition versionCondition)
+	{
+		mixin (tagAndAccept!"versionCondition");
+	}
+
+	override void visit(VersionSpecification versionSpecification)
+	{
+		mixin (tagAndAccept!"versionSpecification");
+	}
+
+	override void visit(WhileStatement whileStatement)
+	{
+		mixin (tagAndAccept!"whileStatement");
+	}
+
+	override void visit(WithStatement withStatement)
+	{
+		mixin (tagAndAccept!"withStatement");
+	}
+
+	override void visit(XorExpression xorExpression)
+	{
+		output.writeln("<xorExpression>");
+		output.writeln("<left>");
+		xorExpression.left.accept(this);
+		output.writeln("</left>");
+		if (xorExpression.right !is null)
+		{
+			output.writeln("<right>");
+			xorExpression.right.accept(this);
+			output.writeln("</right>");
+		}
+		output.writeln("</xorExpression>");
+	}
+
 	alias ASTVisitor.visit visit;
+
+	private string xmlEscape(string s)
+	{
+		return s.translate(['<' : "&lt;", '>' : "&gt;"]);
+	}
 
 	File output;
 }
