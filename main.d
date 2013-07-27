@@ -22,10 +22,10 @@ import highlighter;
 import stats;
 import ctags;
 import astprinter;
+import imports;
 
 int main(string[] args)
 {
-	string[] importDirs;
 	bool sloc;
 	bool highlight;
 	bool ctags;
@@ -35,14 +35,14 @@ int main(string[] args)
 	bool tokenCount;
 	bool syntaxCheck;
 	bool ast;
+	bool imports;
 
 	try
 	{
-		getopt(args, "I", &importDirs, "sloc|l", &sloc,
-			"highlight", &highlight,
+		getopt(args, "sloc|l", &sloc, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount", &tokenCount, "syntaxCheck|s", &syntaxCheck,
-			"ast|xml", &ast);
+			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
+			"ast|xml", &ast, "imports|i", &imports);
 	}
 	catch (Exception e)
 	{
@@ -56,7 +56,7 @@ int main(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast]);
+		syntaxCheck, ast, imports]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -79,17 +79,17 @@ int main(string[] args)
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
-    else if (ctags)
-    {
-        if (recursive)
-        {
-            stdout.printCtags(dirEntries(args[1], SpanMode.depth)
-                .filter!(a => a.name.endsWith(".d") || a.name.endsWith(".di"))()
-                .map!(a => a.name)().array());
-        }
-        else
-            stdout.printCtags(args[1 .. $]);
-    }
+	else if (ctags)
+	{
+		if (recursive)
+		{
+			stdout.printCtags(dirEntries(args[1], SpanMode.depth)
+				.filter!(a => a.name.endsWith(".d") || a.name.endsWith(".di"))()
+				.map!(a => a.name)().array());
+		}
+		else
+			stdout.printCtags(args[1 .. $]);
+	}
 	else
 	{
 		LexerConfig config;
@@ -111,11 +111,17 @@ int main(string[] args)
 		}
 		else if (syntaxCheck)
 		{
-			parseModule(tokens.array(), args[1]);
+			parseModule(tokens.array(), config.fileName);
+		}
+		else if (imports)
+		{
+			auto mod = parseModule(tokens.array(), config.fileName);
+			auto visitor = new ImportPrinter;
+			visitor.visit(mod);
 		}
 		else if (ast)
 		{
-			auto mod = parseModule(tokens.array(), args[1]);
+			auto mod = parseModule(tokens.array(), config.fileName);
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
 			printer.visit(mod);
@@ -135,21 +141,18 @@ options:
     --help | -h
         Prints this help message
 
-    --sloc | -l [sourceFiles]
-        count the number of logical lines of code in the given
-        source files. If no files are specified, a file is read from stdin.
+    --sloc | -l [sourceFile]
+        Prints the number of logical lines of code in the given
+        source file. If no files are specified, a file is read from stdin.
+
+    --tokenCount | t [sourceFile]
+        Prints the number of tokens in the given source file.
 
     --highlight [sourceFile] - Syntax-highlight the given source file. The
         resulting HTML will be written to standard output.
 
-    --imports | -i [sourceFiles]
+    --imports | -i [sourceFile]
         Prints modules imported by the given source file.
-
-    -I includePath
-        Include _includePath_ in the list of paths used to search for imports.
-        By default dscanner will search in the current working directory as
-        well as any paths specified in /etc/dmd.conf. This is only used for the
-        --parenComplete and --dotComplete options.
 
     --syntaxCheck | -s [sourceFile]
         Lexes and parses sourceFile, printing the line and column number of any
@@ -160,8 +163,8 @@ options:
         ctags information requires a filename, so stdin cannot be used in place
         of a filename.
 
-	--ast | --xml sourceFile
-		Generates an XML representation of the source files abstract syntax tree
+    --ast | --xml sourceFile
+        Generates an XML representation of the source files abstract syntax tree
 
     --recursive | -R | -r directory
         When used with --ctags, dscanner will produce ctags output for all .d

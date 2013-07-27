@@ -2367,10 +2367,10 @@ class TemplateDeclaration : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(identifier, templateParameters, constraint,
+        mixin (visitIfNotNull!(name, templateParameters, constraint,
             declarations));
     }
-    /** */ Token identifier;
+    /** */ Token name;
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ Declaration[] declarations;

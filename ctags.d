@@ -54,9 +54,18 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(InterfaceDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tc%s\n".format(dec.name.value, fileName, dec.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\ti%s\n".format(dec.name.value, fileName, dec.name.line, context);
         auto c = context;
         context = "\tclass:" ~ dec.name.value;
+		dec.accept(this);
+        context = c;
+	}
+
+	override void visit(TemplateDeclaration dec)
+	{
+		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.value, fileName, dec.name.line, context);
+        auto c = context;
+        context = "\ttemplate:" ~ dec.name.value;
 		dec.accept(this);
         context = c;
 	}
@@ -73,10 +82,30 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(EnumDeclaration dec)
 	{
+		if (dec.name == TokenType.invalid)
+		{
+			dec.accept(this);
+			return;
+		}
 		tagLines ~= "%s\t%s\t%d;\"\tg%s\n".format(dec.name.value, fileName,
             dec.name.line, context);
         auto c = context;
         context = "\tenum:" ~ dec.name.value;
+		dec.accept(this);
+        context = c;
+	}
+
+	override void visit(UnionDeclaration dec)
+	{
+		if (dec.name == TokenType.invalid)
+		{
+			dec.accept(this);
+			return;
+		}
+		tagLines ~= "%s\t%s\t%d;\"\tu%s\n".format(dec.name.value, fileName,
+            dec.name.line, context);
+        auto c = context;
+        context = "\tunion:" ~ dec.name.value;
 		dec.accept(this);
         context = c;
 	}
@@ -96,13 +125,6 @@ class CTagsPrinter : ASTVisitor
         }
 		dec.accept(this);
 	}
-
-    override void visit(FunctionBody fBody)
-    {
-        ++suppressDepth;
-        fBody.accept(this);
-        --suppressDepth;
-    }
 
 	string fileName;
 	string[] tagLines;

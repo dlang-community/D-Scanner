@@ -1166,8 +1166,8 @@ class XMLPrinter : ASTVisitor
 	override void visit(TemplateDeclaration templateDeclaration)
 	{
 		output.writeln("<templateDeclaration line=\"",
-			templateDeclaration.identifier.line, "\">");
-		output.writeln("<name>", templateDeclaration.identifier, "</name>");
+			templateDeclaration.name.line, "\">");
+		output.writeln("<name>", templateDeclaration.name.value, "</name>");
 		visit(templateDeclaration.templateParameters);
 		if (templateDeclaration.constraint !is null)
 			visit(templateDeclaration.constraint);
@@ -1447,7 +1447,7 @@ class XMLPrinter : ASTVisitor
 
 	private string xmlEscape(string s)
 	{
-		return s.translate(['<' : "&lt;", '>' : "&gt;", '&', "&amp;"]);
+		return s.translate(['<' : "&lt;", '>' : "&gt;", '&' : "&amp;"]);
 	}
 
 	File output;

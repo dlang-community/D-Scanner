@@ -4838,7 +4838,7 @@ q{(int a, ...)
         expect(TokenType.template_);
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
-        node.identifier = *ident;
+        node.name = *ident;
         node.templateParameters = parseTemplateParameters();
         if (currentIs(TokenType.if_))
             node.constraint = parseConstraint();
