@@ -32,6 +32,13 @@ and case tokens in the file.
 	$ ./dscanner --sloc helloworld.d
 	2
 
+### Syntax Highlighting
+The "--highlight" option prints the given source file as syntax-highlighted HTML
+to the standard output. The CSS styling is currently hard-coded to use the
+[Solarized](http://ethanschoonover.com/solarized) color scheme.
+
+	No example. It would take up too much space
+
 ### CTAGS output
 The "--ctags" or "-c" option generates CTAGS information and writes it to the
 standard output. When used with the "--recursive", "-R", or "-r" option, CTAGS
