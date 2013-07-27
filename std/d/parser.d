@@ -2573,7 +2573,7 @@ body {} // six
         auto node = new IdentifierOrTemplateChain;
         while (moreTokens())
         {
-            node.identifierOrTemplateInstances ~= parseIdentifierOrTemplateInstance();
+            node.identifiersOrTemplateInstances ~= parseIdentifierOrTemplateInstance();
             if (!currentIs(TokenType.dot))
                 break;
             else
@@ -2706,7 +2706,6 @@ body {} // six
         if (currentIs(TokenType.assign))
         {
             advance();
-            node.hasRight = true;
             auto id = expect(TokenType.identifier);
             if (id is null) return null;
             node.right = *id;
@@ -2881,7 +2880,10 @@ import core.stdc.stdio, std.string : KeepTerminator;
         auto node = new InExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIs(TokenType.not))
-            advance();
+		{
+			node.negated = true;
+			advance();
+		}
         if (expect(TokenType.in_) is null) return null;
         node.right = parseShiftExpression();
         return node;
@@ -3064,7 +3066,7 @@ invariant() foo();
      * Parses an IsExpression
      *
      * $(GRAMMAR $(RULEDEF isExpression):
-     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') ($(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)?) $(LITERAL '$(RPAREN)')
+     *     $(LITERAL'is') $(LITERAL '$(LPAREN)') $(RULE type) $(LITERAL Identifier)? (($(LITERAL ':') | $(LITERAL '==')) $(RULE typeSpecialization) ($(LITERAL ',') $(RULE templateParameterList))?)? $(LITERAL '$(RPAREN)')
      *     ;)
      */
     IsExpression parseIsExpression()
@@ -3343,7 +3345,8 @@ invariant() foo();
      * Parses a MixinTemplateName
      *
      * $(GRAMMAR $(RULEDEF mixinTemplateName):
-     *     ($(RULE typeofExpression)? $(LITERAL '.'))? $(RULE identifierOrTemplateChain)
+     *       $(RULE symbol)
+     *     | $(RULE typeofExpression) $(LITERAL '.') $(RULE identifierOrTemplateChain)
      *     ;)
      */
     MixinTemplateName parseMixinTemplateName()
@@ -3354,8 +3357,10 @@ invariant() foo();
         {
             node.typeofExpression = parseTypeofExpression();
             expect(TokenType.dot);
+			node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         }
-        node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
+        else
+			node.symbol = parseSymbol();
         return node;
     }
 
@@ -4303,8 +4308,8 @@ q{(int a, ...)
         auto node = new SingleImport;
         if (startsWith(TokenType.identifier, TokenType.assign))
         {
-            node.identifier = advance();
-            advance();
+            node.rename = advance();
+            advance(); // =
         }
         node.identifierChain = parseIdentifierChain();
         return node;
