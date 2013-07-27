@@ -1267,7 +1267,7 @@ class XMLPrinter : ASTVisitor
 		case dollar: output.writeln("<dollar/>"); return;
 		default: output.writeln("<", getTokenValue(token.type), "/>"); return;
 		}
-		output.writeln("<", tagName, "><![CDATA[", token.value, "]]></", tagName, ">");
+		output.writeln("<", tagName, ">", xmlEscape(token.value), "</", tagName, ">");
 	}
 
 	override void visit(TraitsExpression traitsExpression)
@@ -1447,7 +1447,7 @@ class XMLPrinter : ASTVisitor
 
 	private string xmlEscape(string s)
 	{
-		return s.translate(['<' : "&lt;", '>' : "&gt;"]);
+		return s.translate(['<' : "&lt;", '>' : "&gt;", '&', "&amp;"]);
 	}
 
 	File output;
