@@ -1,27 +1,7 @@
---------------------------------------------------------------------------------
--- The MIT License
---
--- Copyright (c) 2012 Brian Schott
---
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
---
--- The above copyright notice and this permission notice shall be included in
--- all copies or substantial portions of the Software.
---
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
--- THE SOFTWARE.
---------------------------------------------------------------------------------
-
+//          Copyright Brian Schott (Sir Alaran) 2012.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
 
 local M = {}
 
@@ -317,8 +297,8 @@ local keywords = {
 
 -- For this module to work the dscanner program must be installed. Configure the
 -- path to the executable here
-M.PATH_TO_DSCANNER = "/home/brian/src/dscanner/dscanner"
-M.PATH_TO_DCD_CLIENT = "/home/brian/src/dcd/dcd-client"
+M.PATH_TO_DSCANNER = "/home/alaran/src/dscanner/dscanner"
+M.PATH_TO_DCD_CLIENT = "/home/alaran/src/dcd/dcd-client"
 
 _M.textadept.editing.comment_string.dmd = '//'
 _M.textadept.run.compile_command.dmd = 'dmd -c -o- %(filename)'
@@ -342,7 +322,7 @@ local function showCompletionList(r)
 	buffer.auto_c_choose_single = false;
 	buffer.auto_c_max_width = 0
 	local completions = {}
-	for symbol, kind in r:gmatch("([@%w_]+)\t(%a)\n") do
+	for symbol, kind in r:gmatch("([@%w_%p]+)\t(%a)\n") do
 		completion = symbol
 		if kind == "k" then
 			completion = completion .. "?5"
