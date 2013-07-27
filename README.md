@@ -23,6 +23,11 @@ source file.
 	$ dscanner --imports helloworld.d
 	std.stdio
 
+### Syntax Check
+The "--syntaxCheck" option prints a listing of any errors or warnings found
+while lexing or parsing the given source file. It does not do any semantic
+analysis and it does not compile the code.
+
 ### Line of Code Count
 The "--sloc" or "-l" option prints the number of lines of code in the file.
 Instead of simply printing the number of line breaks, this counts the number of
