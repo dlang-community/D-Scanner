@@ -7,62 +7,64 @@
 module highlighter;
 
 import std.stdio;
-import langutils;
 import std.array;
+import std.d.lexer;
 
 void writeSpan(string cssClass, string value)
 {
-	stdout.write(`<span class="`, cssClass, `">`, value.replace("<", "&lt;"), `</span>`);
+	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
 }
 
-void highlight(Token[] tokens)
+
+// http://ethanschoonover.com/solarized
+void highlight(R)(TokenRange!R tokens, string fileName)
 {
-	stdout.writeln(q"[<!DOCTYPE html>
+	stdout.writeln(q"[
+<!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>]");
+	stdout.writeln("<title>", fileName, "</title>");
+	stdout.writeln(q"[</head>
 <body>
 <style type="text/css">
-html { background-color: #111; color: #ccc; }
-.keyword { font-weight: bold; color: DeepSkyBlue; }
-.comment { color: lightgreen; font-style: italic;}
-.number { color: red; font-weigth: bold; }
-.string { color: Tomato; font-style: italic; }
-.property { color: HotPink; font-weight: bold;}
-.operator { color: tan; font-weight: bold; }
-.type { color: cyan; font-weight: bold; }
+html  { background-color: #fdf6e3; color: #002b36; }
+.kwrd { color: #b58900; font-weight: bold;  }
+.com  { color: #93a1a1; font-style: italic; }
+.num  { color: #dc322f; font-weigth: bold;  }
+.str  { color: #2aa198; font-style: italic; }
+.op   { color: #586e75; font-weight: bold;  }
+.type { color: #268bd2; font-weight: bold;  }
+.cons { color: #859900; font-weight: bold;  }
 </style>
 <pre>]");
 
 	foreach (Token t; tokens)
 	{
-		switch (t.type)
-		{
-		case TokenType.KEYWORDS_BEGIN: .. case TokenType.KEYWORDS_END:
-			writeSpan("keyword", t.value);
-			break;
-		case TokenType.TYPES_BEGIN: .. case TokenType.TYPES_END:
+		if (isBasicType(t.type))
 			writeSpan("type", t.value);
-			break;
-		case TokenType.Comment:
-			writeSpan("comment", t.value);
-			break;
-		case TokenType.STRINGS_BEGIN: .. case TokenType.STRINGS_END:
-			writeSpan("string", t.value);
-			break;
-		case TokenType.NUMBERS_BEGIN: .. case TokenType.NUMBERS_END:
-			writeSpan("number", t.value);
-			break;
-		case TokenType.OPERATORS_BEGIN: .. case TokenType.OPERATORS_END:
-			writeSpan("operator", t.value);
-			break;
-		case TokenType.PROPERTIES_BEGIN: .. case TokenType.PROPERTIES_END:
-			writeSpan("property", t.value);
-			break;
-		default:
+		else if (isKeyword(t.type))
+			writeSpan("kwrd", t.value);
+		else if (t.type == TokenType.comment)
+			writeSpan("com", t.value);
+		else if (isStringLiteral(t.type) || t.type == TokenType.characterLiteral)
+			writeSpan("str", t.value);
+		else if (isNumberLiteral(t.type))
+			writeSpan("num", t.value);
+		else if (isOperator(t.type))
+			writeSpan("op", t.value);
+		else
 			stdout.write(t.value.replace("<", "&lt;"));
-			break;
-		}
 	}
 	stdout.writeln("</pre>\n</body></html>");
 }
+
+/+void main(string[] args)
+{
+	LexerConfig config;
+	config.tokenStyle = TokenStyle.source;
+	config.iterStyle = IterationStyle.everything;
+	config.fileName = args[1];
+	auto f = File(args[1]);
+	(cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
+}+/
