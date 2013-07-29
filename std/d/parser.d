@@ -4641,28 +4641,10 @@ q{(int a, ...)
     }
 
     /**
-     * Parses a SwitchBody
-     *
-     * $(GRAMMAR $(RULEDEF switchBody):
-     *     $(LITERAL '{') $(RULE statement)+ $(LITERAL '}')
-     *     ;)
-     */
-    SwitchBody parseSwitchBody()
-    {
-        mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SwitchBody;
-        expect(TokenType.lBrace);
-        while (moreTokens() && tokens[index] != TokenType.rBrace)
-            node.statements ~= parseStatement();
-        expect(TokenType.rBrace);
-        return node;
-    }
-
-    /**
      * Parses a SwitchStatement
      *
      * $(GRAMMAR $(RULEDEF switchStatement):
-     *     $(LITERAL 'switch') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE switchBody)
+     *     $(LITERAL 'switch') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statement)
      *     ;)
      */
     SwitchStatement parseSwitchStatement()
@@ -4673,7 +4655,7 @@ q{(int a, ...)
         expect(TokenType.lParen);
         node.expression = parseExpression();
         expect(TokenType.rParen);
-        node.switchBody = parseSwitchBody();
+        node.statement = parseStatement();
         return node;
     }
 

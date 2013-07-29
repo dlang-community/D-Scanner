@@ -195,7 +195,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(BreakStatement breakStatement)
 	{
 		if (breakStatement.label.type == TokenType.invalid)
-			output.writeln("<breakStatement>");
+			output.writeln("<breakStatement/>");
 		else
 			output.writeln("<breakStatement label=\"", breakStatement.label, "\">");
 	}
@@ -1096,11 +1096,6 @@ class XMLPrinter : ASTVisitor
 	override void visit(StructMemberInitializers structMemberInitializers)
 	{
 		mixin (tagAndAccept!"structMemberInitializers");
-	}
-
-	override void visit(SwitchBody switchBody)
-	{
-		mixin (tagAndAccept!"switchBody");
 	}
 
 	override void visit(SwitchStatement switchStatement)

@@ -186,7 +186,6 @@ public:
     /** */ void visit(StructInitializer structInitializer) { structInitializer.accept(this); }
     /** */ void visit(StructMemberInitializer structMemberInitializer) { structMemberInitializer.accept(this); }
     /** */ void visit(StructMemberInitializers structMemberInitializers) { structMemberInitializers.accept(this); }
-    /** */ void visit(SwitchBody switchBody) { switchBody.accept(this); }
     /** */ void visit(SwitchStatement switchStatement) { switchStatement.accept(this); }
     /** */ void visit(Symbol symbol) { symbol.accept(this); }
     /** */ void visit(SynchronizedStatement synchronizedStatement) { synchronizedStatement.accept(this); }
@@ -2255,26 +2254,15 @@ public:
 }
 
 ///
-class SwitchBody : ASTNode
-{
-public:
-    override void accept(ASTVisitor visitor)
-    {
-        mixin (visitIfNotNull!(statements));
-    }
-    /** */ Statement[] statements;
-}
-
-///
 class SwitchStatement : ASTNode
 {
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(expression, switchBody));
+        mixin (visitIfNotNull!(expression, statement));
     }
     /** */ Expression expression;
-    /** */ SwitchBody switchBody;
+    /** */ Statement statement;
 }
 
 ///
