@@ -52,6 +52,15 @@ class CTagsPrinter : ASTVisitor
         context = c;
 	}
 
+	override void visit(StructDeclaration dec)
+	{
+		tagLines ~= "%s\t%s\t%d;\"\ts%s\n".format(dec.name.value, fileName, dec.name.line, context);
+        auto c = context;
+        context = "\tstruct:" ~ dec.name.value;
+		dec.accept(this);
+        context = c;
+	}
+
 	override void visit(InterfaceDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\ti%s\n".format(dec.name.value, fileName, dec.name.line, context);
