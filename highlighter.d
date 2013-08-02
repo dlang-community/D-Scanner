@@ -11,10 +11,11 @@ import std.array;
 import std.range;
 import std.d.lexer;
 
-void writeSpan(Sink)(ref Sink sink, string cssClass, string value)
+void writeSpan(Sink)(ref Sink sink, string cssClassPrefix, string cssClass, string value)
 	if(isOutputRange!(Sink, string))
 {
 	sink.put(`<span class="`);
+	sink.put(cssClassPrefix);
 	sink.put(cssClass);
 	sink.put(`">`);
 	sink.put(value.replace("&", "&amp;").replace("<", "&lt;"));
@@ -37,26 +38,26 @@ void highlight(R)(TokenRange!R tokens, string fileName)
 }
 
 /// Outputs span-highlighted code only, no wrapper HTML
-void highlightBare(R)(TokenRange!R tokens)
+void highlightBare(R)(TokenRange!R tokens, string cssClassPrefix=null)
 {
 	StdoutSink sink;
-	highlightBare(tokens, sink);
+	highlightBare(tokens, sink, cssClassPrefix);
 }
 
 void highlight(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName)
 	if (isOutputRange!(Sink, string))
 {
-	highlightImpl(tokens, sink, fileName, false);
+	highlightImpl(tokens, sink, fileName, false, null);
 }
 
 /// Outputs span-highlighted code only, no wrapper HTML
-void highlightBare(R, Sink)(TokenRange!R tokens, ref Sink sink)
+void highlightBare(R, Sink)(TokenRange!R tokens, ref Sink sink, string cssClassPrefix=null)
 	if (isOutputRange!(Sink, string))
 {
-	highlightImpl(tokens, sink, null, true);
+	highlightImpl(tokens, sink, null, true, cssClassPrefix);
 }
 
-private void highlightImpl(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName, bool bare)
+private void highlightImpl(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName, bool bare, string cssClassPrefix)
 	if (isOutputRange!(Sink, string))
 {
 	if (!bare)
@@ -89,17 +90,17 @@ html  { background-color: #fdf6e3; color: #002b36; }
 	foreach (Token t; tokens)
 	{
 		if (isBasicType(t.type))
-			writeSpan(sink, "type", t.value);
+			writeSpan(sink, cssClassPrefix, "type", t.value);
 		else if (isKeyword(t.type))
-			writeSpan(sink, "kwrd", t.value);
+			writeSpan(sink, cssClassPrefix, "kwrd", t.value);
 		else if (t.type == TokenType.comment)
-			writeSpan(sink, "com", t.value);
+			writeSpan(sink, cssClassPrefix, "com", t.value);
 		else if (isStringLiteral(t.type) || t.type == TokenType.characterLiteral)
-			writeSpan(sink, "str", t.value);
+			writeSpan(sink, cssClassPrefix, "str", t.value);
 		else if (isNumberLiteral(t.type))
-			writeSpan(sink, "num", t.value);
+			writeSpan(sink, cssClassPrefix, "num", t.value);
 		else if (isOperator(t.type))
-			writeSpan(sink, "op", t.value);
+			writeSpan(sink, cssClassPrefix, "op", t.value);
 		else
 			sink.put(t.value.replace("<", "&lt;"));
 	}
