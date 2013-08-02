@@ -105,13 +105,13 @@
  * Source: $(PHOBOSSRC std/d/_lexer.d)
  */
 
-module std.d.lexer;
+module stdx.d.lexer;
 
 import std.algorithm;
 import std.ascii;
 import std.conv;
 import std.datetime;
-import std.d.entities;
+import stdx.d.entities;
 import std.exception;
 import std.range;
 import std.regex;
