@@ -21,26 +21,47 @@ void writeSpan(Sink)(ref Sink sink, string cssClass, string value)
 	sink.put(`</span>`);
 }
 
+private struct StdoutSink
+{
+	void put(string data)
+	{
+		stdout.write(data);
+	}
+}
 
+// http://ethanschoonover.com/solarized
 void highlight(R)(TokenRange!R tokens, string fileName)
 {
-	struct StdoutSink
-	{
-		void put(string data)
-		{
-			stdout.write(data);
-		}
-	}
-	
 	StdoutSink sink;
 	highlight(tokens, sink, fileName);
 }
 
-// http://ethanschoonover.com/solarized
-void highlight(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName)
-	if(isOutputRange!(Sink, string))
+/// Outputs span-highlighted code only, no wrapper HTML
+void highlightBare(R)(TokenRange!R tokens)
 {
-	sink.put(q"[
+	StdoutSink sink;
+	highlightBare(tokens, sink);
+}
+
+void highlight(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName)
+	if (isOutputRange!(Sink, string))
+{
+	highlightImpl(tokens, sink, fileName, false);
+}
+
+/// Outputs span-highlighted code only, no wrapper HTML
+void highlightBare(R, Sink)(TokenRange!R tokens, ref Sink sink)
+	if (isOutputRange!(Sink, string))
+{
+	highlightImpl(tokens, sink, null, true);
+}
+
+private void highlightImpl(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName, bool bare)
+	if (isOutputRange!(Sink, string))
+{
+	if (!bare)
+	{
+		sink.put(q"[
 <!DOCTYPE html>
 <html>
 <head>
@@ -63,6 +84,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 </style>
 <pre>
 ]");
+	}
 
 	foreach (Token t; tokens)
 	{
@@ -81,7 +103,9 @@ html  { background-color: #fdf6e3; color: #002b36; }
 		else
 			sink.put(t.value.replace("<", "&lt;"));
 	}
-	sink.put("</pre>\n</body></html>\n");
+
+	if (!bare)
+		sink.put("</pre>\n</body></html>\n");
 }
 
 /+void main(string[] args)
