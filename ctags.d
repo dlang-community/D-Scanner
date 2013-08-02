@@ -12,6 +12,7 @@ import std.algorithm;
 import std.range;
 import std.stdio;
 import std.array;
+import std.conv;
 
 void doNothing(string, int, int, string) {}
 
@@ -21,7 +22,7 @@ void printCtags(File output, string[] fileNames)
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
-		auto bytes = uninitializedArray!(ubyte[])(f.size);
+		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		LexerConfig config;
 		auto tokens = byToken(bytes, config);

@@ -74,7 +74,7 @@ int main(string[] args)
 		config.iterStyle = IterationStyle.everything;
 		config.tokenStyle = TokenStyle.source;
 		File f = args.length == 1 ? stdin : File(args[1]);
-		ubyte[] buffer = uninitializedArray!(ubyte[])(f.size);
+		ubyte[] buffer = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		highlighter.highlight(byToken(f.rawRead(buffer), config),
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
@@ -97,7 +97,7 @@ int main(string[] args)
 		bool usingStdin = args.length == 3;
 		config.fileName = usingStdin ? "stdin" : args[1];
 		File f = usingStdin ? stdin : File(args[1]);
-		auto bytes = usingStdin ? cast(ubyte[]) [] : uninitializedArray!(ubyte[])(f.size);
+		auto bytes = usingStdin ? cast(ubyte[]) [] : uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 
 		auto tokens = byToken(bytes, config);
@@ -107,7 +107,7 @@ int main(string[] args)
 		}
 		else if (tokenCount)
 		{
-			printTokenCount(stdout, tokens, f.size);
+			printTokenCount(stdout, tokens, to!size_t(f.size));
 		}
 		else if (syntaxCheck)
 		{
