@@ -15,8 +15,8 @@ import std.path;
 import std.regex;
 import std.stdio;
 import std.range;
-import std.d.lexer;
-import std.d.parser;
+import stdx.d.lexer;
+import stdx.d.parser;
 
 import highlighter;
 import stats;

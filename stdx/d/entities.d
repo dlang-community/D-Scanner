@@ -9,7 +9,7 @@
  * Source: $(PHOBOSSRC std/d/_lexer.d)
  */
 
-module std.d.entities;
+module stdx.d.entities;
 
 /**
  * Generated from $(LINK http://www.w3.org/TR/html5/entities.json)
