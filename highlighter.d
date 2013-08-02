@@ -8,24 +8,48 @@ module highlighter;
 
 import std.stdio;
 import std.array;
+import std.range;
 import std.d.lexer;
 
-void writeSpan(string cssClass, string value)
+void writeSpan(Sink)(ref Sink sink, string cssClass, string value)
+	if(isOutputRange!(Sink, string))
 {
-	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
+	sink.put(`<span class="`);
+	sink.put(cssClass);
+	sink.put(`">`);
+	sink.put(value.replace("&", "&amp;").replace("<", "&lt;"));
+	sink.put(`</span>`);
 }
 
 
-// http://ethanschoonover.com/solarized
 void highlight(R)(TokenRange!R tokens, string fileName)
 {
-	stdout.writeln(q"[
+	struct StdoutSink
+	{
+		void put(string data)
+		{
+			stdout.write(data);
+		}
+	}
+	
+	StdoutSink sink;
+	highlight(tokens, sink, fileName);
+}
+
+// http://ethanschoonover.com/solarized
+void highlight(R, Sink)(TokenRange!R tokens, ref Sink sink, string fileName)
+	if(isOutputRange!(Sink, string))
+{
+	sink.put(q"[
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>]");
-	stdout.writeln("<title>", fileName, "</title>");
-	stdout.writeln(q"[</head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+]");
+	sink.put("<title>");
+	sink.put(fileName);
+	sink.put("</title>\n");
+	sink.put(q"[</head>
 <body>
 <style type="text/css">
 html  { background-color: #fdf6e3; color: #002b36; }
@@ -37,26 +61,27 @@ html  { background-color: #fdf6e3; color: #002b36; }
 .type { color: #268bd2; font-weight: bold;  }
 .cons { color: #859900; font-weight: bold;  }
 </style>
-<pre>]");
+<pre>
+]");
 
 	foreach (Token t; tokens)
 	{
 		if (isBasicType(t.type))
-			writeSpan("type", t.value);
+			writeSpan(sink, "type", t.value);
 		else if (isKeyword(t.type))
-			writeSpan("kwrd", t.value);
+			writeSpan(sink, "kwrd", t.value);
 		else if (t.type == TokenType.comment)
-			writeSpan("com", t.value);
+			writeSpan(sink, "com", t.value);
 		else if (isStringLiteral(t.type) || t.type == TokenType.characterLiteral)
-			writeSpan("str", t.value);
+			writeSpan(sink, "str", t.value);
 		else if (isNumberLiteral(t.type))
-			writeSpan("num", t.value);
+			writeSpan(sink, "num", t.value);
 		else if (isOperator(t.type))
-			writeSpan("op", t.value);
+			writeSpan(sink, "op", t.value);
 		else
-			stdout.write(t.value.replace("<", "&lt;"));
+			sink.put(t.value.replace("<", "&lt;"));
 	}
-	stdout.writeln("</pre>\n</body></html>");
+	sink.put("</pre>\n</body></html>\n");
 }
 
 /+void main(string[] args)
