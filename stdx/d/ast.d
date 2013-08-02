@@ -14,9 +14,9 @@
  * Source: $(PHOBOSSRC std/d/_ast.d)
  */
 
-module std.d.ast;
+module stdx.d.ast;
 
-import std.d.lexer;
+import stdx.d.lexer;
 import std.traits;
 
 // TODO: Many of these classes can be simplified by using std.variant.Algebraic

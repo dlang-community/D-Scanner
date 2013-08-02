@@ -5,7 +5,7 @@
 
 module imports;
 
-import std.d.ast;
+import stdx.d.ast;
 import std.stdio;
 
 class ImportPrinter : ASTVisitor

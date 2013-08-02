@@ -6,7 +6,7 @@
 module stats;
 
 import std.stdio;
-import std.d.lexer;
+import stdx.d.lexer;
 
 pure nothrow bool isLineOfCode(TokenType t)
 {

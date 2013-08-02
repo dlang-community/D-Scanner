@@ -52,10 +52,10 @@
  * Source: $(PHOBOSSRC std/d/_parser.d)
  */
 
-module std.d.parser;
+module stdx.d.parser;
 
-import std.d.lexer;
-import std.d.ast;
+import stdx.d.lexer;
+import stdx.d.ast;
 import std.conv;
 import std.algorithm;
 import std.array;

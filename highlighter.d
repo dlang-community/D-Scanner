@@ -8,7 +8,7 @@ module highlighter;
 
 import std.stdio;
 import std.array;
-import std.d.lexer;
+import stdx.d.lexer;
 
 void writeSpan(string cssClass, string value)
 {
