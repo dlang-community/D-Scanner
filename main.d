@@ -105,9 +105,9 @@ int main(string[] args)
 		}
 		else
 			stdout.printCtags(args[1 .. $]);
-		}
+	}
 	else
-		{
+	{
 		LexerConfig config;
 
 		bool usingStdin = args.length == 3;
@@ -118,7 +118,7 @@ int main(string[] args)
 
 		auto tokens = byToken(bytes, config);
 		if (sloc)
-	{
+		{
 			printLineCount(stdout, tokens);
 		}
 		else if (tokenCount)
@@ -130,7 +130,7 @@ int main(string[] args)
 			parseModule(tokens.array(), config.fileName);
 		}
 		else if (imports)
-	{
+		{
 			auto mod = parseModule(tokens.array(), config.fileName);
 			auto visitor = new ImportPrinter;
 			visitor.visit(mod);
@@ -141,9 +141,8 @@ int main(string[] args)
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
 			printer.visit(mod);
-				}
+		}
 	}
-
 	return 0;
 }
 
