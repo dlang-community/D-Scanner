@@ -36,17 +36,33 @@ int main(string[] args)
 	bool syntaxCheck;
 	bool ast;
 	bool imports;
+	bool muffin;
 
 	try
 	{
 		getopt(args, "sloc|l", &sloc, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
-			"ast|xml", &ast, "imports|i", &imports);
+			"ast|xml", &ast, "imports|i", &imports, "muffinButton", &muffin);
 	}
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
+	}
+
+	if (muffin)
+	{
+		stdout.writeln(
+`       ___________
+    __(#*O 0** @%*)__
+  _(%*o#*O%*0 #O#%##@)_
+ (*#@%#o*@ #o%O*%@ #o #)
+ \=====================/
+  |I|I|I|I|I|I|I|I|I|I|
+  |I|I|I|I|I|I|I|I|I|I|
+  |I|I|I|I|I|I|I|I|I|I|
+  |I|I|I|I|I|I|I|I|I|I|`);
+		return 0;
 	}
 
 	if (help)

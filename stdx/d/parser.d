@@ -1285,6 +1285,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new CmpExpression;
         auto shift = parseShiftExpression();
+        if (!moreTokens())
+            return shift;
         with (TokenType) switch (current.type)
         {
         case is_:
@@ -1766,8 +1768,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             auto dos = parseDeclarationOrStatement();
             if (dos !is null)
                 node.declarationsAndStatements ~= dos;
-            else
-                return null;
+            /*else
+                return null;*/
         }
         return node;
     }
@@ -6181,7 +6183,7 @@ private:
             messageFunction(fileName, line, column, message);
     }
 
-    void error(lazy string message)
+    void error(lazy string message, bool shouldAdvance = true)
     {
         import std.stdio;
         if (suppressMessages <= 0)
@@ -6195,12 +6197,12 @@ private:
             else
                 messageFunction(fileName, line, column, message);
         }
-        while (moreTokens())
+        while (shouldAdvance && moreTokens())
         {
             if (currentIsOneOf(TokenType.semicolon, TokenType.rBrace,
                 TokenType.rParen, TokenType.rBracket))
             {
-                advance();
+				advance();
                 break;
             }
             else
@@ -6317,12 +6319,15 @@ private:
             return &tokens[index++];
         else
         {
-            if (getTokenValue(type) is null)
-                error("Expected " ~ to!string(type) ~ " instead of "
-                    ~ (index < tokens.length ? tokens[index].value : "EOF"));
-            else
-                error("Expected " ~ getTokenValue(type) ~ " instead of "
-                    ~ (index < tokens.length ? tokens[index].value : "EOF"));
+            string tokenString = getTokenValue(type) is null
+                ? to!string(type) : getTokenValue(type);
+            bool shouldNotAdvance = index < tokens.length
+                && (tokens[index].type == TokenType.rParen
+                || tokens[index].type == TokenType.semicolon
+                || tokens[index].type == TokenType.rBrace);
+            error("Expected " ~  tokenString ~ " instead of "
+                ~ (index < tokens.length ? tokens[index].value : "EOF"),
+                !shouldNotAdvance);
             return null;
         }
     }

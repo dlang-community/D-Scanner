@@ -3500,5 +3500,3 @@ unittest
     }
     assert (tokenCount == 16);
 }
-
-//void main(string[] args){}
