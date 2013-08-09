@@ -1175,7 +1175,7 @@ class XMLPrinter : ASTVisitor
 		{
 			if (dec !is null) visit(dec);
 		}
-		output.writeln("<templateDeclaration>");
+		output.writeln("</templateDeclaration>");
 	}
 
 	override void visit(TemplateInstance templateInstance)
