@@ -1434,8 +1434,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Constructor parseConstructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Constructor;
-        if (expect(TokenType.this_) is null) return null;
+        Constructor node = new Constructor;
+        auto t = expect(TokenType.this_);
+        if (t is null) return null;
+        node.location = t.startIndex;
         auto p = peekPastParens();
         bool isTemplate = false;
         if (p !is null && p.type == TokenType.lParen)
@@ -1953,10 +1955,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     EnumBody parseEnumBody()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new EnumBody;
+        EnumBody node = new EnumBody;
         if (!currentIs(TokenType.semicolon))
         {
-            expect (TokenType.lBrace);
+            auto open = expect (TokenType.lBrace);
+            if (open is null) goto ret;
+            node.startLocation = open.startIndex;
             while (moreTokens())
             {
                 if (!currentIsOneOf(TokenType.comma, TokenType.rBrace))
@@ -1974,7 +1978,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                     goto ret;
                 }
             }
-            expect (TokenType.rBrace);
+            auto close = expect (TokenType.rBrace);
+            if (close !is null)
+                node.endLocation = close.startIndex;
         }
     ret:
         return node;
@@ -4532,10 +4538,16 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new StructBody;
-        node.startLocation = expect(TokenType.lBrace).startIndex;
+        auto start = expect(TokenType.lBrace);
+        if (start !is null) node.startLocation = start.startIndex;
         while (!currentIs(TokenType.rBrace) && moreTokens())
-            node.declarations ~= parseDeclaration();
-        node.endLocation  = expect(TokenType.rBrace).startIndex;
+        {
+            auto dec = parseDeclaration();
+            if (dec !is null)
+                node.declarations ~= dec;
+        }
+        auto end = expect(TokenType.rBrace);
+        if (end !is null) node.endLocation = end.startIndex;
         return node;
     }
 
@@ -5902,6 +5914,19 @@ q{doStuff(5)}c;
      */
     void function(string, int, int, string) messageFunction;
 
+	bool isSliceExpression()
+    {
+        mixin(traceEnterAndExit!(__FUNCTION__));
+        if (startsWith(TokenType.lBracket, TokenType.rBracket))
+            return true;
+        return hasMagicDelimiter!(TokenType.slice)();
+    }
+
+    void setTokens(const(Token)[] tokens)
+    {
+        this.tokens = tokens;
+    }
+
 private:
 
     bool isCastQualifier() const
@@ -5926,13 +5951,7 @@ private:
         return hasMagicDelimiter!(TokenType.colon)();
     }
 
-    bool isSliceExpression()
-    {
-        mixin(traceEnterAndExit!(__FUNCTION__));
-        if (startsWith(TokenType.lBracket, TokenType.rBracket))
-            return true;
-        return hasMagicDelimiter!(TokenType.slice)();
-    }
+
 
     bool hasMagicDelimiter(alias T)()
     {

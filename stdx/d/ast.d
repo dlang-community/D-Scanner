@@ -18,6 +18,9 @@ module stdx.d.ast;
 
 import stdx.d.lexer;
 import std.traits;
+import std.algorithm;
+import std.array;
+import std.string;
 
 // TODO: Many of these classes can be simplified by using std.variant.Algebraic
 
@@ -886,6 +889,7 @@ public:
     /** */ Constraint constraint;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ TemplateParameters templateParameters;
+    /** */ size_t location;
 }
 
 ///
@@ -1083,6 +1087,16 @@ public:
         mixin (visitIfNotNull!(enumMembers));
     }
     /** */ EnumMember[] enumMembers;
+
+    /**
+     * Byte position of the opening brace
+     */
+    size_t startLocation;
+
+    /**
+     * Byte position of the closing brace
+     */
+    size_t endLocation;
 }
 
 ///
@@ -1878,6 +1892,20 @@ public:
     {
         mixin (visitIfNotNull!(type, name, default_));
     }
+
+    override string toString()
+    {
+        if (vararg)
+            return "...";
+        string rVal;
+        if (type !is null)
+            rVal = type.toString() ~ " ";
+        if (name.type != TokenType.invalid)
+            rVal ~= name.value;
+        rVal ~= parameterAttributes.map!(x => " " ~ getTokenValue(x)).join();
+        return rVal;
+    }
+
     /** */ TokenType[] parameterAttributes;
     /** */ Type type;
     /** */ Token name;
@@ -1892,6 +1920,13 @@ public:
     override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(parameters));
+    }
+
+    override string toString()
+    {
+        if (hasVarargs)
+            return "(...)";
+        return format("(%s)", parameters.map!"a.toString"().join(", ").array().idup);
     }
     /** */ Parameter[] parameters;
     /** */ bool hasVarargs;
