@@ -284,10 +284,10 @@ class AliasDeclaration : ASTNode
 public:
     void accept(ASTVisitor visitor)
     {
-        //mixin (visitIfNotNull!(type, declarator, initializers));
+        mixin (visitIfNotNull!(type, name, initializers));
     }
     /** */ Type type;
-    /** */ Declarator declarator;
+    /** */ Token name;
     /** */ AliasInitializer[] initializers;
 }
 
@@ -297,10 +297,10 @@ class AliasInitializer : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(identifier, type));
+        mixin (visitIfNotNull!(name, type));
     }
 
-    /** */ Token identifier;
+    /** */ Token name;
     /** */ Type type;
 }
 
@@ -1895,14 +1895,14 @@ public:
 
     override string toString()
     {
-        if (vararg)
-            return "...";
         string rVal;
+		rVal ~= parameterAttributes.map!(x => " " ~ getTokenValue(x)).join();
         if (type !is null)
-            rVal = type.toString() ~ " ";
+            rVal = type.toString();
+		if (vararg)
+            rVal ~= "...";
         if (name.type != TokenType.invalid)
-            rVal ~= name.value;
-        rVal ~= parameterAttributes.map!(x => " " ~ getTokenValue(x)).join();
+            rVal ~= " " ~ name.value;
         return rVal;
     }
 

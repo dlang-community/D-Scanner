@@ -111,7 +111,8 @@ struct Parser
      * Parses an AliasDeclaration.
      *
      * $(GRAMMAR $(RULEDEF aliasDeclaration):
-     *     $(LITERAL 'alias') $(LPAREN)$(RULE aliasInitializer) $(LPAREN)$(LITERAL ',') $(RULE aliasInitializer)$(RPAREN)* | $(RULE type) $(RULE declarator)$(RPAREN) $(LITERAL ';')
+     *       $(LITERAL 'alias') $(RULE aliasInitializer) $(LPAREN)$(LITERAL ',') $(RULE aliasInitializer)$(RPAREN)*
+	 *     | $(LITERAL 'alias') $(RULE type) $(LITERAL identifier) $(LITERAL ';')
      *     ;)
      */
     AliasDeclaration parseAliasDeclaration()
@@ -136,7 +137,10 @@ struct Parser
         else
         {
             if ((node.type = parseType()) is null) return null;
-            if ((node.declarator = parseDeclarator()) is null) return null;
+			auto ident = expect(TokenType.identifier);
+			if (ident is null)
+				return null;
+			node.name = *ident;
         }
         if (expect(TokenType.semicolon) is null) return null;
         return node;
@@ -170,7 +174,7 @@ alias core.sys.posix.stdio.fileno fileno;
         auto node = new AliasInitializer;
         auto i = expect(TokenType.identifier);
         if (i is null) return null;
-        node.identifier = *i;
+        node.name = *i;
         if (expect(TokenType.assign) is null) return null;
         node.type = parseType();
         return node;
