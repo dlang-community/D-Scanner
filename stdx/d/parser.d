@@ -2142,6 +2142,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new ForStatement;
         if (expect(TokenType.for_) is null) return null;
+        node.startIndex = current().startIndex;
         if (expect(TokenType.lParen) is null) return null;
 
         if (currentIs(TokenType.semicolon))
@@ -2174,17 +2175,19 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ForeachStatement parseForeachStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ForeachStatement;
+        ForeachStatement node = new ForeachStatement;
         if (currentIsOneOf(TokenType.foreach_, TokenType.foreach_reverse_))
-            node.foreachType = advance().type;
+            node.type = advance().type;
         else
         {
             error(`"foreach" or "foreach_reverse" expected`);
             return null;
         }
+        node.startIndex = current().startIndex;
         if (expect(TokenType.lParen) is null) return null;
-        auto feType = parseForeachTypeList();
+        ForeachTypeList feType = parseForeachTypeList();
         bool canBeRange = feType.items.length == 1;
+
         if (expect(TokenType.semicolon) is null) return null;
         node.low = parseExpression();
         if (node.low is null) return null;
@@ -2197,7 +2200,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             }
             advance();
             node.high = parseExpression();
+            node.foreachType = feType.items[0];
             if (node.high is null) return null;
+        }
+        else
+        {
+            node.foreachTypeList = feType;
         }
         if (expect(TokenType.rParen) is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
@@ -2653,6 +2661,7 @@ body {} // six
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new IfStatement;
         if (expect(TokenType.if_) is null) return null;
+        node.startIndex = current().startIndex;
         if (expect(TokenType.lParen) is null) return null;
 
         if (currentIs(TokenType.auto_))
@@ -2687,6 +2696,7 @@ body {} // six
         }
 
         if (expect(TokenType.rParen) is null) return null;
+        if (currentIs(TokenType.rBrace)) return node; // this line makes DCD better
         node.thenStatement = parseDeclarationOrStatement();
         if (currentIs(TokenType.else_))
         {
@@ -5854,6 +5864,7 @@ q{doStuff(5)}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new WhileStatement;
         expect(TokenType.while_);
+        node.startIndex = current().startIndex;
         expect(TokenType.lParen);
         node.expression = parseExpression();
         expect(TokenType.rParen);
@@ -6393,7 +6404,7 @@ private:
     {
         if (index >= tokens.length)
             return false;
-        for (size_t i = 0; i != types.length; ++i)
+        for (size_t i = 0; (i < types.length) && ((index + i) < tokens.length); ++i)
         {
             if (tokens[index + i].type != types[i])
                 return false;
@@ -6461,9 +6472,9 @@ private:
         void trace(lazy string message) {}
     }
 
-    static immutable string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
-    static immutable string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
-    static immutable string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
+    enum string BASIC_TYPE_CASE_RANGE = q{case bool_: .. case wchar_:};
+    enum string LITERAL_CASE_RANGE = q{case doubleLiteral: .. case wstringLiteral:};
+    enum string SPECIAL_CASE_RANGE = q{case specialDate: .. case specialPrettyFunction:};
     const(Token)[] tokens;
     int suppressMessages;
     size_t index;

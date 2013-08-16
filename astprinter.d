@@ -489,7 +489,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(ForeachStatement foreachStatement)
 	{
 		output.writeln("<foreachStatement type=\"", getTokenValue(
-			foreachStatement.foreachType), "\">");
+			foreachStatement.type), "\">");
 		output.writeln("</foreachStatement>");
 	}
 

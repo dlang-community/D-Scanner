@@ -1194,6 +1194,7 @@ public:
     /** */ ExpressionStatement test;
     /** */ Expression increment;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+	/** */ size_t startIndex;
 }
 
 ///
@@ -1202,14 +1203,16 @@ class ForeachStatement : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(foreachTypeList, low, high,
+        mixin (visitIfNotNull!(foreachType, foreachTypeList, low, high,
             statementNoCaseNoDefault));
     }
-    /** */ TokenType foreachType;
+    /** */ TokenType type;
     /** */ ForeachTypeList foreachTypeList;
+	/** */ ForeachType foreachType;
     /** */ Expression low;
     /** */ Expression high;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+	/** */ size_t startIndex;
 }
 
 ///
@@ -1429,6 +1432,7 @@ public:
     /** */ Expression expression;
     /** */ DeclarationOrStatement thenStatement;
     /** */ DeclarationOrStatement elseStatement;
+	/** */ size_t startIndex;
 }
 
 ///
@@ -2852,6 +2856,7 @@ public:
 
     /** */ Expression expression;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+	/** */ size_t startIndex;
 }
 
 ///

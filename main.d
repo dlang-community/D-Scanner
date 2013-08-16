@@ -123,7 +123,7 @@ int main(string[] args)
 		}
 		else if (tokenCount)
 		{
-			printTokenCount(stdout, tokens, to!size_t(f.size));
+			printTokenCount(stdout, tokens);
 		}
 		else if (syntaxCheck)
 		{

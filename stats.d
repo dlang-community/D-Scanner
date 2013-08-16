@@ -6,6 +6,7 @@
 module stats;
 
 import std.stdio;
+import std.algorithm;
 import stdx.d.lexer;
 
 pure nothrow bool isLineOfCode(TokenType t)
@@ -29,15 +30,9 @@ pure nothrow bool isLineOfCode(TokenType t)
 	}
 }
 
-void printTokenCount(Tokens)(File output, ref Tokens tokens, size_t fileSize)
+void printTokenCount(Tokens)(File output, ref Tokens tokens)
 {
-	ulong count;
-	while(!tokens.empty)
-	{
-		tokens.popFront();
-		++count;
-	}
-	output.writefln("%d", count);
+	output.writefln("%d", tokens.count!(a => true));
 }
 
 void printLineCount(Tokens)(File output, ref Tokens tokens)
