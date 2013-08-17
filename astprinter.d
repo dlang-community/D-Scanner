@@ -464,9 +464,12 @@ class XMLPrinter : ASTVisitor
 	override void visit(ForStatement forStatement)
 	{
 		output.writeln("<forStatement>");
-		output.writeln("<initialize>");
-		visit(forStatement.declarationOrStatement);
-		output.writeln("</initialize>");
+		if (forStatement.declarationOrStatement !is null)
+		{
+			output.writeln("<initialize>");
+			visit(forStatement.declarationOrStatement);
+			output.writeln("</initialize>");
+		}
 		if (forStatement.test !is null)
 		{
 			output.writeln("<test>");
