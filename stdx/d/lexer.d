@@ -1660,7 +1660,7 @@ L_advance:
             size_t idx = 0;
             while (!isEoF())
             {
-                if (isAlpha(src.front))
+                if (std.ascii.isAlpha(src.front))
                 {
                     buffer[idx++] = src.front;
                     if(idx == buffer.length) // way over maximum length
@@ -1674,8 +1674,8 @@ L_advance:
                 }
                 else
                 {
-                        errorMessage("Invalid character entity");
-                        return idx;
+                    errorMessage("Invalid character entity");
+                    return idx;
                 }
             }
             //TODO: avoid looking up as UTF string, use raw bytes
