@@ -77,9 +77,9 @@ int main(string[] args)
 	{
 		stderr.writeln("Too many options specified");
 		return 1;
-		}
+	}
 	else if (optionCount < 1)
-		{
+	{
 		printHelp(args[0]);
 		return 1;
 	}
@@ -89,54 +89,62 @@ int main(string[] args)
 		LexerConfig config;
 		config.iterStyle = IterationStyle.everything;
 		config.tokenStyle = TokenStyle.source;
-		File f = args.length == 1 ? stdin : File(args[1]);
-		ubyte[] buffer = uninitializedArray!(ubyte[])(to!size_t(f.size));
-		highlighter.highlight(byToken(f.rawRead(buffer), config),
+		bool usingStdin = args.length == 1;
+		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
+		highlighter.highlight(byToken(bytes, config),
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
 	else if (ctags)
 	{
-		if (recursive)
-		{
-			stdout.printCtags(dirEntries(args[1], SpanMode.depth)
-				.filter!(a => a.name.endsWith(".d") || a.name.endsWith(".di"))()
-				.map!(a => a.name)().array());
-		}
-		else
-			stdout.printCtags(args[1 .. $]);
+		stdout.printCtags(expandArgs(args, recursive));
 	}
 	else
 	{
 		LexerConfig config;
-
-		bool usingStdin = args.length == 3;
-		config.fileName = usingStdin ? "stdin" : args[1];
-		File f = usingStdin ? stdin : File(args[1]);
-		auto bytes = usingStdin ? cast(ubyte[]) [] : uninitializedArray!(ubyte[])(to!size_t(f.size));
-		f.rawRead(bytes);
-
-		auto tokens = byToken(bytes, config);
-		if (sloc)
+		bool usingStdin = args.length == 1;
+		if (sloc || tokenCount)
 		{
-			printLineCount(stdout, tokens);
-		}
-		else if (tokenCount)
-		{
-			printTokenCount(stdout, tokens);
+			if (usingStdin)
+			{
+				auto tokens = byToken(readStdin(), config);
+				if (tokenCount)
+					printTokenCount(stdout, "stdin", tokens);
+				else
+					printLineCount(stdout, "stdin", tokens);
+			}
+			else
+			{
+				ulong count;
+				foreach (f; expandArgs(args, recursive))
+				{
+					auto tokens = byToken(readFile(f), config);
+					if (tokenCount)
+						count += printTokenCount(stdout, f, tokens);
+					else
+						count += printLineCount(stdout, f, tokens);
+				}
+				writefln("total:\t%d", count);
+			}
 		}
 		else if (syntaxCheck)
 		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
+				config);
 			parseModule(tokens.array(), config.fileName);
 		}
 		else if (imports)
 		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
+				config);
 			auto mod = parseModule(tokens.array(), config.fileName);
 			auto visitor = new ImportPrinter;
 			visitor.visit(mod);
 		}
 		else if (ast)
 		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
+				config);
 			auto mod = parseModule(tokens.array(), config.fileName);
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
@@ -146,9 +154,59 @@ int main(string[] args)
 	return 0;
 }
 
+string[] expandArgs(string[] args, bool recursive)
+{
+	if (recursive)
+	{
+		string[] rVal;
+		foreach (arg; args[1 ..$])
+		{
+			if (isFile(arg) && arg.endsWith(`.d`) || arg.endsWith(`.di`))
+				rVal ~= arg;
+			else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
+			{
+				if (isFile(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
+					rVal ~= item;
+				else
+					continue;
+			}
+		}
+		return rVal;
+	}
+	else
+		return args[1 .. $];
+}
+
+ubyte[] readStdin()
+{
+	auto sourceCode = appender!(ubyte[])();
+	ubyte[4096] buf;
+	while (true)
+	{
+		auto b = stdin.rawRead(buf);
+		if (b.length == 0)
+			break;
+		sourceCode.put(b);
+	}
+	return sourceCode.data;
+}
+
+ubyte[] readFile(string fileName)
+{
+	if (!exists(fileName))
+	{
+		stderr.writefln("%s does not exist", fileName);
+		return [];
+	}
+	File f = File(fileName);
+	ubyte[] sourceCode = uninitializedArray!(ubyte[])(to!size_t(f.size));
+	f.rawRead(sourceCode);
+	return sourceCode;
+}
+
 void printHelp(string programName)
 {
-	writefln(
+	stderr.writefln(
 `
     Usage: %s options
 
@@ -156,22 +214,26 @@ options:
     --help | -h
         Prints this help message
 
-    --sloc | -l [sourceFile]
+    --sloc | -l [sourceFiles]
         Prints the number of logical lines of code in the given
-        source file. If no files are specified, a file is read from stdin.
+        source files. If no files are specified, input is read from stdin.
 
-    --tokenCount | t [sourceFile]
-        Prints the number of tokens in the given source file.
+    --tokenCount | t [sourceFiles]
+        Prints the number of tokens in the given source files. If no files are
+        specified, input is read from stdin.
 
     --highlight [sourceFile] - Syntax-highlight the given source file. The
-        resulting HTML will be written to standard output.
+        resulting HTML will be written to standard output. If no files are
+        specified, input is read from stdin.
 
     --imports | -i [sourceFile]
-        Prints modules imported by the given source file.
+        Prints modules imported by the given source file. If no files are
+        specified, input is read from stdin.
 
     --syntaxCheck | -s [sourceFile]
         Lexes and parses sourceFile, printing the line and column number of any
         syntax errors to stdout. One error or warning is printed per line.
+        If no files are specified, input is read from stdin.
 
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
@@ -179,11 +241,12 @@ options:
         of a filename.
 
     --ast | --xml sourceFile
-        Generates an XML representation of the source files abstract syntax tree
+        Generates an XML representation of the source files abstract syntax
+        tree. If no files are specified, input is read from stdin.
 
-    --recursive | -R | -r directory
-        When used with --ctags, dscanner will produce ctags output for all .d
-        and .di files contained within the given directory and its
-        sub-directories.`,
+    --recursive | -R | -r
+        When used with --ctags, --tokenCount, or --sloc, dscanner will produce
+        ctags output for all .d and .di files contained within the given
+        directories and its sub-directories.`,
         programName);
 }

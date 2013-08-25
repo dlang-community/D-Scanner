@@ -2776,6 +2776,8 @@ body {} // six
                 while (moreTokens())
                 {
                     auto single = parseSingleImport();
+                    if (single is null)
+                        return null;
                     if (currentIs(TokenType.colon))
                     {
                         node.importBindings = parseImportBindings(single);
