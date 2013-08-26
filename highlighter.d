@@ -56,7 +56,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 				stdout.write(t.value.replace("<", "&lt;").replace("\r", ""));
 			}
 			else
-				stdout.write(t.value.replace("<", "&lt;");
+				stdout.write(t.value.replace("<", "&lt;"));
 		}
 
 	}
