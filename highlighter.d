@@ -10,12 +10,6 @@ import std.stdio;
 import std.array;
 import stdx.d.lexer;
 
-void writeSpan(string cssClass, string value)
-{
-	stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
-}
-
-
 // http://ethanschoonover.com/solarized
 void highlight(R)(TokenRange!R tokens, string fileName)
 {
@@ -54,9 +48,27 @@ html  { background-color: #fdf6e3; color: #002b36; }
 		else if (isOperator(t.type))
 			writeSpan("op", t.value);
 		else
-			stdout.write(t.value.replace("<", "&lt;"));
+		{
+			version(Windows)
+			{
+				// Stupid Windows automatically does a LF → CRLF, so CRLF → CRCRLF, which is obviously wrong.
+				// Strip out the CR characters here to avoid this.
+				stdout.write(t.value.replace("<", "&lt;").replace("\r", ""));
+			}
+			else
+				stdout.write(t.value.replace("<", "&lt;");
+		}
+
 	}
 	stdout.writeln("</pre>\n</body></html>");
+}
+
+void writeSpan(string cssClass, string value)
+{
+	version(Windows)
+		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;").replace("\r", ""), `</span>`);
+	else
+		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
 }
 
 /+void main(string[] args)
