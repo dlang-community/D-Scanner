@@ -112,7 +112,7 @@ struct Parser
      *
      * $(GRAMMAR $(RULEDEF aliasDeclaration):
      *       $(LITERAL 'alias') $(RULE aliasInitializer) $(LPAREN)$(LITERAL ',') $(RULE aliasInitializer)$(RPAREN)*
-	 *     | $(LITERAL 'alias') $(RULE type) $(LITERAL identifier) $(LITERAL ';')
+     *     | $(LITERAL 'alias') $(RULE type) $(LITERAL identifier) $(LITERAL ';')
      *     ;)
      */
     AliasDeclaration parseAliasDeclaration()
@@ -137,10 +137,10 @@ struct Parser
         else
         {
             if ((node.type = parseType()) is null) return null;
-			auto ident = expect(TokenType.identifier);
-			if (ident is null)
-				return null;
-			node.name = *ident;
+            auto ident = expect(TokenType.identifier);
+            if (ident is null)
+                return null;
+            node.name = *ident;
         }
         if (expect(TokenType.semicolon) is null) return null;
         return node;
@@ -2159,6 +2159,11 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.increment = parseExpression();
 
         if (expect(TokenType.rParen) is null) return null;
+		if (currentIs(TokenType.rBrace))
+		{
+			error("Statement expected", false);
+			return node; // this line makes DCD better
+		}
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         if (node.statementNoCaseNoDefault is null) return null;
         return node;
@@ -2208,6 +2213,11 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.foreachTypeList = feType;
         }
         if (expect(TokenType.rParen) is null) return null;
+		if (currentIs(TokenType.rBrace))
+		{
+			error("Statement expected", false);
+			return node; // this line makes DCD better
+		}
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         if (node.statementNoCaseNoDefault is null) return null;
         return node;
@@ -2696,7 +2706,11 @@ body {} // six
         }
 
         if (expect(TokenType.rParen) is null) return null;
-        if (currentIs(TokenType.rBrace)) return node; // this line makes DCD better
+        if (currentIs(TokenType.rBrace))
+		{
+			error("Statement expected", false);
+			return node; // this line makes DCD better
+		}
         node.thenStatement = parseDeclarationOrStatement();
         if (currentIs(TokenType.else_))
         {
@@ -5870,6 +5884,11 @@ q{doStuff(5)}c;
         expect(TokenType.lParen);
         node.expression = parseExpression();
         expect(TokenType.rParen);
+		if (currentIs(TokenType.rBrace))
+		{
+			error("Statement expected", false);
+			return node; // this line makes DCD better
+		}
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         return node;
     }
@@ -5931,7 +5950,7 @@ q{doStuff(5)}c;
      */
     void function(string, int, int, string) messageFunction;
 
-	bool isSliceExpression()
+    bool isSliceExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (startsWith(TokenType.lBracket, TokenType.rBracket))
