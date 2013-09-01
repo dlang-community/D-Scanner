@@ -497,6 +497,7 @@ L_advance:
             {
                 current.type = TokenType.dot;
                 current.value = tokenValue!(TokenType.dot);
+                nextCharNonLF();
                 return;
             }
             switch (src.peek())
