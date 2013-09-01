@@ -372,7 +372,7 @@ class Formatter(Sink)
 		if (identifierOrTemplateInstance.templateInstance !is null)
 			format(identifierOrTemplateInstance.templateInstance);
 		else
-			format(identifierOrTemplateInstance.identifier);
+			sink.put(identifierOrTemplateInstance.identifier.value);
 
 	}
 
@@ -509,6 +509,7 @@ class Formatter(Sink)
 		{
 			if (!first)
 				sink.put(", ");
+			first = false;
 			format(param);
 		}
 		sink.put(")");
@@ -669,7 +670,9 @@ class Formatter(Sink)
 	{}
 
 	void format(Token token)
-	{}
+	{
+		sink.put(token.value);
+	}
 
 	void format(TraitsExpression traitsExpression)
 	{}
