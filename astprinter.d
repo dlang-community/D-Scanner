@@ -7,6 +7,8 @@ import stdx.d.lexer;
 import stdx.d.ast;
 import std.stdio;
 import std.string;
+import std.array;
+import formatter;
 
 template tagAndAccept(string tagName)
 {
@@ -1285,7 +1287,10 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(Type type)
 	{
-		output.writeln("<type pretty=\"", type.toString(), "\">");
+		auto app = appender!string();
+		auto formatter = new Formatter!(typeof(app))(app);
+		formatter.format(type);
+		output.writeln("<type pretty=\"", app.data, "\">");
 		type.accept(this);
 		output.writeln("</type>");
 	}

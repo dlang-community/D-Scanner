@@ -1370,19 +1370,6 @@ public:
         mixin (visitIfNotNull!(identifiersOrTemplateInstances));
     }
 
-    override string toString()
-    {
-        string rVal;
-        bool first = true;
-        foreach (iot; identifiersOrTemplateInstances)
-        {
-            if (!first)
-                rVal ~= ".";
-            first = true;
-            rVal ~= iot.toString();
-        }
-        return rVal;
-    }
     /** */ IdentifierOrTemplateInstance[] identifiersOrTemplateInstances;
 }
 
@@ -1395,13 +1382,6 @@ public:
         mixin (visitIfNotNull!(identifier, templateInstance));
     }
 
-    override string toString()
-    {
-        if (identifier.type == TokenType.identifier)
-            return identifier.value;
-        else
-            return templateInstance.toString();
-    }
     /** */ Token identifier;
     /** */ TemplateInstance templateInstance;
 }
@@ -1897,19 +1877,6 @@ public:
         mixin (visitIfNotNull!(type, name, default_));
     }
 
-    override string toString()
-    {
-        string rVal;
-		rVal ~= parameterAttributes.map!(x => " " ~ getTokenValue(x)).join();
-        if (type !is null)
-            rVal = type.toString();
-		if (vararg)
-            rVal ~= "...";
-        if (name.type != TokenType.invalid)
-            rVal ~= " " ~ name.value;
-        return rVal;
-    }
-
     /** */ TokenType[] parameterAttributes;
     /** */ Type type;
     /** */ Token name;
@@ -1926,12 +1893,6 @@ public:
         mixin (visitIfNotNull!(parameters));
     }
 
-    override string toString()
-    {
-        if (hasVarargs)
-            return "(...)";
-        return format("(%s)", parameters.map!"a.toString"().join(", ").array().idup);
-    }
     /** */ Parameter[] parameters;
     /** */ bool hasVarargs;
 }
@@ -2313,13 +2274,6 @@ public:
         mixin (visitIfNotNull!(dot, identifierOrTemplateChain));
     }
 
-    override string toString()
-    {
-        if (dot != TokenType.invalid)
-            return "." ~ identifierOrTemplateChain.toString();
-        else
-            return identifierOrTemplateChain.toString();
-    }
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
     /** */ Token dot;
 }
@@ -2598,27 +2552,6 @@ public:
         mixin (visitIfNotNull!(type2, typeSuffixes));
     }
 
-    override string toString()
-    {
-        string result;
-        bool first = true;
-        foreach (constructor; typeConstructors)
-        {
-            if (!first)
-                result ~= " ";
-            first = false;
-            result ~= getTokenValue(constructor);
-        }
-        if (typeConstructors.length > 0)
-            result ~= " ";
-        result ~= type2.toString();
-        foreach (suffix; typeSuffixes)
-        {
-            result ~= suffix.toString();
-        }
-        return result;
-    }
-
     /** */ TokenType[] typeConstructors;
     /** */ TypeSuffix[] typeSuffixes;
     /** */ Type2 type2;
@@ -2634,23 +2567,6 @@ public:
             identifierOrTemplateChain, type));
     }
 
-    override string toString()
-    {
-        if (symbol !is null)
-        {
-            return symbol.toString();
-        }
-        else if (typeofExpression !is null)
-        {
-            return "";
-        }
-        else if (typeConstructor != TokenType.invalid)
-        {
-            return getTokenValue(typeConstructor) ~ "(" ~ type.toString() ~ ")";
-        }
-        else
-            return getTokenValue(builtinType);
-    }
     /** */ TokenType builtinType;
     /** */ Symbol symbol;
     /** */ TypeofExpression typeofExpression;
@@ -2679,34 +2595,6 @@ public:
     {
         mixin (visitIfNotNull!(type, low, high, delegateOrFunction, parameters,
             memberFunctionAttributes));
-    }
-
-    override string toString()
-    {
-        if (star)
-            return "*";
-        else if (array)
-        {
-            if (type is null)
-            {
-                if (low is null)
-                    return "[]";
-                else
-                {
-                    if (high is null)
-                        return "[" ~ low.toString() ~ "]";
-                    else
-                        return "[" ~ low.toString() ~ ".." ~ high.toString() ~ "]";
-                }
-            }
-            else
-                return "[" ~ type.toString() ~ "]";
-        }
-        else
-        {
-            // TODO
-            return " " ~ delegateOrFunction.value ~ "()";
-        }
     }
 
     /** */ Token delegateOrFunction;
