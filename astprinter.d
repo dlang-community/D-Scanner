@@ -199,7 +199,7 @@ class XMLPrinter : ASTVisitor
 		if (breakStatement.label.type == TokenType.invalid)
 			output.writeln("<breakStatement/>");
 		else
-			output.writeln("<breakStatement label=\"", breakStatement.label, "\">");
+			output.writeln("<breakStatement label=\"", breakStatement.label.value, "\"/>");
 	}
 
 	override void visit(BaseClass baseClass)
@@ -559,7 +559,7 @@ class XMLPrinter : ASTVisitor
 		if (gotoStatement.label.type == TokenType.default_)
 			output.writeln("<gotoStatement default=\"true\"/>");
 		else if (gotoStatement.label.type == TokenType.identifier)
-			output.writeln("<gotoStatement label=\"", gotoStatement.label.value, "\">");
+			output.writeln("<gotoStatement label=\"", gotoStatement.label.value, "\"/>");
 		else
 		{
 			output.writeln("<gotoStatement>");
