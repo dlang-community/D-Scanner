@@ -23,6 +23,7 @@ import stats;
 import ctags;
 import astprinter;
 import imports;
+import outliner;
 
 int main(string[] args)
 {
@@ -37,13 +38,15 @@ int main(string[] args)
 	bool ast;
 	bool imports;
 	bool muffin;
+	bool outline;
 
 	try
 	{
 		getopt(args, "sloc|l", &sloc, "highlight", &highlight,
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
-			"ast|xml", &ast, "imports|i", &imports, "muffinButton", &muffin);
+			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
+			"muffinButton", &muffin);
 	}
 	catch (Exception e)
 	{
@@ -72,7 +75,7 @@ int main(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports]);
+		syntaxCheck, ast, imports, outline]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -149,6 +152,14 @@ int main(string[] args)
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
 			printer.visit(mod);
+		}
+		else if (outline)
+		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
+				config);
+			auto mod = parseModule(tokens.array(), config.fileName);
+			auto outliner = new Outliner(stdout);
+			outliner.visit(mod);
 		}
 	}
 	return 0;
