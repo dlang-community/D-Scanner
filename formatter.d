@@ -492,13 +492,13 @@ class Formatter(Sink)
 		}
 		if (parameter.type !is null)
 			format(parameter.type);
-		if (parameter.vararg)
-			sink.put("...");
 		if (parameter.name.type != TokenType.invalid)
 		{
 			sink.put(" ");
 			sink.put(parameter.name.value);
 		}
+		if (parameter.vararg)
+			sink.put(" ...");
 	}
 
 	void format(Parameters parameters)
@@ -685,7 +685,7 @@ class Formatter(Sink)
         bool first = true;
         foreach (constructor; type.typeConstructors)
         {
-            if (!first)
+            if (first)
                 sink.put(" ");
             first = false;
             sink.put(getTokenValue(constructor));
