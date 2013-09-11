@@ -111,7 +111,7 @@ struct Parser
      * Parses an AliasDeclaration.
      *
      * $(GRAMMAR $(RULEDEF aliasDeclaration):
-     *       $(LITERAL 'alias') $(RULE aliasInitializer) $(LPAREN)$(LITERAL ',') $(RULE aliasInitializer)$(RPAREN)*
+     *       $(LITERAL 'alias') $(RULE aliasInitializer) $(LPAREN)$(LITERAL ',') $(RULE aliasInitializer)$(RPAREN)* $(LITERAL ';')
      *     | $(LITERAL 'alias') $(RULE type) $(LITERAL identifier) $(LITERAL ';')
      *     ;)
      */
@@ -6423,7 +6423,7 @@ private:
 
     bool startsWith(TokenType[] types...) const nothrow
     {
-        if (index >= tokens.length)
+        if (index + types.length >= tokens.length)
             return false;
         for (size_t i = 0; (i < types.length) && ((index + i) < tokens.length); ++i)
         {
