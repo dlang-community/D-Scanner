@@ -1707,14 +1707,17 @@ L_advance:
             src.popFront();
             foundNewline = true;
         }
-        if (src.front == '\n')
+        if (!src.empty)
         {
-            src.popFront();
-            foundNewline = true;
-        }
-        else
-        {
-            src.popFront();
+            if (src.front == '\n')
+            {
+                src.popFront();
+                foundNewline = true;
+            }
+            else
+            {
+                src.popFront();
+            }
         }
         if (foundNewline)
         {
