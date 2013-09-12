@@ -246,7 +246,7 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(AndExpression, CmpExpression,
-            TokenType.bitAnd)();
+            TokenType.amp)();
     }
 
     /**
@@ -676,12 +676,12 @@ alias core.sys.posix.stdio.fileno fileno;
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AssignExpression;
         node.ternaryExpression = parseTernaryExpression();
-        if (currentIsOneOf(TokenType.assign, TokenType.unsignedShiftRightEqual,
-            TokenType.shiftRightEqual, TokenType.shiftLeftEqual,
-            TokenType.plusEqual, TokenType.minusEqual, TokenType.mulEqual,
-            TokenType.modEqual, TokenType.bitAndEqual, TokenType.divEqual,
-            TokenType.bitOrEqual, TokenType.powEqual, TokenType.xorEqual,
-            TokenType.catEqual))
+        if (currentIsOneOf(TokenType.assign, TokenType.unsignedShiftRightAssign,
+            TokenType.shiftRightAssign, TokenType.shiftLeftAssign,
+            TokenType.plusAssign, TokenType.minusAssign, TokenType.mulAssign,
+            TokenType.modAssign, TokenType.bitAndAssign, TokenType.divAssign,
+            TokenType.bitOrAssign, TokenType.powAssign, TokenType.xorAssign,
+            TokenType.catAssign))
         {
             node.operator = advance().type;
             node.assignExpression = parseAssignExpression();
@@ -981,7 +981,7 @@ alias core.sys.posix.stdio.fileno fileno;
             node.low = parseAssignExpression();
         }
         if (expect(TokenType.colon) is null) return null;
-        if (expect(TokenType.slice) is null) return null;
+        if (expect(TokenType.dotdot) is null) return null;
         expect(TokenType.case_);
         node.high = parseAssignExpression();
         if (expect(TokenType.colon) is null) return null;
@@ -2196,7 +2196,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (expect(TokenType.semicolon) is null) return null;
         node.low = parseExpression();
         if (node.low is null) return null;
-        if (currentIs(TokenType.slice))
+        if (currentIs(TokenType.dotdot))
         {
             if (!canBeRange)
             {
@@ -4280,12 +4280,13 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new SharedStaticConstructor;
-        expect(TokenType.shared_);
-        expect(TokenType.static_);
-        expect(TokenType.this_);
-        expect(TokenType.lParen);
-        expect(TokenType.rParen);
+        if (expect(TokenType.shared_) is null) return null;
+        if (expect(TokenType.static_) is null) return null;
+        if (expect(TokenType.this_) is null) return null;
+        if (expect(TokenType.lParen) is null) return null;
+        if (expect(TokenType.rParen) is null) return null;
         node.functionBody = parseFunctionBody();
+		if (node.functionBody is null) return null;
         return node;
     }
 
@@ -4343,6 +4344,8 @@ q{(int a, ...)
             advance(); // =
         }
         node.identifierChain = parseIdentifierChain();
+		if (node.identifierChain is null)
+			return null;
         return node;
     }
 
@@ -4363,7 +4366,7 @@ q{(int a, ...)
         if (!currentIs(TokenType.rBracket))
         {
             node.lower = parseAssignExpression();
-            expect(TokenType.slice);
+            expect(TokenType.dotdot);
             node.upper = parseAssignExpression();
         }
         if (expect(TokenType.rBracket) is null) return null;
@@ -4389,7 +4392,7 @@ q{(int a, ...)
         case TokenType.case_:
             advance();
             auto argumentList = parseArgumentList();
-            if (argumentList.items.length == 1 && startsWith(TokenType.colon, TokenType.slice))
+            if (argumentList.items.length == 1 && startsWith(TokenType.colon, TokenType.dotdot))
                 node.caseRangeStatement = parseCaseRangeStatement(argumentList.items[0]);
             else
                 node.caseStatement = parseCaseStatement(argumentList);
@@ -5488,7 +5491,7 @@ q{(int a, ...)
                 goToBookmark(bookmark);
                 node.low = parseAssignExpression();
                 if (node.low is null) return null;
-                if (currentIs(slice))
+                if (currentIs(dotdot))
                 {
                     advance();
                     node.high = parseAssignExpression();
@@ -5595,7 +5598,7 @@ q{(int a, ...)
         auto node = new UnaryExpression;
         with(TokenType) switch (current.type)
         {
-        case bitAnd:
+        case amp:
         case not:
         case star:
         case plus:
@@ -5955,7 +5958,7 @@ q{doStuff(5)}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (startsWith(TokenType.lBracket, TokenType.rBracket))
             return true;
-        return hasMagicDelimiter!(TokenType.slice)();
+        return hasMagicDelimiter!(TokenType.dotdot)();
     }
 
     void setTokens(const(Token)[] tokens)

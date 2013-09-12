@@ -4,11 +4,13 @@
  * This module contains a range-based _lexer for the D programming language.
  *
  * For performance reasons the _lexer contained in this module operates only on
- * ASCII or UTF-8 encoded source code. If the use of other encodings is
+ * UTF-8 encoded source code. If the use of other encodings is
  * desired, the source code must be converted to UTF-8 before passing it to this
  * _lexer.
  *
- * To use the _lexer, create a LexerConfig struct
+ * To use the _lexer, create a $(LREF LexerConfig) struct. The
+ * $(LREF LexerConfig) contains fields for configuring the behavior of the
+ * lexer.
  * ---
  * LexerConfig config;
  * config.iterStyle = IterationStyle.everything;
@@ -16,15 +18,17 @@
  * config.versionNumber = 2064;
  * config.vendorString = "Lexer Example";
  * ---
- * Once you have configured the _lexer, call byToken$(LPAREN)$(RPAREN) on your
- * source code, passing in the configuration.
+ * Once you have configured the _lexer, call $(LREF byToken)$(LPAREN)$(RPAREN)
+ * on your source code, passing in the configuration.
  * ---
+ * // UTF-8 encoded source code
  * auto source = "import std.stdio;"c;
  * auto tokens = byToken(source, config);
+ * // or auto tokens = source.byToken(config);
  * ---
- * The result of byToken$(LPAREN)$(RPAREN) is a forward range of tokens that can
- * be easily used with the algorithms from std.algorithm or iterated over with
- * $(D_KEYWORD foreach)
+ * The result of $(LREF byToken)$(LPAREN)$(RPAREN) is a forward range of tokens
+ * that can be easily used with the algorithms from std.algorithm or iterated
+ * over with $(D_KEYWORD foreach).
  * ---
  * assert (tokens.front.type == TokenType.import_);
  * assert (tokens.front.value == "import");
@@ -90,11 +94,19 @@
  *
  * void main(string[] args)
  * {
+ *     // Create the configuration
  *     LexerConfig config;
+ *     // Specify that we want tokens to appear exactly as they did in the source
  *     config.tokenStyle = TokenStyle.source;
+ *     // Include whitespace, comments, etc.
  *     config.iterStyle = IterationStyle.everything;
+ *     // Tell the lexer to use the name of the file being read when generating
+ *     // error messages.
  *     config.fileName = args[1];
+ *     // Open the file (error checking ommitted for brevity)
  *     auto f = File(args[1]);
+ *     // Read the lines of the file, and combine them. Then create the token
+ *     // range, which is then passed on to highlight.
  *     (cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
  * }
  * ---
@@ -129,13 +141,13 @@ public:
 struct Token
 {
     /**
-     * The representation of the token in the original source code.
+     * The characters that comprise the token.
      */
     string value;
 
     /**
      * The index of the start of the token in the original source.
-     * $(LPAREN)measured in ASCII characters or UTF-8 code units$(RPAREN)
+     * $(LPAREN)measured in UTF-8 code units$(RPAREN)
      */
     size_t startIndex;
 
@@ -164,6 +176,20 @@ struct Token
         return other.type == type && other.value == value;
     }
 
+    ///
+    unittest
+    {
+        Token a;
+        a.type = TokenType.intLiteral;
+        a.value = "1";
+        Token b;
+        b.type = TokenType.intLiteral;
+        b.value = "1";
+        assert (a == b);
+        b.value = "2";
+        assert (a != b);
+    }
+
     /**
      * Checks to see if the token's string representation is equal to the given
      * string.
@@ -173,12 +199,28 @@ struct Token
         return this.value == value;
     }
 
+    ///
+    unittest
+    {
+        Token t;
+        t.value = "abcde";
+        assert (t == "abcde");
+    }
+
     /**
      * Checks to see if the token is of the given type.
      */
     bool opEquals(TokenType type) const nothrow pure
     {
         return this.type == type;
+    }
+
+    ///
+    unittest
+    {
+        Token t;
+        t.type = TokenType.class_;
+        assert (t == TokenType.class_);
     }
 
     /**
@@ -191,17 +233,43 @@ struct Token
         return 0;
     }
 
+    ///
+    unittest
+    {
+        Token a;
+        a.startIndex = 10;
+        Token b;
+        b.startIndex = 20;
+        assert (a < b);
+    }
+
+    /**
+     * Comparison operator overload for checking if the token's start index is
+     * before, after, or the same as the given index.
+     */
     int opCmp(size_t index) const nothrow pure
     {
         if (startIndex < index) return -1;
         if (startIndex > index) return 1;
         return 0;
     }
+
+    ///
+    unittest
+    {
+        import std.array;
+        import std.range;
+        auto source = cast(ubyte[]) "a b c"c;
+        LexerConfig c;
+        auto tokens = source.byToken(c).array();
+        assert (tokens.length == 3);
+        //assert (tokens.assumeSorted().lowerBound(1)[$ - 1] == "b");
+    }
 }
 
 /**
- * Configure the behavior of the byToken() function. These flags may be
- * combined using a bitwise or.
+ * Configure the behavior of the $(LREF byToken)$(LPAREN)$(RPAREN) function.
+ * These flags may be combined using a bitwise or.
  */
 enum IterationStyle : ushort
 {
@@ -268,12 +336,14 @@ enum TokenStyle : ushort
 struct LexerConfig
 {
     /**
-     * Iteration style
+     * Configure the lexer's iteration style.
+     * See_Also: $(LREF IterationStyle)
      */
     IterationStyle iterStyle = IterationStyle.codeOnly;
 
     /**
-     * Token style
+     * Configure the style of the tokens produced by the lexer.
+     * See_Also: $(LREF TokenStyle)
      */
     TokenStyle tokenStyle = tokenStyle.default_;
 
@@ -289,28 +359,64 @@ struct LexerConfig
 
     /**
      * Name used when creating error messages that are sent to errorFunc. This
-     * is needed because the lexer operates on any forwarad range of ASCII
+     * is needed because the lexer operates on any forward range of ASCII
      * characters or UTF-8 code units and does not know what to call its input
      * source. Defaults to the empty string.
      */
     string fileName = "";
 
     /**
-     * This function is called when an error is encountered during lexing.
-     * Parameters are file name, code uint index, line number, column,
-     * and error messsage.
+     * The starting line and column numbers for the lexer. These can be set when
+     * partially lexing D code to provide correct token locations and better
+     * error messages. These should be left to their default values of 1 when
+     * lexing entire files. Line and column numbers are 1-indexed in this lexer
+     * because this produces more useful error messages. The start index is
+     * zero-indexed, as it is more useful to machines than users.
      */
-    void delegate(string, size_t, uint, uint, string) errorFunc;
+    uint startLine = 1;
+
+    /**
+     * ditto
+     */
+    ushort startColumn = 1;
+
+    /**
+     * ditto
+     */
+    size_t startIndex = 0;
+
+    /**
+     * This function is called when an error is encountered during lexing.
+     * If this field is not set, the lexer will throw an exception including the
+	 * line, column, and error message.
+     *
+     * $(BOOKTABLE Error Function Parameters:,
+     * $(TR $(TD string) $(TD File name))
+     * $(TR $(TD size_t) $(TD Code unit index))
+     * $(TR $(TD uint) $(TD Line number))
+     * $(TR $(TD ushort) $(TD Column number))
+     * $(TR $(TD string) $(TD Error message))
+     * )
+     */
+    void delegate(string, size_t, uint, ushort, string) errorFunc;
 }
 
 /**
  * Iterate over the given range of characters by D tokens.
+ *
+ * The lexing process is able to handle a forward range of code units by using
+ * an internal circular buffer to provide efficient extracting of the token
+ * values from the input. It is more efficient, however, to provide a range
+ * that supports random accessing and slicing. If the input range supports
+ * slicing, the caching layer aliases itself away and the lexing process
+ * is much more efficient.
+ *
  * Params:
- *     range = the range of characters
+ *     range = the range of characters to lex
  *     config = the lexer configuration
  *     bufferSize = initial size of internal circular buffer
  * Returns:
- *     an input range of tokens
+ *     a $(LREF TokenRange) that iterates over the given range
  */
 auto byToken(R)(R range, LexerConfig config, size_t bufferSize = 4*1024)
     if (isForwardRange!(R) && !isRandomAccessRange!(R)
@@ -319,8 +425,6 @@ auto byToken(R)(R range, LexerConfig config, size_t bufferSize = 4*1024)
     // 4K of circular buffer by default
     auto r = TokenRange!(typeof(lexerSource(range)))
         (lexerSource(range, bufferSize), config);
-    r.config = config;
-    r.lineNumber = 1;
     r.popFront();
     return r;
 }
@@ -331,14 +435,12 @@ auto byToken(R)(R range, LexerConfig config)
 {
     auto r = TokenRange!(typeof(lexerSource(range)))
         (lexerSource(range), config);
-    r.config = config;
-    r.lineNumber = 1;
     r.popFront();
     return r;
 }
 
 /**
- * Range of tokens. Use byToken$(LPAREN)$(RPAREN) to instantiate.
+ * Range of tokens. Use $(LREF byToken)$(LPAREN)$(RPAREN) to instantiate.
  */
 struct TokenRange(LexSrc)
     //if ( is(LexSrc : LexSource!(U...), U...)) //check for LexSource
@@ -361,7 +463,7 @@ struct TokenRange(LexSrc)
     }
 
     /**
-     * Returns the current token and then removes it from the range
+     * Returns: the current token and then removes it from the range
      */
     Token moveFront()
     {
@@ -398,7 +500,7 @@ L_advance:
         current.value = null;
         switch (src.front)
         {
-        // handle sentenels for end of input
+        // handle sentinels for end of input
         case 0:
         case 0x1a:
             // TODO: check config flags, it's cheap
@@ -408,11 +510,11 @@ L_advance:
         mixin(generateCaseTrie(
             "=",               "TokenType.assign",
             "@",               "TokenType.at",
-            "&",               "TokenType.bitAnd",
-            "&=",              "TokenType.bitAndEqual",
+            "&",               "TokenType.amp",
+            "&=",              "TokenType.bitAndAssign",
             "|",               "TokenType.bitOr",
-            "|=",              "TokenType.bitOrEqual",
-            "~=",              "TokenType.catEqual",
+            "|=",              "TokenType.bitOrAssign",
+            "~=",              "TokenType.catAssign",
             ":",               "TokenType.colon",
             ",",               "TokenType.comma",
             "--",              "TokenType.decrement",
@@ -432,10 +534,10 @@ L_advance:
             "||",              "TokenType.logicOr",
             "(",               "TokenType.lParen",
             "-",               "TokenType.minus",
-            "-=",              "TokenType.minusEqual",
+            "-=",              "TokenType.minusAssign",
             "%",               "TokenType.mod",
-            "%=",              "TokenType.modEqual",
-            "*=",              "TokenType.mulEqual",
+            "%=",              "TokenType.modAssign",
+            "*=",              "TokenType.mulAssign",
             "!",               "TokenType.not",
             "!=",              "TokenType.notEqual",
             "!>",              "TokenType.notGreater",
@@ -444,25 +546,25 @@ L_advance:
             "!<=",             "TokenType.notLessEqual",
             "!<>",             "TokenType.notLessEqualGreater",
             "+",               "TokenType.plus",
-            "+=",              "TokenType.plusEqual",
+            "+=",              "TokenType.plusAssign",
             "^^",              "TokenType.pow",
-            "^^=",             "TokenType.powEqual",
+            "^^=",             "TokenType.powAssign",
             "}",               "TokenType.rBrace",
             "]",               "TokenType.rBracket",
             ")",               "TokenType.rParen",
             ";",               "TokenType.semicolon",
             "<<",              "TokenType.shiftLeft",
-            "<<=",             "TokenType.shiftLeftEqual",
+            "<<=",             "TokenType.shiftLeftAssign",
             ">>",              "TokenType.shiftRight",
-            ">>=",             "TokenType.shiftRightEqual",
+            ">>=",             "TokenType.shiftRightAssign",
             "*",               "TokenType.star",
             "?",               "TokenType.ternary",
             "~",               "TokenType.tilde",
             "!<>=",            "TokenType.unordered",
             ">>>",             "TokenType.unsignedShiftRight",
-            ">>>=",            "TokenType.unsignedShiftRightEqual",
+            ">>>=",            "TokenType.unsignedShiftRightAssign",
             "^",               "TokenType.xor",
-            "^=",              "TokenType.xorEqual"
+            "^=",              "TokenType.xorAssign"
         ));
         case '/':
             nextCharNonLF();
@@ -483,7 +585,7 @@ L_advance:
                 goto L_advance; // tail-recursion
 
             case '=':
-                current.type = TokenType.divEqual;
+                current.type = TokenType.divAssign;
                 current.value = "/=";
                 src.popFront();
                 return;
@@ -508,7 +610,7 @@ L_advance:
             case '.':
                 nextCharNonLF();
                 nextCharNonLF();
-                current.type = TokenType.slice;
+                current.type = TokenType.dotdot;
                 if (src.front == '.')
                 {
                     current.type = TokenType.vararg;
@@ -516,7 +618,7 @@ L_advance:
                     current.value = tokenValue!(TokenType.vararg);
                 }
                 else
-                    current.value = tokenValue!(TokenType.slice);
+                    current.value = tokenValue!(TokenType.dotdot);
                 return;
             default:
                 nextCharNonLF();
@@ -1722,7 +1824,7 @@ L_advance:
         if (foundNewline)
         {
             ++lineNumber;
-            column = 0;
+            column = 1;
         }
         else
             ++column;
@@ -1865,12 +1967,14 @@ L_advance:
     this(LexSrc lex, LexerConfig cfg)
     {
         src = move(lex); // lex is r-value
-        lineNumber = 1;
-        column = 0;
+        lineNumber = cfg.startLine;
+        column = cfg.startColumn;
+        //src._index = cfg.startIndex;
         _empty = false;
         config = move(cfg); // ditto with cfg
         cache = StringCache(initialTableSize);
     }
+
     enum initialTableSize = 2048;
     Token current;
     uint lineNumber;
@@ -1886,7 +1990,7 @@ L_advance:
  */
 pure nothrow bool isOperator(const TokenType t)
 {
-    return t >= TokenType.assign && t <= TokenType.xorEqual;
+    return t >= TokenType.assign && t <= TokenType.xorAssign;
 }
 
 /**
@@ -2026,7 +2130,7 @@ pure nothrow bool isStringLiteral(ref const Token t)
 }
 
 /**
- * Returns: true if the token is whitespace, a commemnt, a special token
+ * Returns: true if the token is whitespace, a comment, a special token
  *     sequence, or an identifier
  */
 pure nothrow bool isMisc(const TokenType t)
@@ -2050,16 +2154,16 @@ enum TokenType: ushort
     invalid, /// Not a valid token
     assign, /// =
     at, /// @
-    bitAnd, /// &
-    bitAndEqual, /// &=
+    amp, /// &
+    bitAndAssign, /// &=
     bitOr, /// |
-    bitOrEqual, /// |=
-    catEqual, /// ~=
+    bitOrAssign, /// |=
+    catAssign, /// ~=
     colon, /// :
     comma, /// ,
     decrement, /// --
     div, /// /
-    divEqual, /// /=
+    divAssign, /// /=
     dollar, /// $
     dot, /// .
     equal, /// ==
@@ -2078,10 +2182,10 @@ enum TokenType: ushort
     logicOr, /// ||
     lParen, /// $(LPAREN)
     minus, /// -
-    minusEqual, /// -=
+    minusAssign, /// -=
     mod, /// %
-    modEqual, /// %=
-    mulEqual, /// *=
+    modAssign, /// %=
+    mulAssign, /// *=
     not, /// !
     notEqual, /// !=
     notGreater, /// !>
@@ -2090,27 +2194,27 @@ enum TokenType: ushort
     notLessEqual, /// !<=
     notLessEqualGreater, /// !<>
     plus, /// +
-    plusEqual, /// +=
+    plusAssign, /// +=
     pow, /// ^^
-    powEqual, /// ^^=
+    powAssign, /// ^^=
     rBrace, /// }
     rBracket, /// ]
     rParen, /// $(RPAREN)
     semicolon, /// ;
     shiftLeft, /// <<
-    shiftLeftEqual, /// <<=
+    shiftLeftAssign, /// <<=
     shiftRight, /// >>
-    shiftRightEqual, /// >>=
-    slice, /// ..
+    shiftRightAssign, /// >>=
+    dotdot, /// ..
     star, /// *
     ternary, /// ?
     tilde, /// ~
     unordered, /// !<>=
     unsignedShiftRight, /// >>>
-    unsignedShiftRightEqual, /// >>>=
+    unsignedShiftRightAssign, /// >>>=
     vararg, /// ...
     xor, /// ^
-    xorEqual, /// ^=
+    xorAssign, /// ^=
 
     bool_, /// $(D_KEYWORD bool)
     byte_, /// $(D_KEYWORD byte)
@@ -2266,12 +2370,21 @@ pure string getTokenValue(const TokenType type)
     return tokenValues[type];
 }
 
+///
+unittest
+{
+    // The class token always has one value
+    assert (getTokenValue(TokenType.class_) == "class");
+    // Identifiers do not
+    assert (getTokenValue(TokenType.identifier) is null);
+}
+
 // Implementation details follow
 private:
 
 // For now a private helper that is tailored to the way lexer works
 // hides away forwardness of range by buffering
-// random-access version is a strightforward thin wrapping
+// random-access version is a straightforward thin wrapping
 // ATM it is byte-oriented
 private struct LexSource(R)
     if(isForwardRange!R && !isRandomAccessRange!R)
@@ -2449,7 +2562,7 @@ private struct LexSource(R)
         saved = cur;
     }
 
-    // use the underliying range slicing capability
+    // use the underlying range slicing capability
     auto slice() @property
     {
         return range[saved..cur];
@@ -3218,7 +3331,7 @@ private:
     size_t uniqueSlots;
     enum loadQuot = 2, loadDenom = 3;
 
-    // leave some slack for alloctors/GC meta-data
+    // leave some slack for allocators/GC meta-data
     enum chunkSize = 16*1024 - size_t.sizeof*8;
     ubyte*[] chunkS;
     size_t next = chunkSize;
@@ -3415,7 +3528,7 @@ unittest
         "1.2", "u", "4i", "1337L", "4.2L", "1", "..", "2", "4.3", ".5", ".8",
         "0xabc", "0xabcp4", "0x1P-10", "0x40u", "0x29L", "0x4Lu", "0xdeadbeef"];
     int errCount = 0;
-    void errorFunction(string file, size_t index, uint line, uint col, string msg)
+    void errorFunction(string file, size_t index, uint line, ushort col, string msg)
     {
         ++errCount;
     }
@@ -3464,7 +3577,7 @@ unittest
 {
     auto source = cast(ubyte[]) (`"string`);
     int errCount = 0;
-    void errorFunction(string file, size_t index, uint line, uint col, string msg)
+    void errorFunction(string file, size_t index, uint line, ushort col, string msg)
     {
         ++errCount;
     }
