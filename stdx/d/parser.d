@@ -1601,17 +1601,11 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             if (currentIs(TokenType.colon))
 			{
                 node.attributeDeclaration = parseAttributeDeclaration(attr);
-				break;
+				return node;
 			}
             else
                 node.attributes ~= attr;
         } while (moreTokens());
-
-		if (!moreTokens)
-		{
-			error("Declaration expected");
-			return null;
-		}
 
         with (TokenType) switch (current.type)
         {
