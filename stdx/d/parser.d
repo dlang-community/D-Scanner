@@ -1599,10 +1599,19 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 break;
             }
             if (currentIs(TokenType.colon))
+			{
                 node.attributeDeclaration = parseAttributeDeclaration(attr);
+				break;
+			}
             else
                 node.attributes ~= attr;
         } while (moreTokens());
+
+		if (!moreTokens)
+		{
+			error("Declaration expected");
+			return null;
+		}
 
         with (TokenType) switch (current.type)
         {
@@ -6247,11 +6256,12 @@ private:
         if (suppressMessages <= 0)
         {
             ++errorCount;
-            auto column = index < tokens.length ? tokens[index].column : 0;
-            column++;
-            auto line = index < tokens.length ? tokens[index].line : 0;
+            auto column = index < tokens.length ? tokens[index].column : tokens[$ - 1].column;
+            auto line = index < tokens.length ? tokens[index].line : tokens[$ - 1].line;
             if (messageFunction is null)
+			{
                 writefln("%s(%d:%d)[error]: %s", fileName, line, column, message);
+			}
             else
                 messageFunction(fileName, line, column, message);
         }
