@@ -2453,6 +2453,7 @@ body {} // six
             node.templateParameters = parseTemplateParameters();
 
         node.parameters = parseParameters();
+		if (node.parameters is null) return null;
 
         while(moreTokens() && currentIsMemberFunctionAttribute())
             node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
@@ -6490,7 +6491,7 @@ private:
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
-                writeln(message, "(", current.line, ":", current.column + 1, ")");
+                writeln(message, "(", current.line, ":", current.column, ")");
             else
                 writeln(message, "(EOF:0)");
         }
