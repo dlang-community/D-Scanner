@@ -6240,7 +6240,7 @@ private:
         auto column = index < tokens.length ? tokens[index].column : 0;
         auto line = index < tokens.length ? tokens[index].line : 0;
         if (messageFunction is null)
-            writefln("%s(%d:%d)[warn]: %s", fileName, line, column, message);
+            stderr.writefln("%s(%d:%d)[warn]: %s", fileName, line, column, message);
         else
             messageFunction(fileName, line, column, message);
     }
@@ -6255,7 +6255,7 @@ private:
             auto line = index < tokens.length ? tokens[index].line : tokens[$ - 1].line;
             if (messageFunction is null)
 			{
-                writefln("%s(%d:%d)[error]: %s", fileName, line, column, message);
+                stderr.writefln("%s(%d:%d)[error]: %s", fileName, line, column, message);
 			}
             else
                 messageFunction(fileName, line, column, message);
