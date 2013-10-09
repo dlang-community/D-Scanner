@@ -26,7 +26,7 @@ void printCtags(File output, string[] fileNames)
 		f.rawRead(bytes);
 		LexerConfig config;
 		auto tokens = byToken(bytes, config);
-		Module m = parseModule(tokens.array(), fileName);
+		Module m = parseModule(tokens.array(), fileName, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
 		printer.visit(m);

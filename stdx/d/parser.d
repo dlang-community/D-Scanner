@@ -4722,7 +4722,10 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Symbol;
         if (currentIs(TokenType.dot))
-            node.dot = advance();
+		{
+			node.dot = true;
+			advance();
+		}
         node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         return node;
     }

@@ -1064,6 +1064,7 @@ public:
         mixin (visitIfNotNull!(functionBody));
     }
     /** */ FunctionBody functionBody;
+    /** */ size_t location;
 }
 
 ///
@@ -2050,6 +2051,7 @@ public:
         mixin (visitIfNotNull!(functionBody));
     }
     /** */ FunctionBody functionBody;
+    /** */ size_t location;
 }
 
 ///
@@ -2061,6 +2063,7 @@ public:
         mixin (visitIfNotNull!(functionBody));
     }
     /** */ FunctionBody functionBody;
+    /** */ size_t location;
 }
 
 ///
@@ -2146,6 +2149,7 @@ public:
         mixin (visitIfNotNull!(functionBody));
     }
     /** */ FunctionBody functionBody;
+    /** */ size_t location;
 }
 
 ///
@@ -2157,6 +2161,7 @@ public:
         mixin (visitIfNotNull!(functionBody));
     }
     /** */ FunctionBody functionBody;
+    /** */ size_t location;
 }
 
 ///
@@ -2271,11 +2276,11 @@ class Symbol : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(dot, identifierOrTemplateChain));
+        mixin (visitIfNotNull!(identifierOrTemplateChain));
     }
 
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
-    /** */ Token dot;
+    /** */ bool dot;
 }
 
 ///
