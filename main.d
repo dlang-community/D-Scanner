@@ -134,12 +134,20 @@ int main(string[] args)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
 				config);
+			if (usingStdin)
+				config.fileName = "stdin";
+			else
+				config.fileName = args[1];
 			parseModule(tokens.array(), config.fileName);
 		}
 		else if (imports)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
 				config);
+			if (usingStdin)
+				config.fileName = "stdin";
+			else
+				config.fileName = args[1];
 			auto mod = parseModule(tokens.array(), config.fileName);
 			auto visitor = new ImportPrinter;
 			visitor.visit(mod);
@@ -148,6 +156,10 @@ int main(string[] args)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
 				config);
+			if (usingStdin)
+				config.fileName = "stdin";
+			else
+				config.fileName = args[1];
 			auto mod = parseModule(tokens.array(), config.fileName);
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
@@ -157,6 +169,10 @@ int main(string[] args)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
 				config);
+			if (usingStdin)
+				config.fileName = "stdin";
+			else
+				config.fileName = args[1];
 			auto mod = parseModule(tokens.array(), config.fileName);
 			auto outliner = new Outliner(stdout);
 			outliner.visit(mod);
