@@ -90,7 +90,7 @@ Module parseModule(const(Token)[] tokens, string fileName,
 /**
  * Parser structure
  */
-struct Parser
+class Parser
 {
     /**
      * Parses an AddExpression.
@@ -2309,7 +2309,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     FunctionBody parseFunctionBody()
     {
         auto node = new FunctionBody;
-        if (currentIs(TokenType.lBrace))
+        if (currentIs(TokenType.semicolon))
+        {
+            advance();
+            return node;
+        }
+        else if (currentIs(TokenType.lBrace))
             node.blockStatement = parseBlockStatement();
         else
         {
@@ -5973,7 +5978,7 @@ q{doStuff(5)}c;
         this.tokens = tokens;
     }
 
-private:
+protected:
 
     bool isCastQualifier() const
     {
@@ -6278,7 +6283,7 @@ private:
 
     void skip(alias O, alias C)()
     {
-        assert(currentIs(O));
+        assert(currentIs(O), current().value);
         advance();
         int depth = 1;
         while (moreTokens())
