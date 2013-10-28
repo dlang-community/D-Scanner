@@ -844,10 +844,10 @@ class ConditionalDeclaration : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(compileCondition, trueDeclaration, falseDeclaration));
+        mixin (visitIfNotNull!(compileCondition, trueDeclarations, falseDeclaration));
     }
     /** */ CompileCondition compileCondition;
-    /** */ Declaration trueDeclaration;
+    /** */ Declaration[] trueDeclarations;
     /** */ Declaration falseDeclaration;
 }
 

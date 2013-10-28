@@ -50,6 +50,11 @@
  * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors: Brian Schott
  * Source: $(PHOBOSSRC std/d/_parser.d)
+ * Macros:
+ * GRAMMAR = <pre>$0</pre>
+ * RULEDEF = <a name="$0"><span style="font-weight: bold;">$0</span></a>
+ * RULE = <a href="#$0"><span style="font-weight: bold;">$0</span></a>
+ * LITERAL = <span style="color: green;">$0</span>
  */
 
 module stdx.d.parser;
@@ -438,7 +443,7 @@ alias core.sys.posix.stdio.fileno fileno;
      *
      * $(GRAMMAR $(RULEDEF asmInstruction):
      *     $(LITERAL Identifier)
-     *     | $(LITERAL 'align') $(RULE IntegerLiteral)
+     *     | $(LITERAL 'align') $(LITERAL IntegerLiteral)
      *     | $(LITERAL 'align') $(LITERAL Identifier)
      *     | $(LITERAL Identifier) $(LITERAL ':') $(RULE asmInstruction)
      *     | $(LITERAL Identifier) $(RULE asmExp)
@@ -512,8 +517,8 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an AsmPrimaryExp
      *
      * $(GRAMMAR $(RULEDEF asmPrimaryExp):
-     *       $(RULE IntegerLiteral)
-     *     | $(RULE FloatLiteral)
+     *       $(LITERAL IntegerLiteral)
+     *     | $(LITERAL FloatLiteral)
      *     | $(RULE register)
      *     | $(RULE identifierChain)
      *     | $(LITERAL '$')
@@ -1365,7 +1370,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a ConditionalDeclaration
      *
      * $(GRAMMAR $(RULEDEF conditionalDeclaration):
-     *     $(RULE compileCondition) ($(RULE declaration) | $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')) ($(LITERAL 'else') ($(RULE declaration) | $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')))?
+     *       $(RULE compileCondition) $(RULE declaration)
+     *     | $(RULE compileCondition) $(LITERAL ':') $(RULE declaration)+
+     *     | $(RULE compileCondition) $(RULE declaration) ($(LITERAL 'else') $(RULE declaration))?
      *     ;)
      */
     ConditionalDeclaration parseConditionalDeclaration()
@@ -1374,9 +1381,17 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto node = new ConditionalDeclaration;
         node.compileCondition = parseCompileCondition();
 
+        if (currentIs(TokenType.colon))
+        {
+            advance();
+            while (isDeclaration())
+                node.trueDeclarations ~= parseDeclaration();
+            return node;
+        }
+
         auto dec = parseDeclaration();
         if (dec is null) return null;
-        node.trueDeclaration = dec;
+        node.trueDeclarations ~= dec;
 
         if(currentIs(TokenType.else_))
             advance();
@@ -4185,7 +4200,7 @@ q{(int a, ...)
      *
      * $(GRAMMAR $(RULEDEF register):
      *     $(LITERAL Identifier)
-     *     | $(LITERAL Identifier) $(LITERAL '$(LPAREN)') $(RULE IntegerLiteral) $(LITERAL '$(RPAREN)')
+     *     | $(LITERAL Identifier) $(LITERAL '$(LPAREN)') $(LITERAL IntegerLiteral) $(LITERAL '$(RPAREN)')
      *     ;)
      */
     Register parseRegister()
