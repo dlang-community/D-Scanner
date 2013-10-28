@@ -256,10 +256,10 @@ alias core.sys.posix.stdio.fileno fileno;
      *     $(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression)?)*
      *     ;)
      */
-    ArgumentList parseArgumentList(bool allowTrailingComma = false)
+    ArgumentList parseArgumentList()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)(allowTrailingComma);
+        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)(true);
     }
 
     /**
@@ -320,7 +320,7 @@ alias core.sys.posix.stdio.fileno fileno;
         auto node = new ArrayLiteral;
         if (expect(TokenType.lBracket) is null) return null;
         if (!currentIs(TokenType.rBracket))
-            node.argumentList = parseArgumentList(true);
+            node.argumentList = parseArgumentList();
         if (expect(TokenType.rBracket) is null) return null;
         return node;
     }
