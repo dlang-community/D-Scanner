@@ -3430,6 +3430,8 @@ invariant() foo();
     Module parseModule()
     {
         Module m = new Module;
+        if (currentIs(TokenType.scriptLine))
+            advance();
         if (currentIs(TokenType.module_))
             m.moduleDeclaration = parseModuleDeclaration();
         while (moreTokens())
@@ -6366,7 +6368,7 @@ protected:
             else
                 ++i;
         }
-        return depth == 0 ? &tokens[i] : null;
+        return i >= tokens.length ? null : depth == 0 ? &tokens[i] : null;
     }
 
     const(Token)* peekPastParens() const nothrow
