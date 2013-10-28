@@ -275,9 +275,10 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<conditionalDeclaration>");
 		visit(conditionalDeclaration.compileCondition);
-		output.writeln("<trueDeclaration>");
-		visit(conditionalDeclaration.trueDeclaration);
-		output.writeln("</trueDeclaration>");
+		output.writeln("<trueDeclarations>");
+		foreach (dec; conditionalDeclaration.trueDeclarations)
+			visit(dec);
+		output.writeln("</trueDeclarations>");
 		if (conditionalDeclaration.falseDeclaration !is null)
 		{
 			output.writeln("<falseDeclaration>");
