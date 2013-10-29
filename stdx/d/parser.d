@@ -1815,12 +1815,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         // Declarations are resolved by the declarations taking precedence."
         if (isDeclaration())
         {
-            trace("+++ parsing declaration");
+            trace("\033[01;36mparsing declaration");
             node.declaration = parseDeclaration();
         }
         else
         {
-            trace("+++ parsing statement");
+            trace("\033[01;36mparsing statement");
             node.statement = parseStatement();
         }
 
@@ -2232,13 +2232,13 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.foreachTypeList = feType;
         }
         if (expect(TokenType.rParen) is null) return null;
-		if (currentIs(TokenType.rBrace))
-		{
-			error("Statement expected", false);
-			return node; // this line makes DCD better
-		}
-        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
-        if (node.statementNoCaseNoDefault is null) return null;
+        if (currentIs(TokenType.rBrace))
+        {
+            error("Statement expected", false);
+            return node; // this line makes DCD better
+        }
+        node.declarationOrStatement = parseDeclarationOrStatement();
+        if (node.declarationOrStatement is null) return null;
         return node;
     }
 
@@ -2256,7 +2256,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIsOneOf(TokenType.ref_, TokenType.const_, TokenType.immutable_,
             TokenType.shared_, TokenType.inout_))
         {
-            trace("+++ Type constructor");
+            trace("\033[01;36mType constructor");
             if ((node.typeConstructors = parseTypeConstructors()) is null)
                 return null;
         }
@@ -6507,8 +6507,10 @@ protected:
 
     template traceEnterAndExit(string fun)
     {
-        enum traceEnterAndExit = `version (std_parser_verbose) trace(">>> ` ~ fun ~ ` ");`
-            ~ `version (std_parser_verbose) scope(exit) trace("<<< ` ~ fun ~ ` ");`;
+        enum traceEnterAndExit = `version (std_parser_verbose) trace("`
+            ~ "\033[01;32m" ~ fun ~ "\033[0m" ~ ` ");`
+            ~ `version (std_parser_verbose) scope(exit) trace("`
+            ~ "\033[01;31m" ~ fun ~ "\033[0m" ~ ` ");`;
     }
 
     version (std_parser_verbose)

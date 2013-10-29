@@ -1205,14 +1205,14 @@ public:
     override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(foreachType, foreachTypeList, low, high,
-            statementNoCaseNoDefault));
+            declarationOrStatement));
     }
     /** */ TokenType type;
     /** */ ForeachTypeList foreachTypeList;
 	/** */ ForeachType foreachType;
     /** */ Expression low;
     /** */ Expression high;
-    /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    /** */ DeclarationOrStatement declarationOrStatement;
 	/** */ size_t startIndex;
 }
 

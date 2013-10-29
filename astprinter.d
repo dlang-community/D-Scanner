@@ -493,6 +493,20 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<foreachStatement type=\"", getTokenValue(
 			foreachStatement.type), "\">");
+		if (foreachStatement.foreachType !is null)
+			visit(foreachStatement.foreachType);
+		if (foreachStatement.foreachTypeList !is null)
+			visit(foreachStatement.foreachTypeList);
+		output.writeln("<low>");
+		visit(foreachStatement.low);
+		output.writeln("</low>");
+		if (foreachStatement.high !is null)
+		{
+			output.writeln("<high>");
+			visit(foreachStatement.high);
+			output.writeln("</high>");
+		}
+		visit(foreachStatement.declarationOrStatement);
 		output.writeln("</foreachStatement>");
 	}
 
@@ -571,18 +585,14 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(IdentifierChain chain)
+	override void visit(IdentifierChain identifierChain)
 	{
-		output.writeln("<identifierChain>");
-		chain.accept(this);
-		output.writeln("</identifierChain>");
+		mixin (tagAndAccept!"identifierChain");
 	}
 
-	override void visit(IdentifierList list)
+	override void visit(IdentifierList identifierList)
 	{
-		output.writeln("<identifierList>");
-		list.accept(this);
-		output.writeln("</identifierList>");
+		mixin (tagAndAccept!"identifierList");
 	}
 
 	override void visit(IdentifierOrTemplateChain identifierOrTemplateChain)
