@@ -642,10 +642,10 @@ class XMLPrinter : ASTVisitor
 	override void visit(ImportBind importBind)
 	{
 		if (importBind.right.type == TokenType.invalid)
-			output.writeln("<importBind symbol=\"", importBind.left, "\">");
+			output.writeln("<importBind symbol=\"", importBind.left.value, "\">");
 		else
-			output.writeln("<importBind symbol=\"", importBind.right,
-				"\" rename=\"", importBind.left, "\">");
+			output.writeln("<importBind symbol=\"", importBind.right.value,
+				"\" rename=\"", importBind.left.value, "\">");
 	}
 
 	override void visit(ImportBindings importBindings)
