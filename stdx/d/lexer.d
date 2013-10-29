@@ -1070,11 +1070,10 @@ L_advance:
                     {
                         switch (src.peek())
                         {
-                        case 'u': case 'U': case 'i': case 'L': case 'f': case 'F':
-                        case 'e': case 'E':
-                            break decimalLoop;
-                        default:
+                        case '0': .. case '9':
                             goto doubleLiteral;
+                        default:
+                            break decimalLoop;
                         }
                     }
                     else
