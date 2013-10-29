@@ -1150,15 +1150,15 @@ class XMLPrinter : ASTVisitor
 
 		if (templateAliasParameter.assignExpression !is null)
 		{
-			output.writeln("<specialization>");
+			output.writeln("<default>");
 			visit(templateAliasParameter.assignExpression);
-			output.writeln("</specialization>");
+			output.writeln("</default>");
 		}
-		else if (templateAliasParameter.colonType !is null)
+		else if (templateAliasParameter.assignType !is null)
 		{
-			output.writeln("<specialization>");
+			output.writeln("<default>");
 			visit(templateAliasParameter.assignType);
-			output.writeln("</specialization>");
+			output.writeln("</default>");
 		}
 
 		output.writeln("</templateAliasParameter>");

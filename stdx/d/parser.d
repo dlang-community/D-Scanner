@@ -4789,8 +4789,11 @@ q{(int a, ...)
         expect(TokenType.alias_);
         if (currentIs(TokenType.identifier))
         {
-            if (peekIsOneOf(TokenType.comma, TokenType.rParen, TokenType.assign))
+            if (peekIsOneOf(TokenType.comma, TokenType.rParen, TokenType.assign,
+                TokenType.colon))
+            {
                 node.identifier = advance();
+            }
         }
         else
         {
