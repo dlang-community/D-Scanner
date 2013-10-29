@@ -6144,7 +6144,9 @@ protected:
     {
         auto b = setBookmark();
         scope (exit) goToBookmark(b);
-        return parseType() !is null;
+        if (parseType() is null) return false;
+        if (currentIsOneOf(TokenType.comma, TokenType.rParen)) return true;
+        return false;
     }
 
     bool isAttribute()
