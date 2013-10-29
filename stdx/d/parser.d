@@ -3413,10 +3413,10 @@ invariant() foo();
         {
             node.typeofExpression = parseTypeofExpression();
             expect(TokenType.dot);
-			node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
+            node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         }
         else
-			node.symbol = parseSymbol();
+            node.symbol = parseSymbol();
         return node;
     }
 
@@ -6192,6 +6192,7 @@ protected:
         case at:
         case ref_:
         case extern_:
+        case align_:
             return true;
         default:
             return false;
