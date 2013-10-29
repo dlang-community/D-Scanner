@@ -732,6 +732,7 @@ alias core.sys.posix.stdio.fileno fileno;
                 node.identifier = advance();
             break;
         case lParen:
+            advance();
             node.argumentList = parseArgumentList();
             expect(rParen);
             break;
