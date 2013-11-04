@@ -1179,8 +1179,21 @@ class XMLPrinter : ASTVisitor
 		mixin (tagAndAccept!"templateArguments");
 	}
 
+	override void visit (EponymousTemplateDeclaration eponymousTemplateDeclaration)
+	{
+		mixin (tagAndAccept!"eponymousTemplateDeclaration");
+	}
+
 	override void visit(TemplateDeclaration templateDeclaration)
 	{
+		if (templateDeclaration.eponymousTemplateDeclaration !is null)
+		{
+			output.writeln("<templateDeclaration>");
+			visit(templateDeclaration.eponymousTemplateDeclaration);
+			output.writeln("</templateDeclaration>");
+			return;
+		}
+
 		output.writeln("<templateDeclaration line=\"",
 			templateDeclaration.name.line, "\">");
 		output.writeln("<name>", templateDeclaration.name.value, "</name>");

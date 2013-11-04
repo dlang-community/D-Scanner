@@ -1666,6 +1666,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             if (node.destructor is null) return null;
             break;
         case enum_:
+            if (startsWith(TokenType.enum_, TokenType.identifier, TokenType.lParen))
+                goto case template_;
             node.enumDeclaration = parseEnumDeclaration();
             if (node.enumDeclaration is null) return null;
             break;
@@ -4890,13 +4892,19 @@ q{(int a, ...)
      * Parses a TemplateDeclaration
      *
      * $(GRAMMAR $(RULEDEF templateDeclaration):
-     *     $(LITERAL 'template') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')
+     *       $(LITERAL 'template') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? $(LITERAL '{') $(RULE declaration)* $(LITERAL '}')
+     *     | $(RULE eponymousTemplateDeclaration)
      *     ;)
      */
     TemplateDeclaration parseTemplateDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateDeclaration;
+        if (currentIs(TokenType.enum_))
+        {
+            node.eponymousTemplateDeclaration = parseEponymousTemplateDeclaration();
+            return node;
+        }
         expect(TokenType.template_);
         auto ident = expect(TokenType.identifier);
         if (ident is null) return null;
@@ -4912,6 +4920,28 @@ q{(int a, ...)
                 node.declarations ~= decl;
         }
         expect(TokenType.rBrace);
+        return node;
+    }
+
+    /**
+     * Parses an EponymousTemplateDeclaration
+     *
+     * $(GRAMMAR $(RULEDEF eponymousTemplateDeclaration):
+     *     $(LITERAL 'enum') $(LITERAL Identifier) $(RULE templateParameters) $(LITERAL '=') $(RULE assignExpression) $(LITERAL ';')
+     *     ;)
+     */
+    EponymousTemplateDeclaration parseEponymousTemplateDeclaration()
+    {
+        mixin(traceEnterAndExit!(__FUNCTION__));
+        auto node = new EponymousTemplateDeclaration;
+        expect(TokenType.enum_);
+        auto ident = expect(TokenType.identifier);
+        if (ident is null) return null;
+        node.name = *ident;
+        node.templateParameters = parseTemplateParameters();
+        expect(TokenType.assign);
+        node.assignExpression = parseAssignExpression();
+        expect(TokenType.semicolon);
         return node;
     }
 
@@ -6173,6 +6203,8 @@ protected:
                 return false;
             else if (peekIs(TokenType.identifier))
             {
+                if (startsWith(TokenType.enum_, TokenType.identifier, TokenType.lParen))
+                    return false;
                 auto b = setBookmark();
                 scope(exit) goToBookmark(b);
                 advance();

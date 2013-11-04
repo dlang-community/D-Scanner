@@ -101,6 +101,7 @@ public:
     /** */ void visit(EnumBody enumBody) { enumBody.accept(this); }
     /** */ void visit(EnumDeclaration enumDeclaration) { enumDeclaration.accept(this); }
     /** */ void visit(EnumMember enumMember) { enumMember.accept(this); }
+    /** */ void visit(EponymousTemplateDeclaration eponymousTemplateDeclaration) { eponymousTemplateDeclaration.accept(this); }
     /** */ void visit(EqualExpression equalExpression) { equalExpression.accept(this); }
     /** */ void visit(Expression expression) { expression.accept(this); }
     /** */ void visit(ExpressionNode expressionNode) { expressionNode.accept(this); }
@@ -1123,6 +1124,19 @@ public:
     }
     /** */ Token name;
     /** */ Type type;
+    /** */ AssignExpression assignExpression;
+}
+
+///
+class EponymousTemplateDeclaration : ASTNode
+{
+public:
+    override void accept(ASTVisitor visitor)
+    {
+        mixin (visitIfNotNull!(name, templateParameters, assignExpression));
+    }
+    /** */ Token name;
+    /** */ TemplateParameters templateParameters;
     /** */ AssignExpression assignExpression;
 }
 
@@ -2354,12 +2368,13 @@ public:
     override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(name, templateParameters, constraint,
-            declarations));
+            declarations, eponymousTemplateDeclaration));
     }
     /** */ Token name;
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ Declaration[] declarations;
+    /** */ EponymousTemplateDeclaration eponymousTemplateDeclaration;
 }
 
 ///
