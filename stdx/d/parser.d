@@ -1683,7 +1683,23 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             if (peekIs(TokenType.template_))
                 node.mixinTemplateDeclaration = parseMixinTemplateDeclaration();
             else
-                node.mixinDeclaration = parseMixinDeclaration();
+            {
+                auto b = setBookmark();
+                advance();
+                auto t = peekPastParens();
+                if (t !is null && t.type == TokenType.semicolon)
+                {
+                    goToBookmark(b);
+                    node.mixinDeclaration = parseMixinDeclaration();
+                }
+                else
+                {
+                    goToBookmark(b);
+                    error("Declaration expected");
+                    advance();
+                    return null;
+                }
+            }
             break;
         case pragma_:
             node.pragmaDeclaration = parsePragmaDeclaration();
