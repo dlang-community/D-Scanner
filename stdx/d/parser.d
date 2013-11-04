@@ -6077,6 +6077,7 @@ protected:
     bool isDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
+        if (!moreTokens()) return false;
         with (TokenType) switch (current.type)
         {
         case final_:
@@ -6161,6 +6162,7 @@ protected:
 
     bool isStatement()
     {
+        if (!moreTokens()) return false;
         auto b = setBookmark();
         scope (exit) goToBookmark(b);
         return parseStatement() !is null;
@@ -6168,6 +6170,7 @@ protected:
 
     bool isExpression()
     {
+        if (!moreTokens()) return false;
         auto b = setBookmark();
         scope (exit) goToBookmark(b);
         return parseExpression() !is null;
@@ -6175,6 +6178,7 @@ protected:
 
     bool isType()
     {
+        if (!moreTokens()) return false;
         auto b = setBookmark();
         scope (exit) goToBookmark(b);
         if (parseType() is null) return false;
