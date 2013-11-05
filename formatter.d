@@ -64,7 +64,7 @@ class Formatter(Sink)
 		this.style = style;
 	}
 
-	void format(AddExpression addExpression)
+	void format(const AddExpression addExpression)
 	{
 		format(addExpression.left);
 		if (addExpression.right is null)
@@ -75,262 +75,262 @@ class Formatter(Sink)
 		format(addExpression.right);
 	}
 
-	void format(AliasDeclaration aliasDeclaration)
+	void format(const AliasDeclaration aliasDeclaration)
 	{}
 
-	void format(AliasInitializer aliasInitializer)
+	void format(const AliasInitializer aliasInitializer)
 	{}
 
-	void format(AliasThisDeclaration aliasThisDeclaration)
+	void format(const AliasThisDeclaration aliasThisDeclaration)
 	{}
 
-	void format(AlignAttribute alignAttribute)
+	void format(const AlignAttribute alignAttribute)
 	{}
 
-	void format(AndAndExpression andAndExpression)
+	void format(const AndAndExpression andAndExpression)
 	{}
 
-	void format(AndExpression andExpression)
+	void format(const AndExpression andExpression)
 	{}
 
-	void format(ArgumentList argumentList)
+	void format(const ArgumentList argumentList)
 	{}
 
-	void format(Arguments arguments)
+	void format(const Arguments arguments)
 	{}
 
-	void format(ArrayInitializer arrayInitializer)
+	void format(const ArrayInitializer arrayInitializer)
 	{}
 
-	void format(ArrayLiteral arrayLiteral)
+	void format(const ArrayLiteral arrayLiteral)
 	{}
 
-	void format(ArrayMemberInitialization arrayMemberInitialization)
+	void format(const ArrayMemberInitialization arrayMemberInitialization)
 	{}
 
-	void format(AsmAddExp asmAddExp)
+	void format(const AsmAddExp asmAddExp)
 	{}
 
-	void format(AsmAndExp asmAndExp)
+	void format(const AsmAndExp asmAndExp)
 	{}
 
-	void format(AsmBrExp asmBrExp)
+	void format(const AsmBrExp asmBrExp)
 	{}
 
-	void format(AsmEqualExp asmEqualExp)
+	void format(const AsmEqualExp asmEqualExp)
 	{}
 
-	void format(AsmExp asmExp)
+	void format(const AsmExp asmExp)
 	{}
 
-	void format(AsmInstruction asmInstruction)
+	void format(const AsmInstruction asmInstruction)
 	{}
 
-	void format(AsmLogAndExp asmLogAndExp)
+	void format(const AsmLogAndExp asmLogAndExp)
 	{}
 
-	void format(AsmLogOrExp asmLogOrExp)
+	void format(const AsmLogOrExp asmLogOrExp)
 	{}
 
-	void format(AsmMulExp asmMulExp)
+	void format(const AsmMulExp asmMulExp)
 	{}
 
-	void format(AsmOrExp asmOrExp)
+	void format(const AsmOrExp asmOrExp)
 	{}
 
-	void format(AsmPrimaryExp asmPrimaryExp)
+	void format(const AsmPrimaryExp asmPrimaryExp)
 	{}
 
-	void format(AsmRelExp asmRelExp)
+	void format(const AsmRelExp asmRelExp)
 	{}
 
-	void format(AsmShiftExp asmShiftExp)
+	void format(const AsmShiftExp asmShiftExp)
 	{}
 
-	void format(AsmStatement asmStatement)
+	void format(const AsmStatement asmStatement)
 	{}
 
-	void format(AsmTypePrefix asmTypePrefix)
+	void format(const AsmTypePrefix asmTypePrefix)
 	{}
 
-	void format(AsmUnaExp asmUnaExp)
+	void format(const AsmUnaExp asmUnaExp)
 	{}
 
-	void format(AsmXorExp asmXorExp)
+	void format(const AsmXorExp asmXorExp)
 	{}
 
-	void format(AssertExpression assertExpression)
+	void format(const AssertExpression assertExpression)
 	{}
 
-	void format(AssignExpression assignExpression)
+	void format(const AssignExpression assignExpression)
 	{}
 
-	void format(AssocArrayLiteral assocArrayLiteral)
+	void format(const AssocArrayLiteral assocArrayLiteral)
 	{}
 
-	void format(AtAttribute atAttribute)
+	void format(const AtAttribute atAttribute)
 	{}
 
-	void format(Attribute attribute)
+	void format(const Attribute attribute)
 	{}
 
-	void format(AttributeDeclaration attributeDeclaration)
+	void format(const AttributeDeclaration attributeDeclaration)
 	{}
 
-	void format(AutoDeclaration autoDeclaration)
+	void format(const AutoDeclaration autoDeclaration)
 	{}
 
-	void format(BlockStatement blockStatement)
+	void format(const BlockStatement blockStatement)
 	{}
 
-	void format(BodyStatement bodyStatement)
+	void format(const BodyStatement bodyStatement)
 	{}
 
-	void format(BreakStatement breakStatement)
+	void format(const BreakStatement breakStatement)
 	{}
 
-	void format(BaseClass baseClass)
+	void format(const BaseClass baseClass)
 	{}
 
-	void format(BaseClassList baseClassList)
+	void format(const BaseClassList baseClassList)
 	{}
 
-	void format(CaseRangeStatement caseRangeStatement)
+	void format(const CaseRangeStatement caseRangeStatement)
 	{}
 
-	void format(CaseStatement caseStatement)
+	void format(const CaseStatement caseStatement)
 	{}
 
-	void format(CastExpression castExpression)
+	void format(const CastExpression castExpression)
 	{}
 
-	void format(CastQualifier castQualifier)
+	void format(const CastQualifier castQualifier)
 	{}
 
-	void format(Catch catch_)
+	void format(const Catch catch_)
 	{}
 
-	void format(Catches catches)
+	void format(const Catches catches)
 	{}
 
-	void format(ClassDeclaration classDeclaration)
+	void format(const ClassDeclaration classDeclaration)
 	{}
 
-	void format(CmpExpression cmpExpression)
+	void format(const CmpExpression cmpExpression)
 	{}
 
-	void format(CompileCondition compileCondition)
+	void format(const CompileCondition compileCondition)
 	{}
 
-	void format(ConditionalDeclaration conditionalDeclaration)
+	void format(const ConditionalDeclaration conditionalDeclaration)
 	{}
 
-	void format(ConditionalStatement conditionalStatement)
+	void format(const ConditionalStatement conditionalStatement)
 	{}
 
-	void format(Constraint constraint)
+	void format(const Constraint constraint)
 	{}
 
-	void format(Constructor constructor)
+	void format(const Constructor constructor)
 	{}
 
-	void format(ContinueStatement continueStatement)
+	void format(const ContinueStatement continueStatement)
 	{}
 
-	void format(DebugCondition debugCondition)
+	void format(const DebugCondition debugCondition)
 	{}
 
-	void format(DebugSpecification debugSpecification)
+	void format(const DebugSpecification debugSpecification)
 	{}
 
-	void format(Declaration declaration)
+	void format(const Declaration declaration)
 	{}
 
-	void format(DeclarationOrStatement declarationsOrStatement)
+	void format(const DeclarationOrStatement declarationsOrStatement)
 	{}
 
-	void format(DeclarationsAndStatements declarationsAndStatements)
+	void format(const DeclarationsAndStatements declarationsAndStatements)
 	{}
 
-	void format(Declarator declarator)
+	void format(const Declarator declarator)
 	{}
 
-	void format(DefaultStatement defaultStatement)
+	void format(const DefaultStatement defaultStatement)
 	{}
 
-	void format(DeleteExpression deleteExpression)
+	void format(const DeleteExpression deleteExpression)
 	{}
 
-	void format(DeleteStatement deleteStatement)
+	void format(const DeleteStatement deleteStatement)
 	{}
 
-	void format(Deprecated deprecated_)
+	void format(const Deprecated deprecated_)
 	{}
 
-	void format(Destructor destructor)
+	void format(const Destructor destructor)
 	{}
 
-	void format(DoStatement doStatement)
+	void format(const DoStatement doStatement)
 	{}
 
-	void format(EnumBody enumBody)
+	void format(const EnumBody enumBody)
 	{}
 
-	void format(EnumDeclaration enumDeclaration)
+	void format(const EnumDeclaration enumDeclaration)
 	{}
 
-	void format(EnumMember enumMember)
+	void format(const EnumMember enumMember)
 	{}
 
-	void format(EqualExpression equalExpression)
+	void format(const EqualExpression equalExpression)
 	{}
 
-	void format(Expression expression)
+	void format(const Expression expression)
 	{}
 
-	void format(ExpressionNode expressionNode)
+	void format(const ExpressionNode expressionNode)
 	{}
 
-	void format(ExpressionStatement expressionStatement)
+	void format(const ExpressionStatement expressionStatement)
 	{}
 
-	void format(FinalSwitchStatement finalSwitchStatement)
+	void format(const FinalSwitchStatement finalSwitchStatement)
 	{}
 
-	void format(Finally finally_)
+	void format(const Finally finally_)
 	{}
 
-	void format(ForStatement forStatement)
+	void format(const ForStatement forStatement)
 	{}
 
-	void format(ForeachStatement foreachStatement)
+	void format(const ForeachStatement foreachStatement)
 	{}
 
-	void format(ForeachType foreachType)
+	void format(const ForeachType foreachType)
 	{}
 
-	void format(ForeachTypeList foreachTypeList)
+	void format(const ForeachTypeList foreachTypeList)
 	{}
 
-	void format(FunctionAttribute functionAttribute)
+	void format(const FunctionAttribute functionAttribute)
 	{}
 
-	void format(FunctionBody functionBody)
+	void format(const FunctionBody functionBody)
 	{}
 
-	void format(FunctionCallExpression functionCallExpression)
+	void format(const FunctionCallExpression functionCallExpression)
 	{}
 
-	void format(FunctionCallStatement functionCallStatement)
+	void format(const FunctionCallStatement functionCallStatement)
 	{}
 
-	void format(FunctionDeclaration functionDeclaration)
+	void format(const FunctionDeclaration functionDeclaration)
 	{}
 
-	void format(FunctionLiteralExpression functionLiteralExpression)
+	void format(const FunctionLiteralExpression functionLiteralExpression)
 	{}
 
-	void format(GotoStatement gotoStatement)
+	void format(const GotoStatement gotoStatement)
 	{
 		sink.put("goto ");
 		if (gotoStatement.label != TokenType.invalid)
@@ -340,7 +340,7 @@ class Formatter(Sink)
 		sink.put(";");
 	}
 
-	void format(IdentifierChain identifierChain)
+	void format(const IdentifierChain identifierChain)
 	{
 		bool first = true;
 		foreach(ident; identifierChain.identifiers)
@@ -352,10 +352,10 @@ class Formatter(Sink)
 		}
 	}
 
-	void format(IdentifierList identifierList)
+	void format(const IdentifierList identifierList)
 	{}
 
-	void format(IdentifierOrTemplateChain identifierOrTemplateChain)
+	void format(const IdentifierOrTemplateChain identifierOrTemplateChain)
 	{
 		bool first = true;
 		foreach(ident; identifierOrTemplateChain.identifiersOrTemplateInstances)
@@ -367,7 +367,7 @@ class Formatter(Sink)
 		}
 	}
 
-	void format(IdentifierOrTemplateInstance identifierOrTemplateInstance)
+	void format(const IdentifierOrTemplateInstance identifierOrTemplateInstance)
 	{
 		if (identifierOrTemplateInstance.templateInstance !is null)
 			format(identifierOrTemplateInstance.templateInstance);
@@ -376,115 +376,115 @@ class Formatter(Sink)
 
 	}
 
-	void format(IdentityExpression identityExpression)
+	void format(const IdentityExpression identityExpression)
 	{}
 
-	void format(IfStatement ifStatement)
+	void format(const IfStatement ifStatement)
 	{}
 
-	void format(ImportBind importBind)
+	void format(const ImportBind importBind)
 	{}
 
-	void format(ImportBindings importBindings)
+	void format(const ImportBindings importBindings)
 	{}
 
-	void format(ImportDeclaration importDeclaration)
+	void format(const ImportDeclaration importDeclaration)
 	{}
 
-	void format(ImportExpression importExpression)
+	void format(const ImportExpression importExpression)
 	{}
 
-	void format(IndexExpression indexExpression)
+	void format(const IndexExpression indexExpression)
 	{}
 
-	void format(InExpression inExpression)
+	void format(const InExpression inExpression)
 	{}
 
-	void format(InStatement inStatement)
+	void format(const InStatement inStatement)
 	{}
 
-	void format(Initialize initialize)
+	void format(const Initialize initialize)
 	{}
 
-	void format(Initializer initializer)
+	void format(const Initializer initializer)
 	{}
 
-	void format(InterfaceDeclaration interfaceDeclaration)
+	void format(const InterfaceDeclaration interfaceDeclaration)
 	{}
 
-	void format(Invariant invariant_)
+	void format(const Invariant invariant_)
 	{}
 
-	void format(IsExpression isExpression)
+	void format(const IsExpression isExpression)
 	{}
 
-	void format(KeyValuePair keyValuePair)
+	void format(const KeyValuePair keyValuePair)
 	{}
 
-	void format(KeyValuePairs keyValuePairs)
+	void format(const KeyValuePairs keyValuePairs)
 	{}
 
-	void format(LabeledStatement labeledStatement)
+	void format(const LabeledStatement labeledStatement)
 	{}
 
-	void format(LambdaExpression lambdaExpression)
+	void format(const LambdaExpression lambdaExpression)
 	{}
 
-	void format(LastCatch lastCatch)
+	void format(const LastCatch lastCatch)
 	{}
 
-	void format(LinkageAttribute linkageAttribute)
+	void format(const LinkageAttribute linkageAttribute)
 	{}
 
-	void format(MemberFunctionAttribute memberFunctionAttribute)
+	void format(const MemberFunctionAttribute memberFunctionAttribute)
 	{}
 
-	void format(MixinDeclaration mixinDeclaration)
+	void format(const MixinDeclaration mixinDeclaration)
 	{}
 
-	void format(MixinExpression mixinExpression)
+	void format(const MixinExpression mixinExpression)
 	{}
 
-	void format(MixinTemplateDeclaration mixinTemplateDeclaration)
+	void format(const MixinTemplateDeclaration mixinTemplateDeclaration)
 	{}
 
-	void format(MixinTemplateName mixinTemplateName)
+	void format(const MixinTemplateName mixinTemplateName)
 	{}
 
-	void format(Module module_)
+	void format(const Module module_)
 	{}
 
-	void format(ModuleDeclaration moduleDeclaration)
+	void format(const ModuleDeclaration moduleDeclaration)
 	{}
 
-	void format(MulExpression mulExpression)
+	void format(const MulExpression mulExpression)
 	{}
 
-	void format(NewAnonClassExpression newAnonClassExpression)
+	void format(const NewAnonClassExpression newAnonClassExpression)
 	{}
 
-	void format(NewExpression newExpression)
+	void format(const NewExpression newExpression)
 	{}
 
-	void format(NonVoidInitializer nonVoidInitializer)
+	void format(const NonVoidInitializer nonVoidInitializer)
 	{}
 
-	void format(Operand operand)
+	void format(const Operand operand)
 	{}
 
-	void format(Operands operands)
+	void format(const Operands operands)
 	{}
 
-	void format(OrExpression orExpression)
+	void format(const OrExpression orExpression)
 	{}
 
-	void format(OrOrExpression orOrExpression)
+	void format(const OrOrExpression orOrExpression)
 	{}
 
-	void format(OutStatement outStatement)
+	void format(const OutStatement outStatement)
 	{}
 
-	void format(Parameter parameter)
+	void format(const Parameter parameter)
 	{
 		foreach (attribute; parameter.parameterAttributes)
 		{
@@ -501,7 +501,7 @@ class Formatter(Sink)
 			sink.put(" ...");
 	}
 
-	void format(Parameters parameters)
+	void format(const Parameters parameters)
 	{
 		sink.put("(");
 		bool first = true;
@@ -515,172 +515,172 @@ class Formatter(Sink)
 		sink.put(")");
 	}
 
-	void format(Postblit postblit)
+	void format(const Postblit postblit)
 	{}
 
-	void format(PostIncDecExpression postIncDecExpression)
+	void format(const PostIncDecExpression postIncDecExpression)
 	{}
 
-	void format(PowExpression powExpression)
+	void format(const PowExpression powExpression)
 	{}
 
-	void format(PragmaDeclaration pragmaDeclaration)
+	void format(const PragmaDeclaration pragmaDeclaration)
 	{}
 
-	void format(PragmaExpression pragmaExpression)
+	void format(const PragmaExpression pragmaExpression)
 	{}
 
-	void format(PreIncDecExpression preIncDecExpression)
+	void format(const PreIncDecExpression preIncDecExpression)
 	{}
 
-	void format(PrimaryExpression primaryExpression)
+	void format(const PrimaryExpression primaryExpression)
 	{}
 
-	void format(Register register)
+	void format(const Register register)
 	{}
 
-	void format(RelExpression relExpression)
+	void format(const RelExpression relExpression)
 	{}
 
-	void format(ReturnStatement returnStatement)
+	void format(const ReturnStatement returnStatement)
 	{}
 
-	void format(ScopeGuardStatement scopeGuardStatement)
+	void format(const ScopeGuardStatement scopeGuardStatement)
 	{}
 
-	void format(SharedStaticConstructor sharedStaticConstructor)
+	void format(const SharedStaticConstructor sharedStaticConstructor)
 	{}
 
-	void format(SharedStaticDestructor sharedStaticDestructor)
+	void format(const SharedStaticDestructor sharedStaticDestructor)
 	{}
 
-	void format(ShiftExpression shiftExpression)
+	void format(const ShiftExpression shiftExpression)
 	{}
 
-	void format(SingleImport singleImport)
+	void format(const SingleImport singleImport)
 	{}
 
-	void format(SliceExpression sliceExpression)
+	void format(const SliceExpression sliceExpression)
 	{}
 
-	void format(Statement statement)
+	void format(const Statement statement)
 	{}
 
-	void format(StatementNoCaseNoDefault statementNoCaseNoDefault)
+	void format(const StatementNoCaseNoDefault statementNoCaseNoDefault)
 	{}
 
-	void format(StaticAssertDeclaration staticAssertDeclaration)
+	void format(const StaticAssertDeclaration staticAssertDeclaration)
 	{}
 
-	void format(StaticAssertStatement staticAssertStatement)
+	void format(const StaticAssertStatement staticAssertStatement)
 	{}
 
-	void format(StaticConstructor staticConstructor)
+	void format(const StaticConstructor staticConstructor)
 	{}
 
-	void format(StaticDestructor staticDestructor)
+	void format(const StaticDestructor staticDestructor)
 	{}
 
-	void format(StaticIfCondition staticIfCondition)
+	void format(const StaticIfCondition staticIfCondition)
 	{}
 
-	void format(StorageClass storageClass)
+	void format(const StorageClass storageClass)
 	{}
 
-	void format(StructBody structBody)
+	void format(const StructBody structBody)
 	{}
 
-	void format(StructDeclaration structDeclaration)
+	void format(const StructDeclaration structDeclaration)
 	{}
 
-	void format(StructInitializer structInitializer)
+	void format(const StructInitializer structInitializer)
 	{}
 
-	void format(StructMemberInitializer structMemberInitializer)
+	void format(const StructMemberInitializer structMemberInitializer)
 	{}
 
-	void format(StructMemberInitializers structMemberInitializers)
+	void format(const StructMemberInitializers structMemberInitializers)
 	{}
 
-	void format(SwitchStatement switchStatement)
+	void format(const SwitchStatement switchStatement)
 	{}
 
-	void format(Symbol symbol)
+	void format(const Symbol symbol)
 	{
         if (symbol.dot != TokenType.invalid)
             sink.put(".");
 		format(symbol.identifierOrTemplateChain);
 	}
 
-	void format(SynchronizedStatement synchronizedStatement)
+	void format(const SynchronizedStatement synchronizedStatement)
 	{}
 
-	void format(TemplateAliasParameter templateAliasParameter)
+	void format(const TemplateAliasParameter templateAliasParameter)
 	{}
 
-	void format(TemplateArgument templateArgument)
+	void format(const TemplateArgument templateArgument)
 	{}
 
-	void format(TemplateArgumentList templateArgumentList)
+	void format(const TemplateArgumentList templateArgumentList)
 	{}
 
-	void format(TemplateArguments templateArguments)
+	void format(const TemplateArguments templateArguments)
 	{}
 
-	void format(TemplateDeclaration templateDeclaration)
+	void format(const TemplateDeclaration templateDeclaration)
 	{}
 
-	void format(TemplateInstance templateInstance)
+	void format(const TemplateInstance templateInstance)
 	{}
 
-	void format(TemplateMixinExpression templateMixinExpression)
+	void format(const TemplateMixinExpression templateMixinExpression)
 	{}
 
-	void format(TemplateParameter templateParameter)
+	void format(const TemplateParameter templateParameter)
 	{}
 
-	void format(TemplateParameterList templateParameterList)
+	void format(const TemplateParameterList templateParameterList)
 	{}
 
-	void format(TemplateParameters templateParameters)
+	void format(const TemplateParameters templateParameters)
 	{}
 
-	void format(TemplateSingleArgument templateSingleArgument)
+	void format(const TemplateSingleArgument templateSingleArgument)
 	{}
 
-	void format(TemplateThisParameter templateThisParameter)
+	void format(const TemplateThisParameter templateThisParameter)
 	{}
 
-	void format(TemplateTupleParameter templateTupleParameter)
+	void format(const TemplateTupleParameter templateTupleParameter)
 	{}
 
-	void format(TemplateTypeParameter templateTypeParameter)
+	void format(const TemplateTypeParameter templateTypeParameter)
 	{}
 
-	void format(TemplateValueParameter templateValueParameter)
+	void format(const TemplateValueParameter templateValueParameter)
 	{}
 
-	void format(TemplateValueParameterDefault templateValueParameterDefault)
+	void format(const TemplateValueParameterDefault templateValueParameterDefault)
 	{}
 
-	void format(TernaryExpression ternaryExpression)
+	void format(const TernaryExpression ternaryExpression)
 	{}
 
-	void format(ThrowStatement throwStatement)
+	void format(const ThrowStatement throwStatement)
 	{}
 
-	void format(Token token)
+	void format(const Token token)
 	{
 		sink.put(token.value);
 	}
 
-	void format(TraitsExpression traitsExpression)
+	void format(const TraitsExpression traitsExpression)
 	{}
 
-	void format(TryStatement tryStatement)
+	void format(const TryStatement tryStatement)
 	{}
 
-	void format(Type type)
+	void format(const Type type)
 	{
         bool first = true;
         foreach (constructor; type.typeConstructors)
@@ -699,7 +699,7 @@ class Formatter(Sink)
         }
 	}
 
-	void format(Type2 type2)
+	void format(const Type2 type2)
 	{
         if (type2.symbol !is null)
         {
@@ -723,10 +723,10 @@ class Formatter(Sink)
             sink.put(getTokenValue(type2.builtinType));
 	}
 
-	void format(TypeSpecialization typeSpecialization)
+	void format(const TypeSpecialization typeSpecialization)
 	{}
 
-	void format(TypeSuffix typeSuffix)
+	void format(const TypeSuffix typeSuffix)
 	{
         if (typeSuffix.star)
 		{
@@ -780,40 +780,40 @@ class Formatter(Sink)
         }
 	}
 
-	void format(TypeidExpression typeidExpression)
+	void format(const TypeidExpression typeidExpression)
 	{}
 
-	void format(TypeofExpression typeofExpression)
+	void format(const TypeofExpression typeofExpression)
 	{}
 
-	void format(UnaryExpression unaryExpression)
+	void format(const UnaryExpression unaryExpression)
 	{}
 
-	void format(UnionDeclaration unionDeclaration)
+	void format(const UnionDeclaration unionDeclaration)
 	{}
 
-	void format(Unittest unittest_)
+	void format(const Unittest unittest_)
 	{}
 
-	void format(VariableDeclaration variableDeclaration)
+	void format(const VariableDeclaration variableDeclaration)
 	{}
 
-	void format(Vector vector)
+	void format(const Vector vector)
 	{}
 
-	void format(VersionCondition versionCondition)
+	void format(const VersionCondition versionCondition)
 	{}
 
-	void format(VersionSpecification versionSpecification)
+	void format(const VersionSpecification versionSpecification)
 	{}
 
-	void format(WhileStatement whileStatement)
+	void format(const WhileStatement whileStatement)
 	{}
 
-	void format(WithStatement withStatement)
+	void format(const WithStatement withStatement)
 	{}
 
-	void format(XorExpression xorExpression)
+	void format(const XorExpression xorExpression)
 	{}
 
 private:
