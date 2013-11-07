@@ -1686,18 +1686,26 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             {
                 auto b = setBookmark();
                 advance();
-                auto t = peekPastParens();
-                if (t !is null && t.type == TokenType.semicolon)
+                if (currentIs(TokenType.lParen))
                 {
-                    goToBookmark(b);
-                    node.mixinDeclaration = parseMixinDeclaration();
+                    auto t = peekPastParens();
+                    if (t !is null && t.type == TokenType.semicolon)
+                    {
+                        goToBookmark(b);
+                        node.mixinDeclaration = parseMixinDeclaration();
+                    }
+                    else
+                    {
+                        goToBookmark(b);
+                        error("Declaration expected");
+                        advance();
+                        return null;
+                    }
                 }
                 else
                 {
                     goToBookmark(b);
-                    error("Declaration expected");
-                    advance();
-                    return null;
+                    node.mixinDeclaration = parseMixinDeclaration();
                 }
             }
             break;
