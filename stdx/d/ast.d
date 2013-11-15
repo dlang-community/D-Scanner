@@ -942,7 +942,8 @@ public:
             templateDeclaration, constructor,
             destructor, staticConstructor, staticDestructor,
             sharedStaticDestructor, sharedStaticConstructor,
-            conditionalDeclaration, pragmaDeclaration, versionSpecification));
+            conditionalDeclaration, pragmaDeclaration, versionSpecification,
+            declarations));
     }
 
     /** */ Attribute[] attributes;
