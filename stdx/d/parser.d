@@ -851,8 +851,10 @@ alias core.sys.posix.stdio.fileno fileno;
         if (!currentIs(TokenType.rBrace))
             node.declarationsAndStatements = parseDeclarationsAndStatements();
         auto closeBrace = expect(TokenType.rBrace);
-        if (closeBrace is null) return null;
-        node.endLocation = closeBrace.startIndex;
+        if (closeBrace !is null)
+            node.endLocation = closeBrace.startIndex;
+        else
+            node.endLocation = size_t.max;
         return node;
     }
 
