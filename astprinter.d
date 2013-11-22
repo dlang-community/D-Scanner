@@ -322,7 +322,7 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<continueStatement/>");
 		else
 			output.writeln("<continueStatement label=\"",
-				continueStatement.label, "\"/>");
+				continueStatement.label.value, "\"/>");
 	}
 
 	override void visit(DebugCondition debugCondition)
