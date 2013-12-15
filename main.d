@@ -89,12 +89,9 @@ int main(string[] args)
 
 	if (highlight)
 	{
-		LexerConfig config;
-		config.iterStyle = IterationStyle.everything;
-		config.tokenStyle = TokenStyle.source;
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
-		highlighter.highlight(byToken(bytes, config),
+		highlighter.highlight(byToken!(typeof(bytes), false, false)(bytes),
 			args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
@@ -104,13 +101,12 @@ int main(string[] args)
 	}
 	else
 	{
-		LexerConfig config;
 		bool usingStdin = args.length == 1;
 		if (sloc || tokenCount)
 		{
 			if (usingStdin)
 			{
-				auto tokens = byToken(readStdin(), config);
+				auto tokens = byToken!(ubyte[], false, false)(readStdin());
 				if (tokenCount)
 					printTokenCount(stdout, "stdin", tokens);
 				else
@@ -121,7 +117,7 @@ int main(string[] args)
 				ulong count;
 				foreach (f; expandArgs(args, recursive))
 				{
-					auto tokens = byToken(readFile(f), config);
+					auto tokens = byToken!(ubyte[])(readFile(f));
 					if (tokenCount)
 						count += printTokenCount(stdout, f, tokens);
 					else
@@ -132,48 +128,28 @@ int main(string[] args)
 		}
 		else if (syntaxCheck)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 		}
 		else if (imports)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			auto mod = parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 			auto visitor = new ImportPrinter;
 			visitor.visit(mod);
 		}
 		else if (ast)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			auto mod = parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
 			printer.visit(mod);
 		}
 		else if (outline)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			auto mod = parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 			auto outliner = new Outliner(stdout);
 			outliner.visit(mod);
 		}

@@ -1,0 +1,276 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<title>main.d</title>
+</head>
+<body>
+<style type="text/css">
+html  { background-color: #fdf6e3; color: #002b36; }
+.kwrd { color: #b58900; font-weight: bold;  }
+.com  { color: #93a1a1; font-style: italic; }
+.num  { color: #dc322f; font-weigth: bold;  }
+.str  { color: #2aa198; font-style: italic; }
+.op   { color: #586e75; font-weight: bold;  }
+.type { color: #268bd2; font-weight: bold;  }
+.cons { color: #859900; font-weight: bold;  }
+</style>
+<pre>
+<span class="com">//          Copyright Brian Schott (Sir Alaran) 2012.</span>
+<span class="com">// Distributed under the Boost Software License, Version 1.0.</span>
+<span class="com">//    (See accompanying file LICENSE_1_0.txt or copy at</span>
+<span class="com">//          http://www.boost.org/LICENSE_1_0.txt)</span>
+
+<span class="kwrd">module</span> main<span class="op">;</span>
+
+<span class="kwrd">import</span> std<span class="op">.</span>algorithm<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>array<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>conv<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>file<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>getopt<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>parallelism<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>path<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>regex<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>stdio<span class="op">;</span>
+<span class="kwrd">import</span> std<span class="op">.</span>range<span class="op">;</span>
+<span class="kwrd">import</span> stdx<span class="op">.</span>d<span class="op">.</span>lexer<span class="op">;</span>
+<span class="kwrd">import</span> stdx<span class="op">.</span>d<span class="op">.</span>parser<span class="op">;</span>
+
+<span class="kwrd">import</span> highlighter<span class="op">;</span>
+<span class="kwrd">import</span> stats<span class="op">;</span>
+<span class="kwrd">import</span> ctags<span class="op">;</span>
+<span class="kwrd">import</span> astprinter<span class="op">;</span>
+<span class="kwrd">import</span> imports<span class="op">;</span>
+<span class="kwrd">import</span> outliner<span class="op">;</span>
+
+<span class="type">int</span> main<span class="op">(</span>string<span class="op">[</span><span class="op">]</span> args<span class="op">)</span>
+<span class="op">{</span>
+	<span class="type">bool</span> sloc<span class="op">;</span>
+	<span class="type">bool</span> highlight<span class="op">;</span>
+	<span class="type">bool</span> ctags<span class="op">;</span>
+	<span class="type">bool</span> recursive<span class="op">;</span>
+	<span class="type">bool</span> format<span class="op">;</span>
+	<span class="type">bool</span> help<span class="op">;</span>
+	<span class="type">bool</span> tokenCount<span class="op">;</span>
+	<span class="type">bool</span> syntaxCheck<span class="op">;</span>
+	<span class="type">bool</span> ast<span class="op">;</span>
+	<span class="type">bool</span> imports<span class="op">;</span>
+	<span class="type">bool</span> muffin<span class="op">;</span>
+	<span class="type">bool</span> outline<span class="op">;</span>
+
+	<span class="kwrd">try</span>
+	<span class="op">{</span>
+		getopt<span class="op">(</span>args<span class="op">,</span> <span class="str">"sloc|l"</span><span class="op">,</span> <span class="op">&amp;</span>sloc<span class="op">,</span> <span class="str">"highlight"</span><span class="op">,</span> <span class="op">&amp;</span>highlight<span class="op">,</span>
+			<span class="str">"ctags|c"</span><span class="op">,</span> <span class="op">&amp;</span>ctags<span class="op">,</span> <span class="str">"recursive|r|R"</span><span class="op">,</span> <span class="op">&amp;</span>recursive<span class="op">,</span> <span class="str">"help|h"</span><span class="op">,</span> <span class="op">&amp;</span>help<span class="op">,</span>
+			<span class="str">"tokenCount|t"</span><span class="op">,</span> <span class="op">&amp;</span>tokenCount<span class="op">,</span> <span class="str">"syntaxCheck|s"</span><span class="op">,</span> <span class="op">&amp;</span>syntaxCheck<span class="op">,</span>
+			<span class="str">"ast|xml"</span><span class="op">,</span> <span class="op">&amp;</span>ast<span class="op">,</span> <span class="str">"imports|i"</span><span class="op">,</span> <span class="op">&amp;</span>imports<span class="op">,</span> <span class="str">"outline|o"</span><span class="op">,</span> <span class="op">&amp;</span>outline<span class="op">,</span>
+			<span class="str">"muffinButton"</span><span class="op">,</span> <span class="op">&amp;</span>muffin<span class="op">)</span><span class="op">;</span>
+	<span class="op">}</span>
+	<span class="kwrd">catch</span> <span class="op">(</span>Exception e<span class="op">)</span>
+	<span class="op">{</span>
+		stderr<span class="op">.</span>writeln<span class="op">(</span>e<span class="op">.</span>msg<span class="op">)</span><span class="op">;</span>
+	<span class="op">}</span>
+
+	<span class="kwrd">if</span> <span class="op">(</span>muffin<span class="op">)</span>
+	<span class="op">{</span>
+		stdout<span class="op">.</span>writeln<span class="op">(</span>
+<span class="str">`       ___________
+    __(#*O 0** @%*)__
+  _(%*o#*O%*0 #O#%##@)_
+ (*#@%#o*@ #o%O*%@ #o #)
+ \=====================/
+  |I|I|I|I|I|I|I|I|I|I|
+  |I|I|I|I|I|I|I|I|I|I|
+  |I|I|I|I|I|I|I|I|I|I|
+  |I|I|I|I|I|I|I|I|I|I|`</span><span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">return</span> <span class="num">0</span><span class="op">;</span>
+	<span class="op">}</span>
+
+	<span class="kwrd">if</span> <span class="op">(</span>help<span class="op">)</span>
+	<span class="op">{</span>
+		printHelp<span class="op">(</span>args<span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">return</span> <span class="num">0</span><span class="op">;</span>
+	<span class="op">}</span>
+
+	<span class="kwrd">auto</span> optionCount <span class="op">=</span> count<span class="op">!</span><span class="str">"a"</span><span class="op">(</span><span class="op">[</span>sloc<span class="op">,</span> highlight<span class="op">,</span> ctags<span class="op">,</span> tokenCount<span class="op">,</span>
+		syntaxCheck<span class="op">,</span> ast<span class="op">,</span> imports<span class="op">,</span> outline<span class="op">]</span><span class="op">)</span><span class="op">;</span>
+	<span class="kwrd">if</span> <span class="op">(</span>optionCount <span class="op">></span> <span class="num">1</span><span class="op">)</span>
+	<span class="op">{</span>
+		stderr<span class="op">.</span>writeln<span class="op">(</span><span class="str">"Too many options specified"</span><span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">return</span> <span class="num">1</span><span class="op">;</span>
+	<span class="op">}</span>
+	<span class="kwrd">else</span> <span class="kwrd">if</span> <span class="op">(</span>optionCount <span class="op">&lt;</span> <span class="num">1</span><span class="op">)</span>
+	<span class="op">{</span>
+		printHelp<span class="op">(</span>args<span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">return</span> <span class="num">1</span><span class="op">;</span>
+	<span class="op">}</span>
+
+	<span class="kwrd">if</span> <span class="op">(</span>highlight<span class="op">)</span>
+	<span class="op">{</span>
+		<span class="type">bool</span> usingStdin <span class="op">=</span> args<span class="op">.</span>length <span class="op">==</span> <span class="num">1</span><span class="op">;</span>
+		<span class="type">ubyte</span><span class="op">[</span><span class="op">]</span> bytes <span class="op">=</span> usingStdin <span class="op">?</span> readStdin<span class="op">(</span><span class="op">)</span> <span class="op">:</span> readFile<span class="op">(</span>args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+		highlighter<span class="op">.</span>highlight<span class="op">(</span>byToken<span class="op">!</span><span class="op">(</span><span class="kwrd">typeof</span><span class="op">(</span>bytes<span class="op">)</span><span class="op">,</span> <span class="kwrd">false</span><span class="op">,</span> <span class="kwrd">false</span><span class="op">)</span><span class="op">(</span>bytes<span class="op">)</span><span class="op">,</span>
+			args<span class="op">.</span>length <span class="op">==</span> <span class="num">1</span> <span class="op">?</span> <span class="str">"stdin"</span> <span class="op">:</span> args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">return</span> <span class="num">0</span><span class="op">;</span>
+	<span class="op">}</span>
+	<span class="kwrd">else</span> <span class="kwrd">if</span> <span class="op">(</span>ctags<span class="op">)</span>
+	<span class="op">{</span>
+		stdout<span class="op">.</span>printCtags<span class="op">(</span>expandArgs<span class="op">(</span>args<span class="op">,</span> recursive<span class="op">)</span><span class="op">)</span><span class="op">;</span>
+	<span class="op">}</span>
+	<span class="kwrd">else</span>
+	<span class="op">{</span>
+		<span class="type">bool</span> usingStdin <span class="op">=</span> args<span class="op">.</span>length <span class="op">==</span> <span class="num">1</span><span class="op">;</span>
+		<span class="kwrd">if</span> <span class="op">(</span>sloc <span class="op">||</span> tokenCount<span class="op">)</span>
+		<span class="op">{</span>
+			<span class="kwrd">if</span> <span class="op">(</span>usingStdin<span class="op">)</span>
+			<span class="op">{</span>
+				<span class="kwrd">auto</span> tokens <span class="op">=</span> byToken<span class="op">!</span><span class="op">(</span><span class="type">ubyte</span><span class="op">[</span><span class="op">]</span><span class="op">,</span> <span class="kwrd">false</span><span class="op">,</span> <span class="kwrd">false</span><span class="op">)</span><span class="op">(</span>readStdin<span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">;</span>
+				<span class="kwrd">if</span> <span class="op">(</span>tokenCount<span class="op">)</span>
+					printTokenCount<span class="op">(</span>stdout<span class="op">,</span> <span class="str">"stdin"</span><span class="op">,</span> tokens<span class="op">)</span><span class="op">;</span>
+				<span class="kwrd">else</span>
+					printLineCount<span class="op">(</span>stdout<span class="op">,</span> <span class="str">"stdin"</span><span class="op">,</span> tokens<span class="op">)</span><span class="op">;</span>
+			<span class="op">}</span>
+			<span class="kwrd">else</span>
+			<span class="op">{</span>
+				<span class="type">ulong</span> count<span class="op">;</span>
+				<span class="kwrd">foreach</span> <span class="op">(</span>f<span class="op">;</span> expandArgs<span class="op">(</span>args<span class="op">,</span> recursive<span class="op">)</span><span class="op">)</span>
+				<span class="op">{</span>
+					<span class="kwrd">auto</span> tokens <span class="op">=</span> byToken<span class="op">!</span><span class="op">(</span><span class="type">ubyte</span><span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">(</span>readFile<span class="op">(</span>f<span class="op">)</span><span class="op">)</span><span class="op">;</span>
+					<span class="kwrd">if</span> <span class="op">(</span>tokenCount<span class="op">)</span>
+						count <span class="op">+=</span> printTokenCount<span class="op">(</span>stdout<span class="op">,</span> f<span class="op">,</span> tokens<span class="op">)</span><span class="op">;</span>
+					<span class="kwrd">else</span>
+						count <span class="op">+=</span> printLineCount<span class="op">(</span>stdout<span class="op">,</span> f<span class="op">,</span> tokens<span class="op">)</span><span class="op">;</span>
+				<span class="op">}</span>
+				writefln<span class="op">(</span><span class="str">"total:\t%d"</span><span class="op">,</span> count<span class="op">)</span><span class="op">;</span>
+			<span class="op">}</span>
+		<span class="op">}</span>
+		<span class="kwrd">else</span> <span class="kwrd">if</span> <span class="op">(</span>syntaxCheck<span class="op">)</span>
+		<span class="op">{</span>
+			<span class="kwrd">auto</span> tokens <span class="op">=</span> byToken<span class="op">(</span>usingStdin <span class="op">?</span> readStdin<span class="op">(</span><span class="op">)</span> <span class="op">:</span> readFile<span class="op">(</span>args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">;</span>
+			parseModule<span class="op">(</span>tokens<span class="op">.</span>array<span class="op">(</span><span class="op">)</span><span class="op">,</span> usingStdin <span class="op">?</span> <span class="str">"stdin"</span> <span class="op">:</span> args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+		<span class="op">}</span>
+		<span class="kwrd">else</span> <span class="kwrd">if</span> <span class="op">(</span>imports<span class="op">)</span>
+		<span class="op">{</span>
+			<span class="kwrd">auto</span> tokens <span class="op">=</span> byToken<span class="op">(</span>usingStdin <span class="op">?</span> readStdin<span class="op">(</span><span class="op">)</span> <span class="op">:</span> readFile<span class="op">(</span>args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">;</span>
+			<span class="kwrd">auto</span> mod <span class="op">=</span> parseModule<span class="op">(</span>tokens<span class="op">.</span>array<span class="op">(</span><span class="op">)</span><span class="op">,</span> usingStdin <span class="op">?</span> <span class="str">"stdin"</span> <span class="op">:</span> args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+			<span class="kwrd">auto</span> visitor <span class="op">=</span> <span class="kwrd">new</span> ImportPrinter<span class="op">;</span>
+			visitor<span class="op">.</span>visit<span class="op">(</span>mod<span class="op">)</span><span class="op">;</span>
+		<span class="op">}</span>
+		<span class="kwrd">else</span> <span class="kwrd">if</span> <span class="op">(</span>ast<span class="op">)</span>
+		<span class="op">{</span>
+			<span class="kwrd">auto</span> tokens <span class="op">=</span> byToken<span class="op">(</span>usingStdin <span class="op">?</span> readStdin<span class="op">(</span><span class="op">)</span> <span class="op">:</span> readFile<span class="op">(</span>args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">;</span>
+			<span class="kwrd">auto</span> mod <span class="op">=</span> parseModule<span class="op">(</span>tokens<span class="op">.</span>array<span class="op">(</span><span class="op">)</span><span class="op">,</span> usingStdin <span class="op">?</span> <span class="str">"stdin"</span> <span class="op">:</span> args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+			<span class="kwrd">auto</span> printer <span class="op">=</span> <span class="kwrd">new</span> XMLPrinter<span class="op">;</span>
+			printer<span class="op">.</span>output <span class="op">=</span> stdout<span class="op">;</span>
+			printer<span class="op">.</span>visit<span class="op">(</span>mod<span class="op">)</span><span class="op">;</span>
+		<span class="op">}</span>
+		<span class="kwrd">else</span> <span class="kwrd">if</span> <span class="op">(</span>outline<span class="op">)</span>
+		<span class="op">{</span>
+			<span class="kwrd">auto</span> tokens <span class="op">=</span> byToken<span class="op">(</span>usingStdin <span class="op">?</span> readStdin<span class="op">(</span><span class="op">)</span> <span class="op">:</span> readFile<span class="op">(</span>args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">;</span>
+			<span class="kwrd">auto</span> mod <span class="op">=</span> parseModule<span class="op">(</span>tokens<span class="op">.</span>array<span class="op">(</span><span class="op">)</span><span class="op">,</span> usingStdin <span class="op">?</span> <span class="str">"stdin"</span> <span class="op">:</span> args<span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">;</span>
+			<span class="kwrd">auto</span> outliner <span class="op">=</span> <span class="kwrd">new</span> Outliner<span class="op">(</span>stdout<span class="op">)</span><span class="op">;</span>
+			outliner<span class="op">.</span>visit<span class="op">(</span>mod<span class="op">)</span><span class="op">;</span>
+		<span class="op">}</span>
+	<span class="op">}</span>
+	<span class="kwrd">return</span> <span class="num">0</span><span class="op">;</span>
+<span class="op">}</span>
+
+string<span class="op">[</span><span class="op">]</span> expandArgs<span class="op">(</span>string<span class="op">[</span><span class="op">]</span> args<span class="op">,</span> <span class="type">bool</span> recursive<span class="op">)</span>
+<span class="op">{</span>
+	<span class="kwrd">if</span> <span class="op">(</span>recursive<span class="op">)</span>
+	<span class="op">{</span>
+		string<span class="op">[</span><span class="op">]</span> rVal<span class="op">;</span>
+		<span class="kwrd">foreach</span> <span class="op">(</span>arg<span class="op">;</span> args<span class="op">[</span><span class="num">1</span> <span class="op">..</span><span class="op">$</span><span class="op">]</span><span class="op">)</span>
+		<span class="op">{</span>
+			<span class="kwrd">if</span> <span class="op">(</span>isFile<span class="op">(</span>arg<span class="op">)</span> <span class="op">&amp;&amp;</span> arg<span class="op">.</span>endsWith<span class="op">(</span><span class="str">`.d`</span><span class="op">)</span> <span class="op">||</span> arg<span class="op">.</span>endsWith<span class="op">(</span><span class="str">`.di`</span><span class="op">)</span><span class="op">)</span>
+				rVal <span class="kwrd">abstract</span> arg<span class="op">;</span>
+			<span class="kwrd">else</span> <span class="kwrd">foreach</span> <span class="op">(</span>item<span class="op">;</span> dirEntries<span class="op">(</span>arg<span class="op">,</span> SpanMode<span class="op">.</span>breadth<span class="op">)</span><span class="op">.</span>map<span class="op">!</span><span class="op">(</span>a <span class="op">=></span> a<span class="op">.</span>name<span class="op">)</span><span class="op">)</span>
+			<span class="op">{</span>
+				<span class="kwrd">if</span> <span class="op">(</span>isFile<span class="op">(</span>item<span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">(</span>item<span class="op">.</span>endsWith<span class="op">(</span><span class="str">`.d`</span><span class="op">)</span> <span class="op">||</span> item<span class="op">.</span>endsWith<span class="op">(</span><span class="str">`.di`</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+					rVal <span class="kwrd">abstract</span> item<span class="op">;</span>
+				<span class="kwrd">else</span>
+					<span class="kwrd">continue</span><span class="op">;</span>
+			<span class="op">}</span>
+		<span class="op">}</span>
+		<span class="kwrd">return</span> rVal<span class="op">;</span>
+	<span class="op">}</span>
+	<span class="kwrd">else</span>
+		<span class="kwrd">return</span> args<span class="op">[</span><span class="num">1</span> <span class="op">..</span> <span class="op">$</span><span class="op">]</span><span class="op">;</span>
+<span class="op">}</span>
+
+<span class="type">ubyte</span><span class="op">[</span><span class="op">]</span> readStdin<span class="op">(</span><span class="op">)</span>
+<span class="op">{</span>
+	<span class="kwrd">auto</span> sourceCode <span class="op">=</span> appender<span class="op">!</span><span class="op">(</span><span class="type">ubyte</span><span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">(</span><span class="op">)</span><span class="op">;</span>
+	<span class="type">ubyte</span><span class="op">[</span><span class="num">4096</span><span class="op">]</span> buf<span class="op">;</span>
+	<span class="kwrd">while</span> <span class="op">(</span><span class="kwrd">true</span><span class="op">)</span>
+	<span class="op">{</span>
+		<span class="kwrd">auto</span> b <span class="op">=</span> stdin<span class="op">.</span>rawRead<span class="op">(</span>buf<span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">if</span> <span class="op">(</span>b<span class="op">.</span>length <span class="op">==</span> <span class="num">0</span><span class="op">)</span>
+			<span class="kwrd">break</span><span class="op">;</span>
+		sourceCode<span class="op">.</span>put<span class="op">(</span>b<span class="op">)</span><span class="op">;</span>
+	<span class="op">}</span>
+	<span class="kwrd">return</span> sourceCode<span class="op">.</span>data<span class="op">;</span>
+<span class="op">}</span>
+
+<span class="type">ubyte</span><span class="op">[</span><span class="op">]</span> readFile<span class="op">(</span>string fileName<span class="op">)</span>
+<span class="op">{</span>
+	<span class="kwrd">if</span> <span class="op">(</span><span class="op">!</span>exists<span class="op">(</span>fileName<span class="op">)</span><span class="op">)</span>
+	<span class="op">{</span>
+		stderr<span class="op">.</span>writefln<span class="op">(</span><span class="str">"%s does not exist"</span><span class="op">,</span> fileName<span class="op">)</span><span class="op">;</span>
+		<span class="kwrd">return</span> <span class="op">[</span><span class="op">]</span><span class="op">;</span>
+	<span class="op">}</span>
+	File f <span class="op">=</span> File<span class="op">(</span>fileName<span class="op">)</span><span class="op">;</span>
+	<span class="type">ubyte</span><span class="op">[</span><span class="op">]</span> sourceCode <span class="op">=</span> uninitializedArray<span class="op">!</span><span class="op">(</span><span class="type">ubyte</span><span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">(</span>to<span class="op">!</span>size_t<span class="op">(</span>f<span class="op">.</span>size<span class="op">)</span><span class="op">)</span><span class="op">;</span>
+	f<span class="op">.</span>rawRead<span class="op">(</span>sourceCode<span class="op">)</span><span class="op">;</span>
+	<span class="kwrd">return</span> sourceCode<span class="op">;</span>
+<span class="op">}</span>
+
+<span class="type">void</span> printHelp<span class="op">(</span>string programName<span class="op">)</span>
+<span class="op">{</span>
+	stderr<span class="op">.</span>writefln<span class="op">(</span>
+<span class="str">`
+    Usage: %s options
+
+options:
+    --help | -h
+        Prints this help message
+
+    --sloc | -l [sourceFiles]
+        Prints the number of logical lines of code in the given
+        source files. If no files are specified, input is read from stdin.
+
+    --tokenCount | t [sourceFiles]
+        Prints the number of tokens in the given source files. If no files are
+        specified, input is read from stdin.
+
+    --highlight [sourceFile] - Syntax-highlight the given source file. The
+        resulting HTML will be written to standard output. If no files are
+        specified, input is read from stdin.
+
+    --imports | -i [sourceFile]
+        Prints modules imported by the given source file. If no files are
+        specified, input is read from stdin.
+
+    --syntaxCheck | -s [sourceFile]
+        Lexes and parses sourceFile, printing the line and column number of any
+        syntax errors to stdout. One error or warning is printed per line.
+        If no files are specified, input is read from stdin.
+
+    --ctags | -c sourceFile
+        Generates ctags information from the given source code file. Note that
+        ctags information requires a filename, so stdin cannot be used in place
+        of a filename.
+
+    --ast | --xml sourceFile
+        Generates an XML representation of the source files abstract syntax
+        tree. If no files are specified, input is read from stdin.
+
+    --recursive | -R | -r
+        When used with --ctags, --tokenCount, or --sloc, dscanner will produce
+        ctags output for all .d and .di files contained within the given
+        directories and its sub-directories.`</span><span class="op">,</span>
+        programName<span class="op">)</span><span class="op">;</span>
+<span class="op">}</span>
+</pre>
+</body></html>

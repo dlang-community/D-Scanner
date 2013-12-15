@@ -26,7 +26,7 @@ class ImportPrinter : ASTVisitor
 		{
 			if (!first)
 				write(".");
-			write(ident.value);
+			write(ident.text);
 			first = false;
 		}
 	}

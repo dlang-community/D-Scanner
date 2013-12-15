@@ -70,7 +70,7 @@ class Formatter(Sink)
 		if (addExpression.right is null)
 			return;
 		sink.put(" ");
-		sink.put(getTokenValue(addExpression.operator));
+		sink.put(str(addExpression.operator));
 		sink.put(" ");
 		format(addExpression.right);
 	}
@@ -333,8 +333,8 @@ class Formatter(Sink)
 	void format(const GotoStatement gotoStatement)
 	{
 		sink.put("goto ");
-		if (gotoStatement.label != TokenType.invalid)
-			sink.put(gotoStatement.label.value);
+		if (gotoStatement.label != tok!"")
+			sink.put(gotoStatement.label.text);
 		else
 			format(gotoStatement.expression);
 		sink.put(";");
@@ -348,7 +348,7 @@ class Formatter(Sink)
 			if (!first)
 				sink.put(".");
 			first = false;
-			sink.put(ident.value);
+			sink.put(ident.text);
 		}
 	}
 
@@ -372,7 +372,7 @@ class Formatter(Sink)
 		if (identifierOrTemplateInstance.templateInstance !is null)
 			format(identifierOrTemplateInstance.templateInstance);
 		else
-			sink.put(identifierOrTemplateInstance.identifier.value);
+			sink.put(identifierOrTemplateInstance.identifier.text);
 
 	}
 
@@ -488,14 +488,14 @@ class Formatter(Sink)
 	{
 		foreach (attribute; parameter.parameterAttributes)
 		{
-			sink.put(getTokenValue(attribute));
+			sink.put(str(attribute));
 		}
 		if (parameter.type !is null)
 			format(parameter.type);
-		if (parameter.name.type != TokenType.invalid)
+		if (parameter.name.type != tok!"")
 		{
 			sink.put(" ");
-			sink.put(parameter.name.value);
+			sink.put(parameter.name.text);
 		}
 		if (parameter.vararg)
 			sink.put(" ...");
@@ -607,7 +607,7 @@ class Formatter(Sink)
 
 	void format(const Symbol symbol)
 	{
-        if (symbol.dot != TokenType.invalid)
+        if (symbol.dot != tok!"")
             sink.put(".");
 		format(symbol.identifierOrTemplateChain);
 	}
@@ -671,7 +671,7 @@ class Formatter(Sink)
 
 	void format(const Token token)
 	{
-		sink.put(token.value);
+		sink.put(token.text);
 	}
 
 	void format(const TraitsExpression traitsExpression)
@@ -688,7 +688,7 @@ class Formatter(Sink)
             if (first)
                 sink.put(" ");
             first = false;
-            sink.put(getTokenValue(constructor));
+            sink.put(str(constructor));
         }
         if (type.typeConstructors.length > 0)
             sink.put(" ");
@@ -711,16 +711,16 @@ class Formatter(Sink)
             format(type2.typeofExpression);
 			return;
         }
-        else if (type2.typeConstructor != TokenType.invalid)
+        else if (type2.typeConstructor != tok!"")
         {
-			sink.put(getTokenValue(type2.typeConstructor));
+			sink.put(str(type2.typeConstructor));
 			sink.put("(");
 			format(type2.type);
 			sink.put(")");
 			return;
         }
         else
-            sink.put(getTokenValue(type2.builtinType));
+            sink.put(str(type2.builtinType));
 	}
 
 	void format(const TypeSpecialization typeSpecialization)

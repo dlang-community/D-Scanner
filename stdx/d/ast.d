@@ -275,7 +275,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -410,7 +410,7 @@ class AsmAddExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -483,7 +483,7 @@ class AsmMulExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 
 }
@@ -583,7 +583,7 @@ public:
     }
     /** */ ExpressionNode ternaryExpression;
     /** */ ExpressionNode assignExpression;
-    /** */ TokenType operator;
+    /** */ IdType operator;
 }
 
 ///
@@ -623,7 +623,7 @@ public:
     /** */ AlignAttribute alignAttribute;
     /** */ PragmaExpression pragmaExpression;
     /** */ StorageClass storageClass;
-    /** */ TokenType attribute;
+    /** */ IdType attribute;
 }
 
 ///
@@ -1149,7 +1149,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -1222,7 +1222,7 @@ public:
         mixin (visitIfNotNull!(foreachType, foreachTypeList, low, high,
             declarationOrStatement));
     }
-    /** */ TokenType type;
+    /** */ IdType type;
     /** */ ForeachTypeList foreachTypeList;
 	/** */ ForeachType foreachType;
     /** */ Expression low;
@@ -1239,7 +1239,7 @@ public:
     {
         mixin (visitIfNotNull!(type, identifier));
     }
-    /** */ TokenType[] typeConstructors;
+    /** */ IdType[] typeConstructors;
     /** */ Type type;
     /** */ Token identifier;
 }
@@ -1336,7 +1336,7 @@ public:
         mixin (visitIfNotNull!(type, parameters, functionAttributes,
             functionBody));
     }
-    /** */ TokenType functionOrDelegate;
+    /** */ IdType functionOrDelegate;
     /** */ Type type;
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;
@@ -1575,7 +1575,7 @@ public:
     /** */ Token identifier;
     /** */ TypeSpecialization typeSpecialization;
     /** */ TemplateParameterList templateParameterList;
-    /** */ TokenType equalsOrColon;
+    /** */ IdType equalsOrColon;
 }
 
 ///
@@ -1622,7 +1622,7 @@ public:
         mixin (visitIfNotNull!(identifier, parameters, functionAttributes,
             assignExpression));
     }
-    /** */ TokenType functionType;
+    /** */ IdType functionType;
     /** */ Token identifier;
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;
@@ -1660,7 +1660,7 @@ public:
     {
         mixin (visitIfNotNull!(atAttribute));
     }
-    /** */ TokenType tokenType;
+    /** */ IdType tokenType;
     /** */ AtAttribute atAttribute;
 }
 
@@ -1743,7 +1743,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -1893,7 +1893,7 @@ public:
         mixin (visitIfNotNull!(type, name, default_));
     }
 
-    /** */ TokenType[] parameterAttributes;
+    /** */ IdType[] parameterAttributes;
     /** */ Type type;
     /** */ Token name;
     /** */ bool vararg;
@@ -1932,7 +1932,7 @@ public:
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     /** */ UnaryExpression unaryExpression;
 }
 
@@ -1978,7 +1978,7 @@ public:
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     /** */ UnaryExpression unaryExpression;
 }
 
@@ -2030,7 +2030,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -2089,7 +2089,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -2573,7 +2573,7 @@ public:
         mixin (visitIfNotNull!(type2, typeSuffixes));
     }
 
-    /** */ TokenType[] typeConstructors;
+    /** */ IdType[] typeConstructors;
     /** */ TypeSuffix[] typeSuffixes;
     /** */ Type2 type2;
 }
@@ -2588,11 +2588,11 @@ public:
             identifierOrTemplateChain, type));
     }
 
-    /** */ TokenType builtinType;
+    /** */ IdType builtinType;
     /** */ Symbol symbol;
     /** */ TypeofExpression typeofExpression;
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
-    /** */ TokenType typeConstructor;
+    /** */ IdType typeConstructor;
     /** */ Type type;
 }
 
