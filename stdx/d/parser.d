@@ -1654,7 +1654,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case tok!"enum":
             if (startsWith(tok!"enum", tok!"identifier", tok!"("))
-                goto _template;
+                goto case tok!"template";
             node.enumDeclaration = parseEnumDeclaration();
             if (node.enumDeclaration is null) return null;
             break;
@@ -1722,7 +1722,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case tok!"struct":
             node.structDeclaration = parseStructDeclaration();
             break;
-        _template:
         case tok!"template":
             node.templateDeclaration = parseTemplateDeclaration();
             break;
@@ -5736,12 +5735,11 @@ q{(int a, ...)
                 || peekIs(tok!"(");
             index--;
             if (jump)
-                goto lParen;
+                goto case tok!"(";
             else
                 break loop;
         
         case tok!"(":
-        lParen:
             auto newUnary = new UnaryExpression();
             newUnary.functionCallExpression = parseFunctionCallExpression(node);
             node = newUnary;

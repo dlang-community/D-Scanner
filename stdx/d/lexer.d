@@ -568,7 +568,7 @@ public struct DLexer(R)
 	Token lexDecimal(LR)(ref LR range)
 	{
 		bool foundDot = range.front == '.';
-		auto type = tok!"intLiteral";
+		IdType type = tok!"intLiteral";
 		if (foundDot)
 		{
 			range.popFront();

@@ -42,31 +42,44 @@ string TokenStringRepresentation(IdType, alias staticTokens, alias possibleDefau
 		return null;
 }
 
-IdType TokenId(IdType, alias staticTokens, alias dynamicTokens,
-	alias possibleDefaultTokens, string symbol)() @property
+template TokenId(IdType, alias staticTokens, alias dynamicTokens,
+	alias possibleDefaultTokens, string symbol)
 {
 	static if (symbol == "")
-		return 0;
+	{
+	  enum id = 0;
+		alias id TokenId;
+	}
 	else static if (symbol == "\0")
-		return 1 + staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length;
+	{
+		enum id = 1 + staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length;
+		alias id TokenId;
+	}
 	else
 	{
 		enum i = staticTokens.countUntil(symbol);
 		static if (i >= 0)
+		{
 			enum id = i + 1;
+			alias id TokenId;
+		}
 		else
 		{
 			enum ii = possibleDefaultTokens.countUntil(symbol);
 			static if (ii >= 0)
+			{
 				enum id = ii + staticTokens.length;
+				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
+				alias id TokenId;
+			}
 			else
 			{
 				enum dynamicId = dynamicTokens.countUntil(symbol);
 				enum id = dynamicId >= 0 ? i + staticTokens.length + possibleDefaultTokens.length + dynamicId : -1;
+				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
+				alias id TokenId;
 			}
 		}
-		static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
-		return id;
 	}
 }
 
@@ -166,8 +179,6 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		return code;
 	}
 
-	
-
 	Token front() @property
 	{
 		return _front;
@@ -188,11 +199,11 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		post[pseudoTok!t] = fun;
 	}
 
-	static IDType pseudoTok(string symbol)() nothrow pure @property
+	template pseudoTok(string symbol)
 	{
 		static assert (pseudoTokens.countUntil(symbol) >= 0);
 		enum index = cast(IDType) pseudoTokens.countUntil(symbol);
-		return index;
+		alias index pseudoTok;
 	}
 
 	static string escape(string input)
