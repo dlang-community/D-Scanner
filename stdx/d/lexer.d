@@ -421,7 +421,7 @@ public struct DLexer(R)
 	Token lexWhitespace(LR)(ref LR range)
 	{
 		range.mark();
-		loop: while (!range.empty)
+		loop: do
 		{
 			switch (range.front)
 			{
@@ -456,7 +456,7 @@ public struct DLexer(R)
 			default:
 				break loop;
 			}
-		}
+		} while (!range.empty);
 		return Token(tok!"whitespace", cast(string) range.getMarked(), range.line,
 			range.column, range.index);
 	}
@@ -861,7 +861,10 @@ public struct DLexer(R)
 			while (true)
 			{
 				if (range.empty)
-					goto error;
+				{
+					writeln("Error: unterminated string literal");
+					return Token(tok!"");
+				}
 				else if (range.front == '`')
 				{
 					range.popFront();
@@ -875,12 +878,18 @@ public struct DLexer(R)
 		{
 			range.popFront();
 			if (range.empty)
-				goto error;
+			{
+				writeln("Error: unterminated string literal");
+				return Token(tok!"");
+			}
 			range.popFront();
 			while (true)
 			{
 				if (range.empty)
-					goto error;
+				{
+					writeln("Error: unterminated string literal");
+					return Token(tok!"");
+				}
 				else if (range.front == '"')
 				{
 					range.popFront();
@@ -893,9 +902,6 @@ public struct DLexer(R)
 		lexStringSuffix(range, type);
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
-	error:
-		writeln("Error: unterminated string literal");
-		return Token();
 	}
 
 	static void lexStringSuffix(R)(ref R range, ref IdType type)
@@ -1232,7 +1238,7 @@ public struct DLexer(R)
 			range.column, range.index);
 	}
 
-	static bool isSeparating(C)(C c)
+	static bool isSeparating(C)(C c) nothrow pure
 	{
 		if (c <= 0x2f) return true;
 		if (c >= ':' && c <= '@') return true;

@@ -80,7 +80,7 @@ import std.string : format;
  * Returns: the parsed module
  */
 Module parseModule(const(Token)[] tokens, string fileName,
-    void function(string, int, int, string) messageFunction = null)
+    void function(string, size_t, size_t, string) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
@@ -4117,7 +4117,8 @@ q{(int a, ...)
                 if (currentIs(tok!"=>"))
                 {
                     goToBookmark(b);
-                    goto lambda;
+                    node.lambdaExpression = parseLambdaExpression();
+                    break;
                 }
                 else
                     goToBookmark(b);
@@ -4152,7 +4153,6 @@ q{(int a, ...)
             if (currentIs(tok!"=>"))
             {
                 goToBookmark(b);
-        lambda:
                 node.lambdaExpression = parseLambdaExpression();
             }
             else if (currentIs(tok!"{"))
@@ -5549,7 +5549,10 @@ q{(int a, ...)
             node.array = true;
             advance();
             if (currentIs(tok!"]"))
-                goto end;
+            {
+                if (expect(tok!"]") is null) return null;
+                return node;
+            }
             auto bookmark = setBookmark();
             auto type = parseType();
             if (type !is null && currentIs(tok!"]"))
@@ -5570,7 +5573,6 @@ q{(int a, ...)
                     if (node.high is null) return null;
                 }
             }
-        end:
             if (expect(tok!"]") is null) return null;
             return node;
         case tok!"delegate":
@@ -6023,7 +6025,7 @@ q{doStuff(5)}c;
      * The parameters are the file name, line number, column number,
      * and the error or warning message.
      */
-    void function(string, int, int, string) messageFunction;
+    void function(string, size_t, size_t, string) messageFunction;
 
     bool isSliceExpression()
     {

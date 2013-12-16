@@ -90,11 +90,25 @@ struct TokenStructure(IDType)
 		return this.type == type;
 	}
 
-	IDType type;  
+	this(IDType type)
+	{
+		this.type = type;
+	}
+	
+	this(IDType type, string text, size_t line, size_t column, size_t index)
+	{
+		this.text = text;
+		this.line = line;
+		this.column = column;
+		this.type = type;
+		this.index = index;
+	}
+
 	string text;
 	size_t line;
 	size_t column;
 	size_t index;
+	IDType type;
 }
 
 mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFunction,
@@ -159,7 +173,10 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		string code;
 		if (staticTokens.countUntil(token) >= 0)
 		{
-			code ~= indent ~ "range.popFrontN(" ~ text(token.length) ~ ");\n";
+			if (token.length == 1)
+				code ~= indent ~ "range.popFront();\n";
+			else
+				code ~= indent ~ "range.popFrontN(" ~ text(token.length) ~ ");\n";
 			code ~= indent ~ "return Token(tok!\"" ~ escape(token) ~"\", null, range.line, range.column, range.index);\n";
 		}
 		else if (pseudoTokens.countUntil(token) >= 0)
@@ -168,7 +185,10 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		{
 			code ~= indent ~ "if (!range.canPeek(" ~ text(token.length) ~ ") || isSeparating(range.peek(" ~ text(token.length) ~ ")))\n";
 			code ~= indent ~ "{\n";
-			code ~= indent ~ "    range.popFrontN(" ~ text(token.length) ~ ");\n";
+			if (token.length == 1)
+				code ~= indent ~ "    range.popFront();\n";
+			else
+				code ~= indent ~ "    range.popFrontN(" ~ text(token.length) ~ ");\n";
 			code ~= indent ~ "    return Token(tok!\"" ~ escape(token) ~"\", null, range.line, range.column, range.index);\n";
 			code ~= indent ~ "}\n";
 			code ~= indent ~ "else\n";
@@ -233,7 +253,7 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		lexerLoop: switch (range.front)
 		{
 		mixin(generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
-		//pragma(msg, generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
+		pragma(msg, generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
 		outer_default:
 		default:
 			range = r;
@@ -309,9 +329,9 @@ public:
 		return range[_index + offset];
 	}
 
-	bool canPeek(int offset = 1) pure nothrow const
+	bool canPeek(size_t offset = 1) pure nothrow const
 	{
-		return _index + offset >= 0 && _index + offset < range.length;
+		return _index + offset < range.length;
 	}
 
 	typeof(this) save() @property
@@ -352,117 +372,115 @@ private:
 	R range;
 }
 
-struct PeekRange(R, size_t peekSupported = 1)
-	if (!isRandomAccessRange!R && isForwardRange!R)
-{
-public:
-
-	this(R range)
-	{
-		this.range = range;
-		for (size_t i = 0; !this.range.empty && i < peekSupported; i++)
-		{
-			rangeSizeCount++;
-			buffer[i] = this.range.front;
-			range.popFront();
-		}
-	}
-
-	ElementType!R front() const @property
-	in
-	{
-		assert (!empty);
-	}
-	body
-	{
-		return buffer[bufferIndex];
-	}
-
-	void popFront()
-	in
-	{
-		assert (!empty);
-	}
-	body
-	{
-		index++;
-		column++;
-		count++;
-		bufferIndex = bufferIndex + 1 > buffer.length ? 0 : bufferIndex + 1;
-		if (marking)
-			markBuffer.put(buffer[bufferIndex]);
-		if (!range.empty)
-		{
-			buffer[bufferIndex + peekSupported % buffer.length] = range.front();
-			range.popFront();
-			rangeSizeCount++;
-		}
-	}
-
-	bool empty() const nothrow pure @property
-	{
-		return rangeSizeCount == count;
-	}
-
-	ElementType!R peek(int offset = 1) pure nothrow const
-	in
-	{
-		assert (canPeek(offset));
-	}
-	body
-	{
-		return buffer[(bufferIndex + offset) % buffer.length];
-	}
-
-	bool canPeek(int offset = 1) pure nothrow const
-	{
-		return offset >= 0
-			? offset <= peekSupported && count + offset <= rangeSizeCount
-			: abs(offset) <= peekSupported && (count - abs(offset)) >= 0;
-	}
-
-	typeof(this) save() @property
-	{
-		typeof(this) newRange;
-		newRange.count = count;
-		newRange.rangeSizeCount = count;
-		newRange.buffer = buffer.dup;
-		newRange.bufferIndex = bufferIndex;
-		newRange.range = range.save;
-		return newRange;
-	}
-
-	void mark()
-	{
-		marking = true;
-		markBuffer.clear();
-	}
-
-	ElementEncodingType!R[] getMarked()
-	{
-		marking = false;
-		return markBuffer.data;
-	}
-	
-	void incrementLine() pure nothrow
-	{
-		_column = 1;
-		_line++;
-	}
-	
-	size_t line() pure nothrow const @property { return _line; }
-	size_t column() pure nothrow const @property { return _column; }
-	size_t index() pure nothrow const @property { return _index; }
-
-private:
-	auto markBuffer = appender!(ElementType!R[])();
-	bool marking;
-	size_t count;
-	size_t rangeSizeCount;
-	ElementType!(R)[(peekSupported * 2) + 1] buffer;
-	size_t bufferIndex;
-	size_t _column = 1;
-	size_t _line = 1;
-	size_t _index = 0;
-	R range;
-}
+//struct PeekRange(R, size_t peekSupported = 1)
+//	if (!isRandomAccessRange!R && isForwardRange!R)
+//{
+//public:
+//
+//	this(R range)
+//	{
+//		this.range = range;
+//		for (size_t i = 0; !this.range.empty && i < peekSupported; i++)
+//		{
+//			rangeSizeCount++;
+//			buffer[i] = this.range.front;
+//			range.popFront();
+//		}
+//	}
+//
+//	ElementType!R front() const @property
+//	in
+//	{
+//		assert (!empty);
+//	}
+//	body
+//	{
+//		return buffer[bufferIndex];
+//	}
+//
+//	void popFront()
+//	in
+//	{
+//		assert (!empty);
+//	}
+//	body
+//	{
+//		index++;
+//		column++;
+//		count++;
+//		bufferIndex = bufferIndex + 1 > buffer.length ? 0 : bufferIndex + 1;
+//		if (marking)
+//			markBuffer.put(buffer[bufferIndex]);
+//		if (!range.empty)
+//		{
+//			buffer[bufferIndex + peekSupported % buffer.length] = range.front();
+//			range.popFront();
+//			rangeSizeCount++;
+//		}
+//	}
+//
+//	bool empty() const nothrow pure @property
+//	{
+//		return rangeSizeCount == count;
+//	}
+//
+//	ElementType!R peek(int offset = 1) pure nothrow const
+//	in
+//	{
+//		assert (canPeek(offset));
+//	}
+//	body
+//	{
+//		return buffer[(bufferIndex + offset) % buffer.length];
+//	}
+//
+//	bool canPeek(size_t int offset = 1) pure nothrow const
+//	{
+//		return offset <= peekSupported && count + offset <= rangeSizeCount;
+//	}
+//
+//	typeof(this) save() @property
+//	{
+//		typeof(this) newRange;
+//		newRange.count = count;
+//		newRange.rangeSizeCount = count;
+//		newRange.buffer = buffer.dup;
+//		newRange.bufferIndex = bufferIndex;
+//		newRange.range = range.save;
+//		return newRange;
+//	}
+//
+//	void mark()
+//	{
+//		marking = true;
+//		markBuffer.clear();
+//	}
+//
+//	ElementEncodingType!R[] getMarked()
+//	{
+//		marking = false;
+//		return markBuffer.data;
+//	}
+//	
+//	void incrementLine() pure nothrow
+//	{
+//		_column = 1;
+//		_line++;
+//	}
+//	
+//	size_t line() pure nothrow const @property { return _line; }
+//	size_t column() pure nothrow const @property { return _column; }
+//	size_t index() pure nothrow const @property { return _index; }
+//
+//private:
+//	auto markBuffer = appender!(ElementType!R[])();
+//	bool marking;
+//	size_t count;
+//	size_t rangeSizeCount;
+//	ElementType!(R)[peekSupported + 1] buffer;
+//	size_t bufferIndex;
+//	size_t _column = 1;
+//	size_t _line = 1;
+//	size_t _index = 0;
+//	R range;
+//}
