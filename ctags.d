@@ -14,7 +14,7 @@ import std.stdio;
 import std.array;
 import std.conv;
 
-void doNothing(string, int, int, string) {}
+void doNothing(string, size_t, size_t, string) {}
 
 void printCtags(File output, string[] fileNames)
 {

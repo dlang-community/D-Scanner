@@ -253,7 +253,7 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		lexerLoop: switch (range.front)
 		{
 		mixin(generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
-		pragma(msg, generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
+//		pragma(msg, generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
 		outer_default:
 		default:
 			range = r;
