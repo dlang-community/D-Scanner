@@ -94,7 +94,7 @@ struct TokenStructure(IDType)
 	{
 		this.type = type;
 	}
-	
+
 	this(IDType type, string text, size_t line, size_t column, size_t index)
 	{
 		this.text = text;
@@ -167,7 +167,7 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		}
 		return code;
 	}
-	
+
 	static string generateLeaf(string token, string indent)
 	{
 		string code;
@@ -261,9 +261,9 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		}
 	}
 
-    /**
-     * This only exists because the real array() can't be called at compile-time
-     */
+	/**
+	 * This only exists because the real array() can't be called at compile-time
+	 */
 	static T[] stupidToArray(R, T = ElementType!R)(R range)
 	{
 		T[] rVal;
@@ -312,7 +312,7 @@ public:
 		_index++;
 		_column++;
 	}
-	
+
 	void popFrontN(size_t n) pure nothrow
 	{
 		foreach (i; 0 .. n)
@@ -353,13 +353,13 @@ public:
 	{
 		return range[markBegin .. index];
 	}
-	
+
 	void incrementLine() pure nothrow
 	{
 		_column = 1;
 		_line++;
 	}
-	
+
 	size_t line() pure nothrow const @property { return _line; }
 	size_t column() pure nothrow const @property { return _column; }
 	size_t index() pure nothrow const @property { return _index; }
@@ -461,13 +461,13 @@ private:
 //		marking = false;
 //		return markBuffer.data;
 //	}
-//	
+//
 //	void incrementLine() pure nothrow
 //	{
 //		_column = 1;
 //		_line++;
 //	}
-//	
+//
 //	size_t line() pure nothrow const @property { return _line; }
 //	size_t column() pure nothrow const @property { return _column; }
 //	size_t index() pure nothrow const @property { return _index; }
