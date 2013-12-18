@@ -392,7 +392,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmAndExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -407,7 +406,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmBrExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -421,7 +419,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmEqualExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -435,7 +432,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -454,7 +450,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmInstruction;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -468,7 +463,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmLogAndExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -482,7 +476,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmLogOrExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -496,7 +489,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmMulExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -510,7 +502,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmOrExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -528,7 +519,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmPrimaryExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -542,7 +532,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmRelExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -556,7 +545,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmShiftExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -593,7 +581,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmTypePrefix;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -613,7 +600,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmUnaExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -627,7 +613,6 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         auto node = new AsmXorExp;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -3728,7 +3713,6 @@ invariant() foo();
     {
         auto node = new Operands;
         assert (false, "asm"); // TODO asm
-        return node;
     }
 
     /**
@@ -4130,7 +4114,7 @@ q{(int a, ...)
                 if (currentIs(goesTo))
                 {
                     goToBookmark(b);
-                    goto lambda;
+                    node.lambdaExpression = parseLambdaExpression();
                 }
                 else
                     goToBookmark(b);
@@ -4165,7 +4149,6 @@ q{(int a, ...)
             if (currentIs(goesTo))
             {
                 goToBookmark(b);
-        lambda:
                 node.lambdaExpression = parseLambdaExpression();
             }
             else if (currentIs(lBrace))
@@ -5566,7 +5549,10 @@ q{(int a, ...)
             node.array = true;
             advance();
             if (currentIs(rBracket))
-                goto end;
+            {
+                advance();
+                return node;
+            }
             auto bookmark = setBookmark();
             auto type = parseType();
             if (type !is null && currentIs(rBracket))
@@ -5587,7 +5573,6 @@ q{(int a, ...)
                     if (node.high is null) return null;
                 }
             }
-        end:
             if (expect(TokenType.rBracket) is null) return null;
             return node;
         case delegate_:
@@ -5737,7 +5722,6 @@ q{(int a, ...)
                 goToBookmark(b);
                 goto default;
             }
-            break;
         default:
             node.primaryExpression = parsePrimaryExpression();
             break;
