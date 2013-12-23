@@ -30,7 +30,7 @@ template TokenIdType(alias staticTokens, alias dynamicTokens,
 		static assert (false);
 }
 
-string TokenStringRepresentation(IdType, alias staticTokens, alias possibleDefaultTokens)(IdType type) @property
+string TokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
 {
 	if (type == 0)
 		return "!ERROR!";
@@ -38,6 +38,8 @@ string TokenStringRepresentation(IdType, alias staticTokens, alias possibleDefau
 		return staticTokens[type - 1];
 	else if (type < staticTokens.length + possibleDefaultTokens.length)
 		return possibleDefaultTokens[type - staticTokens.length];
+    else if (type < staticTokens.length + possibleDefaultTokens.length + dynamicTokens.length)
+		return dynamicTokens[type - staticTokens.length - possibleDefaultTokens.length];
 	else
 		return null;
 }

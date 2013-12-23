@@ -198,6 +198,7 @@ alias core.sys.posix.stdio.fileno fileno;
         if (expect(tok!"alias") is null) return null;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
+        node.identifier = *ident;
         if (expect(tok!"this") is null) return null;
         if (expect(tok!";") is null) return null;
         return node;
@@ -689,11 +690,8 @@ alias core.sys.posix.stdio.fileno fileno;
     AssocArrayLiteral parseAssocArrayLiteral()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AssocArrayLiteral;
-        if (expect(tok!"[") is null) return null;
-        node.keyValuePairs = parseKeyValuePairs();
-        if (expect(tok!"]") is null) return null;
-        return node;
+        mixin (simpleParse!(AssocArrayLiteral, tok!"[",
+            "keyValuePairs|parseKeyValuePairs", tok!"]"));
     }
 
     /**
@@ -853,10 +851,8 @@ alias core.sys.posix.stdio.fileno fileno;
     BodyStatement parseBodyStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new BodyStatement;
-        expect(tok!"body");
-        node.blockStatement = parseBlockStatement();
-        return node;
+        mixin (simpleParse!(BodyStatement, tok!"body",
+            "blockStatement|parseBlockStatement"));
     }
 
     /**
@@ -4318,15 +4314,8 @@ q{(int a, ...)
     SharedStaticConstructor parseSharedStaticConstructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SharedStaticConstructor;
-        if (expect(tok!"shared") is null) return null;
-        if (expect(tok!"static") is null) return null;
-        if (expect(tok!"this") is null) return null;
-        if (expect(tok!"(") is null) return null;
-        if (expect(tok!")") is null) return null;
-        node.functionBody = parseFunctionBody();
-        if (node.functionBody is null) return null;
-        return node;
+        mixin (simpleParse!(SharedStaticConstructor, tok!"shared", tok!"static",
+            tok!"this", tok!"(", tok!")", "functionBody|parseFunctionBody"));
     }
 
     /**
@@ -4339,15 +4328,9 @@ q{(int a, ...)
     SharedStaticDestructor parseSharedStaticDestructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SharedStaticDestructor;
-        expect(tok!"shared");
-        expect(tok!"static");
-        expect(tok!"~");
-        expect(tok!"this");
-        expect(tok!"(");
-        expect(tok!")");
-        node.functionBody = parseFunctionBody();
-        return node;
+        mixin (simpleParse!(SharedStaticDestructor, tok!"shared", tok!"static",
+            tok!"~", tok!"this", tok!"(", tok!")",
+            "functionBody|parseFunctionBody"));
     }
 
     /**
@@ -4455,10 +4438,8 @@ q{(int a, ...)
     StaticAssertDeclaration parseStaticAssertDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StaticAssertDeclaration;
-        node.staticAssertStatement = parseStaticAssertStatement();
-        if (node.staticAssertStatement is null) return null;
-        return node;
+        mixin (simpleParse!(StaticAssertDeclaration,
+            "staticAssertStatement|parseStaticAssertStatement"));
     }
 
 
@@ -4472,12 +4453,8 @@ q{(int a, ...)
     StaticAssertStatement parseStaticAssertStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StaticAssertStatement;
-        if (expect(tok!"static") is null) return null;
-        node.assertExpression = parseAssertExpression();
-        if (node.assertExpression is null) return null;
-        if (expect(tok!";") is null) return null;
-        return node;
+        mixin (simpleParse!(StaticAssertStatement,
+            tok!"static", "assertExpression|parseAssertExpression", tok!";"));
     }
 
     /**
@@ -4490,13 +4467,8 @@ q{(int a, ...)
     StaticConstructor parseStaticConstructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StaticConstructor;
-        expect(tok!"static");
-        expect(tok!"this");
-        expect(tok!"(");
-        expect(tok!")");
-        node.functionBody = parseFunctionBody();
-        return node;
+        mixin (simpleParse!(StaticConstructor, tok!"static", tok!"this",
+            tok!"(", tok!")", "functionBody|parseFunctionBody"));
     }
 
     /**
@@ -4509,14 +4481,8 @@ q{(int a, ...)
     StaticDestructor parseStaticDestructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StaticDestructor;
-        expect(tok!"static");
-        expect(tok!"~");
-        expect(tok!"this");
-        expect(tok!"(");
-        expect(tok!")");
-        node.functionBody = parseFunctionBody();
-        return node;
+        mixin (simpleParse!(StaticDestructor, tok!"static", tok!"~", tok!"this",
+            tok!"(", tok!")", "functionBody|parseFunctionBody"));
     }
 
     /**
@@ -4529,13 +4495,8 @@ q{(int a, ...)
     StaticIfCondition parseStaticIfCondition()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StaticIfCondition;
-        expect(tok!"static");
-        expect(tok!"if");
-        expect(tok!"(");
-        node.assignExpression = parseAssignExpression();
-        expect(tok!")");
-        return node;
+        mixin (simpleParse!(StaticIfCondition, tok!"static", tok!"if", tok!"(",
+            "assignExpression|parseAssignExpression", tok!")"));
     }
 
     /**
@@ -5740,7 +5701,7 @@ q{(int a, ...)
                 goto case tok!"(";
             else
                 break loop;
-        
+
         case tok!"(":
             auto newUnary = new UnaryExpression();
             newUnary.functionCallExpression = parseFunctionCallExpression(node);
@@ -5837,10 +5798,7 @@ q{doStuff(5)}c;
     Unittest parseUnittest()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Unittest;
-        expect(tok!"unittest");
-        node.blockStatement = parseBlockStatement();
-        return node;
+        mixin (simpleParse!(Unittest, tok!"unittest", "blockStatement|parseBlockStatement"));
     }
 
     /**
@@ -5887,12 +5845,7 @@ q{doStuff(5)}c;
     Vector parseVector()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Vector;
-        if (expect(tok!"__vector") is null) return null;
-        if (expect(tok!"(") is null) return null;
-        if ((node.type = parseType()) is null) return null;
-        if (expect(tok!")") is null) return null;
-        return node;
+        mixin (simpleParse!(Vector, tok!"__vector", tok!"(", "type|parseType", tok!")"));
     }
 
     /**
@@ -5906,8 +5859,7 @@ q{doStuff(5)}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new VersionCondition;
-        if (expect(tok!"version") is null) return null;
-        if (expect(tok!"(") is null) return null;
+        mixin (expectSequence!(tok!"version", tok!"("));
         if (currentIsOneOf(tok!"intLiteral", tok!"identifier",
             tok!"unittest", tok!"assert"))
         {
@@ -5933,8 +5885,7 @@ q{doStuff(5)}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new VersionSpecification;
-        expect(tok!"version");
-        expect(tok!"=");
+        mixin (expectSequence!(tok!"version", tok!"="));
         if (!currentIsOneOf(tok!"identifier", tok!"intLiteral"))
         {
             error("Identifier or integer literal expected");
@@ -5980,14 +5931,9 @@ q{doStuff(5)}c;
     WithStatement parseWithStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new WithStatement;
-        if (expect(tok!"with") is null) return null;
-        if (expect(tok!"(") is null) return null;
-        if ((node.expression = parseExpression()) is null) return null;
-        if (expect(tok!")") is null) return null;
-        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
-        if (node.statementNoCaseNoDefault is null) return null;
-        return node;
+        mixin (simpleParse!(WithStatement, tok!"with", tok!"(",
+            "expression|parseExpression", tok!")",
+            "statementNoCaseNoDefault|parseStatementNoCaseNoDefault"));
     }
 
     /**
@@ -6557,6 +6503,42 @@ protected:
         return p;
     }
 
+    template simpleParse(NodeType, parts ...)
+    {
+        enum simpleParse = "auto node = new " ~ NodeType.stringof ~ ";\n"
+            ~ simpleParseItems!(parts)
+            ~ "\nreturn node;\n";
+    }
+
+    template simpleParseItems(items ...)
+    {
+        static if (items.length > 1)
+            enum simpleParseItems = simpleParseItem!(items[0]) ~ "\n"
+                ~ simpleParseItems!(items[1 .. $]);
+        else static if (items.length == 1)
+            enum simpleParseItems = simpleParseItem!(items[0]);
+        else
+            enum simpleParseItems = "";
+    }
+
+    template simpleParseItem(alias item)
+    {
+        static if (is (typeof(item) == string))
+            enum simpleParseItem = "if ((node." ~ item[0 .. item.countUntil("|")]
+                ~ " = " ~ item[item.countUntil("|") + 1 .. $] ~ "()) is null) return null;";
+        else
+            enum simpleParseItem = "if (expect(" ~ item.stringof ~ ") is null) return null;";
+    }
+
+    template expectSequence(sequence ...)
+    {
+        static if (sequence.length == 1)
+            enum expectSequence = "if (expect(" ~ sequence[0].stringof ~ ") is null) return null;";
+        else
+            enum expectSequence = "if (expect(" ~ sequence[0].stringof ~ ") is null) return null;\n"
+                ~ expectSequence!(sequence[1..$]);
+    }
+
     template traceEnterAndExit(string fun)
     {
         enum traceEnterAndExit = `version (std_parser_verbose) trace("`
@@ -6619,6 +6601,9 @@ protected:
         case tok!"irealLiteral":
         case tok!"uintLiteral":
         case tok!"ulongLiteral":
+        case tok!"stringLiteral":
+        case tok!"wstringLiteral":
+        case tok!"dstringLiteral":
     };
     enum string SPECIAL_CASES = q{
         case tok!"__DATE__":

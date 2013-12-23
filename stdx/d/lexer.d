@@ -51,7 +51,7 @@ private enum dynamicTokens = [
 ];
 
 public alias TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens) IdType;
-public alias TokenStringRepresentation!(IdType, staticTokens, possibleDefaultTokens) str;
+public alias TokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens) str;
 public template tok(string token)
 {
   alias TokenId!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens, token) tok;
@@ -60,19 +60,19 @@ public alias stdx.lexer.TokenStructure!(IdType) Token;
 
 public auto byToken(R, bool skipComments = true, bool skipWhitespace = true)(R range)
 {
-	pure nothrow bool isComment(const Token t) { return t.type == tok!"comment"; }
-	pure nothrow bool isWhitespace(const Token t) { return t.type == tok!"whitespace"; }
-	pure nothrow bool isEither(const Token t) { return t.type == tok!"whitespace" || t.type == tok!"comment"; }
+	pure nothrow bool isNotComment(const Token t) { return t.type != tok!"comment"; }
+	pure nothrow bool isNotWhitespace(const Token t) { return t.type != tok!"whitespace"; }
+	pure nothrow bool isNotEither(const Token t) { return t.type != tok!"whitespace" && t.type != tok!"comment"; }
 
 	static if (skipComments)
 	{
 		static if (skipWhitespace)
-			return DLexer!(R)(range).filter!isEither;
+			return DLexer!(R)(range).filter!isNotEither;
 		else
-			return DLexer!(R)(range).filter.isComment;
+			return DLexer!(R)(range).filter!isNotComment;
 	}
 	else static if (skipWhitespace)
-		return DLexer!(R)(range).filter!isWhitespace;
+		return DLexer!(R)(range).filter!isNotWhitespace;
 	else
 		return DLexer!(R)(range);
 }
@@ -322,10 +322,10 @@ public bool isStringLiteral(IdType type) pure nothrow @safe
 public struct DLexer(R)
 {
 	import std.conv;
-	
+
 	mixin Lexer!(R, IdType, Token, isSeparating, lexIdentifier, staticTokens, dynamicTokens,
 		pseudoTokens, possibleDefaultTokens);
-		
+
 	this(R range)
 	{
 		registerPostProcess!"\""(&lexStringLiteral!RangeType);
@@ -395,7 +395,7 @@ public struct DLexer(R)
 			return;
 		case '\n':
 			range.popFront();
-			range.incrementLine();	
+			range.incrementLine();
 			return;
 		case 0xe2:
 			if (range.canPeek(2) && range.peek() == 0x80
@@ -770,7 +770,7 @@ public struct DLexer(R)
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
-	
+
 	Token lexSlashSlashComment(LR)(ref LR range)
 	{
 		range.mark();
@@ -786,7 +786,7 @@ public struct DLexer(R)
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
-	
+
 	Token lexSlashPlusComment(LR)(ref LR range)
 	{
 		range.mark();
@@ -1024,7 +1024,7 @@ public struct DLexer(R)
 		range.mark();
 		range.popFront();
 		range.popFront();
-		
+
 		loop: while (true)
 		{
 			if (range.empty)
@@ -1037,7 +1037,7 @@ public struct DLexer(R)
 			else switch (range.front)
 			{
 			case '0': .. case '9':
-			case 'F': .. case 'F':
+			case 'A': .. case 'F':
 			case 'a': .. case 'f':
 				range.popFront();
 				break;
@@ -1049,7 +1049,7 @@ public struct DLexer(R)
 				return Token();
 			}
 		}
-		
+
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(range, type);
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
@@ -1105,7 +1105,7 @@ public struct DLexer(R)
 					range.popFront();
 					break;
 				default:
-					writeln("Error: at least 4 hex digits expected.");	
+					writeln("Error: at least 4 hex digits expected.");
 					return false;
 				}
 			}
