@@ -201,12 +201,12 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		return code;
 	}
 
-	Token front() @property
+	const(Token) front() pure nothrow const @property
 	{
 		return _front;
 	}
 
-	void popFront()
+	void popFront() pure
 	{
 		_front = advance();
 	}
@@ -214,11 +214,6 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 	bool empty() const nothrow @property
 	{
 		return _front.type == tok!"\0";
-	}
-
-	void registerPostProcess(alias t)(Token delegate(ref RangeType) fun)
-	{
-		post[pseudoTok!t] = fun;
 	}
 
 	template pseudoTok(string symbol)
@@ -247,19 +242,17 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		return rVal;
 	}
 
-	Token advance()
+	Token advance() pure
 	{
 		if (range.empty)
 			return Token(tok!"\0");
-		auto r = range.save;
 		lexerLoop: switch (range.front)
 		{
 		mixin(generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
 //		pragma(msg, generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
 		outer_default:
 		default:
-			range = r;
-			return defaultTokenFunction(range);
+			return defaultTokenFunction();
 		}
 	}
 
@@ -274,18 +267,24 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		return rVal;
 	}
 
-	Token postProcess(IDType i)
+	void registerPostProcess(alias t)(Token delegate() pure fun)
+	{
+		post[pseudoTok!t] = fun;
+	}
+	
+	Token postProcess(IDType i) pure
 	{
 		assert (post[i] !is null, "No post-processing function registered for " ~ pseudoTokens[i]);
-		return post[i](range);
+		return post[i]();
 	}
 
-	Token delegate(ref RangeType)[pseudoTokens.length] post;
+	Token delegate() pure [pseudoTokens.length] post;
 	RangeType range;
 	Token _front;
 }
 
-struct PeekRange(R, size_t peekSupported = 1) if (isRandomAccessRange!R && isForwardRange!R)
+struct PeekRange(R, size_t peekSupported = 1) if (isRandomAccessRange!R
+	&& isForwardRange!R && hasSlicing!R)
 {
 public:
 
@@ -293,13 +292,26 @@ public:
 	{
 		this.range = range;
 	}
-
+	
+	invariant()
+	{
+		import std.string;
+		if (range.length != 6190)
+			assert (false, format("range.length = %d %s", range.length, cast(char[]) range[0 .. 100]));
+	}
+	
+	bool startsWith(string s)
+	{
+		return index + s.length < range.length
+			&& (cast(const(ubyte[])) s) == range[index .. index + s.length];
+	}
+	
 	bool empty() pure nothrow const @property
 	{
 		return _index >= range.length;
 	}
 
-	ElementType!R front() pure nothrow const @property
+	const(ElementType!R) front() pure nothrow const @property
 	in
 	{
 		assert (!empty);
@@ -321,7 +333,7 @@ public:
 			popFront();
 	}
 
-	ElementType!R peek(int offset = 1) pure nothrow const
+	const(ElementType!R) peek(int offset = 1) pure nothrow const
 	in
 	{
 		assert (canPeek(offset));
@@ -336,24 +348,14 @@ public:
 		return _index + offset < range.length;
 	}
 
-	typeof(this) save() @property
-	{
-		typeof(this) copy;
-		copy.range = range;
-		copy._index = _index;
-		copy._column = _column;
-		copy._line = _line;
-		return copy;
-	}
-
 	void mark() nothrow pure
 	{
-		markBegin = index;
+		markBegin = _index;
 	}
 
-	R getMarked() nothrow pure
+	const(R) getMarked() pure nothrow const
 	{
-		return range[markBegin .. index];
+		return range[markBegin .. _index];
 	}
 
 	void incrementLine() pure nothrow

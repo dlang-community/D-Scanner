@@ -51,7 +51,8 @@ html  { background-color: #fdf6e3; color: #002b36; }
 		{
 			version(Windows)
 			{
-				// Stupid Windows automatically does a LF → CRLF, so CRLF → CRCRLF, which is obviously wrong.
+				// Stupid Windows automatically does a LF → CRLF, so
+				// CRLF → CRCRLF, which is obviously wrong.
 				// Strip out the CR characters here to avoid this.
 				stdout.write(t.text.replace("<", "&lt;").replace("\r", ""));
 			}

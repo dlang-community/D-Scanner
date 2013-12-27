@@ -3,7 +3,6 @@ module stdx.d.lexer;
 import std.typecons;
 import std.typetuple;
 import std.array;
-import std.stdio;
 import std.algorithm;
 import std.range;
 import stdx.lexer;
@@ -322,45 +321,46 @@ public bool isStringLiteral(IdType type) pure nothrow @safe
 public struct DLexer(R)
 {
 	import std.conv;
+	import core.vararg;
 
-	mixin Lexer!(R, IdType, Token, isSeparating, lexIdentifier, staticTokens, dynamicTokens,
-		pseudoTokens, possibleDefaultTokens);
+	mixin Lexer!(R, IdType, Token, isSeparating, lexIdentifier, staticTokens,
+		dynamicTokens, pseudoTokens, possibleDefaultTokens);
 
 	this(R range)
 	{
-		registerPostProcess!"\""(&lexStringLiteral!RangeType);
-		registerPostProcess!"`"(&lexWysiwygString!RangeType);
-		registerPostProcess!"//"(&lexSlashSlashComment!RangeType);
-		registerPostProcess!"/*"(&lexSlashStarComment!RangeType);
-		registerPostProcess!"/+"(&lexSlashPlusComment!RangeType);
-		registerPostProcess!"."(&lexDot!RangeType);
-		registerPostProcess!"'"(&lexCharacterLiteral!RangeType);
-		registerPostProcess!"0"(&lexNumber!RangeType);
-		registerPostProcess!"1"(&lexNumber!RangeType);
-		registerPostProcess!"2"(&lexNumber!RangeType);
-		registerPostProcess!"3"(&lexNumber!RangeType);
-		registerPostProcess!"4"(&lexNumber!RangeType);
-		registerPostProcess!"5"(&lexNumber!RangeType);
-		registerPostProcess!"6"(&lexNumber!RangeType);
-		registerPostProcess!"7"(&lexNumber!RangeType);
-		registerPostProcess!"8"(&lexNumber!RangeType);
-		registerPostProcess!"9"(&lexNumber!RangeType);
-		registerPostProcess!"#"(&lexNumber!RangeType);
-		registerPostProcess!"q\""(&lexDelimitedString!RangeType);
-		registerPostProcess!"q{"(&lexTokenString!RangeType);
-		registerPostProcess!"r\""(&lexWysiwygString!RangeType);
-		registerPostProcess!"x\""(&lexHexString!RangeType);
-		registerPostProcess!" "(&lexWhitespace!RangeType);
-		registerPostProcess!"\t"(&lexWhitespace!RangeType);
-		registerPostProcess!"\r"(&lexWhitespace!RangeType);
-		registerPostProcess!"\n"(&lexWhitespace!RangeType);
-		registerPostProcess!"\u2028"(&lexLongNewline!RangeType);
-		registerPostProcess!"\u2029"(&lexLongNewline!RangeType);
+		registerPostProcess!"\""(&lexStringLiteral);
+		registerPostProcess!"`"(&lexWysiwygString);
+		registerPostProcess!"//"(&lexSlashSlashComment);
+		registerPostProcess!"/*"(&lexSlashStarComment);
+		registerPostProcess!"/+"(&lexSlashPlusComment);
+		registerPostProcess!"."(&lexDot);
+		registerPostProcess!"'"(&lexCharacterLiteral);
+		registerPostProcess!"0"(&lexNumber);
+		registerPostProcess!"1"(&lexNumber);
+		registerPostProcess!"2"(&lexNumber);
+		registerPostProcess!"3"(&lexNumber);
+		registerPostProcess!"4"(&lexNumber);
+		registerPostProcess!"5"(&lexNumber);
+		registerPostProcess!"6"(&lexNumber);
+		registerPostProcess!"7"(&lexNumber);
+		registerPostProcess!"8"(&lexNumber);
+		registerPostProcess!"9"(&lexNumber);
+		registerPostProcess!"#"(&lexNumber);
+		registerPostProcess!"q\""(&lexDelimitedString);
+		registerPostProcess!"q{"(&lexTokenString);
+		registerPostProcess!"r\""(&lexWysiwygString);
+		registerPostProcess!"x\""(&lexHexString);
+		registerPostProcess!" "(&lexWhitespace);
+		registerPostProcess!"\t"(&lexWhitespace);
+		registerPostProcess!"\r"(&lexWhitespace);
+		registerPostProcess!"\n"(&lexWhitespace);
+		registerPostProcess!"\u2028"(&lexLongNewline);
+		registerPostProcess!"\u2029"(&lexLongNewline);
 		this.range = RangeType(range);
 		popFront();
 	}
 
-	static bool isWhitespace(LR)(LR range)
+	bool isWhitespace() pure const nothrow
 	{
 		switch (range.front)
 		{
@@ -379,7 +379,7 @@ public struct DLexer(R)
 		}
 	}
 
-	static void popFrontWhitespaceAware(LR)(ref LR range)
+	void popFrontWhitespaceAware() pure nothrow
 	{
 		switch (range.front)
 		{
@@ -418,7 +418,7 @@ public struct DLexer(R)
 		}
 	}
 
-	Token lexWhitespace(LR)(ref LR range)
+	Token lexWhitespace() pure nothrow
 	{
 		range.mark();
 		loop: do
@@ -461,7 +461,7 @@ public struct DLexer(R)
 			range.column, range.index);
 	}
 
-	Token lexNumber(LR)(ref LR range)
+	Token lexNumber() pure nothrow
 	{
 		range.mark();
 		if (range.front == '0')
@@ -472,21 +472,21 @@ public struct DLexer(R)
 			case 'X':
 				range.popFront();
 				range.popFront();
-				return lexHex(range);
+				return lexHex();
 			case 'b':
 			case 'B':
 				range.popFront();
 				range.popFront();
-				return lexBinary(range);
+				return lexBinary();
 			default:
-				return lexDecimal(range);
+				return lexDecimal();
 			}
 		}
 		else
-			return lexDecimal(range);
+			return lexDecimal();
 	}
 
-	Token lexHex(LR)(ref LR range)
+	Token lexHex() pure nothrow
 	{
 		IdType type = tok!"intLiteral";
 		bool foundDot;
@@ -502,26 +502,26 @@ public struct DLexer(R)
 				break;
 			case 'u':
 			case 'U':
-				lexIntSuffix(range, type);
+				lexIntSuffix(type);
 				break hexLoop;
 			case 'i':
 				if (foundDot)
-					lexFloatSuffix(range, type);
+					lexFloatSuffix(type);
 				break hexLoop;
 			case 'L':
 				if (foundDot)
 				{
-					lexFloatSuffix(range, type);
+					lexFloatSuffix(type);
 					break hexLoop;
 				}
 				else
 				{
-					lexIntSuffix(range, type);
+					lexIntSuffix(type);
 					break hexLoop;
 				}
 			case 'p':
 			case 'P':
-				lexExponent(range, type);
+				lexExponent(type);
 				break hexLoop;
 			case '.':
 				if (foundDot)
@@ -540,7 +540,7 @@ public struct DLexer(R)
 			range.index);
 	}
 
-	Token lexBinary(LR)(ref LR range)
+	Token lexBinary() pure nothrow
 	{
 		IdType type = tok!"intLiteral";
 		binaryLoop: while (!range.empty)
@@ -555,7 +555,7 @@ public struct DLexer(R)
 			case 'u':
 			case 'U':
 			case 'L':
-				lexIntSuffix(range, type);
+				lexIntSuffix(type);
 				break binaryLoop;
 			default:
 				break binaryLoop;
@@ -565,7 +565,7 @@ public struct DLexer(R)
 			range.index);
 	}
 
-	Token lexDecimal(LR)(ref LR range)
+	Token lexDecimal() pure nothrow
 	{
 		bool foundDot = range.front == '.';
 		IdType type = tok!"intLiteral";
@@ -586,24 +586,24 @@ public struct DLexer(R)
 			case 'u':
 			case 'U':
 				if (!foundDot)
-					lexIntSuffix(range, type);
+					lexIntSuffix(type);
 				break decimalLoop;
 			case 'i':
-				lexFloatSuffix(range, type);
+				lexFloatSuffix(type);
 				break decimalLoop;
 			case 'L':
 				if (foundDot)
-					lexFloatSuffix(range, type);
+					lexFloatSuffix(type);
 				else
-					lexIntSuffix(range, type);
+					lexIntSuffix(type);
 				break decimalLoop;
 			case 'f':
 			case 'F':
-				lexFloatSuffix(range, type);
+				lexFloatSuffix(type);
 				break decimalLoop;
 			case 'e':
 			case 'E':
-				lexExponent(range, type);
+				lexExponent(type);
 				break decimalLoop;
 			case '.':
 				if (foundDot)
@@ -642,7 +642,7 @@ public struct DLexer(R)
 			range.index);
 	}
 
-	static void lexIntSuffix(R)(ref R range, ref IdType type)
+	void lexIntSuffix(ref IdType type) pure nothrow @safe
 	{
 		bool secondPass;
 		if (range.front == 'u' || range.front == 'U')
@@ -676,7 +676,7 @@ public struct DLexer(R)
 		}
 	}
 
-	static void lexFloatSuffix(R)(ref R range, ref IdType type)
+	void lexFloatSuffix(ref IdType type) pure nothrow @safe
 	{
 		switch (range.front)
 		{
@@ -702,7 +702,7 @@ public struct DLexer(R)
 		}
 	}
 
-	static void lexExponent(R)(ref R range, ref IdType type)
+	void lexExponent(ref IdType type) pure nothrow @safe
 	{
 		range.popFront();
 		bool foundSign = false;
@@ -716,7 +716,7 @@ public struct DLexer(R)
 				if (foundSign)
 				{
 					if (!foundDigit)
-					writeln("Expected an exponent");
+					error("Expected an exponent");
 					return;
 				}
 				foundSign = true;
@@ -731,23 +731,23 @@ public struct DLexer(R)
 			case 'f':
 			case 'F':
 			case 'i':
-				lexFloatSuffix(range, type);
+				lexFloatSuffix(type);
 				return;
 			default:
 				if (!foundDigit)
-					writeln("Expected an exponent");
+					error("Expected an exponent");
 				return;
 			}
 		}
 	}
 
 
-	Token lexSpecialTokenSequence(LR)(ref LR range)
+	Token lexSpecialTokenSequence() pure nothrow @safe
 	{
 		assert (false, "Not implemented");
 	}
 
-	Token lexSlashStarComment(LR)(ref LR range)
+	Token lexSlashStarComment() pure
 	{
 		range.mark();
 		IdType type = tok!"comment";
@@ -765,13 +765,13 @@ public struct DLexer(R)
 				}
 			}
 			else
-				popFrontWhitespaceAware(range);
+				popFrontWhitespaceAware();
 		}
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
 
-	Token lexSlashSlashComment(LR)(ref LR range)
+	Token lexSlashSlashComment() pure nothrow
 	{
 		range.mark();
 		IdType type = tok!"comment";
@@ -787,7 +787,7 @@ public struct DLexer(R)
 			range.index);
 	}
 
-	Token lexSlashPlusComment(LR)(ref LR range)
+	Token lexSlashPlusComment() pure nothrow
 	{
 		range.mark();
 		IdType type = tok!"comment";
@@ -815,13 +815,13 @@ public struct DLexer(R)
 				}
 			}
 			else
-				popFrontWhitespaceAware(range);
+				popFrontWhitespaceAware();
 		}
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
 
-	Token lexStringLiteral(LR)(ref LR range)
+	Token lexStringLiteral() pure nothrow
 	{
 		range.mark();
 		range.popFront();
@@ -829,7 +829,7 @@ public struct DLexer(R)
 		{
 			if (range.empty)
 			{
-				writeln("Error: unterminated string literal");
+				error("Error: unterminated string literal");
 				return Token();
 			}
 			else if (range.front == '"')
@@ -839,18 +839,18 @@ public struct DLexer(R)
 			}
 			else if (range.front == '\\')
 			{
-				lexEscapeSequence(range);
+				lexEscapeSequence();
 			}
 			else
 				range.popFront();
 		}
 		IdType type = tok!"stringLiteral";
-		lexStringSuffix(range, type);
+		lexStringSuffix(type);
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
 
-	Token lexWysiwygString(LR)(ref LR range)
+	Token lexWysiwygString() pure nothrow
 	{
 		range.mark();
 		IdType type = tok!"stringLiteral";
@@ -862,7 +862,7 @@ public struct DLexer(R)
 			{
 				if (range.empty)
 				{
-					writeln("Error: unterminated string literal");
+					error("Error: unterminated string literal");
 					return Token(tok!"");
 				}
 				else if (range.front == '`')
@@ -871,7 +871,7 @@ public struct DLexer(R)
 					break;
 				}
 				else
-					popFrontWhitespaceAware(range);
+					popFrontWhitespaceAware();
 			}
 		}
 		else
@@ -879,7 +879,7 @@ public struct DLexer(R)
 			range.popFront();
 			if (range.empty)
 			{
-				writeln("Error: unterminated string literal");
+				error("Error: unterminated string literal");
 				return Token(tok!"");
 			}
 			range.popFront();
@@ -887,7 +887,7 @@ public struct DLexer(R)
 			{
 				if (range.empty)
 				{
-					writeln("Error: unterminated string literal");
+					error("Error: unterminated string literal");
 					return Token(tok!"");
 				}
 				else if (range.front == '"')
@@ -896,15 +896,15 @@ public struct DLexer(R)
 					break;
 				}
 				else
-					popFrontWhitespaceAware(range);
+					popFrontWhitespaceAware();
 			}
 		}
-		lexStringSuffix(range, type);
+		lexStringSuffix(type);
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
 
-	static void lexStringSuffix(R)(ref R range, ref IdType type)
+	void lexStringSuffix(ref IdType type) pure
 	{
 		if (range.empty)
 			type = tok!"stringLiteral";
@@ -920,7 +920,7 @@ public struct DLexer(R)
 		}
 	}
 
-	Token lexDelimitedString(LR)(ref LR range)
+	Token lexDelimitedString() pure nothrow
 	{
 		range.mark();
 		range.popFront();
@@ -933,30 +933,29 @@ public struct DLexer(R)
 			open = '<';
 			close = '>';
 			range.popFront();
-			return lexNormalDelimitedString!LR(range, open, close);
+			return lexNormalDelimitedString(open, close);
 		case '{':
 			open = '{';
 			close = '}';
 			range.popFront();
-			return lexNormalDelimitedString!LR(range, open, close);
+			return lexNormalDelimitedString(open, close);
 		case '[':
 			open = '[';
 			close = ']';
 			range.popFront();
-			return lexNormalDelimitedString!LR(range, open, close);
+			return lexNormalDelimitedString(open, close);
 		case '(':
 			open = '(';
 			close = ')';
 			range.popFront();
-			return lexNormalDelimitedString!LR(range, open, close);
+			return lexNormalDelimitedString(open, close);
 		default:
-			return lexHeredocString(range);
+			return lexHeredocString();
 		}
 	}
 
-	Token lexNormalDelimitedString(LR)(ref LR range,
-		ElementEncodingType!LR open,
-		ElementEncodingType!LR close)
+	Token lexNormalDelimitedString(ElementEncodingType!RangeType open,
+		ElementEncodingType!RangeType close) pure nothrow
 	{
 		int depth = 1;
 		while (!range.empty && depth > 0)
@@ -976,34 +975,37 @@ public struct DLexer(R)
 						range.popFront();
 					else
 					{
-						writeln("Error: \" expected to end delimited string literal");
+						error("Error: \" expected to end delimited string literal");
 						return Token(tok!"");
 					}
 				}
 			}
 			else
-				popFrontWhitespaceAware(range);
+				popFrontWhitespaceAware();
 		}
 		IdType type = tok!"stringLiteral";
-		lexStringSuffix(range, type);
+		lexStringSuffix(type);
 		return Token(type, cast(string) range.getMarked(), range.line, range.column, range.index);
 	}
 
-	Token lexHeredocString(LR)(ref LR range)
+	Token lexHeredocString() pure nothrow
 	{
 		assert (false, "unimplemented");
 	}
 
-	Token lexTokenString(LR)(ref LR range)
+	Token lexTokenString() pure
 	{
+		assert(range.front == 'q');
 		range.popFront();
+		assert(range.front == '{');
 		range.popFront();
 		auto app = appender!string();
 		app.put("q{");
 		int depth = 1;
+		
+		_front = advance();
 		while (depth > 0 && !empty)
 		{
-			popFront();
 			auto t = front();
 			if (t.text is null)
 				app.put(str(t.type));
@@ -1013,13 +1015,14 @@ public struct DLexer(R)
 				depth--;
 			else if (t.type == tok!"{")
 				depth++;
+			popFront();
 		}
 		IdType type = tok!"stringLiteral";
-		lexStringSuffix(range, type);
+		lexStringSuffix(type);
 		return Token(type, app.data, range.line, range.column, range.index);
 	}
 
-	Token lexHexString(LR)(ref LR range)
+	Token lexHexString() pure nothrow
 	{
 		range.mark();
 		range.popFront();
@@ -1029,11 +1032,11 @@ public struct DLexer(R)
 		{
 			if (range.empty)
 			{
-				writeln("Error: unterminated hex string literal");
+				error("Error: unterminated hex string literal");
 				return Token();
 			}
-			else if (isWhitespace(range))
-				popFrontWhitespaceAware(range);
+			else if (isWhitespace())
+				popFrontWhitespaceAware();
 			else switch (range.front)
 			{
 			case '0': .. case '9':
@@ -1045,23 +1048,23 @@ public struct DLexer(R)
 				range.popFront();
 				break loop;
 			default:
-				writeln("Error: invalid character in hex string");
+				error("Error: invalid character in hex string");
 				return Token();
 			}
 		}
 
 		IdType type = tok!"stringLiteral";
-		lexStringSuffix(range, type);
+		lexStringSuffix(type);
 		return Token(type, cast(string) range.getMarked(), range.line, range.column,
 			range.index);
 	}
 
-	static bool lexEscapeSequence(LR)(ref LR range)
+	bool lexEscapeSequence() pure nothrow
 	{
 		range.popFront();
 		if (range.empty)
 		{
-			writeln("Error: non-terminated character escape sequence.");
+			error("Error: non-terminated character escape sequence.");
 			return false;
 		}
 		switch (range.front)
@@ -1094,7 +1097,7 @@ public struct DLexer(R)
 			{
 				if (range.empty)
 				{
-					writeln("Error: at least 4 hex digits expected.");
+					error("Error: at least 4 hex digits expected.");
 					return false;
 				}
 				switch (range.front)
@@ -1105,7 +1108,7 @@ public struct DLexer(R)
 					range.popFront();
 					break;
 				default:
-					writeln("Error: at least 4 hex digits expected.");
+					error("Error: at least 4 hex digits expected.");
 					return false;
 				}
 			}
@@ -1116,7 +1119,7 @@ public struct DLexer(R)
 			{
 				if (range.empty)
 				{
-					writeln("Error: at least 8 hex digits expected.");
+					error("Error: at least 8 hex digits expected.");
 					return false;
 				}
 				switch (range.front)
@@ -1127,7 +1130,7 @@ public struct DLexer(R)
 					range.popFront();
 					break;
 				default:
-					writeln("Error: at least 8 hex digits expected.");
+					error("Error: at least 8 hex digits expected.");
 					return false;
 				}
 			}
@@ -1137,7 +1140,7 @@ public struct DLexer(R)
 			{
 				if (range.empty)
 				{
-					writeln("Error: non-terminated character escape sequence.");
+					error("Error: non-terminated character escape sequence.");
 					return false;
 				}
 				if (range.front == ';')
@@ -1149,13 +1152,13 @@ public struct DLexer(R)
 		return true;
 	}
 
-	Token lexCharacterLiteral(LR)(ref LR range)
+	Token lexCharacterLiteral() pure nothrow
 	{
 		range.mark();
 		range.popFront();
 		if (range.front == '\\')
 		{
-			lexEscapeSequence(range);
+			lexEscapeSequence();
 			goto close;
 		}
 		else if (range.front == '\'')
@@ -1172,7 +1175,7 @@ public struct DLexer(R)
 		}
 		else
 		{
-			popFrontWhitespaceAware(range);
+			popFrontWhitespaceAware();
 			goto close;
 		}
 	close:
@@ -1184,12 +1187,12 @@ public struct DLexer(R)
 		}
 		else
 		{
-			writeln("Error: Expected ' to end character literal ", cast(char) range.front);
+			error("Error: Expected ' to end character literal ", cast(char) range.front);
 			return Token();
 		}
 	}
 
-	Token lexIdentifier(LR)(ref LR range)
+	Token lexIdentifier() pure nothrow
 	{
 		range.mark();
 		while (!range.empty && !isSeparating(range.front))
@@ -1200,7 +1203,7 @@ public struct DLexer(R)
 			range.line, range.column);
 	}
 
-	Token lexDot(LR)(ref LR range)
+	Token lexDot() pure nothrow
 	{
 		if (!range.canPeek)
 		{
@@ -1210,7 +1213,7 @@ public struct DLexer(R)
 		switch (range.peek())
 		{
 		case '0': .. case '9':
-			return lexNumber(range);
+			return lexNumber();
 		case '.':
 			range.popFront();
 			range.popFront();
@@ -1227,7 +1230,7 @@ public struct DLexer(R)
 		}
 	}
 
-	Token lexLongNewline(LR)(ref LR range)
+	Token lexLongNewline() pure nothrow
 	{
 		range.mark();
 		range.popFront();
@@ -1238,7 +1241,7 @@ public struct DLexer(R)
 			range.column, range.index);
 	}
 
-	static bool isSeparating(C)(C c) nothrow pure
+	bool isSeparating(C)(C c) nothrow pure @safe
 	{
 		if (c <= 0x2f) return true;
 		if (c >= ':' && c <= '@') return true;
@@ -1246,5 +1249,9 @@ public struct DLexer(R)
 		if (c >= '{' && c <= '~') return true;
 		if (c == '`') return true;
 		return false;
+	}
+	
+	void error(...) pure {
+		
 	}
 }
