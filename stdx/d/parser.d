@@ -2166,7 +2166,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a ForStatement
      *
      * $(GRAMMAR $(RULEDEF forStatement):
-     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
+     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE declarationOrStatement)
      *     ;)
      */
     ForStatement parseForStatement()
@@ -2180,7 +2180,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIs(TokenType.semicolon))
             advance();
         else
-            node.declarationOrStatement = parseDeclarationOrStatement();
+            node.initialization = parseDeclarationOrStatement();
 
         if (currentIs(TokenType.semicolon))
             advance();
@@ -2196,8 +2196,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
 			error("Statement expected", false);
 			return node; // this line makes DCD better
 		}
-        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
-        if (node.statementNoCaseNoDefault is null) return null;
+        node.declarationOrStatement = parseDeclarationOrStatement();
+        if (node.declarationOrStatement is null) return null;
         return node;
     }
 
@@ -2205,8 +2205,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a ForeachStatement
      *
      * $(GRAMMAR $(RULEDEF foreachStatement):
-     *       ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
-     *     | ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
+     *       ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachTypeList) $(LITERAL ';') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE declarationOrStatement)
+     *     | ($(LITERAL 'foreach') | $(LITERAL 'foreach_reverse')) $(LITERAL '$(LPAREN)') $(RULE foreachType) $(LITERAL ';') $(RULE expression) $(LITERAL '..') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE declarationOrStatement)
      *     ;)
      */
     ForeachStatement parseForeachStatement()
@@ -5948,7 +5948,7 @@ q{doStuff(5)}c;
      * Parses a WhileStatement
      *
      * $(GRAMMAR $(RULEDEF whileStatement):
-     *     $(LITERAL 'while') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
+     *     $(LITERAL 'while') $(LITERAL '$(LPAREN)') $(RULE expression) $(LITERAL '$(RPAREN)') $(RULE declarationOrStatement)
      *     ;)
      */
     WhileStatement parseWhileStatement()
@@ -5960,12 +5960,12 @@ q{doStuff(5)}c;
         expect(TokenType.lParen);
         node.expression = parseExpression();
         expect(TokenType.rParen);
-		if (currentIs(TokenType.rBrace))
-		{
-			error("Statement expected", false);
-			return node; // this line makes DCD better
-		}
-        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+        if (currentIs(TokenType.rBrace))
+        {
+            error("Statement expected", false);
+            return node; // this line makes DCD better
+        }
+        node.declarationOrStatement = parseDeclarationOrStatement();
         return node;
     }
 

@@ -1203,13 +1203,13 @@ class ForStatement : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(declarationOrStatement, test, increment,
-            statementNoCaseNoDefault));
+        mixin (visitIfNotNull!(initialization, test, increment,
+            declarationOrStatement));
     }
-    /** */ DeclarationOrStatement declarationOrStatement;
+    /** */ DeclarationOrStatement initialization;
     /** */ ExpressionStatement test;
     /** */ Expression increment;
-    /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    /** */ DeclarationOrStatement declarationOrStatement;
 	/** */ size_t startIndex;
 }
 
@@ -2760,11 +2760,11 @@ class WhileStatement : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(expression, statementNoCaseNoDefault));
+        mixin (visitIfNotNull!(expression, declarationOrStatement));
     }
 
     /** */ Expression expression;
-    /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    /** */ DeclarationOrStatement declarationOrStatement;
 	/** */ size_t startIndex;
 }
 

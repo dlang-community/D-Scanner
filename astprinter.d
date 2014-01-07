@@ -485,7 +485,7 @@ class XMLPrinter : ASTVisitor
 			visit(forStatement.increment);
 			output.writeln("</increment>");
 		}
-		visit(forStatement.statementNoCaseNoDefault);
+		visit(forStatement.declarationOrStatement);
 		output.writeln("</forStatement>");
 	}
 
