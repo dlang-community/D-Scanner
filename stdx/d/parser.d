@@ -4870,7 +4870,7 @@ q{(int a, ...)
     TemplateArgumentList parseTemplateArgumentList()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        return parseCommaSeparatedRule!(TemplateArgumentList, TemplateArgument)();
+        return parseCommaSeparatedRule!(TemplateArgumentList, TemplateArgument)(true);
     }
 
     /**
