@@ -838,6 +838,7 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(Module module_)
 	{
+        output.writeln("<?xml version=\"1.0\"?>");
 		output.writeln("<module>");
 		module_.accept(this);
 		output.writeln("</module>");
