@@ -1,62 +1,5 @@
 // Written in the D programming language
 
-/**
- * This module contains a _parser for D source code.
- *
- * Grammar:
- * The grammar format used in the documentation of this module generally follows
- * the format used by the ANTLR _parser generator.
- * $(UL
- * $(LI Tokens and rules can be grouped by parenthesis.)
- * $(LI An asterisk (*) indicates that the previous rule, token, or group
- * can repeat 0 or more times.)
- * $(LI A question mark (?) indicates that the previous rule, token, or group
- * will be present either 0 or 1 times.)
- * $(LI A plus sign (+) indicates that the previous rule, token, or group
- * repeats one or more times. (i.e. it is optional))
- * $(LI If there is more than one way to match a rule, the alternatives will be
- * separated by a pipe character (|).)
- * $(LI Rule definitions begin with the rule name followed by a colon (:). Rule
- * definitions end with a semicolon (;).)
- * )
- *
- * The grammar for D starts with the $(LINK2 #module, module) rule.
- *
- * Examples:
- * ---
- * import std.d.lexer;
- * import std.d.parser;
- * import std.d.ast;
- * import std.array;
- *
- * string sourceCode = q{
- * import std.stdio;
- *
- * void main()
- * {
- *     writeln("Hello, World.");
- * }
- * }c;
- * void main()
- * {
- *     LexerConfig config;
- *     auto tokens = byToken(cast(ubyte[]) sourceCode, config).array();
- *     Module mod = parseModule(tokens);
- *     // Use module here...
- * }
- * ---
- *
- * Copyright: Brian Schott 2013
- * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors: Brian Schott
- * Source: $(PHOBOSSRC std/d/_parser.d)
- * Macros:
- * GRAMMAR = <pre>$0</pre>
- * RULEDEF = <a name="$0"><span style="font-weight: bold;">$0</span></a>
- * RULE = <a href="#$0"><span style="font-weight: bold;">$0</span></a>
- * LITERAL = <span style="color: green;">$0</span>
- */
-
 module stdx.d.parser;
 
 import stdx.d.lexer;
@@ -2162,7 +2105,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a ForStatement
      *
      * $(GRAMMAR $(RULEDEF forStatement):
-     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE statementNoCaseNoDefault)
+     *     $(LITERAL 'for') $(LITERAL '$(LPAREN)') $(RULE declarationOrStatement) $(RULE expression)? $(LITERAL ';') $(RULE expression)? $(LITERAL '$(RPAREN)') $(RULE declarationOrStatement)
      *     ;)
      */
     ForStatement parseForStatement()
@@ -2176,7 +2119,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIs(tok!";"))
             advance();
         else
-            node.declarationOrStatement = parseDeclarationOrStatement();
+            node.initialization = parseDeclarationOrStatement();
 
         if (currentIs(tok!";"))
             advance();
@@ -2192,8 +2135,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             error("Statement expected", false);
             return node; // this line makes DCD better
         }
-        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
-        if (node.statementNoCaseNoDefault is null) return null;
+        node.declarationOrStatement = parseDeclarationOrStatement();
+        if (node.declarationOrStatement is null) return null;
         return node;
     }
 
@@ -5917,7 +5860,7 @@ q{doStuff(5)}c;
             error("Statement expected", false);
             return node; // this line makes DCD better
         }
-        node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
+        node.declarationOrStatement = parseDeclarationOrStatement();
         return node;
     }
 

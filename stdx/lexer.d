@@ -10,12 +10,15 @@
  */
 
 module stdx.lexer;
+
 import std.typecons;
 import std.algorithm;
 import std.range;
 import std.traits;
 import std.conv;
 import std.math;
+import dpick.buffer.buffer;
+import dpick.buffer.traits;
 
 template TokenIdType(alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens)
@@ -34,12 +37,12 @@ string TokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens
 {
 	if (type == 0)
 		return "!ERROR!";
-	else if (type < staticTokens.length)
+	else if (type < staticTokens.length + 1)
 		return staticTokens[type - 1];
-	else if (type < staticTokens.length + possibleDefaultTokens.length)
-		return possibleDefaultTokens[type - staticTokens.length];
-    else if (type < staticTokens.length + possibleDefaultTokens.length + dynamicTokens.length)
-		return dynamicTokens[type - staticTokens.length - possibleDefaultTokens.length];
+	else if (type < staticTokens.length + possibleDefaultTokens.length + 1)
+		return possibleDefaultTokens[type - staticTokens.length - 1];
+    else if (type < staticTokens.length + possibleDefaultTokens.length + dynamicTokens.length + 1)
+		return dynamicTokens[type - staticTokens.length - possibleDefaultTokens.length - 1];
 	else
 		return null;
 }
@@ -70,14 +73,16 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 			enum ii = possibleDefaultTokens.countUntil(symbol);
 			static if (ii >= 0)
 			{
-				enum id = ii + staticTokens.length;
+				enum id = ii + staticTokens.length + 1;
 				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
 				alias id TokenId;
 			}
 			else
 			{
 				enum dynamicId = dynamicTokens.countUntil(symbol);
-				enum id = dynamicId >= 0 ? i + staticTokens.length + possibleDefaultTokens.length + dynamicId : -1;
+				enum id = dynamicId >= 0
+					? i + staticTokens.length + possibleDefaultTokens.length + dynamicId + 1
+					: -1;
 				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
 				alias id TokenId;
 			}
@@ -113,13 +118,10 @@ struct TokenStructure(IDType)
 	IDType type;
 }
 
-mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFunction,
+mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 	alias staticTokens, alias dynamicTokens, alias pseudoTokens,
-	alias possibleDefaultTokens) if (isForwardRange!R)
+	alias pseudoTokenHandlers, alias possibleDefaultTokens)
 {
-	enum size_t lookAhead = chain(staticTokens, pseudoTokens).map!"a.length".reduce!"max(a, b)"();
-	alias PeekRange!(R, lookAhead) RangeType;
-
 	static string generateCaseStatements(string[] tokens, size_t offset = 0)
 	{
 		string code;
@@ -141,9 +143,9 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 						code ~= generateLeaf(tokens[i], indent ~ "    ");
 					else
 					{
-						code ~= indent ~ "    if (!range.canPeek(" ~ text(tokens[i].length - 1) ~ "))\n";
+						code ~= indent ~ "    if (range.lookahead(" ~ text(tokens[i].length) ~ ").length == 0)\n";
 						code ~= indent ~ "        goto outer_default;\n";
-						code ~= indent ~ "    if (range.startsWith(\"" ~ escape(tokens[i]) ~ "\"))\n";
+						code ~= indent ~ "    if (range.lookahead(" ~ text(tokens[i].length) ~ ") == \"" ~ escape(tokens[i]) ~ "\")\n";
 						code ~= indent ~ "    {\n";
 						code ~= generateLeaf(tokens[i], indent ~ "        ");
 						code ~= indent ~ "    }\n";
@@ -153,11 +155,11 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 				}
 				else
 				{
-					code ~= indent ~ "    if (!range.canPeek(" ~ text(offset + 1) ~ "))\n";
+					code ~= indent ~ "    if (range.lookahead(" ~ text(offset + 2) ~ ").length == 0)\n";
 					code ~= indent ~ "    {\n";
 					code ~= generateLeaf(tokens[i][0 .. offset + 1], indent ~ "        ");
 					code ~= indent ~ "    }\n";
-					code ~= indent ~ "    switch (range.peek(" ~ text(offset + 1) ~ "))\n";
+					code ~= indent ~ "    switch (range.lookahead(" ~ text(offset + 2) ~ ")[" ~ text(offset + 1) ~ "])\n";
 					code ~= indent ~ "    {\n";
 					code ~= generateCaseStatements(tokens[i .. j], offset + 1);
 					code ~= indent ~ "    default:\n";
@@ -172,6 +174,8 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 
 	static string generateLeaf(string token, string indent)
 	{
+		static assert (pseudoTokenHandlers.length % 2 == 0,
+			"Each pseudo-token must have a matching function name.");
 		string code;
 		if (staticTokens.countUntil(token) >= 0)
 		{
@@ -179,13 +183,13 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 				code ~= indent ~ "range.popFront();\n";
 			else
 				code ~= indent ~ "range.popFrontN(" ~ text(token.length) ~ ");\n";
-			code ~= indent ~ "return Token(tok!\"" ~ escape(token) ~"\", null, range.line, range.column, range.index);\n";
+			code ~= indent ~ "return Token(tok!\"" ~ escape(token) ~ "\", null, range.line, range.column, range.index);\n";
 		}
 		else if (pseudoTokens.countUntil(token) >= 0)
-			code ~= indent ~ "return postProcess(pseudoTok!\"" ~ escape(token) ~"\");\n";
+			code ~= indent ~ "return " ~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1] ~ "();\n";
 		else if (possibleDefaultTokens.countUntil(token) >= 0)
 		{
-			code ~= indent ~ "if (!range.canPeek(" ~ text(token.length) ~ ") || isSeparating(range.peek(" ~ text(token.length) ~ ")))\n";
+			code ~= indent ~ "if (range.lookahead(" ~ text(token.length + 1) ~ ").length == 0 || isSeparating(range.lookahead(" ~ text(token.length + 1) ~ ")[" ~ text(token.length) ~ "]))\n";
 			code ~= indent ~ "{\n";
 			if (token.length == 1)
 				code ~= indent ~ "    range.popFront();\n";
@@ -211,16 +215,9 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		_front = advance();
 	}
 
-	bool empty() const nothrow @property
+	bool empty() pure const nothrow @property
 	{
 		return _front.type == tok!"\0";
-	}
-
-	template pseudoTok(string symbol)
-	{
-		static assert (pseudoTokens.countUntil(symbol) >= 0);
-		enum index = cast(IDType) pseudoTokens.countUntil(symbol);
-		alias index pseudoTok;
 	}
 
 	static string escape(string input)
@@ -267,224 +264,36 @@ mixin template Lexer(R, IDType, Token, alias isSeparating, alias defaultTokenFun
 		return rVal;
 	}
 
-	void registerPostProcess(alias t)(Token delegate() pure fun)
-	{
-		post[pseudoTok!t] = fun;
-	}
-	
-	Token postProcess(IDType i) pure
-	{
-		assert (post[i] !is null, "No post-processing function registered for " ~ pseudoTokens[i]);
-		return post[i]();
-	}
-
-	Token delegate() pure [pseudoTokens.length] post;
-	RangeType range;
+	LexerRange!(typeof(buffer(R.init))) range;
 	Token _front;
 }
 
-struct PeekRange(R, size_t peekSupported = 1) if (isRandomAccessRange!R
-	&& isForwardRange!R && hasSlicing!R)
+struct LexerRange(BufferType) if (isBuffer!BufferType)
 {
-public:
-
-	this(R range)
+	this(BufferType r)
 	{
-		this.range = range;
+		this.range = r;
+		index = 0;
+		column = 1;
+		line = 1;
 	}
 	
-	invariant()
+	void popFront() pure
 	{
-		import std.string;
-		if (range.length != 6190)
-			assert (false, format("range.length = %d %s", range.length, cast(char[]) range[0 .. 100]));
+		index++;
+		column++;
+		range.popFront();
 	}
 	
-	bool startsWith(string s)
-	{
-		return index + s.length < range.length
-			&& (cast(const(ubyte[])) s) == range[index .. index + s.length];
-	}
-	
-	bool empty() pure nothrow const @property
-	{
-		return _index >= range.length;
-	}
-
-	const(ElementType!R) front() pure nothrow const @property
-	in
-	{
-		assert (!empty);
-	}
-	body
-	{
-		return range[_index];
-	}
-
-	void popFront() pure nothrow
-	{
-		_index++;
-		_column++;
-	}
-
-	void popFrontN(size_t n) pure nothrow
-	{
-		foreach (i; 0 .. n)
-			popFront();
-	}
-
-	const(ElementType!R) peek(int offset = 1) pure nothrow const
-	in
-	{
-		assert (canPeek(offset));
-	}
-	body
-	{
-		return range[_index + offset];
-	}
-
-	bool canPeek(size_t offset = 1) pure nothrow const
-	{
-		return _index + offset < range.length;
-	}
-
-	void mark() nothrow pure
-	{
-		markBegin = _index;
-	}
-
-	const(R) getMarked() pure nothrow const
-	{
-		return range[markBegin .. _index];
-	}
-
 	void incrementLine() pure nothrow
 	{
-		_column = 1;
-		_line++;
+		column = 1;
+		line++;
 	}
-
-	size_t line() pure nothrow const @property { return _line; }
-	size_t column() pure nothrow const @property { return _column; }
-	size_t index() pure nothrow const @property { return _index; }
-
-private:
-	size_t markBegin;
-	size_t _column = 1;
-	size_t _line = 1;
-	size_t _index = 0;
-	R range;
+	
+	BufferType range;
+	alias range this;
+	size_t index;
+	size_t column;
+	size_t line;
 }
-
-//struct PeekRange(R, size_t peekSupported = 1)
-//	if (!isRandomAccessRange!R && isForwardRange!R)
-//{
-//public:
-//
-//	this(R range)
-//	{
-//		this.range = range;
-//		for (size_t i = 0; !this.range.empty && i < peekSupported; i++)
-//		{
-//			rangeSizeCount++;
-//			buffer[i] = this.range.front;
-//			range.popFront();
-//		}
-//	}
-//
-//	ElementType!R front() const @property
-//	in
-//	{
-//		assert (!empty);
-//	}
-//	body
-//	{
-//		return buffer[bufferIndex];
-//	}
-//
-//	void popFront()
-//	in
-//	{
-//		assert (!empty);
-//	}
-//	body
-//	{
-//		index++;
-//		column++;
-//		count++;
-//		bufferIndex = bufferIndex + 1 > buffer.length ? 0 : bufferIndex + 1;
-//		if (marking)
-//			markBuffer.put(buffer[bufferIndex]);
-//		if (!range.empty)
-//		{
-//			buffer[bufferIndex + peekSupported % buffer.length] = range.front();
-//			range.popFront();
-//			rangeSizeCount++;
-//		}
-//	}
-//
-//	bool empty() const nothrow pure @property
-//	{
-//		return rangeSizeCount == count;
-//	}
-//
-//	ElementType!R peek(int offset = 1) pure nothrow const
-//	in
-//	{
-//		assert (canPeek(offset));
-//	}
-//	body
-//	{
-//		return buffer[(bufferIndex + offset) % buffer.length];
-//	}
-//
-//	bool canPeek(size_t int offset = 1) pure nothrow const
-//	{
-//		return offset <= peekSupported && count + offset <= rangeSizeCount;
-//	}
-//
-//	typeof(this) save() @property
-//	{
-//		typeof(this) newRange;
-//		newRange.count = count;
-//		newRange.rangeSizeCount = count;
-//		newRange.buffer = buffer.dup;
-//		newRange.bufferIndex = bufferIndex;
-//		newRange.range = range.save;
-//		return newRange;
-//	}
-//
-//	void mark()
-//	{
-//		marking = true;
-//		markBuffer.clear();
-//	}
-//
-//	ElementEncodingType!R[] getMarked()
-//	{
-//		marking = false;
-//		return markBuffer.data;
-//	}
-//
-//	void incrementLine() pure nothrow
-//	{
-//		_column = 1;
-//		_line++;
-//	}
-//
-//	size_t line() pure nothrow const @property { return _line; }
-//	size_t column() pure nothrow const @property { return _column; }
-//	size_t index() pure nothrow const @property { return _index; }
-//
-//private:
-//	auto markBuffer = appender!(ElementType!R[])();
-//	bool marking;
-//	size_t count;
-//	size_t rangeSizeCount;
-//	ElementType!(R)[peekSupported + 1] buffer;
-//	size_t bufferIndex;
-//	size_t _column = 1;
-//	size_t _line = 1;
-//	size_t _index = 0;
-//	R range;
-//}

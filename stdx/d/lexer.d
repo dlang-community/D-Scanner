@@ -17,7 +17,7 @@ private enum staticTokens = [
 
 private enum pseudoTokens = [
 	"\"", "`", "//", "/*", "/+", ".", "'", "0", "1", "2", "3", "4", "5", "6",
-	"7", "8", "9", "#", "q\"", "q{", "r\"", "x\"", " ", "\t", "\r", "\n", "#!",
+	"7", "8", "9", "q\"", "q{", "r\"", "x\"", " ", "\t", "\r", "\n", "#!",
 	"\u2028", "\u2029"
 ];
 
@@ -57,24 +57,24 @@ public template tok(string token)
 }
 public alias stdx.lexer.TokenStructure!(IdType) Token;
 
-public auto byToken(R, bool skipComments = true, bool skipWhitespace = true)(R range)
-{
-	pure nothrow bool isNotComment(const Token t) { return t.type != tok!"comment"; }
-	pure nothrow bool isNotWhitespace(const Token t) { return t.type != tok!"whitespace"; }
-	pure nothrow bool isNotEither(const Token t) { return t.type != tok!"whitespace" && t.type != tok!"comment"; }
-
-	static if (skipComments)
-	{
-		static if (skipWhitespace)
-			return DLexer!(R)(range).filter!isNotEither;
-		else
-			return DLexer!(R)(range).filter!isNotComment;
-	}
-	else static if (skipWhitespace)
-		return DLexer!(R)(range).filter!isNotWhitespace;
-	else
-		return DLexer!(R)(range);
-}
+//public auto byToken(R, bool skipComments = true, bool skipWhitespace = true)(R range)
+//{
+//	pure nothrow bool isNotComment(const Token t) { return t.type != tok!"comment"; }
+//	pure nothrow bool isNotWhitespace(const Token t) { return t.type != tok!"whitespace"; }
+//	pure nothrow bool isNotEither(const Token t) { return t.type != tok!"whitespace" && t.type != tok!"comment"; }
+//	return new DLexer!(R)(range);
+//	static if (skipComments)
+//	{
+//		static if (skipWhitespace)
+//			return filter!isNotEither(tokens);
+//		else
+//			return filter!isNotComment(tokens);
+//	}
+//	else static if (skipWhitespace)
+//		return filter!isNotWhitespace(tokens);
+//	else
+//		return tokens;
+//}
 
 public bool isBasicType(IdType type) nothrow pure @safe
 {
@@ -322,45 +322,50 @@ public struct DLexer(R)
 {
 	import std.conv;
 	import core.vararg;
-
-	mixin Lexer!(R, IdType, Token, isSeparating, lexIdentifier, staticTokens,
-		dynamicTokens, pseudoTokens, possibleDefaultTokens);
+	import dpick.buffer.buffer;
+	
+	private enum pseudoTokenHandlers = [
+		"\"", "lexStringLiteral",
+		"`", "lexWysiwygString",
+		"//", "lexSlashSlashComment",
+		"/*", "lexSlashStarComment",
+		"/+", "lexSlashPlusComment",
+		".", "lexDot",
+		"'", "lexCharacterLiteral",
+		"0", "lexNumber",
+		"1", "lexNumber",
+		"2", "lexNumber",
+		"3", "lexNumber",
+		"4", "lexNumber",
+		"5", "lexNumber",
+		"6", "lexNumber",
+		"7", "lexNumber",
+		"8", "lexNumber",
+		"9", "lexNumber",
+		"q\"", "lexDelimitedString",
+		"q{", "lexTokenString",
+		"r\"", "lexWysiwygString",
+		"x\"", "lexHexString",
+		" ", "lexWhitespace",
+		"\t", "lexWhitespace",
+		"\r", "lexWhitespace",
+		"\n", "lexWhitespace",
+		"\u2028", "lexLongNewline",
+		"\u2029", "lexLongNewline",
+		"#!", "lexScriptLine"
+	];
+	
+	mixin Lexer!(R, IdType, Token, lexIdentifier, staticTokens,
+		dynamicTokens, pseudoTokens, pseudoTokenHandlers, possibleDefaultTokens);
+		
+	private alias typeof(range).Mark Mark;
 
 	this(R range)
 	{
-		registerPostProcess!"\""(&lexStringLiteral);
-		registerPostProcess!"`"(&lexWysiwygString);
-		registerPostProcess!"//"(&lexSlashSlashComment);
-		registerPostProcess!"/*"(&lexSlashStarComment);
-		registerPostProcess!"/+"(&lexSlashPlusComment);
-		registerPostProcess!"."(&lexDot);
-		registerPostProcess!"'"(&lexCharacterLiteral);
-		registerPostProcess!"0"(&lexNumber);
-		registerPostProcess!"1"(&lexNumber);
-		registerPostProcess!"2"(&lexNumber);
-		registerPostProcess!"3"(&lexNumber);
-		registerPostProcess!"4"(&lexNumber);
-		registerPostProcess!"5"(&lexNumber);
-		registerPostProcess!"6"(&lexNumber);
-		registerPostProcess!"7"(&lexNumber);
-		registerPostProcess!"8"(&lexNumber);
-		registerPostProcess!"9"(&lexNumber);
-		registerPostProcess!"#"(&lexNumber);
-		registerPostProcess!"q\""(&lexDelimitedString);
-		registerPostProcess!"q{"(&lexTokenString);
-		registerPostProcess!"r\""(&lexWysiwygString);
-		registerPostProcess!"x\""(&lexHexString);
-		registerPostProcess!" "(&lexWhitespace);
-		registerPostProcess!"\t"(&lexWhitespace);
-		registerPostProcess!"\r"(&lexWhitespace);
-		registerPostProcess!"\n"(&lexWhitespace);
-		registerPostProcess!"\u2028"(&lexLongNewline);
-		registerPostProcess!"\u2029"(&lexLongNewline);
-		this.range = RangeType(range);
-		popFront();
+		this.range = LexerRange!(typeof(buffer(range)))(buffer(range));
 	}
 
-	bool isWhitespace() pure const nothrow
+	bool isWhitespace() pure /*const*/ nothrow
 	{
 		switch (range.front)
 		{
@@ -370,10 +375,10 @@ public struct DLexer(R)
 		case '\t':
 			return true;
 		case 0xe2:
-			if (!range.canPeek(2))
-				return false;
-			return range.peek() == 0x80
-				&& (range.peek(2) == 0xa8 || range.peek(2) == 0xa9);
+			auto peek = range.lookahead(2);
+			return peek.length == 2
+				&& peek[0] == 0x80
+				&& (peek[1] == 0xa8 || peek[1] == 0xa9);
 		default:
 			return false;
 		}
@@ -398,8 +403,9 @@ public struct DLexer(R)
 			range.incrementLine();
 			return;
 		case 0xe2:
-			if (range.canPeek(2) && range.peek() == 0x80
-				&& (range.peek(2) == 0xa8 || range.peek(2) == 0xa9))
+			auto lookahead = range.lookahead(3);
+			if (lookahead.length == 3 && lookahead[1] == 0x80
+				&& (lookahead[2] == 0xa8 || lookahead[2] == 0xa9))
 			{
 				range.popFront();
 				range.popFront();
@@ -420,7 +426,7 @@ public struct DLexer(R)
 
 	Token lexWhitespace() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		loop: do
 		{
 			switch (range.front)
@@ -440,11 +446,12 @@ public struct DLexer(R)
 				range.popFront();
 				break;
 			case 0xe2:
-				if (!range.canPeek(2))
+				auto lookahead = range.lookahead(3);
+				if (lookahead.length != 3)
 					break loop;
-				if (range.peek() != 0x80)
+				if (lookahead[1] != 0x80)
 					break loop;
-				if (range.peek(2) == 0xa8 || range.peek(2) == 0xa9)
+				if (lookahead[2] == 0xa8 || lookahead[2] == 0xa9)
 				{
 					range.popFront();
 					range.popFront();
@@ -457,36 +464,43 @@ public struct DLexer(R)
 				break loop;
 			}
 		} while (!range.empty);
-		return Token(tok!"whitespace", cast(string) range.getMarked(), range.line,
+		return Token(tok!"whitespace", cast(string) range.slice(mark), range.line,
 			range.column, range.index);
 	}
 
 	Token lexNumber() pure nothrow
 	{
-		range.mark();
-		if (range.front == '0')
+		auto mark = range.mark();
+		auto lookahead = range.lookahead(1);
+		if (range.front == '0' && lookahead.length == 1)
 		{
-			switch (range.peek())
+			switch (lookahead[0])
 			{
 			case 'x':
 			case 'X':
 				range.popFront();
 				range.popFront();
-				return lexHex();
+				return lexHex(mark);
 			case 'b':
 			case 'B':
 				range.popFront();
 				range.popFront();
-				return lexBinary();
+				return lexBinary(mark);
 			default:
-				return lexDecimal();
+				return lexDecimal(mark);
 			}
 		}
 		else
-			return lexDecimal();
+			return lexDecimal(mark);
 	}
 
 	Token lexHex() pure nothrow
+	{
+		auto mark = range.mark();
+		return lexHex(mark);
+	}
+	
+	Token lexHex(Mark mark) pure nothrow
 	{
 		IdType type = tok!"intLiteral";
 		bool foundDot;
@@ -526,7 +540,7 @@ public struct DLexer(R)
 			case '.':
 				if (foundDot)
 					break hexLoop;
-				if (range.canPeek() && range.peek() == '.')
+				if (range.lookahead(1).length && range.lookahead(1)[0] == '.')
 					break hexLoop;
 				range.popFront();
 				foundDot = true;
@@ -536,11 +550,17 @@ public struct DLexer(R)
 				break hexLoop;
 			}
 		}
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
 	Token lexBinary() pure nothrow
+	{
+		auto mark = range.mark();
+		return lexBinary(mark);
+	}
+	
+	Token lexBinary(Mark mark) pure nothrow
 	{
 		IdType type = tok!"intLiteral";
 		binaryLoop: while (!range.empty)
@@ -561,11 +581,11 @@ public struct DLexer(R)
 				break binaryLoop;
 			}
 		}
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
-	Token lexDecimal() pure nothrow
+	Token lexDecimal(Mark mark) pure nothrow
 	{
 		bool foundDot = range.front == '.';
 		IdType type = tok!"intLiteral";
@@ -608,16 +628,17 @@ public struct DLexer(R)
 			case '.':
 				if (foundDot)
 					break decimalLoop;
-				if (range.canPeek() && range.peek() == '.')
+				auto lookahead = range.lookahead(1);
+				if (lookahead.length == 1 && lookahead[0] == '.')
 					break decimalLoop;
 				else
 				{
 					// The following bit of silliness tries to tell the
 					// difference between "int dot identifier" and
 					// "double identifier".
-					if (range.canPeek())
+					if (lookahead.length == 1)
 					{
-						switch (range.peek())
+						switch (lookahead[0])
 						{
 						case '0': .. case '9':
 							goto doubleLiteral;
@@ -638,7 +659,7 @@ public struct DLexer(R)
 				break decimalLoop;
 			}
 		}
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
@@ -749,7 +770,7 @@ public struct DLexer(R)
 
 	Token lexSlashStarComment() pure
 	{
-		range.mark();
+		auto mark = range.mark();
 		IdType type = tok!"comment";
 		range.popFront();
 		range.popFront();
@@ -767,13 +788,13 @@ public struct DLexer(R)
 			else
 				popFrontWhitespaceAware();
 		}
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
 	Token lexSlashSlashComment() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		IdType type = tok!"comment";
 		range.popFront();
 		range.popFront();
@@ -783,13 +804,13 @@ public struct DLexer(R)
 				break;
 			range.popFront();
 		}
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
 	Token lexSlashPlusComment() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		IdType type = tok!"comment";
 		range.popFront();
 		range.popFront();
@@ -817,13 +838,13 @@ public struct DLexer(R)
 			else
 				popFrontWhitespaceAware();
 		}
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
 	Token lexStringLiteral() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		range.popFront();
 		while (true)
 		{
@@ -846,13 +867,13 @@ public struct DLexer(R)
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
 	Token lexWysiwygString() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		IdType type = tok!"stringLiteral";
 		bool backtick = range.front == '`';
 		if (backtick)
@@ -900,7 +921,7 @@ public struct DLexer(R)
 			}
 		}
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
@@ -922,7 +943,7 @@ public struct DLexer(R)
 
 	Token lexDelimitedString() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		range.popFront();
 		range.popFront();
 		ElementEncodingType!R open;
@@ -933,29 +954,29 @@ public struct DLexer(R)
 			open = '<';
 			close = '>';
 			range.popFront();
-			return lexNormalDelimitedString(open, close);
+			return lexNormalDelimitedString(mark, open, close);
 		case '{':
 			open = '{';
 			close = '}';
 			range.popFront();
-			return lexNormalDelimitedString(open, close);
+			return lexNormalDelimitedString(mark, open, close);
 		case '[':
 			open = '[';
 			close = ']';
 			range.popFront();
-			return lexNormalDelimitedString(open, close);
+			return lexNormalDelimitedString(mark, open, close);
 		case '(':
 			open = '(';
 			close = ')';
 			range.popFront();
-			return lexNormalDelimitedString(open, close);
+			return lexNormalDelimitedString(mark, open, close);
 		default:
 			return lexHeredocString();
 		}
 	}
 
-	Token lexNormalDelimitedString(ElementEncodingType!RangeType open,
-		ElementEncodingType!RangeType close) pure nothrow
+	Token lexNormalDelimitedString(Mark mark, ElementEncodingType!R open,
+		ElementEncodingType!R close) pure nothrow
 	{
 		int depth = 1;
 		while (!range.empty && depth > 0)
@@ -985,7 +1006,7 @@ public struct DLexer(R)
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.getMarked(), range.line, range.column, range.index);
+		return Token(type, cast(string) range.slice(mark), range.line, range.column, range.index);
 	}
 
 	Token lexHeredocString() pure nothrow
@@ -1024,7 +1045,7 @@ public struct DLexer(R)
 
 	Token lexHexString() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		range.popFront();
 		range.popFront();
 
@@ -1055,7 +1076,7 @@ public struct DLexer(R)
 
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.getMarked(), range.line, range.column,
+		return Token(type, cast(string) range.slice(mark), range.line, range.column,
 			range.index);
 	}
 
@@ -1154,7 +1175,7 @@ public struct DLexer(R)
 
 	Token lexCharacterLiteral() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		range.popFront();
 		if (range.front == '\\')
 		{
@@ -1164,7 +1185,7 @@ public struct DLexer(R)
 		else if (range.front == '\'')
 		{
 			range.popFront();
-			return Token(tok!"characterLiteral", cast(string) range.getMarked(),
+			return Token(tok!"characterLiteral", cast(string) range.slice(mark),
 				range.line, range.column, range.index);
 		}
 		else if (range.front & 0x80)
@@ -1182,7 +1203,7 @@ public struct DLexer(R)
 		if (range.front == '\'')
 		{
 			range.popFront();
-			return Token(tok!"characterLiteral", cast(string) range.getMarked(),
+			return Token(tok!"characterLiteral", cast(string) range.slice(mark),
 				range.line, range.column, range.index);
 		}
 		else
@@ -1194,30 +1215,31 @@ public struct DLexer(R)
 
 	Token lexIdentifier() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		while (!range.empty && !isSeparating(range.front))
 		{
 			range.popFront();
 		}
-		return Token(tok!"identifier", cast(string) range.getMarked(), range.index,
+		return Token(tok!"identifier", cast(string) range.slice(mark), range.index,
 			range.line, range.column);
 	}
 
 	Token lexDot() pure nothrow
 	{
-		if (!range.canPeek)
+		auto lookahead = range.lookahead(1);
+		if (lookahead.length == 0)
 		{
 			range.popFront();
 			return Token(tok!".", null, range.line, range.column, range.index);
 		}
-		switch (range.peek())
+		switch (lookahead[0])
 		{
 		case '0': .. case '9':
 			return lexNumber();
 		case '.':
 			range.popFront();
 			range.popFront();
-			if (range.front == '.')
+			if (!range.empty && range.front == '.')
 			{
 				range.popFront();
 				return Token(tok!"...", null, range.line, range.column, range.index);
@@ -1232,16 +1254,21 @@ public struct DLexer(R)
 
 	Token lexLongNewline() pure nothrow
 	{
-		range.mark();
+		auto mark = range.mark();
 		range.popFront();
 		range.popFront();
 		range.popFront();
 		range.incrementLine();
-		return Token(tok!"whitespace", cast(string) range.getMarked(), range.line,
+		return Token(tok!"whitespace", cast(string) range.slice(mark), range.line,
 			range.column, range.index);
 	}
+	
+	Token lexScriptLine() pure nothrow
+	{
+		assert(false, "Not implemented");
+	}
 
-	bool isSeparating(C)(C c) nothrow pure @safe
+	bool isSeparating(ElementType!R c) nothrow pure @safe
 	{
 		if (c <= 0x2f) return true;
 		if (c >= ':' && c <= '@') return true;

@@ -24,7 +24,8 @@ void printCtags(File output, string[] fileNames)
 		File f = File(fileName);
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
-		Module m = parseModule(byToken!(ubyte[])(bytes).array, fileName, &doNothing);
+		auto tokens = DLexer!(typeof(bytes))(bytes);
+		Module m = parseModule(tokens.array, fileName, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
 		printer.visit(m);

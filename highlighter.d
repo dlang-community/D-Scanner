@@ -11,7 +11,7 @@ import std.array;
 import stdx.d.lexer;
 
 // http://ethanschoonover.com/solarized
-void highlight(R)(R tokens, string fileName)
+void highlight(R)(ref R tokens, string fileName)
 {
 	stdout.writeln(q"[
 <!DOCTYPE html>
@@ -33,8 +33,10 @@ html  { background-color: #fdf6e3; color: #002b36; }
 </style>
 <pre>]");
 
-	foreach (Token t; tokens)
+	while (!tokens.empty)
 	{
+		auto t = tokens.front;
+		tokens.popFront();
 		if (isBasicType(t.type))
 			writeSpan("type", str(t.type));
 		else if (isKeyword(t.type))

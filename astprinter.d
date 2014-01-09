@@ -469,9 +469,9 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<forStatement>");
 		if (forStatement.declarationOrStatement !is null)
 		{
-			output.writeln("<initialize>");
-			visit(forStatement.declarationOrStatement);
-			output.writeln("</initialize>");
+			output.writeln("<initialization>");
+			visit(forStatement.initialization);
+			output.writeln("</initialization>");
 		}
 		if (forStatement.test !is null)
 		{
@@ -485,7 +485,7 @@ class XMLPrinter : ASTVisitor
 			visit(forStatement.increment);
 			output.writeln("</increment>");
 		}
-		visit(forStatement.statementNoCaseNoDefault);
+		visit(forStatement.declarationOrStatement);
 		output.writeln("</forStatement>");
 	}
 
