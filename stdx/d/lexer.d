@@ -57,24 +57,34 @@ public template tok(string token)
 }
 public alias stdx.lexer.TokenStructure!(IdType) Token;
 
-//public auto byToken(R, bool skipComments = true, bool skipWhitespace = true)(R range)
-//{
-//	pure nothrow bool isNotComment(const Token t) { return t.type != tok!"comment"; }
-//	pure nothrow bool isNotWhitespace(const Token t) { return t.type != tok!"whitespace"; }
-//	pure nothrow bool isNotEither(const Token t) { return t.type != tok!"whitespace" && t.type != tok!"comment"; }
-//	return new DLexer!(R)(range);
-//	static if (skipComments)
-//	{
-//		static if (skipWhitespace)
-//			return filter!isNotEither(tokens);
-//		else
-//			return filter!isNotComment(tokens);
-//	}
-//	else static if (skipWhitespace)
-//		return filter!isNotWhitespace(tokens);
-//	else
-//		return tokens;
-//}
+pure nothrow bool isNotComment(const Token t) { return t.type != tok!"comment"; }
+pure nothrow bool isNotWhitespace(const Token t) { return t.type != tok!"whitespace"; }
+pure nothrow bool isNotEither(const Token t) { return t.type != tok!"whitespace" && t.type != tok!"comment"; }
+
+public auto byToken(R, bool skipComments = true, bool skipWhitespace = true)(R range)
+{
+	auto tokens = DLexer!(R)(range);
+	static if (skipComments)
+	{
+		static if (skipWhitespace)
+			return filter!isNotEither(tokens);
+		else
+			return filter!isNotComment(tokens);
+	}
+	else static if (skipWhitespace)
+		return filter!isNotWhitespace(tokens);
+	else
+		return tokens;
+}
+
+unittest
+{
+    import std.stdio;
+    auto source = cast(ubyte[]) q{ import std.stdio;}c;
+    auto tokens = byToken(source);
+    assert (tokens.map!"a.type"().equal([tok!"import", tok!"identifier", tok!".",
+        tok!"identifier", tok!";"]));
+}
 
 public bool isBasicType(IdType type) nothrow pure @safe
 {
@@ -323,7 +333,7 @@ public struct DLexer(R)
 	import std.conv;
 	import core.vararg;
 	import dpick.buffer.buffer;
-	
+
 	private enum pseudoTokenHandlers = [
 		"\"", "lexStringLiteral",
 		"`", "lexWysiwygString",
@@ -354,15 +364,16 @@ public struct DLexer(R)
 		"\u2029", "lexLongNewline",
 		"#!", "lexScriptLine"
 	];
-	
+
 	mixin Lexer!(R, IdType, Token, lexIdentifier, staticTokens,
 		dynamicTokens, pseudoTokens, pseudoTokenHandlers, possibleDefaultTokens);
-		
+
 	private alias typeof(range).Mark Mark;
 
 	this(R range)
 	{
 		this.range = LexerRange!(typeof(buffer(range)))(buffer(range));
+        popFront();
 	}
 
 	bool isWhitespace() pure /*const*/ nothrow
@@ -499,7 +510,7 @@ public struct DLexer(R)
 		auto mark = range.mark();
 		return lexHex(mark);
 	}
-	
+
 	Token lexHex(Mark mark) pure nothrow
 	{
 		IdType type = tok!"intLiteral";
@@ -524,15 +535,10 @@ public struct DLexer(R)
 				break hexLoop;
 			case 'L':
 				if (foundDot)
-				{
 					lexFloatSuffix(type);
-					break hexLoop;
-				}
 				else
-				{
 					lexIntSuffix(type);
-					break hexLoop;
-				}
+                break hexLoop;
 			case 'p':
 			case 'P':
 				lexExponent(type);
@@ -559,7 +565,7 @@ public struct DLexer(R)
 		auto mark = range.mark();
 		return lexBinary(mark);
 	}
-	
+
 	Token lexBinary(Mark mark) pure nothrow
 	{
 		IdType type = tok!"intLiteral";
@@ -943,11 +949,12 @@ public struct DLexer(R)
 
 	Token lexDelimitedString() pure nothrow
 	{
+        import std.traits;
 		auto mark = range.mark();
 		range.popFront();
 		range.popFront();
-		ElementEncodingType!R open;
-		ElementEncodingType!R close;
+		Unqual!(ElementEncodingType!R) open;
+		Unqual!(ElementEncodingType!R) close;
 		switch (range.front)
 		{
 		case '<':
@@ -1023,7 +1030,7 @@ public struct DLexer(R)
 		auto app = appender!string();
 		app.put("q{");
 		int depth = 1;
-		
+
 		_front = advance();
 		while (depth > 0 && !empty)
 		{
@@ -1220,8 +1227,8 @@ public struct DLexer(R)
 		{
 			range.popFront();
 		}
-		return Token(tok!"identifier", cast(string) range.slice(mark), range.index,
-			range.line, range.column);
+		return Token(tok!"identifier", cast(string) range.slice(mark), range.line,
+			range.column, range.index);
 	}
 
 	Token lexDot() pure nothrow
@@ -1262,7 +1269,7 @@ public struct DLexer(R)
 		return Token(tok!"whitespace", cast(string) range.slice(mark), range.line,
 			range.column, range.index);
 	}
-	
+
 	Token lexScriptLine() pure nothrow
 	{
 		assert(false, "Not implemented");
@@ -1277,8 +1284,8 @@ public struct DLexer(R)
 		if (c == '`') return true;
 		return false;
 	}
-	
+
 	void error(...) pure {
-		
+
 	}
 }

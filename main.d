@@ -20,11 +20,11 @@ import stdx.d.parser;
 import dpick.buffer.buffer;
 
 import highlighter;
-//import stats;
-//import ctags;
-//import astprinter;
-//import imports;
-//import outliner;
+import stats;
+import ctags;
+import astprinter;
+import imports;
+import outliner;
 
 int main(string[] args)
 {
@@ -92,69 +92,69 @@ int main(string[] args)
 	{
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
-		auto tokens = DLexer!(ubyte[])(bytes);
+		auto tokens = byToken!(ubyte[], false, false)(bytes);
 		highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
-//	else if (ctags)
-//	{
-//		stdout.printCtags(expandArgs(args, recursive));
-//	}
-//	else
-//	{
-//		bool usingStdin = args.length == 1;
-//		if (sloc || tokenCount)
-//		{
-//			if (usingStdin)
-//			{
-//				auto tokens = byToken!(ubyte[], false, false)(readStdin());
-//				if (tokenCount)
-//					printTokenCount(stdout, "stdin", tokens);
-//				else
-//					printLineCount(stdout, "stdin", tokens);
-//			}
-//			else
-//			{
-//				ulong count;
-//				foreach (f; expandArgs(args, recursive))
-//				{
-//					auto tokens = byToken!(ubyte[])(readFile(f));
-//					if (tokenCount)
-//						count += printTokenCount(stdout, f, tokens);
-//					else
-//						count += printLineCount(stdout, f, tokens);
-//				}
-//				writefln("total:\t%d", count);
-//			}
-//		}
-//		else if (syntaxCheck)
-//		{
-//			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-//			parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-//		}
-//		else if (imports)
-//		{
-//			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-//			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-//			auto visitor = new ImportPrinter;
-//			visitor.visit(mod);
-//		}
-//		else if (ast)
-//		{
-//			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-//			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-//			auto printer = new XMLPrinter;
-//			printer.output = stdout;
-//			printer.visit(mod);
-//		}
-//		else if (outline)
-//		{
-//			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-//			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-//			auto outliner = new Outliner(stdout);
-//			outliner.visit(mod);
-//		}
-//	}
+	else if (ctags)
+	{
+		stdout.printCtags(expandArgs(args, recursive));
+	}
+	else
+	{
+		bool usingStdin = args.length == 1;
+		if (sloc || tokenCount)
+		{
+			if (usingStdin)
+			{
+				auto tokens = byToken!(ubyte[], false, false)(readStdin());
+				if (tokenCount)
+					printTokenCount(stdout, "stdin", tokens);
+				else
+					printLineCount(stdout, "stdin", tokens);
+			}
+			else
+			{
+				ulong count;
+				foreach (f; expandArgs(args, recursive))
+				{
+					auto tokens = byToken!(ubyte[])(readFile(f));
+					if (tokenCount)
+						count += printTokenCount(stdout, f, tokens);
+					else
+						count += printLineCount(stdout, f, tokens);
+				}
+				writefln("total:\t%d", count);
+			}
+		}
+		else if (syntaxCheck)
+		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
+		}
+		else if (imports)
+		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
+			auto visitor = new ImportPrinter;
+			visitor.visit(mod);
+		}
+		else if (ast)
+		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
+			auto printer = new XMLPrinter;
+			printer.output = stdout;
+			printer.visit(mod);
+		}
+		else if (outline)
+		{
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
+			auto outliner = new Outliner(stdout);
+			outliner.visit(mod);
+		}
+	}
 	return 0;
 }
 

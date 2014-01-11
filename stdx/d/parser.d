@@ -12,7 +12,7 @@ import std.string : format;
 
 // Uncomment this if you want ALL THE OUTPUT
 // Caution: generates 180 megabytes of logging for std.datetime
-//version = std_parser_verbose;
+version = std_parser_verbose;
 
 /**
  * Params:
@@ -96,6 +96,7 @@ class Parser
 
     unittest
     {
+        stderr.writeln("Running unittest for parseAliasDeclaration.");
         auto sourceCode =
 q{
 alias core.sys.posix.stdio.fileno fileno;
@@ -288,7 +289,7 @@ alias core.sys.posix.stdio.fileno fileno;
         switch (current.type)
         {
         case tok!"{":
-        case tok!"}":
+        case tok!"[":
             node.nonVoidInitializer = parseNonVoidInitializer();
             if (node.nonVoidInitializer is null) return null;
             break;
@@ -1028,45 +1029,41 @@ incorrect;
 
         CastQualifier one = p.parseCastQualifier();
         assert (one.first == tok!"const");
-        assert (!one.hasSecond);
+        assert (one.second == tok!"");
         p.expect(tok!";");
 
         CastQualifier two = p.parseCastQualifier();
         assert (two.first == tok!"const");
-        assert (two.hasSecond);
         assert (two.second == tok!"shared");
         p.expect(tok!";");
 
         CastQualifier three = p.parseCastQualifier();
         assert (three.first == tok!"immutable");
-        assert (!three.hasSecond);
+        assert (three.second == tok!"");
         p.expect(tok!";");
 
         CastQualifier four = p.parseCastQualifier();
         assert (four.first == tok!"inout");
-        assert (!four.hasSecond);
+        assert (four.second == tok!"");
         p.expect(tok!";");
 
         CastQualifier five = p.parseCastQualifier();
         assert (five.first == tok!"inout");
-        assert (five.hasSecond);
         assert (five.second == tok!"shared");
         p.expect(tok!";");
 
         CastQualifier six = p.parseCastQualifier();
         assert (six.first == tok!"shared");
-        assert (!six.hasSecond);
+        assert (six.second == tok!"");
         p.expect(tok!";");
 
         CastQualifier seven = p.parseCastQualifier();
         assert (seven.first == tok!"shared");
-        assert (seven.hasSecond);
         assert (seven.second == tok!"const");
         p.expect(tok!";");
 
         CastQualifier eight = p.parseCastQualifier();
         assert (eight.first == tok!"shared");
-        assert (eight.hasSecond);
         assert (eight.second == tok!"inout");
         p.expect(tok!";");
 
@@ -1170,14 +1167,14 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         Parser p = getParserForUnittest(sourceCode, "parseClassDeclaration");
 
         auto classOne = p.parseClassDeclaration();
-        assert (classOne.name == "ClassOne");
+        assert (classOne.name.text == "ClassOne");
         assert (classOne.structBody.declarations.length == 0);
         assert (classOne.baseClassList is null);
         assert (classOne.constraint is null);
         assert (classOne.templateParameters is null);
 
         auto classTwo = p.parseClassDeclaration();
-        assert (classTwo.name == "ClassTwo", classTwo.name.value);
+        assert (classTwo.name.text == "ClassTwo", classTwo.name.text);
         assert (classTwo.baseClassList !is null);
         assert (classTwo.baseClassList.items.length == 1,
             to!string(classTwo.baseClassList.items.length));
@@ -1185,7 +1182,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             to!string(classTwo.structBody.declarations.length));
 
         auto classThree = p.parseClassDeclaration();
-        assert (classThree.name == "ClassThree", classThree.name.value);
+        assert (classThree.name.text == "ClassThree", classThree.name.text);
         assert (classThree.templateParameters !is null);
         assert (classThree.templateParameters.templateParameterList.items.length == 2);
         assert (classThree.baseClassList !is null);
@@ -1194,7 +1191,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             to!string(classThree.structBody.declarations.length));
 
         //auto classFour = p.parseClassDeclaration();
-        //assert (classFour.name == "ClassFour", classFour.name.value);
+        //assert (classFour.name == "ClassFour", classFour.name.text);
         //assert (classFour.templateParameters !is null);
         //assert (classFour.baseClassList !is null);
         //assert (classFour.constraint !is null);
@@ -1551,7 +1548,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
 
         switch (current.type)
         {
-        case tok!":":
+        case tok!";":
             // http://d.puremagic.com/issues/show_bug.cgi?id=4559
             warn("Empty declaration");
             advance();
@@ -2595,8 +2592,8 @@ body {} // six
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new IdentifierOrTemplateInstance;
-        if (peekIs(tok!".") && !startsWith(tok!"identifier",
-            tok!".", tok!"is")
+        if (peekIs(tok!"!") && !startsWith(tok!"identifier",
+            tok!"!", tok!"is")
             && !startsWith(tok!"identifier", tok!"!", tok!"in"))
         {
             node.templateInstance = parseTemplateInstance();
@@ -2665,7 +2662,7 @@ body {} // six
             auto b = setBookmark();
             auto t = parseType();
             if (t is null || !currentIs(tok!"identifier")
-				|| !peekIs(tok!"="))
+                || !peekIs(tok!"="))
             {
                 goToBookmark(b);
                 node.expression = parseExpression();
@@ -2684,10 +2681,10 @@ body {} // six
 
         if (expect(tok!")") is null) return null;
         if (currentIs(tok!"}"))
-		{
-			error("Statement expected", false);
-			return node; // this line makes DCD better
-		}
+        {
+            error("Statement expected", false);
+            return node; // this line makes DCD better
+        }
         node.thenStatement = parseDeclarationOrStatement();
         if (currentIs(tok!"else"))
         {
@@ -2994,7 +2991,7 @@ interface "Four"
 
         InterfaceDeclaration one = p.parseInterfaceDeclaration();
         assert (one !is null);
-        assert (one.identifier == "One");
+        assert (one.name.text == "One");
         assert (one.constraint is null);
         assert (one.templateParameters is null);
         assert (one.structBody !is null);
@@ -3003,7 +3000,7 @@ interface "Four"
 
         InterfaceDeclaration two = p.parseInterfaceDeclaration();
         assert (two !is null);
-        assert (two.identifier == "Two");
+        assert (two.name.text == "Two");
         assert (two.constraint is null);
         assert (two.templateParameters is null);
         assert (two.structBody !is null);
@@ -3012,7 +3009,7 @@ interface "Four"
 
         InterfaceDeclaration three = p.parseInterfaceDeclaration();
         assert (three !is null);
-        assert (three.identifier == "Three");
+        assert (three.name.text == "Three");
         assert (three.constraint !is null);
         assert (three.templateParameters !is null);
         assert (three.structBody !is null);
@@ -3382,6 +3379,7 @@ invariant() foo();
      */
     Module parseModule()
     {
+        mixin(traceEnterAndExit!(__FUNCTION__));
         Module m = new Module;
         if (currentIs(tok!"scriptLine"))
             advance();
@@ -3857,7 +3855,7 @@ q{(int a, ...)
         Parameters params1 = p.parseParameters();
         assert (params1.hasVarargs);
         assert (params1.parameters.length == 1);
-        assert (params1.parameters[0].name == "a");
+        assert (params1.parameters[0].name.text == "a");
 
         Parameters params2 = p.parseParameters();
         assert (params2.parameters.length == 1);
@@ -5150,7 +5148,7 @@ q{(int a, ...)
         {
             advance();
             node.expression = parseExpression();
-            expect(tok!":");
+            if (expect(tok!":") is null) return null;
             node.ternaryExpression = parseTernaryExpression();
         }
         return node;
@@ -5454,7 +5452,7 @@ q{(int a, ...)
             advance();
             if (currentIs(tok!"]"))
             {
-                if (expect(tok!"]") is null) return null;
+                advance();
                 return node;
             }
             auto bookmark = setBookmark();
@@ -6356,8 +6354,10 @@ protected:
                 && (tokens[index].type == tok!")"
                 || tokens[index].type == tok!";"
                 || tokens[index].type == tok!"}");
-            error("Expected " ~  tokenString ~ " instead of "
-                ~ (index < tokens.length ? tokens[index].text: "EOF"),
+            auto token = (index < tokens.length
+                ? (tokens[index].text is null ? str(tokens[index].type) : tokens[index].text)
+                : "EOF");
+            error("Expected " ~  tokenString ~ " instead of " ~ token,
                 !shouldNotAdvance);
             return null;
         }
@@ -6437,9 +6437,8 @@ protected:
     version (unittest) static Parser getParserForUnittest(string sourceCode,
         string testName)
     {
-        LexerConfig config;
-        auto r = byToken(cast(const(ubyte)[]) sourceCode, config);
-        Parser p;
+        auto r = byToken(cast(ubyte[]) sourceCode);
+        Parser p = new Parser;
         //p.messageFunction = &doNothingErrorFunction;
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
@@ -6484,10 +6483,10 @@ protected:
 
     template traceEnterAndExit(string fun)
     {
-        enum traceEnterAndExit = `version (std_parser_verbose) trace("`
-            ~ "\033[01;32m" ~ fun ~ "\033[0m" ~ ` ");`
-            ~ `version (std_parser_verbose) scope(exit) trace("`
-            ~ "\033[01;31m" ~ fun ~ "\033[0m" ~ ` ");`;
+        enum traceEnterAndExit = `version (std_parser_verbose) { _traceDepth++; trace("`
+            ~ "\033[01;32m" ~ fun ~ "\033[0m" ~ ` "); }`
+            ~ `version (std_parser_verbose) scope(exit) { trace("`
+            ~ "\033[01;31m" ~ fun ~ "\033[0m" ~ ` "); _traceDepth--; }`;
     }
 
     version (std_parser_verbose)
@@ -6497,9 +6496,9 @@ protected:
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
-                writeln(message, "(", current.line, ":", current.column, ")");
+                writeln(_traceDepth, " ", message, "(", current.line, ":", current.column, ")");
             else
-                writeln(message, "(EOF:0)");
+                writeln(_traceDepth, " ", message, "(EOF:0)");
         }
     }
     else
@@ -6560,8 +6559,9 @@ protected:
         case tok!"__TIMESTAMP__":
         case tok!"__VENDOR__":
         case tok!"__VERSION__":
-        };
+    };
     const(Token)[] tokens;
     int suppressMessages;
     size_t index;
+    int _traceDepth;
 }
