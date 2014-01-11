@@ -1764,12 +1764,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         // Declarations are resolved by the declarations taking precedence."
         if (isDeclaration())
         {
-            trace("\033[01;36mparsing declaration");
+            trace("\033[01;36mparsing declaration\033[0m");
             node.declaration = parseDeclaration();
         }
         else
         {
-            trace("\033[01;36mparsing statement");
+            trace("\033[01;36mparsing statement\033[0m");
             node.statement = parseStatement();
         }
 
@@ -6484,21 +6484,22 @@ protected:
     template traceEnterAndExit(string fun)
     {
         enum traceEnterAndExit = `version (std_parser_verbose) { _traceDepth++; trace("`
-            ~ "\033[01;32m" ~ fun ~ "\033[0m" ~ ` "); }`
+            ~ `\033[01;32m` ~ fun ~ `\033[0m"); }`
             ~ `version (std_parser_verbose) scope(exit) { trace("`
-            ~ "\033[01;31m" ~ fun ~ "\033[0m" ~ ` "); _traceDepth--; }`;
+            ~ `\033[01;31m` ~ fun ~ `\033[0m"); _traceDepth--; }`;
     }
 
     version (std_parser_verbose)
     {
         void trace(lazy string message)
         {
+			auto depth = format("%4d ", _traceDepth);
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
-                writeln(_traceDepth, " ", message, "(", current.line, ":", current.column, ")");
+                writeln(depth, message, "(", current.line, ":", current.column, ")");
             else
-                writeln(_traceDepth, " ", message, "(EOF:0)");
+                writeln(depth, message, "(EOF:0)");
         }
     }
     else
