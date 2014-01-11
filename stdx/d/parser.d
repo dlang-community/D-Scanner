@@ -12,7 +12,7 @@ import std.string : format;
 
 // Uncomment this if you want ALL THE OUTPUT
 // Caution: generates 180 megabytes of logging for std.datetime
-version = std_parser_verbose;
+//version = std_parser_verbose;
 
 /**
  * Params:
@@ -1248,7 +1248,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         case tok!"!<=":
             node.relExpression = parseRelExpression(shift);
             break;
-        case tok!"=":
+        case tok!"==":
         case tok!"!=":
             node.equalExpression = parseEqualExpression(shift);
             break;
@@ -6547,6 +6547,7 @@ protected:
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
         case tok!"dstringLiteral":
+        case tok!"characterLiteral":
     };
     enum string SPECIAL_CASES = q{
         case tok!"__DATE__":

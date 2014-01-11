@@ -40,6 +40,7 @@ int main(string[] args)
 	bool imports;
 	bool muffin;
 	bool outline;
+	bool tokenDump;
 
 	try
 	{
@@ -47,7 +48,7 @@ int main(string[] args)
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
-			"muffinButton", &muffin);
+			"tokenDump", &tokenDump, "muffinButton", &muffin);
 	}
 	catch (Exception e)
 	{
@@ -76,7 +77,7 @@ int main(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports, outline]);
+		syntaxCheck, ast, imports, outline, tokenDump]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -95,6 +96,17 @@ int main(string[] args)
 		auto tokens = byToken!(ubyte[], false, false)(bytes);
 		highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
 		return 0;
+	}
+	else if (tokenDump)
+	{
+		bool usingStdin = args.length == 1;
+		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
+		auto tokens = byToken!(ubyte[], false, false)(bytes);
+		foreach (ref token; tokens)
+		{
+			writeln("«", token.text is null ? str(token.type) : token.text,
+				" ", token.index, " ", token.line, " ", token.column, "»");
+		}
 	}
 	else if (ctags)
 	{

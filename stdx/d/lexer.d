@@ -482,10 +482,10 @@ public struct DLexer(R)
 	Token lexNumber() pure nothrow
 	{
 		auto mark = range.mark();
-		auto lookahead = range.lookahead(1);
-		if (range.front == '0' && lookahead.length == 1)
+		auto lookahead = range.lookahead(2);
+		if (range.front == '0' && lookahead.length == 2)
 		{
-			switch (lookahead[0])
+			switch (lookahead[1])
 			{
 			case 'x':
 			case 'X':
@@ -1040,10 +1040,18 @@ public struct DLexer(R)
 			else
 				app.put(t.text);
 			if (t.type == tok!"}")
+			{
 				depth--;
+				if (depth > 0)
+				popFront();
+			}
 			else if (t.type == tok!"{")
+			{
 				depth++;
-			popFront();
+				popFront();
+			}
+			else
+				popFront();
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
