@@ -8,6 +8,7 @@ dmd\
 	astprinter.d\
 	formatter.d\
 	outliner.d\
+	style.d\
 	stdx/*.d\
 	stdx/d/*.d\
 	datapicked/dpick/buffer/*.d\

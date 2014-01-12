@@ -25,6 +25,7 @@ import ctags;
 import astprinter;
 import imports;
 import outliner;
+import style;
 
 int main(string[] args)
 {
@@ -41,6 +42,7 @@ int main(string[] args)
 	bool muffin;
 	bool outline;
 	bool tokenDump;
+	bool styleCheck;
 
 	try
 	{
@@ -48,7 +50,8 @@ int main(string[] args)
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
-			"tokenDump", &tokenDump, "muffinButton", &muffin);
+			"tokenDump", &tokenDump, "styleCheck", &styleCheck,
+			"muffinButton", &muffin);
 	}
 	catch (Exception e)
 	{
@@ -77,7 +80,7 @@ int main(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports, outline, tokenDump]);
+		syntaxCheck, ast, imports, outline, tokenDump, styleCheck]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -111,6 +114,10 @@ int main(string[] args)
 	else if (ctags)
 	{
 		stdout.printCtags(expandArgs(args, recursive));
+	}
+	else if (styleCheck)
+	{
+		stdout.styleCheck(expandArgs(args, recursive));
 	}
 	else
 	{
@@ -250,6 +257,10 @@ options:
         Lexes and parses sourceFile, printing the line and column number of any
         syntax errors to stdout. One error or warning is printed per line.
         If no files are specified, input is read from stdin.
+
+    --styleCheck [sourceFiles]
+        Lexes and parses sourceFiles, printing the line and column number of any
+        style guideline violations to stdout.
 
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
