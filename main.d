@@ -234,7 +234,7 @@ options:
         Prints the number of logical lines of code in the given
         source files. If no files are specified, input is read from stdin.
 
-    --tokenCount | t [sourceFiles]
+    --tokenCount | -t [sourceFiles]
         Prints the number of tokens in the given source files. If no files are
         specified, input is read from stdin.
 

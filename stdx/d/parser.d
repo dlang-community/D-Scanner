@@ -96,7 +96,6 @@ class Parser
 
     unittest
     {
-        stderr.writeln("Running unittest for parseAliasDeclaration.");
         auto sourceCode =
 q{
 alias core.sys.posix.stdio.fileno fileno;
@@ -128,6 +127,16 @@ alias core.sys.posix.stdio.fileno fileno;
         node.type = parseType();
         return node;
     }
+	
+	unittest
+    {
+        auto sourceCode = q{a = abcde!def};
+        Parser p = getParserForUnittest(sourceCode, "parseAliasInitializer");
+        auto initializer = p.parseAliasInitializer();
+        assert (initializer !is null);
+        assert (p.errorCount == 0);
+        stderr.writeln("Unittest for parseAliasInitializer() passed.");
+    }
 
     /**
      * Parses an AliasThisDeclaration
@@ -146,6 +155,16 @@ alias core.sys.posix.stdio.fileno fileno;
         if (expect(tok!"this") is null) return null;
         if (expect(tok!";") is null) return null;
         return node;
+    }
+    
+    unittest
+    {
+        auto sourceCode = q{alias oneTwoThree this;};
+        Parser p = getParserForUnittest(sourceCode, "parseAliasThisDeclaration");
+        auto aliasThis = p.parseAliasThisDeclaration();
+        assert (aliasThis !is null);
+        assert (p.errorCount == 0);
+        stderr.writeln("Unittest for parseAliasThisDeclaration() passed.");
     }
 
     /**
@@ -168,6 +187,18 @@ alias core.sys.posix.stdio.fileno fileno;
             if (expect(tok!")") is null) return null;
         }
         return node;
+    }
+    
+    unittest
+    {
+        auto sourceCode = q{align(42) align};
+        Parser p = getParserForUnittest(sourceCode, "parseAlignAttribute");
+        auto attribute = p.parseAlignAttribute();
+        assert (attribute !is null);
+        attribute = p.parseAlignAttribute();
+        assert (attribute !is null);
+        assert (p.errorCount == 0);
+        stderr.writeln("Unittest for parseAlignAttribute() passed.");
     }
 
     /**
@@ -3098,6 +3129,16 @@ invariant() foo();
         if (expect(tok!")") is null) return null;
         return node;
     }
+	
+	unittest
+    {
+        auto sourceCode = q{is ( x : uybte)}c;
+        Parser p = getParserForUnittest(sourceCode, "parseIsExpression");
+        auto isExp1 = p.parseIsExpression();
+        assert (isExp1 !is null);
+        assert (p.errorCount == 0);
+		stderr.writeln("Unittest for parseIsExpression passed.");
+    }
 
     /**
      * Parses a KeyValuePair
@@ -3368,6 +3409,10 @@ invariant() foo();
         else
             node.symbol = parseSymbol();
         return node;
+    }
+    
+    unittest
+    {
     }
 
     /**
@@ -5951,8 +5996,6 @@ protected:
         return hasMagicDelimiter!(tok!":")();
     }
 
-
-
     bool hasMagicDelimiter(alias T)()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
@@ -6432,14 +6475,14 @@ protected:
     }
 
     version (unittest) static void doNothingErrorFunction(string fileName,
-        int line, int column, string message) {}
+        size_t line, size_t column, string message) {}
 
     version (unittest) static Parser getParserForUnittest(string sourceCode,
         string testName)
     {
         auto r = byToken(cast(ubyte[]) sourceCode);
         Parser p = new Parser;
-        //p.messageFunction = &doNothingErrorFunction;
+        p.messageFunction = &doNothingErrorFunction;
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
         return p;

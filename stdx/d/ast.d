@@ -943,7 +943,7 @@ public:
             destructor, staticConstructor, staticDestructor,
             sharedStaticDestructor, sharedStaticConstructor,
             conditionalDeclaration, pragmaDeclaration, versionSpecification,
-            declarations));
+			invariant_, postblit, declarations));
     }
 
     /** */ Attribute[] attributes;

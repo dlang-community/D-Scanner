@@ -24,7 +24,7 @@ void printCtags(File output, string[] fileNames)
 		File f = File(fileName);
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
-		auto tokens = DLexer!(typeof(bytes))(bytes);
+		auto tokens = byToken(bytes);
 		Module m = parseModule(tokens.array, fileName, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
@@ -40,9 +40,6 @@ void printCtags(File output, string[] fileNames)
 
 class CTagsPrinter : ASTVisitor
 {
-
-	alias ASTVisitor.visit visit;
-
 	override void visit(ClassDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tc%s\n".format(dec.name.text, fileName, dec.name.line, context);
@@ -134,6 +131,8 @@ class CTagsPrinter : ASTVisitor
 		}
 		dec.accept(this);
 	}
+	
+	alias ASTVisitor.visit visit;
 
 	string fileName;
 	string[] tagLines;
