@@ -1127,6 +1127,12 @@ public struct DLexer(R)
 		auto app = appender!string();
 		app.put("q{");
 		int depth = 1;
+		
+		LexerConfig c = config;
+		scope(exit) config = c;
+		config.whitespaceBehavior = WhitespaceBehavior.include;
+		config.stringBehavior = StringBehavior.source;
+		config.commentBehavior = CommentBehavior.include;
 
 		_front = advance();
 		while (depth > 0 && !empty)
@@ -1414,5 +1420,5 @@ public struct DLexer(R)
 
 	}
 
-    const LexerConfig config;
+    LexerConfig config;
 }

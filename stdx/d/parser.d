@@ -4084,6 +4084,11 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new PrimaryExpression;
+		if (!moreTokens())
+		{
+			error("Expected primary statement instead of EOF");
+			return null;
+		}
         switch (current.type)
         {
         case tok!".":
@@ -4407,6 +4412,11 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Statement;
+		if (!moreTokens())
+		{
+			error("Expected statement instead of EOF");
+			return null;
+		}
         switch (current.type)
         {
         case tok!"case":
@@ -5801,7 +5811,7 @@ q{doStuff(5)}c;
     Unittest parseUnittest()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        mixin (simpleParse!(Unittest, tok!"unittest", "blockStatement|parseBlockStatement", true));
+        mixin (simpleParse!(Unittest, tok!"unittest", "blockStatement|parseBlockStatement"));
     }
 
     /**
