@@ -99,6 +99,7 @@ public enum CommentBehavior : ubyte
 
 public struct LexerConfig
 {
+	string fileName;
     StringBehavior stringBehavior;
     WhitespaceBehavior whitespaceBehavior;
     CommentBehavior commentBehavior;
