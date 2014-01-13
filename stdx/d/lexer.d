@@ -716,7 +716,7 @@ public struct DLexer(R)
 			case '.':
 				if (foundDot)
 					break decimalLoop;
-				auto lookahead = range.lookahead(1);
+				auto lookahead = range.lookahead(2);
 				if (lookahead.length == 1 && lookahead[0] == '.')
 					break decimalLoop;
 				else
