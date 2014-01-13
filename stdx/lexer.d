@@ -184,7 +184,7 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 				code ~= indent ~ "range.popFront();\n";
 			else
 				code ~= indent ~ "range.popFrontN(" ~ text(token.length) ~ ");\n";
-			code ~= indent ~ "return Token(tok!\"" ~ escape(token) ~ "\", null, range.line, range.column, range.index);\n";
+			code ~= indent ~ "return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
 		}
 		else if (pseudoTokens.countUntil(token) >= 0)
 			code ~= indent ~ "return " ~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1] ~ "();\n";
@@ -196,7 +196,7 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 				code ~= indent ~ "    range.popFront();\n";
 			else
 				code ~= indent ~ "    range.popFrontN(" ~ text(token.length) ~ ");\n";
-			code ~= indent ~ "    return Token(tok!\"" ~ escape(token) ~"\", null, range.line, range.column, range.index);\n";
+			code ~= indent ~ "    return Token(tok!\"" ~ escape(token) ~"\", null, line, column, index);\n";
 			code ~= indent ~ "}\n";
 			code ~= indent ~ "else\n";
 			code ~= indent ~ "    goto outer_default;\n";
@@ -244,6 +244,9 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 	{
 		if (range.empty)
 			return Token(tok!"\0");
+		immutable size_t index = range.index;
+		immutable size_t column = range.column;
+		immutable size_t line = range.line;
 		lexerLoop: switch (range.front)
 		{
 		mixin(generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
