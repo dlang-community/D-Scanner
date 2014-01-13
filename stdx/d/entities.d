@@ -6,7 +6,7 @@
  * Copyright: Brian Schott 2013
  * License: <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors: Brian Schott
- * Source: $(PHOBOSSRC std/d/_lexer.d)
+ * Source: $(PHOBOSSRC std/d/_entities.d)
  */
 
 module stdx.d.entities;
@@ -18,7 +18,7 @@ module stdx.d.entities;
 struct HtmlEntity
 {
     string name, value;
-} 
+}
 
 immutable HtmlEntity[] characterEntities = [
         HtmlEntity("AElig", "\u00C6"),

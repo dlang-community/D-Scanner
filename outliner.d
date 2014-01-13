@@ -21,7 +21,7 @@ class Outliner : ASTVisitor
 	override void visit(ClassDeclaration classDec)
 	{
 		printIndentation();
-		output.writeln("class ", classDec.name.value, " : ", classDec.name.line);
+		output.writeln("class ", classDec.name.text, " : ", classDec.name.line);
 		indent();
 		classDec.accept(this);
 		outdent();
@@ -31,7 +31,7 @@ class Outliner : ASTVisitor
 	override void visit(EnumDeclaration enumDec)
 	{
 		printIndentation();
-		output.writeln("enum ", enumDec.name.value, " : ", enumDec.name.line);
+		output.writeln("enum ", enumDec.name.text, " : ", enumDec.name.line);
 		indent();
 		enumDec.accept(this);
 		outdent();
@@ -41,7 +41,7 @@ class Outliner : ASTVisitor
 	override void visit(EnumMember enumMem)
 	{
 		printIndentation();
-		output.writeln(enumMem.name.value, " : ", enumMem.name.line);
+		output.writeln(enumMem.name.text, " : ", enumMem.name.line);
 		finish();
 	}
 
@@ -57,7 +57,7 @@ class Outliner : ASTVisitor
 		if (functionDec.returnType !is null)
 			f.format(functionDec.returnType);
 		app.put(" ");
-		app.put(functionDec.name.value);
+		app.put(functionDec.name.text);
 		f.format(functionDec.parameters);
 		app.put(" : ");
 		app.put(to!string(functionDec.name.line));
@@ -68,7 +68,7 @@ class Outliner : ASTVisitor
 	override void visit(InterfaceDeclaration interfaceDec)
 	{
 		printIndentation();
-		output.writeln("interface ", interfaceDec.name.value, " : ",
+		output.writeln("interface ", interfaceDec.name.text, " : ",
 			interfaceDec.name.line);
 		indent();
 		interfaceDec.accept(this);
@@ -79,7 +79,7 @@ class Outliner : ASTVisitor
 	override void visit(StructDeclaration structDec)
 	{
 		printIndentation();
-		output.writeln("struct ", structDec.name.value, " : ",
+		output.writeln("struct ", structDec.name.text, " : ",
 			structDec.name.line);
 		indent();
 		structDec.accept(this);
@@ -90,7 +90,7 @@ class Outliner : ASTVisitor
 	override void visit(TemplateDeclaration templateDeclaration)
 	{
 		printIndentation();
-		output.writeln("template", templateDeclaration.name.value, " : ",
+		output.writeln("template", templateDeclaration.name.text, " : ",
 			templateDeclaration.name.line);
 		finish();
 	}
@@ -105,7 +105,7 @@ class Outliner : ASTVisitor
 	override void visit(UnionDeclaration unionDeclaration)
 	{
 		printIndentation();
-		output.writeln("union ", unionDeclaration.name.value, " : ",
+		output.writeln("union ", unionDeclaration.name.text, " : ",
 			unionDeclaration.name.line);
 		indent();
 		unionDeclaration.accept(this);
@@ -125,7 +125,7 @@ class Outliner : ASTVisitor
 				f.format(variableDeclaration.type);
 			}
 			app.put(" ");
-			app.put(d.name.value);
+			app.put(d.name.text);
 			app.put(" : ");
 			app.put(to!string(d.name.line));
 			output.writeln(app.data);

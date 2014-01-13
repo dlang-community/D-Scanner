@@ -9,21 +9,21 @@ import std.stdio;
 import std.algorithm;
 import stdx.d.lexer;
 
-pure nothrow bool isLineOfCode(TokenType t)
+pure nothrow bool isLineOfCode(IdType t)
 {
-	with (TokenType) switch(t)
+	switch(t)
 	{
-	case semicolon:
-	case while_:
-	case if_:
-	case do_:
-	case else_:
-	case switch_:
-	case for_:
-	case foreach_:
-	case foreach_reverse_:
-	case default_:
-	case case_:
+	case tok!";":
+	case tok!"while":
+	case tok!"if":
+	case tok!"do":
+	case tok!"else":
+	case tok!"switch":
+	case tok!"for":
+	case tok!"foreach":
+	case tok!"foreach_reverse":
+	case tok!"default":
+	case tok!"case":
 		return true;
 	default:
 		return false;

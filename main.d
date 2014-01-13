@@ -17,6 +17,7 @@ import std.stdio;
 import std.range;
 import stdx.d.lexer;
 import stdx.d.parser;
+import dpick.buffer.buffer;
 
 import highlighter;
 import stats;
@@ -24,6 +25,7 @@ import ctags;
 import astprinter;
 import imports;
 import outliner;
+import style;
 
 int main(string[] args)
 {
@@ -39,6 +41,8 @@ int main(string[] args)
 	bool imports;
 	bool muffin;
 	bool outline;
+	bool tokenDump;
+	bool styleCheck;
 
 	try
 	{
@@ -46,6 +50,7 @@ int main(string[] args)
 			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
+			"tokenDump", &tokenDump, "styleCheck", &styleCheck,
 			"muffinButton", &muffin);
 	}
 	catch (Exception e)
@@ -75,7 +80,7 @@ int main(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports, outline]);
+		syntaxCheck, ast, imports, outline, tokenDump, styleCheck]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -89,27 +94,51 @@ int main(string[] args)
 
 	if (highlight)
 	{
-		LexerConfig config;
-		config.iterStyle = IterationStyle.everything;
-		config.tokenStyle = TokenStyle.source;
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
-		highlighter.highlight(byToken(bytes, config),
-			args.length == 1 ? "stdin" : args[1]);
+        LexerConfig config;
+        config.whitespaceBehavior = WhitespaceBehavior.include;
+        config.stringBehavior = StringBehavior.source;
+        config.commentBehavior = CommentBehavior.include;
+		auto tokens = byToken(bytes, config);
+		highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
 		return 0;
+	}
+	else if (tokenDump)
+	{
+		bool usingStdin = args.length == 1;
+		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
+		LexerConfig config;
+        config.whitespaceBehavior = WhitespaceBehavior.skip;
+        config.stringBehavior = StringBehavior.source;
+        config.commentBehavior = CommentBehavior.attach;
+		auto tokens = byToken(bytes, config);
+		foreach (ref token; tokens)
+		{
+			writeln("«", token.text is null ? str(token.type) : token.text,
+				" ", token.index, " ", token.line, " ", token.column, " ",
+                token.comment, "»");
+		}
 	}
 	else if (ctags)
 	{
 		stdout.printCtags(expandArgs(args, recursive));
 	}
+	else if (styleCheck)
+	{
+		stdout.styleCheck(expandArgs(args, recursive));
+	}
 	else
 	{
-		LexerConfig config;
 		bool usingStdin = args.length == 1;
 		if (sloc || tokenCount)
 		{
 			if (usingStdin)
 			{
+                LexerConfig config;
+                config.whitespaceBehavior = WhitespaceBehavior.include;
+                config.stringBehavior = StringBehavior.source;
+                config.commentBehavior = CommentBehavior.include;
 				auto tokens = byToken(readStdin(), config);
 				if (tokenCount)
 					printTokenCount(stdout, "stdin", tokens);
@@ -121,7 +150,7 @@ int main(string[] args)
 				ulong count;
 				foreach (f; expandArgs(args, recursive))
 				{
-					auto tokens = byToken(readFile(f), config);
+					auto tokens = byToken!(ubyte[])(readFile(f));
 					if (tokenCount)
 						count += printTokenCount(stdout, f, tokens);
 					else
@@ -132,48 +161,28 @@ int main(string[] args)
 		}
 		else if (syntaxCheck)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 		}
 		else if (imports)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			auto mod = parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 			auto visitor = new ImportPrinter;
 			visitor.visit(mod);
 		}
 		else if (ast)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			auto mod = parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 			auto printer = new XMLPrinter;
 			printer.output = stdout;
 			printer.visit(mod);
 		}
 		else if (outline)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]),
-				config);
-			if (usingStdin)
-				config.fileName = "stdin";
-			else
-				config.fileName = args[1];
-			auto mod = parseModule(tokens.array(), config.fileName);
+			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
 			auto outliner = new Outliner(stdout);
 			outliner.visit(mod);
 		}
@@ -245,7 +254,7 @@ options:
         Prints the number of logical lines of code in the given
         source files. If no files are specified, input is read from stdin.
 
-    --tokenCount | t [sourceFiles]
+    --tokenCount | -t [sourceFiles]
         Prints the number of tokens in the given source files. If no files are
         specified, input is read from stdin.
 
@@ -261,6 +270,10 @@ options:
         Lexes and parses sourceFile, printing the line and column number of any
         syntax errors to stdout. One error or warning is printed per line.
         If no files are specified, input is read from stdin.
+
+    --styleCheck [sourceFiles]
+        Lexes and parses sourceFiles, printing the line and column number of any
+        style guideline violations to stdout.
 
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that

@@ -275,7 +275,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -290,6 +290,7 @@ public:
     /** */ Type type;
     /** */ Token name;
     /** */ AliasInitializer[] initializers;
+    /** */ string comment;
 }
 
 ///
@@ -410,7 +411,7 @@ class AsmAddExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -483,7 +484,7 @@ class AsmMulExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 
 }
@@ -583,7 +584,7 @@ public:
     }
     /** */ ExpressionNode ternaryExpression;
     /** */ ExpressionNode assignExpression;
-    /** */ TokenType operator;
+    /** */ IdType operator;
 }
 
 ///
@@ -623,7 +624,7 @@ public:
     /** */ AlignAttribute alignAttribute;
     /** */ PragmaExpression pragmaExpression;
     /** */ StorageClass storageClass;
-    /** */ TokenType attribute;
+    /** */ IdType attribute;
 }
 
 ///
@@ -808,6 +809,7 @@ public:
     /** */ Constraint constraint;
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -891,6 +893,7 @@ public:
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ TemplateParameters templateParameters;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -943,7 +946,7 @@ public:
             destructor, staticConstructor, staticDestructor,
             sharedStaticDestructor, sharedStaticConstructor,
             conditionalDeclaration, pragmaDeclaration, versionSpecification,
-            declarations));
+			invariant_, postblit, declarations));
     }
 
     /** */ Attribute[] attributes;
@@ -1067,6 +1070,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -1113,6 +1117,7 @@ public:
     /** */ Token name;
     /** */ Type type;
     /** */ EnumBody enumBody;
+    /** */ string comment;
 }
 
 ///
@@ -1126,6 +1131,7 @@ public:
     /** */ Token name;
     /** */ Type type;
     /** */ AssignExpression assignExpression;
+    /** */ string comment;
 }
 
 ///
@@ -1149,7 +1155,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -1222,7 +1228,7 @@ public:
         mixin (visitIfNotNull!(foreachType, foreachTypeList, low, high,
             declarationOrStatement));
     }
-    /** */ TokenType type;
+    /** */ IdType type;
     /** */ ForeachTypeList foreachTypeList;
 	/** */ ForeachType foreachType;
     /** */ Expression low;
@@ -1239,7 +1245,7 @@ public:
     {
         mixin (visitIfNotNull!(type, identifier));
     }
-    /** */ TokenType[] typeConstructors;
+    /** */ IdType[] typeConstructors;
     /** */ Type type;
     /** */ Token identifier;
 }
@@ -1325,6 +1331,7 @@ public:
     /** */ Constraint constraint;
     /** */ FunctionBody functionBody;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
+    /** */ string comment;
 }
 
 ///
@@ -1336,7 +1343,7 @@ public:
         mixin (visitIfNotNull!(type, parameters, functionAttributes,
             functionBody));
     }
-    /** */ TokenType functionOrDelegate;
+    /** */ IdType functionOrDelegate;
     /** */ Type type;
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;
@@ -1549,6 +1556,7 @@ public:
     /** */ Constraint constraint;
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -1560,6 +1568,7 @@ public:
         mixin (visitIfNotNull!(blockStatement));
     }
     /** */ BlockStatement blockStatement;
+    /** */ string comment;
 }
 
 ///
@@ -1575,7 +1584,7 @@ public:
     /** */ Token identifier;
     /** */ TypeSpecialization typeSpecialization;
     /** */ TemplateParameterList templateParameterList;
-    /** */ TokenType equalsOrColon;
+    /** */ IdType equalsOrColon;
 }
 
 ///
@@ -1622,7 +1631,7 @@ public:
         mixin (visitIfNotNull!(identifier, parameters, functionAttributes,
             assignExpression));
     }
-    /** */ TokenType functionType;
+    /** */ IdType functionType;
     /** */ Token identifier;
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;
@@ -1660,7 +1669,7 @@ public:
     {
         mixin (visitIfNotNull!(atAttribute));
     }
-    /** */ TokenType tokenType;
+    /** */ IdType tokenType;
     /** */ AtAttribute atAttribute;
 }
 
@@ -1743,7 +1752,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -1893,7 +1902,7 @@ public:
         mixin (visitIfNotNull!(type, name, default_));
     }
 
-    /** */ TokenType[] parameterAttributes;
+    /** */ IdType[] parameterAttributes;
     /** */ Type type;
     /** */ Token name;
     /** */ bool vararg;
@@ -1932,7 +1941,7 @@ public:
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     /** */ UnaryExpression unaryExpression;
 }
 
@@ -1978,7 +1987,7 @@ public:
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     /** */ UnaryExpression unaryExpression;
 }
 
@@ -2030,7 +2039,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -2067,6 +2076,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -2079,6 +2089,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -2089,7 +2100,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
-    /** */ TokenType operator;
+    /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
 
@@ -2236,6 +2247,7 @@ public:
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -2376,6 +2388,7 @@ public:
     /** */ Constraint constraint;
     /** */ Declaration[] declarations;
     /** */ EponymousTemplateDeclaration eponymousTemplateDeclaration;
+    /** */ string comment;
 }
 
 ///
@@ -2573,7 +2586,7 @@ public:
         mixin (visitIfNotNull!(type2, typeSuffixes));
     }
 
-    /** */ TokenType[] typeConstructors;
+    /** */ IdType[] typeConstructors;
     /** */ TypeSuffix[] typeSuffixes;
     /** */ Type2 type2;
 }
@@ -2588,11 +2601,11 @@ public:
             identifierOrTemplateChain, type));
     }
 
-    /** */ TokenType builtinType;
+    /** */ IdType builtinType;
     /** */ Symbol symbol;
     /** */ TypeofExpression typeofExpression;
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
-    /** */ TokenType typeConstructor;
+    /** */ IdType typeConstructor;
     /** */ Type type;
 }
 
@@ -2694,6 +2707,7 @@ public:
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -2705,6 +2719,7 @@ public:
         mixin (visitIfNotNull!(blockStatement));
     }
     /** */ BlockStatement blockStatement;
+    /** */ string comment;
 }
 
 ///
@@ -2719,6 +2734,7 @@ public:
     /** */ Declarator[] declarators;
     /** */ StorageClass storageClass;
     /** */ AutoDeclaration autoDeclaration;
+    /** */ string comment;
 }
 
 ///

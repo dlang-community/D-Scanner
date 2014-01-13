@@ -14,7 +14,7 @@ import std.stdio;
 import std.array;
 import std.conv;
 
-void doNothing(string, int, int, string) {}
+void doNothing(string, size_t, size_t, string) {}
 
 void printCtags(File output, string[] fileNames)
 {
@@ -24,9 +24,8 @@ void printCtags(File output, string[] fileNames)
 		File f = File(fileName);
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
-		LexerConfig config;
-		auto tokens = byToken(bytes, config);
-		Module m = parseModule(tokens.array(), fileName, &doNothing);
+		auto tokens = byToken(bytes);
+		Module m = parseModule(tokens.array, fileName, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
 		printer.visit(m);
@@ -41,88 +40,85 @@ void printCtags(File output, string[] fileNames)
 
 class CTagsPrinter : ASTVisitor
 {
-
-	alias ASTVisitor.visit visit;
-
 	override void visit(ClassDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tc%s\n".format(dec.name.value, fileName, dec.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\tc%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
-		context = "\tclass:" ~ dec.name.value;
+		context = "\tclass:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(StructDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\ts%s\n".format(dec.name.value, fileName, dec.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\ts%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
-		context = "\tstruct:" ~ dec.name.value;
+		context = "\tstruct:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(InterfaceDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\ti%s\n".format(dec.name.value, fileName, dec.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\ti%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
-		context = "\tclass:" ~ dec.name.value;
+		context = "\tclass:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(TemplateDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.value, fileName, dec.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
-		context = "\ttemplate:" ~ dec.name.value;
+		context = "\ttemplate:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(FunctionDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tf\tarity:%d%s\n".format(dec.name.value, fileName,
+		tagLines ~= "%s\t%s\t%d;\"\tf\tarity:%d%s\n".format(dec.name.text, fileName,
 			dec.name.line, dec.parameters.parameters.length, context);
 		auto c = context;
-		context = "\tfunction:" ~ dec.name.value;
+		context = "\tfunction:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(EnumDeclaration dec)
 	{
-		if (dec.name == TokenType.invalid)
+		if (dec.name == tok!"")
 		{
 			dec.accept(this);
 			return;
 		}
-		tagLines ~= "%s\t%s\t%d;\"\tg%s\n".format(dec.name.value, fileName,
+		tagLines ~= "%s\t%s\t%d;\"\tg%s\n".format(dec.name.text, fileName,
 			dec.name.line, context);
 		auto c = context;
-		context = "\tenum:" ~ dec.name.value;
+		context = "\tenum:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(UnionDeclaration dec)
 	{
-		if (dec.name == TokenType.invalid)
+		if (dec.name == tok!"")
 		{
 			dec.accept(this);
 			return;
 		}
-		tagLines ~= "%s\t%s\t%d;\"\tu%s\n".format(dec.name.value, fileName,
+		tagLines ~= "%s\t%s\t%d;\"\tu%s\n".format(dec.name.text, fileName,
 			dec.name.line, context);
 		auto c = context;
-		context = "\tunion:" ~ dec.name.value;
+		context = "\tunion:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
 	}
 
 	override void visit(EnumMember mem)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\te%s\n".format(mem.name.value, fileName,
+		tagLines ~= "%s\t%s\t%d;\"\te%s\n".format(mem.name.text, fileName,
 			mem.name.line, context);
 	}
 
@@ -130,11 +126,13 @@ class CTagsPrinter : ASTVisitor
 	{
 		foreach (d; dec.declarators)
 		{
-			tagLines ~= "%s\t%s\t%d;\"\tv%s\n".format(d.name.value, fileName,
+			tagLines ~= "%s\t%s\t%d;\"\tv%s\n".format(d.name.text, fileName,
 				d.name.line, context);
 		}
 		dec.accept(this);
 	}
+	
+	alias ASTVisitor.visit visit;
 
 	string fileName;
 	string[] tagLines;

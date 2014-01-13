@@ -11,7 +11,7 @@ import std.array;
 import stdx.d.lexer;
 
 // http://ethanschoonover.com/solarized
-void highlight(R)(TokenRange!R tokens, string fileName)
+void highlight(R)(ref R tokens, string fileName)
 {
 	stdout.writeln(q"[
 <!DOCTYPE html>
@@ -33,30 +33,33 @@ html  { background-color: #fdf6e3; color: #002b36; }
 </style>
 <pre>]");
 
-	foreach (Token t; tokens)
+	while (!tokens.empty)
 	{
+		auto t = tokens.front;
+		tokens.popFront();
 		if (isBasicType(t.type))
-			writeSpan("type", t.value);
+			writeSpan("type", str(t.type));
 		else if (isKeyword(t.type))
-			writeSpan("kwrd", t.value);
-		else if (t.type == TokenType.comment)
-			writeSpan("com", t.value);
-		else if (isStringLiteral(t.type) || t.type == TokenType.characterLiteral)
-			writeSpan("str", t.value);
+			writeSpan("kwrd", str(t.type));
+		else if (t.type == tok!"comment")
+			writeSpan("com", t.text);
+		else if (isStringLiteral(t.type) || t.type == tok!"characterLiteral")
+			writeSpan("str", t.text);
 		else if (isNumberLiteral(t.type))
-			writeSpan("num", t.value);
+			writeSpan("num", t.text);
 		else if (isOperator(t.type))
-			writeSpan("op", t.value);
+			writeSpan("op", str(t.type));
 		else
 		{
 			version(Windows)
 			{
-				// Stupid Windows automatically does a LF → CRLF, so CRLF → CRCRLF, which is obviously wrong.
+				// Stupid Windows automatically does a LF → CRLF, so
+				// CRLF → CRCRLF, which is obviously wrong.
 				// Strip out the CR characters here to avoid this.
-				stdout.write(t.value.replace("<", "&lt;").replace("\r", ""));
+				stdout.write(t.text.replace("<", "&lt;").replace("\r", ""));
 			}
 			else
-				stdout.write(t.value.replace("<", "&lt;"));
+				stdout.write(t.text.replace("<", "&lt;"));
 		}
 
 	}
@@ -70,13 +73,3 @@ void writeSpan(string cssClass, string value)
 	else
 		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
 }
-
-/+void main(string[] args)
-{
-	LexerConfig config;
-	config.tokenStyle = TokenStyle.source;
-	config.iterStyle = IterationStyle.everything;
-	config.fileName = args[1];
-	auto f = File(args[1]);
-	(cast(ubyte[]) f.byLine(KeepTerminator.yes).join()).byToken(config).highlight();
-}+/
