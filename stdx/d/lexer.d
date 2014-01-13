@@ -366,6 +366,21 @@ public bool isStringLiteral(IdType type) pure nothrow @safe
 	}
 }
 
+public bool isProtection(IdType type) pure nothrow @safe
+{
+	switch (type)
+	{
+	case tok!"export":
+	case tok!"package":
+	case tok!"private":
+	case tok!"public":
+	case tok!"protected":
+		return true;
+	default:
+		return false;
+	}
+}
+
 public struct DLexer(R)
 {
 	import std.conv;
