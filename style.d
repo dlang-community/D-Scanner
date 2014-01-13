@@ -13,7 +13,7 @@ import std.regex;
 import std.array;
 import std.conv;
 
-void doNothing(string, size_t, size_t, string) {}
+void doNothing(string, size_t, size_t, string, bool) {}
 
 void styleCheck(File output, string[] fileNames)
 {

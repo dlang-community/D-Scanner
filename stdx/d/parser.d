@@ -19,11 +19,12 @@ import std.string : format;
  *     tokens = the tokens parsed by std.d.lexer
  *     messageFunction = a function to call on error or warning messages.
  *         The parameters are the file name, line number, column number,
- *         and the error or warning message.
+ *         the error or warning message, and a boolean (true means error, false
+ *         means warning).
  * Returns: the parsed module
  */
 Module parseModule(const(Token)[] tokens, string fileName,
-    void function(string, size_t, size_t, string) messageFunction = null)
+    void function(string, size_t, size_t, string, bool) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
@@ -5984,7 +5985,7 @@ q{doStuff(5)}c;
      * The parameters are the file name, line number, column number,
      * and the error or warning message.
      */
-    void function(string, size_t, size_t, string) messageFunction;
+    void function(string, size_t, size_t, string, bool) messageFunction;
 
     bool isSliceExpression()
     {
@@ -6278,7 +6279,7 @@ protected:
         if (messageFunction is null)
             stderr.writefln("%s(%d:%d)[warn]: %s", fileName, line, column, message);
         else
-            messageFunction(fileName, line, column, message);
+            messageFunction(fileName, line, column, message, false);
     }
 
     void error(lazy string message, bool shouldAdvance = true)
@@ -6294,7 +6295,7 @@ protected:
                 stderr.writefln("%s(%d:%d)[error]: %s", fileName, line, column, message);
             }
             else
-                messageFunction(fileName, line, column, message);
+                messageFunction(fileName, line, column, message, true);
         }
         while (shouldAdvance && moreTokens())
         {
@@ -6502,7 +6503,7 @@ protected:
     }
 
     version (unittest) static void doNothingErrorFunction(string fileName,
-        size_t line, size_t column, string message) {}
+        size_t line, size_t column, string message, bool isError) {}
 
     version (unittest) static Parser getParserForUnittest(string sourceCode,
         string testName)
