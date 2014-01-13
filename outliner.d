@@ -90,8 +90,11 @@ class Outliner : ASTVisitor
 	override void visit(TemplateDeclaration templateDeclaration)
 	{
 		printIndentation();
-		output.writeln("template", templateDeclaration.name.text, " : ",
+		output.writeln("template ", templateDeclaration.name.text, " : ",
 			templateDeclaration.name.line);
+		indent();
+		templateDeclaration.accept(this);
+		outdent();
 		finish();
 	}
 

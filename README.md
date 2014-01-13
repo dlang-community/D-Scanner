@@ -28,6 +28,10 @@ The "--syntaxCheck" option prints a listing of any errors or warnings found
 while lexing or parsing the given source file. It does not do any semantic
 analysis and it does not compile the code.
 
+### Style Check
+The "--styleCheck" option checks the names of packages, variables, enums,
+classes, and other things for consistency with the Phobos style guide.
+
 ### Line of Code Count
 The "--sloc" or "-l" option prints the number of lines of code in the file.
 Instead of simply printing the number of line breaks, this counts the number of
@@ -70,6 +74,10 @@ CTAGS output uses the following tag kinds:
 * T -- template declaration
 
 More information on the CTAGS format can be found [here](http://ctags.sourceforge.net/FORMAT).
+
+### Outline
+The "--outline" option parses the given D source file and writes an simple
+outline of the file's declarations to stdout.
 
 ### AST Dump
 The "--ast" or "--xml" options will dump the complete abstract syntax tree of
