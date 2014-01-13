@@ -32,7 +32,7 @@ void styleCheck(File output, string[] fileNames)
 
 class StyleChecker : ASTVisitor
 {
-	enum varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}_]+)$`;
+	enum varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
 	enum aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
 	enum moduleNameRegex = `^\p{Ll}+$`;
 	
@@ -66,6 +66,12 @@ class StyleChecker : ASTVisitor
 	override void visit(ClassDeclaration dec)
 	{
 		checkAggregateName("Class", dec.name);
+		dec.accept(this);
+	}
+	
+	override void visit(InterfaceDeclaration dec)
+	{
+		checkAggregateName("Interface", dec.name);
 		dec.accept(this);
 	}
 	

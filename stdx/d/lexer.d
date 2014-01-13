@@ -422,7 +422,7 @@ public struct DLexer(R)
             || comment[0 .. 3] == "/**" || comment[0 .. 3] == "/++");
     }
 
-    public void popFront()
+    public void popFront() pure
     {
         _popFront();
         string comment = null;
