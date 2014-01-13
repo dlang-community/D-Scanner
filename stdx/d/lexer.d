@@ -717,16 +717,16 @@ public struct DLexer(R)
 				if (foundDot)
 					break decimalLoop;
 				auto lookahead = range.lookahead(2);
-				if (lookahead.length == 1 && lookahead[0] == '.')
+				if (lookahead.length == 2 && lookahead[1] == '.')
 					break decimalLoop;
 				else
 				{
 					// The following bit of silliness tries to tell the
 					// difference between "int dot identifier" and
 					// "double identifier".
-					if (lookahead.length == 1)
+					if (lookahead.length == 2)
 					{
-						switch (lookahead[0])
+						switch (lookahead[1])
 						{
 						case '0': .. case '9':
 							goto doubleLiteral;
