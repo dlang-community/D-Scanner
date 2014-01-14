@@ -2176,6 +2176,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+	/** */ string comment;
 }
 
 ///
@@ -2188,6 +2189,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+	/** */ string comment;
 }
 
 ///

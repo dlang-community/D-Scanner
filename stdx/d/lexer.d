@@ -57,6 +57,12 @@ public template tok(string token)
 }
 enum extraFields = q{
     string comment;
+
+    int opCmp(size_t i) const pure nothrow @safe {
+        if (index < i) return -1;
+        if (index > i) return 1;
+        return 0;
+    }
 };
 public alias stdx.lexer.TokenStructure!(IdType, extraFields) Token;
 
