@@ -33,7 +33,7 @@ template TokenIdType(alias staticTokens, alias dynamicTokens,
 		static assert (false);
 }
 
-string TokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
+string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
 {
 	if (type == 0)
 		return "!ERROR!";
@@ -90,7 +90,7 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 	}
 }
 
-struct TokenStructure(IDType)
+struct TokenStructure(IDType, string extraFields = "")
 {
 	bool opEquals(IDType type) const pure nothrow @safe
 	{
@@ -116,6 +116,7 @@ struct TokenStructure(IDType)
 	size_t column;
 	size_t index;
 	IDType type;
+	mixin (extraFields);
 }
 
 mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
@@ -210,7 +211,7 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 		return _front;
 	}
 
-	void popFront() pure
+	void _popFront() pure
 	{
 		_front = advance();
 	}
@@ -277,20 +278,20 @@ struct LexerRange(BufferType) if (isBuffer!BufferType)
 		column = 1;
 		line = 1;
 	}
-	
+
 	void popFront() pure
 	{
 		index++;
 		column++;
 		range.popFront();
 	}
-	
+
 	void incrementLine() pure nothrow
 	{
 		column = 1;
 		line++;
 	}
-	
+
 	BufferType range;
 	alias range this;
 	size_t index;

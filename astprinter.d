@@ -411,6 +411,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(EnumDeclaration enumDec)
 	{
 		output.writeln("<enumDeclaration line=\"", enumDec.name.line, "\">");
+        writeDdoc(enumDec.comment);
 		if (enumDec.name.type == tok!"identifier")
 			output.writeln("<name>", enumDec.name.text, "</name>");
 		enumDec.accept(this);
@@ -420,6 +421,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(EnumMember enumMem)
 	{
 		output.writeln("<enumMember line=\"", enumMem.name.line, "\">");
+        writeDdoc(enumMem.comment);
 		enumMem.accept(this);
 		output.writeln("</enumMember>");
 	}
@@ -553,6 +555,7 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<functionDeclaration line=\"", functionDec.name.line, "\">");
 		output.writeln("<name>", functionDec.name.text, "</name>");
+        writeDdoc(functionDec.comment);
 		if (functionDec.hasAuto)
 			output.writeln("<auto/>");
 		if (functionDec.hasRef)
@@ -726,6 +729,7 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<interfaceDeclaration line=\"", interfaceDec.name.line, "\">");
 		output.writeln("<name>", interfaceDec.name.text, "</name>");
+        writeDdoc(interfaceDec.comment);
 		interfaceDec.accept(this);
 		output.writeln("</interfaceDeclaration>");
 	}
@@ -733,6 +737,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(Invariant invariant_)
 	{
 		output.writeln("<invariant>");
+        writeDdoc(invariant_.comment);
 		invariant_.accept(this);
 		output.writeln("</invariant>");
 	}
@@ -1193,7 +1198,7 @@ class XMLPrinter : ASTVisitor
 			output.writeln("</templateDeclaration>");
 			return;
 		}
-
+        writeDdoc(templateDeclaration.comment);
 		output.writeln("<templateDeclaration line=\"",
 			templateDeclaration.name.line, "\">");
 		output.writeln("<name>", templateDeclaration.name.text, "</name>");
@@ -1432,7 +1437,10 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(VariableDeclaration variableDeclaration)
 	{
-		mixin (tagAndAccept!"variableDeclaration");
+        output.writeln("<variableDeclaration>");
+        writeDdoc(variableDeclaration.comment);
+        variableDeclaration.accept(this);
+        output.writeln("</variableDeclaration>");
 	}
 
 	override void visit(Vector vector)
@@ -1477,10 +1485,16 @@ class XMLPrinter : ASTVisitor
 
 	alias ASTVisitor.visit visit;
 
-	private string xmlEscape(string s)
+	private static string xmlEscape(string s)
 	{
 		return s.translate(['<' : "&lt;", '>' : "&gt;", '&' : "&amp;"]);
 	}
+
+    private void writeDdoc(string comment)
+    {
+        if (comment is null) return;
+        output.writeln("<ddoc>", xmlEscape(comment), "</ddoc>");
+    }
 
 	File output;
 }

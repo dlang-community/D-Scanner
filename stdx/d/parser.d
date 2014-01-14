@@ -127,7 +127,7 @@ alias core.sys.posix.stdio.fileno fileno;
         node.type = parseType();
         return node;
     }
-	
+
 	unittest
     {
         auto sourceCode = q{a = abcde!def};
@@ -156,7 +156,7 @@ alias core.sys.posix.stdio.fileno fileno;
         if (expect(tok!";") is null) return null;
         return node;
     }
-    
+
     unittest
     {
         auto sourceCode = q{alias oneTwoThree this;};
@@ -188,7 +188,7 @@ alias core.sys.posix.stdio.fileno fileno;
         }
         return node;
     }
-    
+
     unittest
     {
         auto sourceCode = q{align(42) align};
@@ -1170,6 +1170,8 @@ incorrect;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.name = *ident;
+        node.comment = comment;
+        comment = null;
         if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
@@ -1409,6 +1411,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         Constructor node = new Constructor;
+        node.comment = comment;
+        comment = null;
         auto t = expect(tok!"this");
         if (t is null) return null;
         node.location = t.index;
@@ -1557,7 +1561,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Declaration;
-
+        comment = current.comment;
         do
         {
             if (!isAttribute())
@@ -1904,6 +1908,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new Destructor;
+        node.comment = comment;
+        comment = null;
         if (expect(tok!"~") is null) return null;
         if (expect(tok!"this") is null) return null;
         if (expect(tok!"(") is null) return null;
@@ -2005,6 +2011,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             node.name = advance();
 		else
 			node.name.line = tokens[index - 1].line; // preserve line number if anonymous
+        node.comment = comment;
+        comment = null;
         if (currentIs(tok!":"))
         {
             advance();
@@ -2026,6 +2034,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new EnumMember;
+        node.comment = current.comment;
         if (currentIs(tok!"identifier"))
         {
             if (peekIsOneOf(tok!",", tok!"}"))
@@ -2425,6 +2434,8 @@ body {} // six
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new FunctionDeclaration;
+        node.comment = comment;
+        comment = null;
 
         if (isAuto)
             goto functionName;
@@ -2994,6 +3005,8 @@ import core.stdc.stdio, std.string : KeepTerminator;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.name = *ident;
+        node.comment = comment;
+        comment = null;
         if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
@@ -3129,7 +3142,7 @@ invariant() foo();
         if (expect(tok!")") is null) return null;
         return node;
     }
-	
+
 	unittest
     {
         auto sourceCode = q{is ( x : uybte)}c;
@@ -3410,7 +3423,7 @@ invariant() foo();
             node.symbol = parseSymbol();
         return node;
     }
-    
+
     unittest
     {
     }
@@ -4585,6 +4598,8 @@ q{(int a, ...)
         {
             node.name = advance();
         }
+        node.comment = comment;
+        comment = null;
 
         if (currentIs(tok!"("))
         {
@@ -4856,6 +4871,8 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new TemplateDeclaration;
+        node.comment = comment;
+        comment = null;
         if (currentIs(tok!"enum"))
         {
             node.eponymousTemplateDeclaration = parseEponymousTemplateDeclaration();
@@ -5784,7 +5801,7 @@ q{doStuff(5)}c;
     Unittest parseUnittest()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        mixin (simpleParse!(Unittest, tok!"unittest", "blockStatement|parseBlockStatement"));
+        mixin (simpleParse!(Unittest, tok!"unittest", "blockStatement|parseBlockStatement", true));
     }
 
     /**
@@ -6490,9 +6507,16 @@ protected:
 
     template simpleParse(NodeType, parts ...)
     {
-        enum simpleParse = "auto node = new " ~ NodeType.stringof ~ ";\n"
-            ~ simpleParseItems!(parts)
-            ~ "\nreturn node;\n";
+        static if (__traits(hasMember, NodeType, "comment"))
+            enum simpleParse = "auto node = new " ~ NodeType.stringof ~ ";\n"
+                ~ "node.comment = comment;\n"
+                ~ "comment = null;\n"
+                ~ simpleParseItems!(parts)
+                ~ "\nreturn node;\n";
+        else
+            enum simpleParse = "auto node = new " ~ NodeType.stringof ~ ";\n"
+                ~ simpleParseItems!(parts)
+                ~ "\nreturn node;\n";
     }
 
     template simpleParseItems(items ...)
@@ -6609,4 +6633,5 @@ protected:
     int suppressMessages;
     size_t index;
     int _traceDepth;
+    string comment;
 }

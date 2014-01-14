@@ -290,6 +290,7 @@ public:
     /** */ Type type;
     /** */ Token name;
     /** */ AliasInitializer[] initializers;
+    /** */ string comment;
 }
 
 ///
@@ -808,6 +809,7 @@ public:
     /** */ Constraint constraint;
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -891,6 +893,7 @@ public:
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ TemplateParameters templateParameters;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -1067,6 +1070,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -1113,6 +1117,7 @@ public:
     /** */ Token name;
     /** */ Type type;
     /** */ EnumBody enumBody;
+    /** */ string comment;
 }
 
 ///
@@ -1126,6 +1131,7 @@ public:
     /** */ Token name;
     /** */ Type type;
     /** */ AssignExpression assignExpression;
+    /** */ string comment;
 }
 
 ///
@@ -1325,6 +1331,7 @@ public:
     /** */ Constraint constraint;
     /** */ FunctionBody functionBody;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
+    /** */ string comment;
 }
 
 ///
@@ -1549,6 +1556,7 @@ public:
     /** */ Constraint constraint;
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -1560,6 +1568,7 @@ public:
         mixin (visitIfNotNull!(blockStatement));
     }
     /** */ BlockStatement blockStatement;
+    /** */ string comment;
 }
 
 ///
@@ -2067,6 +2076,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -2079,6 +2089,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
+    /** */ string comment;
 }
 
 ///
@@ -2236,6 +2247,7 @@ public:
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -2376,6 +2388,7 @@ public:
     /** */ Constraint constraint;
     /** */ Declaration[] declarations;
     /** */ EponymousTemplateDeclaration eponymousTemplateDeclaration;
+    /** */ string comment;
 }
 
 ///
@@ -2694,6 +2707,7 @@ public:
     /** */ TemplateParameters templateParameters;
     /** */ Constraint constraint;
     /** */ StructBody structBody;
+    /** */ string comment;
 }
 
 ///
@@ -2705,6 +2719,7 @@ public:
         mixin (visitIfNotNull!(blockStatement));
     }
     /** */ BlockStatement blockStatement;
+    /** */ string comment;
 }
 
 ///
@@ -2719,6 +2734,7 @@ public:
     /** */ Declarator[] declarators;
     /** */ StorageClass storageClass;
     /** */ AutoDeclaration autoDeclaration;
+    /** */ string comment;
 }
 
 ///

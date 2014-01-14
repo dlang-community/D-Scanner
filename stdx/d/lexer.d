@@ -50,31 +50,69 @@ private enum dynamicTokens = [
 ];
 
 public alias TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens) IdType;
-public alias TokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens) str;
+public alias tokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens) str;
 public template tok(string token)
 {
   alias TokenId!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens, token) tok;
 }
-public alias stdx.lexer.TokenStructure!(IdType) Token;
+enum extraFields = q{
+    string comment;
+};
+public alias stdx.lexer.TokenStructure!(IdType, extraFields) Token;
 
-pure nothrow bool isNotComment(const Token t) { return t.type != tok!"comment"; }
-pure nothrow bool isNotWhitespace(const Token t) { return t.type != tok!"whitespace"; }
-pure nothrow bool isNotEither(const Token t) { return t.type != tok!"whitespace" && t.type != tok!"comment"; }
-
-public auto byToken(R, bool skipComments = true, bool skipWhitespace = true)(R range)
+/**
+ * Configure string lexing behavior
+ */
+public enum StringBehavior : ubyte
 {
-	auto tokens = DLexer!(R)(range);
-	static if (skipComments)
-	{
-		static if (skipWhitespace)
-			return filter!isNotEither(tokens);
-		else
-			return filter!isNotComment(tokens);
-	}
-	else static if (skipWhitespace)
-		return filter!isNotWhitespace(tokens);
-	else
-		return tokens;
+    /// Do not include quote characters, process escape sequences
+    compiler = 0b0000_0000,
+    /// Opening quotes, closing quotes, and string suffixes are included in the
+    /// string token
+    includeQuoteChars = 0b0000_0001,
+    /// String escape sequences are not replaced
+    notEscaped = 0b0000_0010,
+    /// Not modified at all. Useful for formatters or highlighters
+    source = includeQuoteChars | notEscaped
+}
+
+/**
+ * Configure whitespace handling behavior
+ */
+public enum WhitespaceBehavior : ubyte
+{
+    /// Whitespace is skipped
+    skip,
+    /// Whitespace is treated as a token
+    include
+}
+/**
+ * Configure comment handling behavior
+ */
+public enum CommentBehavior : ubyte
+{
+    /// Comments are attached to the non-whitespace token that follows them
+    attach,
+    /// Comments are tokens, and can be returned by calls to the token range's front()
+    include
+}
+
+public struct LexerConfig
+{
+    StringBehavior stringBehavior;
+    WhitespaceBehavior whitespaceBehavior;
+    CommentBehavior commentBehavior;
+}
+
+public auto byToken(R)(R range)
+{
+    LexerConfig config;
+    return byToken(range, config);
+}
+
+public auto byToken(R)(R range, const LexerConfig config)
+{
+	return DLexer!(R)(range, config);
 }
 
 unittest
@@ -371,11 +409,48 @@ public struct DLexer(R)
 
 	private alias typeof(range).Mark Mark;
 
-	this(R range)
+	this(R range, const LexerConfig config)
 	{
 		this.range = LexerRange!(typeof(buffer(range)))(buffer(range));
+        this.config = config;
         popFront();
 	}
+
+    private static bool isDocComment(string comment) pure nothrow @safe
+    {
+        return comment.length >= 3 && (comment[0 .. 3] == "///"
+            || comment[0 .. 3] == "/**" || comment[0 .. 3] == "/++");
+    }
+
+    public void popFront()
+    {
+        _popFront();
+        string comment = null;
+        switch (_front.type)
+        {
+            case tok!"comment":
+                if (config.commentBehavior == CommentBehavior.attach)
+                {
+                    import std.string;
+                    if (isDocComment(front.text))
+                        comment = comment == null ? front.text : format("%s\n%s", comment, front.text);
+                    do _popFront(); while (front == tok!"comment");
+                    if (front == tok!"whitespace") goto case tok!"whitespace";
+                }
+                break;
+            case tok!"whitespace":
+                if (config.whitespaceBehavior == WhitespaceBehavior.skip)
+                {
+                    do _popFront(); while (front == tok!"whitespace");
+                    if (front == tok!"comment") goto case tok!"comment";
+                }
+                break;
+            default:
+                break;
+        }
+        _front.comment = comment;
+    }
+
 
 	bool isWhitespace() pure /*const*/ nothrow
 	{
@@ -597,7 +672,7 @@ public struct DLexer(R)
 		mixin (tokenStart);
 		return lexDecimal(mark, line, column, index);
 	}
-	
+
 	Token lexDecimal(Mark mark, size_t line, size_t column, size_t index) pure nothrow
 	{
 		bool foundDot = range.front == '.';
@@ -728,6 +803,7 @@ public struct DLexer(R)
 		}
 		if (!range.empty && range.front == 'i')
 		{
+            warning("Complex number literals are deprecated");
 			range.popFront();
 			if (type == tok!"floatLiteral")
 				type = tok!"ifloatLiteral";
@@ -783,7 +859,7 @@ public struct DLexer(R)
 		return Token(tok!"scriptLine", cast(string) range.slice(mark),
 			line, column, index);
 	}
-	
+
 	Token lexSpecialTokenSequence() pure
 	{
 		mixin (tokenStart);
@@ -1329,12 +1405,14 @@ public struct DLexer(R)
 		size_t line = range.line;
 		auto mark = range.mark();
 	};
-	
+
 	void error(...) pure {
 
 	}
-	
+
 	void warning(...) pure {
-		
+
 	}
+
+    const LexerConfig config;
 }

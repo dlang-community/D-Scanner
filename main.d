@@ -96,7 +96,11 @@ int main(string[] args)
 	{
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
-		auto tokens = byToken!(ubyte[], false, false)(bytes);
+        LexerConfig config;
+        config.whitespaceBehavior = WhitespaceBehavior.include;
+        config.stringBehavior = StringBehavior.source;
+        config.commentBehavior = CommentBehavior.include;
+		auto tokens = byToken(bytes, config);
 		highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
 		return 0;
 	}
@@ -104,11 +108,16 @@ int main(string[] args)
 	{
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
-		auto tokens = byToken!(ubyte[], false, false)(bytes);
+		LexerConfig config;
+        config.whitespaceBehavior = WhitespaceBehavior.skip;
+        config.stringBehavior = StringBehavior.source;
+        config.commentBehavior = CommentBehavior.attach;
+		auto tokens = byToken(bytes, config);
 		foreach (ref token; tokens)
 		{
 			writeln("«", token.text is null ? str(token.type) : token.text,
-				" ", token.index, " ", token.line, " ", token.column, "»");
+				" ", token.index, " ", token.line, " ", token.column, " ",
+                token.comment, "»");
 		}
 	}
 	else if (ctags)
@@ -126,7 +135,11 @@ int main(string[] args)
 		{
 			if (usingStdin)
 			{
-				auto tokens = byToken!(ubyte[], false, false)(readStdin());
+                LexerConfig config;
+                config.whitespaceBehavior = WhitespaceBehavior.include;
+                config.stringBehavior = StringBehavior.source;
+                config.commentBehavior = CommentBehavior.include;
+				auto tokens = byToken(readStdin(), config);
 				if (tokenCount)
 					printTokenCount(stdout, "stdin", tokens);
 				else
