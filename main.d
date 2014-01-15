@@ -15,6 +15,7 @@ import std.path;
 import std.regex;
 import std.stdio;
 import std.range;
+import stdx.lexer;
 import stdx.d.lexer;
 import stdx.d.parser;
 import dpick.buffer.buffer;
@@ -92,32 +93,33 @@ int main(string[] args)
 		return 1;
 	}
 
-	if (highlight)
-	{
-		bool usingStdin = args.length == 1;
-		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
-        LexerConfig config;
-        config.whitespaceBehavior = WhitespaceBehavior.include;
-        config.stringBehavior = StringBehavior.source;
-        config.commentBehavior = CommentBehavior.include;
-		auto tokens = byToken(bytes, config);
-		highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
-		return 0;
-	}
-	else if (tokenDump)
+	StringCache cache;
+
+	if (tokenDump || highlight)
 	{
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
 		LexerConfig config;
-        config.whitespaceBehavior = WhitespaceBehavior.skip;
-        config.stringBehavior = StringBehavior.source;
-        config.commentBehavior = CommentBehavior.attach;
-		auto tokens = byToken(bytes, config);
-		foreach (ref token; tokens)
+		config.whitespaceBehavior = WhitespaceBehavior.include;
+		config.stringBehavior = StringBehavior.source;
+		config.commentBehavior = CommentBehavior.include;
+		auto tokens = byToken(bytes, config, cache);
+		if (highlight)
 		{
-			writeln("«", token.text is null ? str(token.type) : token.text,
-				" ", token.index, " ", token.line, " ", token.column, " ",
-                token.comment, "»");
+			highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
+			return 0;
+		}
+		else if (tokenDump)
+		{
+			while (!tokens.empty)
+			{
+				auto token = tokens.front();
+				tokens.popFront();
+				writeln("«", token.text is null ? str(token.type) : token.text,
+					"» ", token.index, " ", token.line, " ", token.column, " ",
+					token.comment);
+			}
+			return 0;
 		}
 	}
 	else if (ctags)
@@ -135,11 +137,11 @@ int main(string[] args)
 		{
 			if (usingStdin)
 			{
-                LexerConfig config;
-                config.whitespaceBehavior = WhitespaceBehavior.include;
-                config.stringBehavior = StringBehavior.source;
-                config.commentBehavior = CommentBehavior.include;
-				auto tokens = byToken(readStdin(), config);
+				LexerConfig config;
+				config.whitespaceBehavior = WhitespaceBehavior.include;
+				config.stringBehavior = StringBehavior.source;
+				config.commentBehavior = CommentBehavior.include;
+				auto tokens = byToken(readStdin(), config, cache);
 				if (tokenCount)
 					printTokenCount(stdout, "stdin", tokens);
 				else
@@ -159,32 +161,26 @@ int main(string[] args)
 				writefln("total:\t%d", count);
 			}
 		}
-		else if (syntaxCheck)
-		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-			parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-		}
-		else if (imports)
+		else if (syntaxCheck || imports || ast || outline)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
 			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-			auto visitor = new ImportPrinter;
-			visitor.visit(mod);
-		}
-		else if (ast)
-		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-			auto printer = new XMLPrinter;
-			printer.output = stdout;
-			printer.visit(mod);
-		}
-		else if (outline)
-		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
-			auto outliner = new Outliner(stdout);
-			outliner.visit(mod);
+			if (imports)
+			{
+				auto visitor = new ImportPrinter;
+				visitor.visit(mod);
+			}
+			else if (ast)
+			{
+				auto printer = new XMLPrinter;
+				printer.output = stdout;
+				printer.visit(mod);
+			}
+			else if (outline)
+			{
+				auto outliner = new Outliner(stdout);
+				outliner.visit(mod);
+			}
 		}
 	}
 	return 0;

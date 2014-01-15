@@ -19,12 +19,14 @@ void doNothing(string, size_t, size_t, string, bool) {}
 void printCtags(File output, string[] fileNames)
 {
 	string[] tags;
+	LexerConfig config;
+	StringCache cache;
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
-		auto tokens = byToken(bytes);
+		auto tokens = byToken(bytes, config, cache);
 		Module m = parseModule(tokens.array, fileName, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
@@ -131,7 +133,7 @@ class CTagsPrinter : ASTVisitor
 		}
 		dec.accept(this);
 	}
-	
+
 	alias ASTVisitor.visit visit;
 
 	string fileName;

@@ -6,6 +6,7 @@ import std.array;
 import std.algorithm;
 import std.range;
 import stdx.lexer;
+public import stdx.lexer : StringCache;
 
 private enum staticTokens = [
 	",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=",
@@ -114,12 +115,19 @@ public struct LexerConfig
 public auto byToken(R)(R range)
 {
     LexerConfig config;
-    return byToken(range, config);
+	StringCache cache;
+    return byToken(range, config, cache);
 }
 
-public auto byToken(R)(R range, const LexerConfig config)
+public auto byToken(R)(R range, StringCache cache)
 {
-	return DLexer!(R)(range, config);
+	LexerConfig config;
+	return DLexer!(R)(range, config, cache);
+}
+
+public auto byToken(R)(R range, const LexerConfig config, StringCache cache)
+{
+	return DLexer!(R)(range, config, cache);
 }
 
 unittest
@@ -431,7 +439,7 @@ public struct DLexer(R)
 
 	private alias typeof(range).Mark Mark;
 
-	this(R range, const LexerConfig config)
+	this(R range, const LexerConfig config, StringCache cache)
 	{
 		this.range = LexerRange!(typeof(buffer(range)))(buffer(range));
         this.config = config;
@@ -448,7 +456,7 @@ public struct DLexer(R)
     {
         _popFront();
         string comment = null;
-        switch (_front.type)
+        switch (front.type)
         {
             case tok!"comment":
                 if (config.commentBehavior == CommentBehavior.attach)
@@ -573,7 +581,7 @@ public struct DLexer(R)
 				break loop;
 			}
 		} while (!range.empty);
-		return Token(tok!"whitespace", cast(string) range.slice(mark), line,
+		return Token(tok!"whitespace", cache.cacheGet(range.slice(mark)), line,
 			column, index);
 	}
 
@@ -654,7 +662,7 @@ public struct DLexer(R)
 				break hexLoop;
 			}
 		}
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -685,7 +693,7 @@ public struct DLexer(R)
 				break binaryLoop;
 			}
 		}
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -769,7 +777,7 @@ public struct DLexer(R)
 				break decimalLoop;
 			}
 		}
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -878,7 +886,7 @@ public struct DLexer(R)
 		mixin (tokenStart);
 		while (!range.empty && !isNewline)
 			range.popFront();
-		return Token(tok!"scriptLine", cast(string) range.slice(mark),
+		return Token(tok!"scriptLine", cache.cacheGet(range.slice(mark)),
 			line, column, index);
 	}
 
@@ -887,7 +895,7 @@ public struct DLexer(R)
 		mixin (tokenStart);
 		while (!range.empty && !isNewline)
 			range.popFront();
-		return Token(tok!"specialTokenSequence", cast(string) range.slice(mark),
+		return Token(tok!"specialTokenSequence", cache.cacheGet(range.slice(mark)),
 			line, column, index);
 	}
 
@@ -911,7 +919,7 @@ public struct DLexer(R)
 			else
 				popFrontWhitespaceAware();
 		}
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -927,7 +935,7 @@ public struct DLexer(R)
 				break;
 			range.popFront();
 		}
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -961,7 +969,7 @@ public struct DLexer(R)
 			else
 				popFrontWhitespaceAware();
 		}
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -990,7 +998,7 @@ public struct DLexer(R)
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -1044,7 +1052,7 @@ public struct DLexer(R)
 			}
 		}
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -1131,7 +1139,7 @@ public struct DLexer(R)
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.slice(mark), line, column, index);
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column, index);
 	}
 
 	Token lexHeredocString() pure nothrow
@@ -1149,7 +1157,7 @@ public struct DLexer(R)
 		auto app = appender!string();
 		app.put("q{");
 		int depth = 1;
-		
+
 		LexerConfig c = config;
 		scope(exit) config = c;
 		config.whitespaceBehavior = WhitespaceBehavior.include;
@@ -1180,7 +1188,8 @@ public struct DLexer(R)
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, app.data, line, column, index);
+		return Token(type, cache.cacheGet(cast(const(ubyte)[]) app.data), line,
+			column, index);
 	}
 
 	Token lexHexString() pure nothrow
@@ -1216,7 +1225,7 @@ public struct DLexer(R)
 
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cast(string) range.slice(mark), line, column,
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -1325,7 +1334,7 @@ public struct DLexer(R)
 		else if (range.front == '\'')
 		{
 			range.popFront();
-			return Token(tok!"characterLiteral", cast(string) range.slice(mark),
+			return Token(tok!"characterLiteral", cache.cacheGet(range.slice(mark)),
 				line, column, index);
 		}
 		else if (range.front & 0x80)
@@ -1343,7 +1352,7 @@ public struct DLexer(R)
 		if (range.front == '\'')
 		{
 			range.popFront();
-			return Token(tok!"characterLiteral", cast(string) range.slice(mark),
+			return Token(tok!"characterLiteral", cache.cacheGet(range.slice(mark)),
 				line, column, index);
 		}
 		else
@@ -1360,7 +1369,7 @@ public struct DLexer(R)
 		{
 			range.popFront();
 		}
-		return Token(tok!"identifier", cast(string) range.slice(mark), line,
+		return Token(tok!"identifier", cache.cacheGet(range.slice(mark)), line,
 			column, index);
 	}
 
@@ -1400,7 +1409,7 @@ public struct DLexer(R)
 		range.popFront();
 		range.popFront();
 		range.incrementLine();
-		return Token(tok!"whitespace", cast(string) range.slice(mark), line,
+		return Token(tok!"whitespace", cache.cacheGet(range.slice(mark)), line,
 			column, index);
 	}
 
@@ -1431,7 +1440,7 @@ public struct DLexer(R)
 		size_t index = range.index;
 		size_t column = range.column;
 		size_t line = range.line;
-		auto mark = range.mark();
+		const mark = range.mark();
 	};
 
 	void error(...) pure {
@@ -1442,5 +1451,6 @@ public struct DLexer(R)
 
 	}
 
-    LexerConfig config;
+	StringCache cache;
+	LexerConfig config;
 }

@@ -13,6 +13,8 @@ import std.regex;
 import std.array;
 import std.conv;
 
+// TODO: Warn on assigning to non-ref foreach item.
+
 void doNothing(string, size_t, size_t, string, bool) {}
 
 void styleCheck(File output, string[] fileNames)
@@ -35,7 +37,7 @@ class StyleChecker : ASTVisitor
 	enum varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
 	enum aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
 	enum moduleNameRegex = `^\p{Ll}+$`;
-	
+
 	override void visit(ModuleDeclaration dec)
 	{
 		foreach (part; dec.moduleName.identifiers)
@@ -45,36 +47,36 @@ class StyleChecker : ASTVisitor
 					"Module/package name ", part.text, " does not match style guidelines");
 		}
 	}
-	
+
 	override void visit(Declarator dec)
 	{
 		checkLowercaseName("Variable", dec.name);
 	}
-	
+
 	override void visit(FunctionDeclaration dec)
 	{
 		checkLowercaseName("Function", dec.name);
 	}
-	
+
 	void checkLowercaseName(string type, ref Token name)
 	{
 		if (name.text.matchFirst(varFunNameRegex).length == 0)
 			writeln(fileName, "(", name.line, ":", name.column, ") ",
 				type, " name ", name.text, " does not match style guidelines");
 	}
-	
+
 	override void visit(ClassDeclaration dec)
 	{
 		checkAggregateName("Class", dec.name);
 		dec.accept(this);
 	}
-	
+
 	override void visit(InterfaceDeclaration dec)
 	{
 		checkAggregateName("Interface", dec.name);
 		dec.accept(this);
 	}
-	
+
 	override void visit(EnumDeclaration dec)
 	{
 		if (dec.name.text is null || dec.name.text.length == 0)
@@ -82,13 +84,13 @@ class StyleChecker : ASTVisitor
 		checkAggregateName("Enum", dec.name);
 		dec.accept(this);
 	}
-	
+
 	override void visit(StructDeclaration dec)
 	{
 		checkAggregateName("Struct", dec.name);
 		dec.accept(this);
 	}
-	
+
 	void checkAggregateName(string aggregateType, ref Token name)
 	{
 		if (name.text.matchFirst(aggregateNameRegex).length == 0)
