@@ -272,8 +272,6 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 	Token _front;
 }
 
-debug = 1;
-
 struct LexerRange(BufferType) if (isBuffer!BufferType)
 {
 	this(BufferType r)

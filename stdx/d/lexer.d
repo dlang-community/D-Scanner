@@ -581,8 +581,9 @@ public struct DLexer(R)
 				break loop;
 			}
 		} while (!range.empty);
-		return Token(tok!"whitespace", cache.cacheGet(range.slice(mark)), line,
-			column, index);
+		string text = config.whitespaceBehavior == WhitespaceBehavior.skip
+			? null : cache.cacheGet(range.slice(mark));
+		return Token(tok!"whitespace", text, line, column, index);
 	}
 
 	Token lexNumber() pure nothrow
