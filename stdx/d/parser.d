@@ -85,6 +85,8 @@ class Parser
         }
         else
         {
+			warn("Syntax \"'alias' type identifier ';'\" is deprecated. Please use "
+				~ " \"'alias' identifier '=' type ';'\" instead.");
             if ((node.type = parseType()) is null) return null;
             auto ident = expect(tok!"identifier");
             if (ident is null)
