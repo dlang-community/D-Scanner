@@ -1105,7 +1105,7 @@ public struct DLexer(R)
 			range.popFront();
 			return lexNormalDelimitedString(mark, line, column, index, open, close);
 		default:
-			return lexHeredocString();
+			return lexHeredocString(mark, line, column, index);
 		}
 	}
 
@@ -1144,9 +1144,37 @@ public struct DLexer(R)
 		return Token(type, cache.cacheGet(range.slice(mark)), line, column, index);
 	}
 
-	Token lexHeredocString() pure nothrow
+	Token lexHeredocString(Mark mark, size_t line, size_t column, size_t index)
+		pure nothrow
 	{
-		assert (false, "unimplemented");
+		import std.regex;
+		Token ident = lexIdentifier();
+		if (isNewline())
+			popFrontWhitespaceAware();
+		else
+			error("Newline expected");
+		while (!range.empty)
+		{
+			if (isNewline())
+			{
+				popFrontWhitespaceAware();
+				if (range.lookahead(ident.text.length) == ident.text)
+				{
+					foreach (i ; 0 .. ident.text.length)
+						range.popFront();
+					break;
+				}
+			}
+			else
+				range.popFront();
+		}
+		if (range.front == '"')
+			range.popFront();
+		else
+			error(`" expected`);
+		IdType type = tok!"stringLiteral";
+		lexStringSuffix(type);
+		return Token(type, cache.cacheGet(range.slice(mark)), line, column, index);
 	}
 
 	Token lexTokenString() pure
@@ -1415,13 +1443,13 @@ public struct DLexer(R)
 			column, index);
 	}
 
-	bool isNewline() pure @safe
+	bool isNewline() pure @safe nothrow
 	{
 		if (range.front == '\n') return true;
 		if (range.front == '\r') return true;
 		auto lookahead = range.lookahead(3);
 		if (lookahead.length == 0) return false;
-		if (lookahead.startsWith("\u2028") || lookahead.startsWith("\u2029"))
+		if (lookahead == "\u2028" || lookahead == "\u2029")
 			return true;
 		return false;
 	}
