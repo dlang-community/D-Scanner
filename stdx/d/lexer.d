@@ -50,13 +50,13 @@ private enum dynamicTokens = [
 	"dstringLiteral", "stringLiteral", "wstringLiteral", "scriptLine"
 ];
 
-public alias TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens) IdType;
-public alias tokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens) str;
+public alias IdType = TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens);
+public alias str = tokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens);
 public template tok(string token)
 {
-  alias TokenId!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens, token) tok;
+  alias tok = TokenId!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens, token);
 }
-enum extraFields = q{
+private enum extraFields = q{
     string comment;
 
     int opCmp(size_t i) const pure nothrow @safe {
@@ -65,7 +65,7 @@ enum extraFields = q{
         return 0;
     }
 };
-public alias stdx.lexer.TokenStructure!(IdType, extraFields) Token;
+public alias Token = stdx.lexer.TokenStructure!(IdType, extraFields);
 
 /**
  * Configure string lexing behavior
@@ -115,17 +115,17 @@ public struct LexerConfig
 public auto byToken(R)(R range)
 {
     LexerConfig config;
-	StringCache cache;
+	StringCache* cache = new StringCache;
     return byToken(range, config, cache);
 }
 
-public auto byToken(R)(R range, StringCache cache)
+public auto byToken(R)(R range, StringCache* cache)
 {
 	LexerConfig config;
 	return DLexer!(R)(range, config, cache);
 }
 
-public auto byToken(R)(R range, const LexerConfig config, StringCache cache)
+public auto byToken(R)(R range, const LexerConfig config, StringCache* cache)
 {
 	return DLexer!(R)(range, config, cache);
 }
@@ -437,12 +437,13 @@ public struct DLexer(R)
 	mixin Lexer!(R, IdType, Token, lexIdentifier, staticTokens,
 		dynamicTokens, pseudoTokens, pseudoTokenHandlers, possibleDefaultTokens);
 
-	private alias typeof(range).Mark Mark;
+	private alias Mark = typeof(range).Mark;
 
-	this(R range, const LexerConfig config, StringCache cache)
+	this(R range, const LexerConfig config, StringCache* cache)
 	{
 		this.range = LexerRange!(typeof(buffer(range)))(buffer(range));
         this.config = config;
+		this.cache = cache;
         popFront();
 	}
 
@@ -1432,8 +1433,8 @@ public struct DLexer(R)
 		if (c >= '[' && c <= '^') return true;
 		if (c >= '{' && c <= '~') return true;
 		if (c == '`') return true;
-//		if (c & 0x80 && (range.lookahead(3).startsWith("\u2028")
-//			|| range.lookahead(3).startsWith("\u2029"))) return true;
+//		if (c & 0x80 && (range.lookahead(3) == "\u2028"
+//			|| range.lookahead(3) == "\u2029")) return true;
 		return false;
 	}
 
@@ -1452,6 +1453,6 @@ public struct DLexer(R)
 
 	}
 
-	StringCache cache;
+	StringCache* cache;
 	LexerConfig config;
 }

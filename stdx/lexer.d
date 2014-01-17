@@ -20,6 +20,13 @@ import std.math;
 import dpick.buffer.buffer;
 import dpick.buffer.traits;
 
+/**
+ * Template for determining the type used for a token type. Selects the smallest
+ * unsigned integral type that is able to hold the value
+ * staticTokens.length + dynamicTokens.length. For example if there are 20
+ * static tokens, 30 dynamic tokens, and 10 possible default tokens, this
+ * template will alias itself to ubyte, as 20 + 30 + 10 < ubyte.max.
+ */
 template TokenIdType(alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens)
 {
@@ -33,6 +40,9 @@ template TokenIdType(alias staticTokens, alias dynamicTokens,
 		static assert (false);
 }
 
+/**
+ * Looks up the string representation of the given token type.
+ */
 string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
 {
 	if (type == 0)
@@ -47,18 +57,41 @@ string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens
 		return null;
 }
 
+/**
+ * Generates the token type identifier for the given symbol. There are two
+ * special cases:
+ * $(UL
+ *     $(LI If symbol is "", then the token identifier will be 0)
+ *     $(LI If symbol is "\0", then the token identifier will be the maximum
+ *         valid token type identifier)
+ * )
+ * In all cases this template will alias itself to a constant of type IdType.
+ * Examples:
+ * ---
+ * enum string[] staticTokens = ["+", "-", "*", "/"];
+ * enum string[] dynamicTokens = ["number"];
+ * enum string[] possibleDefaultTokens = [];
+ * alias IdType = TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens);
+ * template tok(string symbol)
+ * {
+ *     alias tok = TokenId!(IdType, staticTokens, dynamicTokens,
+ *         possibleDefaultTokens, symbol);
+ * }
+ * IdType plus = tok!"+";
+ * ---
+ */
 template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens, string symbol)
 {
 	static if (symbol == "")
 	{
 		enum id = 0;
-		alias id TokenId;
+		alias TokenId = id;
 	}
 	else static if (symbol == "\0")
 	{
 		enum id = 1 + staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length;
-		alias id TokenId;
+		alias TokenId = id;
 	}
 	else
 	{
@@ -66,7 +99,7 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 		static if (i >= 0)
 		{
 			enum id = i + 1;
-			alias id TokenId;
+			alias TokenId = id;
 		}
 		else
 		{
@@ -75,7 +108,7 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 			{
 				enum id = ii + staticTokens.length + 1;
 				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
-				alias id TokenId;
+				alias TokenId = id;
 			}
 			else
 			{
@@ -84,24 +117,43 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 					? i + staticTokens.length + possibleDefaultTokens.length + dynamicId + 1
 					: -1;
 				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
-				alias id TokenId;
+				alias TokenId = id;
 			}
 		}
 	}
 }
 
+/**
+ * The token that is returned by the lexer.
+ * Params:
+ *     IDType = The D type of the "type" token type field.
+ *     extraFields = A string containing D code for any extra fields that should
+ *         be included in the token structure body. This string is passed
+ *         directly to a mixin statement.
+ */
 struct TokenStructure(IDType, string extraFields = "")
 {
+public:
+
+	/**
+	 * == overload for the the token type.
+	 */
 	bool opEquals(IDType type) const pure nothrow @safe
 	{
 		return this.type == type;
 	}
 
+	/**
+	 *
+	 */
 	this(IDType type)
 	{
 		this.type = type;
 	}
 
+	/**
+	 *
+	 */
 	this(IDType type, string text, size_t line, size_t column, size_t index)
 	{
 		this.text = text;
@@ -111,11 +163,31 @@ struct TokenStructure(IDType, string extraFields = "")
 		this.index = index;
 	}
 
+	/**
+	 *
+	 */
 	string text;
+
+	/**
+	 *
+	 */
 	size_t line;
+
+	/**
+	 *
+	 */
 	size_t column;
+
+	/**
+	 *
+	 */
 	size_t index;
+
+	/**
+	 *
+	 */
 	IDType type;
+
 	mixin (extraFields);
 }
 
@@ -223,21 +295,21 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 
 	static string escape(string input)
 	{
-		string rVal;
+		string retVal;
 		foreach (ubyte c; cast(ubyte[]) input)
 		{
 			switch (c)
 			{
-			case '\\': rVal ~= `\\`; break;
-			case '"': rVal ~= `\"`; break;
-			case '\'': rVal ~= `\'`; break;
-			case '\t': rVal ~= `\t`; break;
-			case '\n': rVal ~= `\n`; break;
-			case '\r': rVal ~= `\r`; break;
-			default: rVal ~= c; break;
+			case '\\': retVal ~= `\\`; break;
+			case '"': retVal ~= `\"`; break;
+			case '\'': retVal ~= `\'`; break;
+			case '\t': retVal ~= `\t`; break;
+			case '\n': retVal ~= `\n`; break;
+			case '\r': retVal ~= `\r`; break;
+			default: retVal ~= c; break;
 			}
 		}
-		return rVal;
+		return retVal;
 	}
 
 	Token advance() pure
@@ -262,10 +334,10 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 	 */
 	static T[] stupidToArray(R, T = ElementType!R)(R range)
 	{
-		T[] rVal;
+		T[] retVal;
 		foreach (v; range)
-			rVal ~= v;
-		return rVal;
+			retVal ~= v;
+		return retVal;
 	}
 
 	LexerRange!(typeof(buffer(R.init))) range;
@@ -302,19 +374,55 @@ struct LexerRange(BufferType) if (isBuffer!BufferType)
 	size_t line;
 }
 
+/**
+ * The string cache should be used within lexer implementations for several
+ * reasons:
+ * $(UL
+ *     $(LI Reducing memory consumption.)
+ *     $(LI Increasing performance in token comparisons)
+ *     $(LI Correctly creating immutable token text if the lexing source is not
+ *     immutable)
+ * )
+ */
 struct StringCache
 {
 public:
 
+	/**
+	 * Equivalent to calling cache() and get().
+	 * ---
+	 * StringCache cache;
+	 * ubyte[] str = ['a', 'b', 'c'];
+	 * string s = cache.get(cache.cache(str));
+	 * assert(s == "abc");
+	 * ---
+	 */
 	string cacheGet(const(ubyte[]) bytes) pure nothrow @safe
 	{
 		return get(cache(bytes));
 	}
 
+	/**
+	 * Caches a string.
+	 * Params: bytes = the string to cache
+	 * Returns: A key that can be used to retrieve the cached string
+	 * Examples:
+	 * ---
+	 * StringCache cache;
+	 * ubyte[] bytes = ['a', 'b', 'c'];
+	 * size_t first = cache.cache(bytes);
+	 * size_t second = cache.cache(bytes);
+	 * assert (first == second);
+	 * ---
+	 */
 	size_t cache(const(ubyte)[] bytes) pure nothrow @safe
 	in
 	{
 		assert (bytes.length > 0);
+	}
+	out (retVal)
+	{
+		assert (retVal < items.length);
 	}
 	body
 	{
@@ -325,11 +433,20 @@ public:
 		return found.index;
 	}
 
+	/**
+	 * Gets a cached string based on its key.
+	 * Params: index = the key
+	 * Returns: the cached string
+	 */
 	string get(size_t index) const pure nothrow @safe
 	in
 	{
 		assert (items.length > index);
 		assert (items[index] !is null);
+	}
+	out (retVal)
+	{
+		assert (retVal !is null);
 	}
 	body
 	{
@@ -345,7 +462,7 @@ private:
 		item.str = allocate(bytes);
 		item.index = items.length;
 		items ~= item;
-		buckets[hash % bucketCount] ~= item;
+		buckets[hash % buckets.length] ~= item;
 		return item.index;
 	}
 
@@ -361,9 +478,9 @@ private:
 	}
 
 	string allocate(const(ubyte)[] bytes) pure nothrow @trusted
-	out (rVal)
+	out (retVal)
 	{
-		assert (rVal == bytes);
+		assert (retVal == bytes);
 	}
 	body
 	{
@@ -391,23 +508,6 @@ private:
 		return cast(string) blocks[$ - 1].bytes[0 .. bytes.length];
 	}
 
-	Item*[] items;
-	Item*[][bucketCount] buckets;
-	Block[] blocks;
-
-	struct Item
-	{
-		size_t index;
-		string str;
-		uint hash;
-	}
-
-	struct Block
-	{
-		ubyte[] bytes;
-		size_t used;
-	}
-
 	static uint hashBytes(const(ubyte)[] data) pure nothrow @safe
     {
         uint hash = 0;
@@ -419,8 +519,21 @@ private:
         return hash;
     }
 
-	enum pageSize = 4096 * 1024;
-	enum bucketCount = 2048;
+	static struct Item
+	{
+		size_t index;
+		string str;
+		uint hash;
+	}
+
+	static struct Block
+	{
+		ubyte[] bytes;
+		size_t used;
+	}
+
+	static enum pageSize = 4096 * 1024;
+	static enum bucketCount = 2048;
 
 	static enum uint[] sbox = [
 		0xF53E1837, 0x5F14C86B, 0x9EE3964C, 0xFA796D53,
@@ -488,6 +601,8 @@ private:
 		0xA0B38F96, 0x51D39199, 0x37A6AD75, 0xDF84EE41,
 		0x3C034CBA, 0xACDA62FC, 0x11923B8B, 0x45EF170A,
 	];
+
+	Item*[] items;
+	Item*[][bucketCount] buckets;
+	Block[] blocks;
 }
-
-

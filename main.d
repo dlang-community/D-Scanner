@@ -93,7 +93,7 @@ int main(string[] args)
 		return 1;
 	}
 
-	StringCache cache;
+	StringCache* cache = new StringCache;
 
 	if (tokenDump || highlight)
 	{
@@ -111,10 +111,8 @@ int main(string[] args)
 		}
 		else if (tokenDump)
 		{
-			while (!tokens.empty)
+			foreach (token; tokens)
 			{
-				auto token = tokens.front();
-				tokens.popFront();
 				writeln("«", token.text is null ? str(token.type) : token.text,
 					"» ", token.index, " ", token.line, " ", token.column, " ",
 					token.comment);
@@ -152,11 +150,14 @@ int main(string[] args)
 				ulong count;
 				foreach (f; expandArgs(args, recursive))
 				{
+					import core.memory;
+					GC.disable();
 					auto tokens = byToken!(ubyte[])(readFile(f));
 					if (tokenCount)
 						count += printTokenCount(stdout, f, tokens);
 					else
 						count += printLineCount(stdout, f, tokens);
+					GC.enable();
 				}
 				writefln("total:\t%d", count);
 			}
