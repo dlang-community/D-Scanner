@@ -10,15 +10,12 @@ import std.array;
 import std.conv;
 import std.file;
 import std.getopt;
-import std.parallelism;
 import std.path;
-import std.regex;
 import std.stdio;
 import std.range;
 import stdx.lexer;
 import stdx.d.lexer;
 import stdx.d.parser;
-import dpick.buffer.buffer;
 
 import highlighter;
 import stats;
@@ -93,7 +90,7 @@ int main(string[] args)
 		return 1;
 	}
 
-	StringCache* cache = new StringCache;
+	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
 
 	if (tokenDump || highlight)
 	{
@@ -151,13 +148,16 @@ int main(string[] args)
 				foreach (f; expandArgs(args, recursive))
 				{
 					import core.memory;
-					GC.disable();
-					auto tokens = byToken!(ubyte[])(readFile(f));
+					LexerConfig config;
+					config.whitespaceBehavior = WhitespaceBehavior.skip;
+					config.stringBehavior = StringBehavior.source;
+					config.commentBehavior = CommentBehavior.include;
+					auto tokens = byToken(readFile(f), config, cache);
 					if (tokenCount)
 						count += printTokenCount(stdout, f, tokens);
 					else
 						count += printLineCount(stdout, f, tokens);
-					GC.enable();
+					cache.printStats();
 				}
 				writefln("total:\t%d", count);
 			}

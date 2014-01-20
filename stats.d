@@ -32,7 +32,12 @@ pure nothrow bool isLineOfCode(IdType t)
 
 ulong printTokenCount(Tokens)(File output, string fileName, ref Tokens tokens)
 {
-	ulong c = tokens.count!(a => true);
+
+	ulong c;
+	foreach (ref t; tokens)
+	{
+		c++;
+	}
 	output.writefln("%s:\t%d", fileName, c);
 	return c;
 }
@@ -40,7 +45,7 @@ ulong printTokenCount(Tokens)(File output, string fileName, ref Tokens tokens)
 ulong printLineCount(Tokens)(File output, string fileName, ref Tokens tokens)
 {
 	ulong count;
-	foreach (t; tokens)
+	foreach (ref t; tokens)
 	{
 		if (isLineOfCode(t.type))
 			++count;

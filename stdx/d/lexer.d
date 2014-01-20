@@ -57,13 +57,13 @@ public template tok(string token)
   alias tok = TokenId!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens, token);
 }
 private enum extraFields = q{
-    string comment;
+	string comment;
 
-    int opCmp(size_t i) const pure nothrow @safe {
-        if (index < i) return -1;
-        if (index > i) return 1;
-        return 0;
-    }
+	int opCmp(size_t i) const pure nothrow @safe {
+		if (index < i) return -1;
+		if (index > i) return 1;
+		return 0;
+	}
 };
 public alias Token = stdx.lexer.TokenStructure!(IdType, extraFields);
 
@@ -72,15 +72,15 @@ public alias Token = stdx.lexer.TokenStructure!(IdType, extraFields);
  */
 public enum StringBehavior : ubyte
 {
-    /// Do not include quote characters, process escape sequences
-    compiler = 0b0000_0000,
-    /// Opening quotes, closing quotes, and string suffixes are included in the
-    /// string token
-    includeQuoteChars = 0b0000_0001,
-    /// String escape sequences are not replaced
-    notEscaped = 0b0000_0010,
-    /// Not modified at all. Useful for formatters or highlighters
-    source = includeQuoteChars | notEscaped
+	/// Do not include quote characters, process escape sequences
+	compiler = 0b0000_0000,
+	/// Opening quotes, closing quotes, and string suffixes are included in the
+	/// string token
+	includeQuoteChars = 0b0000_0001,
+	/// String escape sequences are not replaced
+	notEscaped = 0b0000_0010,
+	/// Not modified at all. Useful for formatters or highlighters
+	source = includeQuoteChars | notEscaped
 }
 
 /**
@@ -88,55 +88,28 @@ public enum StringBehavior : ubyte
  */
 public enum WhitespaceBehavior : ubyte
 {
-    /// Whitespace is skipped
-    skip,
-    /// Whitespace is treated as a token
-    include
+	/// Whitespace is skipped
+	skip,
+	/// Whitespace is treated as a token
+	include
 }
 /**
  * Configure comment handling behavior
  */
 public enum CommentBehavior : ubyte
 {
-    /// Comments are attached to the non-whitespace token that follows them
-    attach,
-    /// Comments are tokens, and can be returned by calls to the token range's front()
-    include
+	/// Comments are attached to the non-whitespace token that follows them
+	attach,
+	/// Comments are tokens, and can be returned by calls to the token range's front()
+	include
 }
 
 public struct LexerConfig
 {
 	string fileName;
-    StringBehavior stringBehavior;
-    WhitespaceBehavior whitespaceBehavior;
-    CommentBehavior commentBehavior;
-}
-
-public auto byToken(R)(R range)
-{
-    LexerConfig config;
-	StringCache* cache = new StringCache;
-    return byToken(range, config, cache);
-}
-
-public auto byToken(R)(R range, StringCache* cache)
-{
-	LexerConfig config;
-	return DLexer!(R)(range, config, cache);
-}
-
-public auto byToken(R)(R range, const LexerConfig config, StringCache* cache)
-{
-	return DLexer!(R)(range, config, cache);
-}
-
-unittest
-{
-    import std.stdio;
-    auto source = cast(ubyte[]) q{ import std.stdio;}c;
-    auto tokens = byToken(source);
-    assert (tokens.map!"a.type"().equal([tok!"import", tok!"identifier", tok!".",
-        tok!"identifier", tok!";"]));
+	StringBehavior stringBehavior;
+	WhitespaceBehavior whitespaceBehavior;
+	CommentBehavior commentBehavior;
 }
 
 public bool isBasicType(IdType type) nothrow pure @safe
@@ -396,11 +369,9 @@ public bool isProtection(IdType type) pure nothrow @safe
 	}
 }
 
-public struct DLexer(R)
+public struct DLexer
 {
-	import std.conv;
 	import core.vararg;
-	import dpick.buffer.buffer;
 
 	private enum pseudoTokenHandlers = [
 		"\"", "lexStringLiteral",
@@ -434,53 +405,51 @@ public struct DLexer(R)
 		"#line", "lexSpecialTokenSequence"
 	];
 
-	mixin Lexer!(R, IdType, Token, lexIdentifier, staticTokens,
+	mixin Lexer!(IdType, Token, lexIdentifier, staticTokens,
 		dynamicTokens, pseudoTokens, pseudoTokenHandlers, possibleDefaultTokens);
 
-	private alias Mark = typeof(range).Mark;
-
-	this(R range, const LexerConfig config, StringCache* cache)
+	this(ubyte[] range, const LexerConfig config, StringCache* cache)
 	{
-		this.range = LexerRange!(typeof(buffer(range)))(buffer(range));
-        this.config = config;
+		this.range = LexerRange(range);
+		this.config = config;
 		this.cache = cache;
-        popFront();
+		popFront();
 	}
 
-    private static bool isDocComment(string comment) pure nothrow @safe
-    {
-        return comment.length >= 3 && (comment[0 .. 3] == "///"
-            || comment[0 .. 3] == "/**" || comment[0 .. 3] == "/++");
-    }
+	private static bool isDocComment(string comment) pure nothrow @safe
+	{
+		return comment.length >= 3 && (comment[0 .. 3] == "///"
+			|| comment[0 .. 3] == "/**" || comment[0 .. 3] == "/++");
+	}
 
-    public void popFront() pure
-    {
-        _popFront();
-        string comment = null;
-        switch (front.type)
-        {
-            case tok!"comment":
-                if (config.commentBehavior == CommentBehavior.attach)
-                {
-                    import std.string;
-                    if (isDocComment(front.text))
-                        comment = comment == null ? front.text : format("%s\n%s", comment, front.text);
-                    do _popFront(); while (front == tok!"comment");
-                    if (front == tok!"whitespace") goto case tok!"whitespace";
-                }
-                break;
-            case tok!"whitespace":
-                if (config.whitespaceBehavior == WhitespaceBehavior.skip)
-                {
-                    do _popFront(); while (front == tok!"whitespace");
-                    if (front == tok!"comment") goto case tok!"comment";
-                }
-                break;
-            default:
-                break;
-        }
-        _front.comment = comment;
-    }
+	public void popFront() pure
+	{
+		_popFront();
+		string comment = null;
+		switch (front.type)
+		{
+			case tok!"comment":
+				if (config.commentBehavior == CommentBehavior.attach)
+				{
+					import std.string;
+					if (isDocComment(front.text))
+						comment = comment == null ? front.text : format("%s\n%s", comment, front.text);
+					do _popFront(); while (front == tok!"comment");
+					if (front == tok!"whitespace") goto case tok!"whitespace";
+				}
+				break;
+			case tok!"whitespace":
+				if (config.whitespaceBehavior == WhitespaceBehavior.skip)
+				{
+					do _popFront(); while (front == tok!"whitespace");
+					if (front == tok!"comment") goto case tok!"comment";
+				}
+				break;
+			default:
+				break;
+		}
+		_front.comment = comment;
+	}
 
 
 	bool isWhitespace() pure /*const*/ nothrow
@@ -493,7 +462,7 @@ public struct DLexer(R)
 		case '\t':
 			return true;
 		case 0xe2:
-			auto peek = range.lookahead(2);
+			auto peek = range.peek(2);
 			return peek.length == 2
 				&& peek[0] == 0x80
 				&& (peek[1] == 0xa8 || peek[1] == 0xa9);
@@ -521,7 +490,7 @@ public struct DLexer(R)
 			range.incrementLine();
 			return;
 		case 0xe2:
-			auto lookahead = range.lookahead(3);
+			auto lookahead = range.peek(3);
 			if (lookahead.length == 3 && lookahead[1] == 0x80
 				&& (lookahead[2] == 0xa8 || lookahead[2] == 0xa9))
 			{
@@ -564,7 +533,7 @@ public struct DLexer(R)
 				range.popFront();
 				break;
 			case 0xe2:
-				auto lookahead = range.lookahead(3);
+				auto lookahead = range.peek(3);
 				if (lookahead.length != 3)
 					break loop;
 				if (lookahead[1] != 0x80)
@@ -590,10 +559,10 @@ public struct DLexer(R)
 	Token lexNumber() pure nothrow
 	{
 		mixin (tokenStart);
-		auto lookahead = range.lookahead(2);
-		if (range.front == '0' && lookahead.length == 2)
+		if (range.canPeek(1) && range.front == '0')
 		{
-			switch (lookahead[1])
+			auto ahead = range.peek(1)[1];
+			switch (ahead)
 			{
 			case 'x':
 			case 'X':
@@ -619,7 +588,7 @@ public struct DLexer(R)
 		return lexHex(mark, line, column, index);
 	}
 
-	Token lexHex(Mark mark, size_t line, size_t column, size_t index) pure nothrow
+	Token lexHex(size_t mark, size_t line, size_t column, size_t index) pure nothrow
 	{
 		IdType type = tok!"intLiteral";
 		bool foundDot;
@@ -654,7 +623,7 @@ public struct DLexer(R)
 			case '.':
 				if (foundDot)
 					break hexLoop;
-				if (range.lookahead(1).length && range.lookahead(1)[0] == '.')
+				if (range.peek(1).length && range.peek(1)[0] == '.')
 					break hexLoop;
 				range.popFront();
 				foundDot = true;
@@ -674,7 +643,7 @@ public struct DLexer(R)
 		return lexBinary(mark, line, column, index);
 	}
 
-	Token lexBinary(Mark mark, size_t line, size_t column, size_t index) pure nothrow
+	Token lexBinary(size_t mark, size_t line, size_t column, size_t index) pure nothrow
 	{
 		IdType type = tok!"intLiteral";
 		binaryLoop: while (!range.empty)
@@ -699,13 +668,13 @@ public struct DLexer(R)
 			index);
 	}
 
-	Token lexDecimal()
+	Token lexDecimal() pure nothrow
 	{
 		mixin (tokenStart);
 		return lexDecimal(mark, line, column, index);
 	}
 
-	Token lexDecimal(Mark mark, size_t line, size_t column, size_t index) pure nothrow
+	Token lexDecimal(size_t mark, size_t line, size_t column, size_t index) pure nothrow
 	{
 		bool foundDot = range.front == '.';
 		IdType type = tok!"intLiteral";
@@ -748,7 +717,7 @@ public struct DLexer(R)
 			case '.':
 				if (foundDot)
 					break decimalLoop;
-				auto lookahead = range.lookahead(2);
+				auto lookahead = range.peek(2);
 				if (lookahead.length == 2 && lookahead[1] == '.')
 					break decimalLoop;
 				else
@@ -1058,7 +1027,7 @@ public struct DLexer(R)
 			index);
 	}
 
-	void lexStringSuffix(ref IdType type) pure
+	void lexStringSuffix(ref IdType type) pure nothrow
 	{
 		if (range.empty)
 			type = tok!"stringLiteral";
@@ -1076,12 +1045,12 @@ public struct DLexer(R)
 
 	Token lexDelimitedString() pure nothrow
 	{
-        import std.traits;
+		import std.traits;
 		mixin (tokenStart);
 		range.popFront();
 		range.popFront();
-		Unqual!(ElementEncodingType!R) open;
-		Unqual!(ElementEncodingType!R) close;
+		ubyte open;
+		ubyte close;
 		switch (range.front)
 		{
 		case '<':
@@ -1109,8 +1078,8 @@ public struct DLexer(R)
 		}
 	}
 
-	Token lexNormalDelimitedString(Mark mark, size_t line, size_t column,
-		size_t index, ElementEncodingType!R open, ElementEncodingType!R close)
+	Token lexNormalDelimitedString(size_t mark, size_t line, size_t column,
+		size_t index, ubyte open, ubyte close)
 		pure nothrow
 	{
 		int depth = 1;
@@ -1144,7 +1113,7 @@ public struct DLexer(R)
 		return Token(type, cache.cacheGet(range.slice(mark)), line, column, index);
 	}
 
-	Token lexHeredocString(Mark mark, size_t line, size_t column, size_t index)
+	Token lexHeredocString(size_t mark, size_t line, size_t column, size_t index)
 		pure nothrow
 	{
 		import std.regex;
@@ -1158,7 +1127,7 @@ public struct DLexer(R)
 			if (isNewline())
 			{
 				popFrontWhitespaceAware();
-				if (range.lookahead(ident.text.length) == ident.text)
+				if (range.peek(ident.text.length) == ident.text)
 				{
 					foreach (i ; 0 .. ident.text.length)
 						range.popFront();
@@ -1395,18 +1364,20 @@ public struct DLexer(R)
 	Token lexIdentifier() pure nothrow
 	{
 		mixin (tokenStart);
-		while (!range.empty && !isSeparating(range.front))
+		uint hash = 0;
+		while (!range.empty && !isSeparating(0))
 		{
+			hash = StringCache.hashStep(range.front, hash);
 			range.popFront();
 		}
-		return Token(tok!"identifier", cache.cacheGet(range.slice(mark)), line,
+		return Token(tok!"identifier", cache.cacheGet(range.slice(mark), hash), line,
 			column, index);
 	}
 
 	Token lexDot() pure nothrow
 	{
 		mixin (tokenStart);
-		auto lookahead = range.lookahead(1);
+		auto lookahead = range.peek(1);
 		if (lookahead.length == 0)
 		{
 			range.popFront();
@@ -1447,22 +1418,25 @@ public struct DLexer(R)
 	{
 		if (range.front == '\n') return true;
 		if (range.front == '\r') return true;
-		auto lookahead = range.lookahead(3);
+		auto lookahead = range.peek(3);
 		if (lookahead.length == 0) return false;
 		if (lookahead == "\u2028" || lookahead == "\u2029")
 			return true;
 		return false;
 	}
 
-	bool isSeparating(ElementType!R c) nothrow pure @safe
+	bool isSeparating(size_t offset) const pure nothrow @safe
 	{
+		auto r = range.save();
+		r.popFrontN(offset);
+		auto c = r.front;
 		if (c <= 0x2f) return true;
 		if (c >= ':' && c <= '@') return true;
 		if (c >= '[' && c <= '^') return true;
 		if (c >= '{' && c <= '~') return true;
 		if (c == '`') return true;
-//		if (c & 0x80 && (range.lookahead(3) == "\u2028"
-//			|| range.lookahead(3) == "\u2029")) return true;
+		if (c & 0x80 && (r.peek(3) == "\u2028"
+			|| range.peek(3) == "\u2029")) return true;
 		return false;
 	}
 
@@ -1470,17 +1444,43 @@ public struct DLexer(R)
 		size_t index = range.index;
 		size_t column = range.column;
 		size_t line = range.line;
-		const mark = range.mark();
+		auto mark = range.mark();
 	};
 
-	void error(...) pure {
+	void error(...) pure nothrow @safe {
 
 	}
 
-	void warning(...) pure {
+	void warning(...) pure nothrow @safe {
 
 	}
 
 	StringCache* cache;
 	LexerConfig config;
+}
+
+public auto byToken(ubyte[] range)
+{
+	LexerConfig config;
+	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
+	return DLexer(range, config, cache);
+}
+
+public auto byToken(ubyte[] range, StringCache* cache)
+{
+	LexerConfig config;
+	return DLexer(range, config, cache);
+}
+
+public auto byToken(ubyte[] range, const LexerConfig config, StringCache* cache)
+{
+	return DLexer(range, config, cache);
+}
+unittest
+{
+	import std.stdio;
+	auto source = cast(ubyte[]) q{ import std.stdio;}c;
+	auto tokens = byToken(source);
+	assert (tokens.map!"a.type"().equal([tok!"import", tok!"identifier", tok!".",
+		tok!"identifier", tok!";"]));
 }

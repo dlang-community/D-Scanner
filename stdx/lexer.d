@@ -17,8 +17,6 @@ import std.range;
 import std.traits;
 import std.conv;
 import std.math;
-import dpick.buffer.buffer;
-import dpick.buffer.traits;
 
 /**
  * Template for determining the type used for a token type. Selects the smallest
@@ -191,12 +189,13 @@ public:
 	mixin (extraFields);
 }
 
-mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
+mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 	alias staticTokens, alias dynamicTokens, alias pseudoTokens,
 	alias pseudoTokenHandlers, alias possibleDefaultTokens)
 {
 	static string generateCaseStatements(string[] tokens, size_t offset = 0)
 	{
+		import std.conv;
 		string code;
 		for (size_t i = 0; i < tokens.length; i++)
 		{
@@ -216,9 +215,9 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 						code ~= generateLeaf(tokens[i], indent ~ "    ");
 					else
 					{
-						code ~= indent ~ "    if (range.lookahead(" ~ text(tokens[i].length) ~ ").length == 0)\n";
+						code ~= indent ~ "    if (!range.canPeek(" ~ text(tokens[i].length) ~ "))\n";
 						code ~= indent ~ "        goto outer_default;\n";
-						code ~= indent ~ "    if (range.lookahead(" ~ text(tokens[i].length) ~ ") == \"" ~ escape(tokens[i]) ~ "\")\n";
+						code ~= indent ~ "    if (range.peek(" ~ text(tokens[i].length - 1) ~ ") == \"" ~ escape(tokens[i]) ~ "\")\n";
 						code ~= indent ~ "    {\n";
 						code ~= generateLeaf(tokens[i], indent ~ "        ");
 						code ~= indent ~ "    }\n";
@@ -228,11 +227,11 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 				}
 				else
 				{
-					code ~= indent ~ "    if (range.lookahead(" ~ text(offset + 2) ~ ").length == 0)\n";
+					code ~= indent ~ "    if (!range.canPeek(" ~ text(offset + 1) ~ "))\n";
 					code ~= indent ~ "    {\n";
 					code ~= generateLeaf(tokens[i][0 .. offset + 1], indent ~ "        ");
 					code ~= indent ~ "    }\n";
-					code ~= indent ~ "    switch (range.lookahead(" ~ text(offset + 2) ~ ")[" ~ text(offset + 1) ~ "])\n";
+					code ~= indent ~ "    switch (range.peek(" ~ text(offset + 1) ~ ")[" ~ text(offset + 1) ~ "])\n";
 					code ~= indent ~ "    {\n";
 					code ~= generateCaseStatements(tokens[i .. j], offset + 1);
 					code ~= indent ~ "    default:\n";
@@ -247,6 +246,7 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 
 	static string generateLeaf(string token, string indent)
 	{
+		import std.conv;
 		static assert (pseudoTokenHandlers.length % 2 == 0,
 			"Each pseudo-token must have a matching function name.");
 		string code;
@@ -262,7 +262,7 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 			code ~= indent ~ "return " ~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1] ~ "();\n";
 		else if (possibleDefaultTokens.countUntil(token) >= 0)
 		{
-			code ~= indent ~ "if (range.lookahead(" ~ text(token.length + 1) ~ ").length == 0 || isSeparating(range.lookahead(" ~ text(token.length + 1) ~ ")[" ~ text(token.length) ~ "]))\n";
+			code ~= indent ~ "if (!range.canPeek(" ~ text(token.length + 1) ~ ") || isSeparating(" ~ text(token.length) ~ "))\n";
 			code ~= indent ~ "{\n";
 			if (token.length == 1)
 				code ~= indent ~ "    range.popFront();\n";
@@ -278,7 +278,7 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 		return code;
 	}
 
-	const(Token) front() pure nothrow const @property
+	ref const(Token) front() pure nothrow const @property
 	{
 		return _front;
 	}
@@ -312,7 +312,21 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 		return retVal;
 	}
 
-	Token advance() pure
+	/**
+	 * This only exists because the real array() can't be called at compile-time
+	 */
+	static string[] stupidToArray(R)(R range)
+	{
+		string[] retVal;
+		foreach (v; range)
+			retVal ~= v;
+		return retVal;
+	}
+
+
+	enum loopBody = generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
+
+	auto ref Token advance() pure
 	{
 		if (range.empty)
 			return Token(tok!"\0");
@@ -321,54 +335,87 @@ mixin template Lexer(R, IDType, Token, alias defaultTokenFunction,
 		immutable size_t line = range.line;
 		lexerLoop: switch (range.front)
 		{
-		mixin(generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
-//		pragma(msg, generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
+		mixin(loopBody);
+		/+pragma(msg, loopBody);+/
 		outer_default:
 		default:
 			return defaultTokenFunction();
 		}
 	}
 
-	/**
-	 * This only exists because the real array() can't be called at compile-time
-	 */
-	static T[] stupidToArray(R, T = ElementType!R)(R range)
-	{
-		T[] retVal;
-		foreach (v; range)
-			retVal ~= v;
-		return retVal;
-	}
-
-	LexerRange!(typeof(buffer(R.init))) range;
+	LexerRange range;
 	Token _front;
 }
 
-struct LexerRange(BufferType) if (isBuffer!BufferType)
+struct LexerRange
 {
-	this(BufferType r)
+
+	this(const(ubyte)[] bytes, size_t index = 0, size_t column = 1, size_t line = 1) pure nothrow @safe
 	{
-		this.range = r;
-		index = 0;
-		column = 1;
-		line = 1;
+		this.bytes = bytes;
+		this.index = index;
+		this.column = column;
+		this.line = line;
 	}
 
-	void popFront() pure
+	size_t mark() const nothrow pure @safe
+	{
+		return index;
+	}
+
+	void seek(size_t m) nothrow pure @safe
+	{
+		index = m;
+	}
+
+	const(ubyte)[] slice(size_t m) const nothrow pure @safe
+	{
+		return bytes[m .. index];
+	}
+
+	bool empty() const nothrow pure @safe
+	{
+		return index >= bytes.length;
+	}
+
+	ubyte front() const nothrow pure @safe
+	{
+		return bytes[index];
+	}
+
+	const(ubyte)[] peek(size_t p) const nothrow pure @safe
+	{
+		return bytes[index .. index + p + 1];
+	}
+
+	bool canPeek(size_t p) const nothrow pure @safe
+	{
+		return index + p < bytes.length;
+	}
+
+	LexerRange save() const nothrow pure @safe
+	{
+		return LexerRange(bytes, index, column, line);
+	}
+
+	void popFront() pure nothrow @safe
 	{
 		index++;
 		column++;
-		range.popFront();
 	}
 
-	void incrementLine() pure nothrow
+	void popFrontN(size_t n) pure nothrow @safe
+	{
+		index += n;
+	}
+
+	void incrementLine() pure nothrow @safe
 	{
 		column = 1;
 		line++;
 	}
 
-	BufferType range;
-	alias range this;
+	const(ubyte)[] bytes;
 	size_t index;
 	size_t column;
 	size_t line;
@@ -388,6 +435,13 @@ struct StringCache
 {
 public:
 
+	@disable this();
+
+	this(size_t bucketCount = defaultBucketCount)
+	{
+		buckets = new Item*[bucketCount];
+	}
+
 	/**
 	 * Equivalent to calling cache() and get().
 	 * ---
@@ -400,6 +454,11 @@ public:
 	string cacheGet(const(ubyte[]) bytes) pure nothrow @safe
 	{
 		return get(cache(bytes));
+	}
+
+	string cacheGet(const(ubyte[]) bytes, uint hash) pure nothrow @safe
+	{
+		return get(cache(bytes, hash));
 	}
 
 	/**
@@ -416,6 +475,12 @@ public:
 	 * ---
 	 */
 	size_t cache(const(ubyte)[] bytes) pure nothrow @safe
+	{
+		immutable uint hash = hashBytes(bytes);
+		return cache(bytes, hash);
+	}
+
+	size_t cache(const(ubyte)[] bytes, uint hash) pure nothrow @safe
 	in
 	{
 		assert (bytes.length > 0);
@@ -426,7 +491,7 @@ public:
 	}
 	body
 	{
-		immutable uint hash = hashBytes(bytes);
+		memoryRequested += bytes.length;
 		const(Item)* found = find(bytes, hash);
 		if (found is null)
 			return intern(bytes, hash);
@@ -453,23 +518,58 @@ public:
 		return items[index].str;
 	}
 
+	void printStats()
+	{
+		import std.stdio;
+		writeln("Load Factor:           ", cast(float) items.length / cast(float) buckets.length);
+		writeln("Memory used by blocks: ", blocks.length * blockSize);
+		writeln("Memory requsted:       ", memoryRequested);
+		writeln("rehashes:              ", rehashCount);
+	}
+
+	static uint hashStep(ubyte b, uint h) pure nothrow @safe
+	{
+		return (h ^ sbox[b]) * 3;
+	}
+
+	static enum defaultBucketCount = 2048;
+
 private:
 
-	size_t intern(const(ubyte)[] bytes, uint hash) pure nothrow @safe
+	private void rehash() pure nothrow @safe
 	{
-		Item* item = new Item;
-		item.hash = hash;
-		item.str = allocate(bytes);
+		immutable size_t newBucketCount = items.length * 2;
+		buckets = new Item*[newBucketCount];
+		rehashCount++;
+		foreach (item; items)
+		{
+			immutable size_t newIndex = item.hash % newBucketCount;
+			item.next = buckets[newIndex];
+			buckets[newIndex] = item;
+		}
+	}
+
+	size_t intern(const(ubyte)[] bytes, uint hash) pure nothrow @trusted
+	{
+		ubyte[] mem = allocate(bytes.length);
+		mem[] = bytes[];
+		Item* item = cast(Item*) allocate(Item.sizeof).ptr;
 		item.index = items.length;
+		item.str = cast(string) mem;
+		item.hash = hash;
+		item.next = buckets[hash % buckets.length];
+		immutable bool checkLoadFactor = item.next !is null;
+		buckets[hash % buckets.length] = item;
 		items ~= item;
-		buckets[hash % buckets.length] ~= item;
+		if (checkLoadFactor && (cast(float) items.length / cast(float) buckets.length) > 0.75)
+			rehash();
 		return item.index;
 	}
 
 	const(Item)* find(const(ubyte)[] bytes, uint hash) pure nothrow const @safe
 	{
 		immutable size_t index = hash % buckets.length;
-		foreach (item; buckets[index])
+		for (const(Item)* item = buckets[index]; item !is null; item = item.next)
 		{
 			if (item.hash == hash && bytes.equal(item.str))
 				return item;
@@ -477,53 +577,46 @@ private:
 		return null;
 	}
 
-	string allocate(const(ubyte)[] bytes) pure nothrow @trusted
-	out (retVal)
-	{
-		assert (retVal == bytes);
-	}
-	body
+	ubyte[] allocate(size_t byteCount) pure nothrow @trusted
 	{
 		import core.memory;
-		if (bytes.length > (pageSize / 4))
+		if (byteCount > (blockSize / 4))
 		{
-			ubyte* memory = cast(ubyte*) GC.malloc(bytes.length, GC.BlkAttr.NO_SCAN);
-			memory[0 .. bytes.length] = bytes[];
-			return cast(string) memory[0..bytes.length];
+			ubyte* mem = cast(ubyte*) GC.malloc(byteCount, GC.BlkAttr.NO_SCAN);
+			return mem[0 .. byteCount];
 		}
 		foreach (ref block; blocks)
 		{
-			immutable size_t endIndex = block.used + bytes.length;
-			if (endIndex > block.bytes.length)
+			immutable size_t oldUsed = block.used;
+			immutable size_t end = oldUsed + byteCount;
+			if (end > block.bytes.length)
 				continue;
-			block.bytes[block.used .. endIndex] = bytes[];
-			string slice = cast(string) block.bytes[block.used .. endIndex];
-			block.used = endIndex;
-			return slice;
+			block.used = end;
+			return block.bytes[oldUsed .. end];
 		}
-		blocks.length = blocks.length + 1;
-		blocks[$ - 1].bytes = (cast(ubyte*) GC.malloc(pageSize, GC.BlkAttr.NO_SCAN))[0 .. pageSize];
-		blocks[$ - 1].bytes[0 .. bytes.length] = bytes[];
-		blocks[$ - 1].used = bytes.length;
-		return cast(string) blocks[$ - 1].bytes[0 .. bytes.length];
+		blocks ~= Block(
+			(cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN))[0 .. blockSize],
+			byteCount);
+		return blocks[$ - 1].bytes[0 .. byteCount];
 	}
 
 	static uint hashBytes(const(ubyte)[] data) pure nothrow @safe
-    {
-        uint hash = 0;
-        foreach (b; data)
-        {
-            hash ^= sbox[b];
-            hash *= 3;
-        }
-        return hash;
-    }
+	{
+		uint hash = 0;
+		foreach (b; data)
+		{
+			hash ^= sbox[b];
+			hash *= 3;
+		}
+		return hash;
+	}
 
 	static struct Item
 	{
 		size_t index;
 		string str;
 		uint hash;
+		Item* next;
 	}
 
 	static struct Block
@@ -532,10 +625,9 @@ private:
 		size_t used;
 	}
 
-	static enum pageSize = 4096 * 1024;
-	static enum bucketCount = 2048;
+	static enum blockSize = 1024 * 16;
 
-	static enum uint[] sbox = [
+	public static immutable uint[] sbox = [
 		0xF53E1837, 0x5F14C86B, 0x9EE3964C, 0xFA796D53,
 		0x32223FC3, 0x4D82BC98, 0xA0C7FA62, 0x63E2C982,
 		0x24994A5B, 0x1ECE7BEE, 0x292B38EF, 0xD5CD4E56,
@@ -603,6 +695,8 @@ private:
 	];
 
 	Item*[] items;
-	Item*[][bucketCount] buckets;
+	Item*[] buckets;
 	Block[] blocks;
+	size_t memoryRequested;
+	uint rehashCount;
 }
