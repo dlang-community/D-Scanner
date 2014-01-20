@@ -1,1 +1,1 @@
-dmd main.d stats.d imports.d highlighter.d ctags.d astprinter.d formatter.d outliner.d style.d stdx/*.d stdx/d/*.d datapicked/dpick/buffer/*.d -Idatapicked -g -m64 -wi -ofdscanner.exe
+dmd main.d stats.d imports.d highlighter.d ctags.d astprinter.d formatter.d outliner.d style.d stdx/*.d stdx/d/*.d -ofdscanner.exe -m64 -O -release -noboundscheck
