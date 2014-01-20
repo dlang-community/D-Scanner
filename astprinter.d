@@ -257,6 +257,7 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<classDeclaration line=\"", classDec.name.line, "\">");
 		output.writeln("<name>", classDec.name.text, "</name>");
+		writeDdoc(classDec.comment);
 		classDec.accept(this);
 		output.writeln("</classDeclaration>");
 	}
@@ -1101,6 +1102,7 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
 		output.writeln("<name>", structDec.name.text, "</name>");
+		writeDdoc(structDec.comment);
 		structDec.accept(this);
 		output.writeln("</structDeclaration>");
 	}
