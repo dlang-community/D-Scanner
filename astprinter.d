@@ -1486,7 +1486,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</xorExpression>");
 	}
 
-	alias ASTVisitor.visit visit;
+	alias visit = ASTVisitor.visit;
 
 	private static string xmlEscape(string s)
 	{

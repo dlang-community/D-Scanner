@@ -51,9 +51,10 @@ int main(string[] args)
 			"tokenDump", &tokenDump, "styleCheck", &styleCheck,
 			"muffinButton", &muffin);
 	}
-	catch (Exception e)
+	catch (ConvException e)
 	{
 		stderr.writeln(e.msg);
+		return 1;
 	}
 
 	if (muffin)

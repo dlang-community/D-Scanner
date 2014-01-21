@@ -160,7 +160,7 @@ class Outliner : ASTVisitor
 
 	int indentLevel;
 
-	alias ASTVisitor.visit visit;
+	alias visit = ASTVisitor.visit;
 
 	File output;
 }

@@ -134,7 +134,7 @@ class CTagsPrinter : ASTVisitor
 		dec.accept(this);
 	}
 
-	alias ASTVisitor.visit visit;
+	alias visit = ASTVisitor.visit;
 
 	string fileName;
 	string[] tagLines;

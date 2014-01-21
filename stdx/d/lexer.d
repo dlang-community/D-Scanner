@@ -715,13 +715,11 @@ public struct DLexer
 				lexExponent(type);
 				break decimalLoop;
 			case '.':
-				if (foundDot)
-					break decimalLoop;
-				auto lookahead = range.peek(2);
-				if (lookahead.length == 2 && lookahead[1] == '.')
+				if (foundDot || !range.canPeek(1) || range.peek(1)[1] == '.')
 					break decimalLoop;
 				else
 				{
+					auto lookahead = range.peek(1);
 					// The following bit of silliness tries to tell the
 					// difference between "int dot identifier" and
 					// "double identifier".

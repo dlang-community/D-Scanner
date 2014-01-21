@@ -12,7 +12,7 @@ dmd\
 	analysis/*.d\
 	-ofdscanner\
 	-m64\
-	-O -release -inline -noboundscheck
+	-O -release -noboundscheck
 
 #gdc\
 #	main.d\

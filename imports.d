@@ -31,7 +31,7 @@ class ImportPrinter : ASTVisitor
 		}
 	}
 
-	alias ASTVisitor.visit visit;
+	alias visit = ASTVisitor.visit;
 
 	bool ignore = true;
 }
