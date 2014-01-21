@@ -59,6 +59,7 @@ given source files.
 * Declaring opEquals without toHash
 * Assignment in conditionals
 * delete keyword is deprecated
+* "fish operators" (floating point operators) are deprecated
 
 ### Line of Code Count
 The "--sloc" or "-l" option prints the number of lines of code in the file.
