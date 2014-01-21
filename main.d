@@ -23,7 +23,7 @@ import ctags;
 import astprinter;
 import imports;
 import outliner;
-import style;
+import analysis.run;
 
 int main(string[] args)
 {
@@ -123,7 +123,11 @@ int main(string[] args)
 	}
 	else if (styleCheck)
 	{
-		stdout.styleCheck(expandArgs(args, recursive));
+		stdout.analyze(expandArgs(args, recursive));
+	}
+	else if (syntaxCheck)
+	{
+		stdout.syntaxCheck(expandArgs(args, recursive));
 	}
 	else
 	{
@@ -162,7 +166,7 @@ int main(string[] args)
 				writefln("total:\t%d", count);
 			}
 		}
-		else if (syntaxCheck || imports || ast || outline)
+		else if (imports || ast || outline)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
 			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);

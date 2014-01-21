@@ -50,6 +50,38 @@ private enum dynamicTokens = [
 	"dstringLiteral", "stringLiteral", "wstringLiteral", "scriptLine"
 ];
 
+private enum pseudoTokenHandlers = [
+	"\"", "lexStringLiteral",
+	"`", "lexWysiwygString",
+	"//", "lexSlashSlashComment",
+	"/*", "lexSlashStarComment",
+	"/+", "lexSlashPlusComment",
+	".", "lexDot",
+	"'", "lexCharacterLiteral",
+	"0", "lexNumber",
+	"1", "lexDecimal",
+	"2", "lexDecimal",
+	"3", "lexDecimal",
+	"4", "lexDecimal",
+	"5", "lexDecimal",
+	"6", "lexDecimal",
+	"7", "lexDecimal",
+	"8", "lexDecimal",
+	"9", "lexDecimal",
+	"q\"", "lexDelimitedString",
+	"q{", "lexTokenString",
+	"r\"", "lexWysiwygString",
+	"x\"", "lexHexString",
+	" ", "lexWhitespace",
+	"\t", "lexWhitespace",
+	"\r", "lexWhitespace",
+	"\n", "lexWhitespace",
+	"\u2028", "lexLongNewline",
+	"\u2029", "lexLongNewline",
+	"#!", "lexScriptLine",
+	"#line", "lexSpecialTokenSequence"
+];
+
 public alias IdType = TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens);
 public alias str = tokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens);
 public template tok(string token)
@@ -372,38 +404,6 @@ public bool isProtection(IdType type) pure nothrow @safe
 public struct DLexer
 {
 	import core.vararg;
-
-	private enum pseudoTokenHandlers = [
-		"\"", "lexStringLiteral",
-		"`", "lexWysiwygString",
-		"//", "lexSlashSlashComment",
-		"/*", "lexSlashStarComment",
-		"/+", "lexSlashPlusComment",
-		".", "lexDot",
-		"'", "lexCharacterLiteral",
-		"0", "lexNumber",
-		"1", "lexDecimal",
-		"2", "lexDecimal",
-		"3", "lexDecimal",
-		"4", "lexDecimal",
-		"5", "lexDecimal",
-		"6", "lexDecimal",
-		"7", "lexDecimal",
-		"8", "lexDecimal",
-		"9", "lexDecimal",
-		"q\"", "lexDelimitedString",
-		"q{", "lexTokenString",
-		"r\"", "lexWysiwygString",
-		"x\"", "lexHexString",
-		" ", "lexWhitespace",
-		"\t", "lexWhitespace",
-		"\r", "lexWhitespace",
-		"\n", "lexWhitespace",
-		"\u2028", "lexLongNewline",
-		"\u2029", "lexLongNewline",
-		"#!", "lexScriptLine",
-		"#line", "lexSpecialTokenSequence"
-	];
 
 	mixin Lexer!(IdType, Token, lexIdentifier, staticTokens,
 		dynamicTokens, pseudoTokens, pseudoTokenHandlers, possibleDefaultTokens);
@@ -1356,7 +1356,7 @@ public struct DLexer
 		}
 		else
 		{
-			error("Error: Expected ' to end character literal ", cast(char) range.front);
+			error("Error: Expected ' to end character literal");
 			return Token();
 		}
 	}
@@ -1447,14 +1447,26 @@ public struct DLexer
 		auto mark = range.mark();
 	};
 
-	void error(...) pure nothrow @safe {
-
+	void error(string message) pure nothrow @safe
+	{
+		messages ~= Message(range.line, range.column, message, true);
 	}
 
-	void warning(...) pure nothrow @safe {
-
+	void warning(string message) pure nothrow @safe
+	{
+		messages ~= Message(range.line, range.column, message, false);
+		assert (messages.length > 0);
 	}
 
+	struct Message
+	{
+		size_t line;
+		size_t column;
+		string message;
+		bool isError;
+	}
+
+	Message[] messages;
 	StringCache* cache;
 	LexerConfig config;
 }

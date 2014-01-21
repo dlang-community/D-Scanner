@@ -1,6 +1,12 @@
 # Overview
 DScanner is a tool for analyzing D source code
 
+### Building and installing
+To build DScanner, run the build.sh script (or the build.bat file on Windows).
+The build time can be rather long with the -inline flag (over 2 minutes on an
+i7 processor), so you may wish to remove it from the build script. To install,
+simply place the generated binary somewhere on your $PATH.
+
 # Usage
 The following examples assume that we are analyzing a simple file called helloworld.d
 
@@ -29,8 +35,30 @@ while lexing or parsing the given source file. It does not do any semantic
 analysis and it does not compile the code.
 
 ### Style Check
-The "--styleCheck" option checks the names of packages, variables, enums,
-classes, and other things for consistency with the Phobos style guide.
+The "--styleCheck" option runs some basic static analysis checks against the
+given source files.
+
+#### Implemented checks
+* Old alias syntax (i.e "alias a b;" should be replaced with "alias b = a;").
+* Implicit concatenation of string literals.
+* Complex number literals (e.g. "1.23i").
+* Empty declarations (i.e. random ";" characters)
+* enum array literals in struct/class bodies
+* Avoid Pokémon exception handling
+
+#### Wishlish
+* Assigning to foreach variables that are not "ref".
+* opCmp or opEquals, or toHash not declared "const".
+* Unused variables.
+* Unused imports.
+* Unused parameters (check is skipped if function is marked "override")
+* Struct constructors that have a single parameter that has a default argument.
+* Variables that are never modified and not declared immutable.
+* Public declarations not documented
+* Format numbers for readability
+* Declaring opEquals without toHash
+* Assignment in conditionals
+* delete keyword is deprecated
 
 ### Line of Code Count
 The "--sloc" or "-l" option prints the number of lines of code in the file.
