@@ -326,7 +326,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 
 	enum loopBody = generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
 
-	auto ref Token advance() pure
+	Token advance() pure
 	{
 		if (range.empty)
 			return Token(tok!"\0");
