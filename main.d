@@ -112,7 +112,7 @@ int main(string[] args)
 			foreach (token; tokens)
 			{
 				writeln("«", token.text is null ? str(token.type) : token.text,
-					"» ", token.index, " ", token.line, " ", token.column, " ",
+					"» ", token.text !is null, " ", token.index, " ", token.line, " ", token.column, " ",
 					token.comment);
 			}
 			return 0;

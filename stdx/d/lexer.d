@@ -1361,6 +1361,8 @@ public struct DLexer
 
 	Token lexIdentifier() pure nothrow
 	{
+		import std.stdio;
+		debug(1) try { writeln("lexIdentifier"); } catch (Exception e) {}
 		mixin (tokenStart);
 		uint hash = 0;
 		while (!range.empty && !isSeparating(0))

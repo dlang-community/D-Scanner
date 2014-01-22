@@ -193,88 +193,90 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 	alias staticTokens, alias dynamicTokens, alias pseudoTokens,
 	alias pseudoTokenHandlers, alias possibleDefaultTokens)
 {
-	static string generateCaseStatements(string[] tokens, size_t offset = 0)
+	static string generateCaseStatements(string[] tokens)
 	{
 		import std.conv;
+		import std.string;
+
+		static string generateMask(const ubyte[] arr)
+		{
+			ulong u;
+			for (size_t i = 0; i < arr.length && i < 8; i++)
+			{
+				u |= (cast(ulong) arr[i]) << (i * 8);
+			}
+			return format("0x%016x", u);
+		}
+
+		static string generateByteMask(size_t l)
+		{
+			return format("0x%016x", ulong.max >> ((8 - l) * 8));
+		}
+
 		string code;
 		for (size_t i = 0; i < tokens.length; i++)
 		{
-			auto indent = "";
-			foreach (k; 0 .. offset)
-				indent ~= "    ";
-			size_t j = i + 1;
-
-			if (offset < tokens[i].length)
+			immutable mask = generateMask(cast (const ubyte[]) tokens[i]);
+			if (tokens[i].length >= 8)
+				code ~= "if (frontBytes == " ~ mask ~ ")\n";
+			else
+				code ~= "if ((frontBytes & " ~ generateByteMask(tokens[i].length) ~ ") == " ~ mask ~ ")\n";
+			code ~= "{\n";
+			if (staticTokens.countUntil(tokens[i]) >= 0)
 			{
-				while (j < tokens.length && offset < tokens[j].length
-					&& tokens[i][offset] == tokens[j][offset]) j++;
-				code ~= indent ~ "case " ~ text(cast(ubyte) tokens[i][offset]) ~ ":\n";
-				if (i + 1 >= j)
+				if (tokens[i].length <= 8)
 				{
-					if (offset + 1 == tokens[i].length)
-						code ~= generateLeaf(tokens[i], indent ~ "    ");
-					else
-					{
-						code ~= indent ~ "    if (!range.canPeek(" ~ text(tokens[i].length) ~ "))\n";
-						code ~= indent ~ "        goto outer_default;\n";
-						code ~= indent ~ "    if (range.peek(" ~ text(tokens[i].length - 1) ~ ") == \"" ~ escape(tokens[i]) ~ "\")\n";
-						code ~= indent ~ "    {\n";
-						code ~= generateLeaf(tokens[i], indent ~ "        ");
-						code ~= indent ~ "    }\n";
-						code ~= indent ~ "    else\n";
-						code ~= indent ~ "        goto outer_default;\n";
-					}
+					code ~= "    range.popFrontN(" ~ text(tokens[i].length) ~ ");\n";
+					code ~= "    return Token(tok!\"" ~ escape(tokens[i]) ~ "\", null, line, column, index);\n";
 				}
 				else
 				{
-					code ~= indent ~ "    if (!range.canPeek(" ~ text(offset + 1) ~ "))\n";
-					code ~= indent ~ "    {\n";
-					code ~= generateLeaf(tokens[i][0 .. offset + 1], indent ~ "        ");
-					code ~= indent ~ "    }\n";
-					code ~= indent ~ "    switch (range.peek(" ~ text(offset + 1) ~ ")[" ~ text(offset + 1) ~ "])\n";
-					code ~= indent ~ "    {\n";
-					code ~= generateCaseStatements(tokens[i .. j], offset + 1);
-					code ~= indent ~ "    default:\n";
-					code ~= generateLeaf(tokens[i][0 .. offset + 1], indent ~ "        ");
-					code ~= indent ~ "    }\n";
+					code ~= "    assert (false); // " ~ escape(tokens[i]) ~ "\n";
 				}
 			}
-			i = j - 1;
-		}
-		return code;
-	}
+			else if (pseudoTokens.countUntil(tokens[i]) >= 0)
+			{
+				if (tokens[i].length < 8)
+				{
+					code ~= "    return "
+						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[i]) + 1]
+						~ "();\n";
+				}
+				else
+				{
+					code ~= "    if (range.peek(" ~ text(tokens[i].length) ~ ") == \"" ~ escape(tokens[i]) ~"\")\n";
+					code ~= "        return "
+						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[i]) + 1]
+						~ "();\n";
+				}
+			}
+			else
+			{
+				// possible default
+				if (tokens[i].length < 8)
+				{
+					code ~= "    if (isSeparating(" ~ text(tokens[i].length) ~ "))\n";
+					code ~= "    {\n";
+					code ~= "        range.popFrontN(" ~ text(tokens[i].length) ~ ");\n";
+					code ~= "        return Token(tok!\"" ~ escape(tokens[i]) ~ "\", null, line, column, index);\n";
+					code ~= "    }\n";
+					code ~= "    else\n";
+					code ~= "        goto defaultHandler;\n";
+				}
+				else
+				{
+					code ~= "    if (range.peek(" ~ text(tokens[i].length) ~ ") == \"" ~ escape(tokens[i]) ~"\" && isSeparating(" ~ text(tokens[i].length) ~ "))\n";
+					code ~= "    {\n";
+					code ~= "        range.popFrontN(" ~ text(tokens[i].length) ~ ");\n";
+					code ~= "        return Token(tok!\"" ~ escape(tokens[i]) ~ "\", null, line, column, index);\n";
+					code ~= "    }\n";
+					code ~= "    else\n";
+					code ~= "        goto defaultHandler;\n";
+				}
+			}
+			code ~= "}\n";
 
-	static string generateLeaf(string token, string indent)
-	{
-		import std.conv;
-		static assert (pseudoTokenHandlers.length % 2 == 0,
-			"Each pseudo-token must have a matching function name.");
-		string code;
-		if (staticTokens.countUntil(token) >= 0)
-		{
-			if (token.length == 1)
-				code ~= indent ~ "range.popFront();\n";
-			else
-				code ~= indent ~ "range.popFrontN(" ~ text(token.length) ~ ");\n";
-			code ~= indent ~ "return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
 		}
-		else if (pseudoTokens.countUntil(token) >= 0)
-			code ~= indent ~ "return " ~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1] ~ "();\n";
-		else if (possibleDefaultTokens.countUntil(token) >= 0)
-		{
-			code ~= indent ~ "if (!range.canPeek(" ~ text(token.length + 1) ~ ") || isSeparating(" ~ text(token.length) ~ "))\n";
-			code ~= indent ~ "{\n";
-			if (token.length == 1)
-				code ~= indent ~ "    range.popFront();\n";
-			else
-				code ~= indent ~ "    range.popFrontN(" ~ text(token.length) ~ ");\n";
-			code ~= indent ~ "    return Token(tok!\"" ~ escape(token) ~"\", null, line, column, index);\n";
-			code ~= indent ~ "}\n";
-			code ~= indent ~ "else\n";
-			code ~= indent ~ "    goto outer_default;\n";
-		}
-		else
-			code ~= indent ~ "goto outer_default;\n";
 		return code;
 	}
 
@@ -323,8 +325,17 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return retVal;
 	}
 
+	enum tokenSearch = generateCaseStatements(stupidToArray(sort!"a.length > b.length"(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
 
-	enum loopBody = generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
+	static ulong getFront(const ubyte[] arr) pure nothrow @trusted
+	{
+		import std.stdio;
+		immutable importantBits = *(cast (ulong*) arr.ptr);
+		immutable filler = ulong.max >> ((8 - arr.length) * 8);
+
+		debug(1) try { writefln("0x%016x", importantBits & filler); } catch (Exception e) {}
+		return importantBits & filler;
+	}
 
 	Token advance() pure
 	{
@@ -333,14 +344,11 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		immutable size_t index = range.index;
 		immutable size_t column = range.column;
 		immutable size_t line = range.line;
-		lexerLoop: switch (range.front)
-		{
-		mixin(loopBody);
-		/+pragma(msg, loopBody);+/
-		outer_default:
-		default:
-			return defaultTokenFunction();
-		}
+		immutable ulong frontBytes = getFront(range.peek(7));
+		mixin(tokenSearch);
+		pragma(msg, tokenSearch);
+	defaultHandler:
+		return defaultTokenFunction();
 	}
 
 	LexerRange range;
@@ -385,7 +393,9 @@ struct LexerRange
 
 	const(ubyte)[] peek(size_t p) const nothrow pure @safe
 	{
-		return bytes[index .. index + p + 1];
+		return index + p + 1 > bytes.length
+			? bytes[index .. $]
+			: bytes[index .. index + p + 1];
 	}
 
 	bool canPeek(size_t p) const nothrow pure @safe
