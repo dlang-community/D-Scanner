@@ -275,7 +275,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 			}
 			else if (pseudoTokens.countUntil(token) >= 0)
 			{
-				if (token.length < 8)
+				if (token.length <= 8)
 				{
 					code ~= "        return "
 						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
@@ -283,7 +283,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 				}
 				else
 				{
-					code ~= "        if (range.peek(" ~ text(token.length) ~ ") == \"" ~ escape(token) ~"\")\n";
+					code ~= "        if (range.peek(" ~ text(token.length - 1) ~ ") == \"" ~ escape(token) ~"\")\n";
 					code ~= "            return "
 						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
 						~ "();\n";
@@ -292,7 +292,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 			else
 			{
 				// possible default
-				if (token.length < 8)
+				if (token.length <= 8)
 				{
 					code ~= "        if (isSeparating(" ~ text(token.length) ~ "))\n";
 					code ~= "        {\n";
@@ -304,7 +304,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 				}
 				else
 				{
-					code ~= "        if (range.peek(" ~ text(token.length) ~ ") == \"" ~ escape(token) ~"\" && isSeparating(" ~ text(token.length) ~ "))\n";
+					code ~= "        if (range.peek(" ~ text(token.length - 1) ~ ") == \"" ~ escape(token) ~"\" && isSeparating(" ~ text(token.length) ~ "))\n";
 					code ~= "        {\n";
 					code ~= "            range.popFrontN(" ~ text(token.length) ~ ");\n";
 					code ~= "            return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
@@ -386,7 +386,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		switch (frontBytes & 0x00000000_000000ff)
 		{
 		mixin(tokenSearch);
-		/+pragma(msg, tokenSearch);+/
+//		pragma(msg, tokenSearch);
 		default:
 			return defaultTokenFunction();
 		}
