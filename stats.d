@@ -32,7 +32,6 @@ pure nothrow bool isLineOfCode(IdType t)
 
 ulong printTokenCount(Tokens)(File output, string fileName, ref Tokens tokens)
 {
-
 	ulong c;
 	foreach (ref t; tokens)
 	{

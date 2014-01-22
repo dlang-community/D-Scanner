@@ -425,7 +425,6 @@ public struct DLexer
 	public void popFront() pure
 	{
 		_popFront();
-		string comment = null;
 		switch (front.type)
 		{
 			case tok!"comment":
@@ -433,7 +432,11 @@ public struct DLexer
 				{
 					import std.string;
 					if (isDocComment(front.text))
-						comment = comment == null ? front.text : format("%s\n%s", comment, front.text);
+					{
+						_front.comment = _front.comment == null
+							? front.text
+							: format("%s\n%s", _front.comment, front.text);
+					}
 					do _popFront(); while (front == tok!"comment");
 					if (front == tok!"whitespace") goto case tok!"whitespace";
 				}
@@ -448,7 +451,6 @@ public struct DLexer
 			default:
 				break;
 		}
-		_front.comment = comment;
 	}
 
 
@@ -715,17 +717,16 @@ public struct DLexer
 				lexExponent(type);
 				break decimalLoop;
 			case '.':
-				if (foundDot || !range.canPeek(1) || range.peek(1)[1] == '.')
+				if (foundDot || !range.canPeek(1) || range.peekAt(1) == '.')
 					break decimalLoop;
 				else
 				{
-					auto lookahead = range.peek(1);
 					// The following bit of silliness tries to tell the
 					// difference between "int dot identifier" and
 					// "double identifier".
-					if (lookahead.length == 2)
+					if (range.canPeek(1))
 					{
-						switch (lookahead[1])
+						switch (range.peekAt(1))
 						{
 						case '0': .. case '9':
 							goto doubleLiteral;
@@ -1361,6 +1362,7 @@ public struct DLexer
 
 	Token lexIdentifier() pure nothrow
 	{
+		import std.stdio;
 		mixin (tokenStart);
 		uint hash = 0;
 		while (!range.empty && !isSeparating(0))
@@ -1416,25 +1418,28 @@ public struct DLexer
 	{
 		if (range.front == '\n') return true;
 		if (range.front == '\r') return true;
-		auto lookahead = range.peek(3);
-		if (lookahead.length == 0) return false;
-		if (lookahead == "\u2028" || lookahead == "\u2029")
-			return true;
-		return false;
+		return (range.front & 0x80) && range.canPeek(2)
+			&& (range.peek(2) == "\u2028" || range.peek(2) == "\u2029");
 	}
 
-	bool isSeparating(size_t offset) const pure nothrow @safe
+	bool isSeparating(size_t offset) pure nothrow @safe
 	{
-		auto r = range.save();
-		r.popFrontN(offset);
-		auto c = r.front;
+		if (!range.canPeek(offset)) return false;
+		auto c = range.peekAt(offset);
+		if (c >= 'A' && c <= 'Z') return false;
+		if (c >= 'a' && c <= 'z') return false;
 		if (c <= 0x2f) return true;
 		if (c >= ':' && c <= '@') return true;
 		if (c >= '[' && c <= '^') return true;
 		if (c >= '{' && c <= '~') return true;
 		if (c == '`') return true;
-		if (c & 0x80 && (r.peek(3) == "\u2028"
-			|| range.peek(3) == "\u2029")) return true;
+		if (c & 0x80)
+		{
+			auto r = range;
+			range.popFrontN(offset);
+			return (r.canPeek(2) && (r.peek(2) == "\u2028"
+				|| r.peek(2) == "\u2029"));
+		}
 		return false;
 	}
 

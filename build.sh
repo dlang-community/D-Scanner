@@ -11,8 +11,8 @@ dmd\
 	stdx/d/*.d\
 	analysis/*.d\
 	-ofdscanner\
-	-m64\
-	-O -release -noboundscheck
+	-m64 -g\
+	-O -release -noboundscheck -inline
 
 #gdc\
 #	main.d\
@@ -23,9 +23,9 @@ dmd\
 #	astprinter.d\
 #	formatter.d\
 #	outliner.d\
-#	style.d\
 #	stdx/*.d\
 #	stdx/d/*.d\
+#	analysis/*.d\
 #	-O3 -frelease -fno-bounds-check\
 #	-odscanner\
 
@@ -38,8 +38,8 @@ dmd\
 #	astprinter.d\
 #	formatter.d\
 #	outliner.d\
-#	style.d\
 #	stdx/*.d\
 #	stdx/d/*.d\
+#	analysis/*.d\
 #	-O3 -release\
 #	-oq -of=dscanner\

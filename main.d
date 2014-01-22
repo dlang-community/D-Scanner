@@ -112,7 +112,7 @@ int main(string[] args)
 			foreach (token; tokens)
 			{
 				writeln("«", token.text is null ? str(token.type) : token.text,
-					"» ", token.index, " ", token.line, " ", token.column, " ",
+					"» ", token.text !is null, " ", token.index, " ", token.line, " ", token.column, " ",
 					token.comment);
 			}
 			return 0;
@@ -152,7 +152,7 @@ int main(string[] args)
 				ulong count;
 				foreach (f; expandArgs(args, recursive))
 				{
-					import core.memory;
+
 					LexerConfig config;
 					config.whitespaceBehavior = WhitespaceBehavior.skip;
 					config.stringBehavior = StringBehavior.source;
@@ -162,7 +162,6 @@ int main(string[] args)
 						count += printTokenCount(stdout, f, tokens);
 					else
 						count += printLineCount(stdout, f, tokens);
-					cache.printStats();
 				}
 				writefln("total:\t%d", count);
 			}
