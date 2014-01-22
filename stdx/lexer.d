@@ -193,90 +193,130 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 	alias staticTokens, alias dynamicTokens, alias pseudoTokens,
 	alias pseudoTokenHandlers, alias possibleDefaultTokens)
 {
+
+	static string generateMask(const ubyte[] arr)
+	{
+		import std.string;
+		ulong u;
+		for (size_t i = 0; i < arr.length && i < 8; i++)
+		{
+			u |= (cast(ulong) arr[i]) << (i * 8);
+		}
+		return format("0x%016x", u);
+	}
+
+	static string generateByteMask(size_t l)
+	{
+		import std.string;
+		return format("0x%016x", ulong.max >> ((8 - l) * 8));
+	}
+
 	static string generateCaseStatements(string[] tokens)
 	{
 		import std.conv;
 		import std.string;
 
-		static string generateMask(const ubyte[] arr)
-		{
-			ulong u;
-			for (size_t i = 0; i < arr.length && i < 8; i++)
-			{
-				u |= (cast(ulong) arr[i]) << (i * 8);
-			}
-			return format("0x%016x", u);
-		}
-
-		static string generateByteMask(size_t l)
-		{
-			return format("0x%016x", ulong.max >> ((8 - l) * 8));
-		}
 
 		string code;
 		for (size_t i = 0; i < tokens.length; i++)
 		{
-			immutable mask = generateMask(cast (const ubyte[]) tokens[i]);
-			if (tokens[i].length >= 8)
-				code ~= "if (frontBytes == " ~ mask ~ ")\n";
-			else
-				code ~= "if ((frontBytes & " ~ generateByteMask(tokens[i].length) ~ ") == " ~ mask ~ ")\n";
-			code ~= "{\n";
-			if (staticTokens.countUntil(tokens[i]) >= 0)
+			size_t j = i + 1;
+			size_t o = i;
+			while (j < tokens.length && tokens[i][0] == tokens[j][0]) j++;
+			code ~= format("case 0x%02x:\n", cast(ubyte) tokens[i][0]);
+			code ~= printCase(tokens[i .. j]);
+			i = j - 1;
+		}
+		return code;
+	}
+
+	static string printCase(string[] tokens)
+	{
+		string[] t = tokens;
+		string[] sortedTokens = stupidToArray(sort!"a.length > b.length"(t));
+		import std.conv;
+
+		if (tokens.length == 1 && tokens[0].length == 1)
+		{
+			if (staticTokens.countUntil(tokens[0]) >= 0)
 			{
-				if (tokens[i].length <= 8)
+				return "    range.popFront();\n"
+					~ "    return Token(tok!\"" ~ escape(tokens[0]) ~ "\", null, line, column, index);\n";
+			}
+			else if (pseudoTokens.countUntil(tokens[0]) >= 0)
+			{
+				return "    return "
+					~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[0]) + 1]
+					~ "();\n";
+			}
+		}
+
+		string code;
+
+		foreach (i, token; sortedTokens)
+		{
+			immutable mask = generateMask(cast (const ubyte[]) token);
+			if (token.length >= 8)
+				code ~= "    if (frontBytes == " ~ mask ~ ")\n";
+			else
+				code ~= "    if ((frontBytes & " ~ generateByteMask(token.length) ~ ") == " ~ mask ~ ")\n";
+			code ~= "    {\n";
+			if (staticTokens.countUntil(token) >= 0)
+			{
+				if (token.length <= 8)
 				{
-					code ~= "    range.popFrontN(" ~ text(tokens[i].length) ~ ");\n";
-					code ~= "    return Token(tok!\"" ~ escape(tokens[i]) ~ "\", null, line, column, index);\n";
+					code ~= "        range.popFrontN(" ~ text(token.length) ~ ");\n";
+					code ~= "        return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
 				}
 				else
 				{
-					code ~= "    assert (false); // " ~ escape(tokens[i]) ~ "\n";
+					code ~= "        pragma(msg, \"long static tokens not supported\"); // " ~ escape(token) ~ "\n";
 				}
 			}
-			else if (pseudoTokens.countUntil(tokens[i]) >= 0)
+			else if (pseudoTokens.countUntil(token) >= 0)
 			{
-				if (tokens[i].length < 8)
+				if (token.length < 8)
 				{
-					code ~= "    return "
-						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[i]) + 1]
+					code ~= "        return "
+						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
 						~ "();\n";
 				}
 				else
 				{
-					code ~= "    if (range.peek(" ~ text(tokens[i].length) ~ ") == \"" ~ escape(tokens[i]) ~"\")\n";
-					code ~= "        return "
-						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[i]) + 1]
+					code ~= "        if (range.peek(" ~ text(token.length) ~ ") == \"" ~ escape(token) ~"\")\n";
+					code ~= "            return "
+						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
 						~ "();\n";
 				}
 			}
 			else
 			{
 				// possible default
-				if (tokens[i].length < 8)
+				if (token.length < 8)
 				{
-					code ~= "    if (isSeparating(" ~ text(tokens[i].length) ~ "))\n";
-					code ~= "    {\n";
-					code ~= "        range.popFrontN(" ~ text(tokens[i].length) ~ ");\n";
-					code ~= "        return Token(tok!\"" ~ escape(tokens[i]) ~ "\", null, line, column, index);\n";
-					code ~= "    }\n";
-					code ~= "    else\n";
-					code ~= "        goto defaultHandler;\n";
+					code ~= "        if (isSeparating(" ~ text(token.length) ~ "))\n";
+					code ~= "        {\n";
+					code ~= "            range.popFrontN(" ~ text(token.length) ~ ");\n";
+					code ~= "            return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
+					code ~= "        }\n";
+					code ~= "        else\n";
+					code ~= "            goto default;\n";
 				}
 				else
 				{
-					code ~= "    if (range.peek(" ~ text(tokens[i].length) ~ ") == \"" ~ escape(tokens[i]) ~"\" && isSeparating(" ~ text(tokens[i].length) ~ "))\n";
-					code ~= "    {\n";
-					code ~= "        range.popFrontN(" ~ text(tokens[i].length) ~ ");\n";
-					code ~= "        return Token(tok!\"" ~ escape(tokens[i]) ~ "\", null, line, column, index);\n";
-					code ~= "    }\n";
-					code ~= "    else\n";
-					code ~= "        goto defaultHandler;\n";
+					code ~= "        if (range.peek(" ~ text(token.length) ~ ") == \"" ~ escape(token) ~"\" && isSeparating(" ~ text(token.length) ~ "))\n";
+					code ~= "        {\n";
+					code ~= "            range.popFrontN(" ~ text(token.length) ~ ");\n";
+					code ~= "            return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
+					code ~= "        }\n";
+					code ~= "        else\n";
+					code ~= "            goto default;\n";
 				}
 			}
-			code ~= "}\n";
-
+			code ~= "    }\n";
 		}
+		code ~= "    else\n";
+		code ~= "        goto default;\n";
 		return code;
 	}
 
@@ -325,15 +365,13 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return retVal;
 	}
 
-	enum tokenSearch = generateCaseStatements(stupidToArray(sort!"a.length > b.length"(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
+	enum tokenSearch = generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
 
 	static ulong getFront(const ubyte[] arr) pure nothrow @trusted
 	{
 		import std.stdio;
 		immutable importantBits = *(cast (ulong*) arr.ptr);
 		immutable filler = ulong.max >> ((8 - arr.length) * 8);
-
-		debug(1) try { writefln("0x%016x", importantBits & filler); } catch (Exception e) {}
 		return importantBits & filler;
 	}
 
@@ -345,10 +383,13 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		immutable size_t column = range.column;
 		immutable size_t line = range.line;
 		immutable ulong frontBytes = getFront(range.peek(7));
+		switch (frontBytes & 0x00000000_000000ff)
+		{
 		mixin(tokenSearch);
-		pragma(msg, tokenSearch);
-	defaultHandler:
-		return defaultTokenFunction();
+		/+pragma(msg, tokenSearch);+/
+		default:
+			return defaultTokenFunction();
+		}
 	}
 
 	LexerRange range;
@@ -398,14 +439,14 @@ struct LexerRange
 			: bytes[index .. index + p + 1];
 	}
 
+	ubyte peekAt(size_t offset) const nothrow pure @safe
+	{
+		return bytes[index + offset];
+	}
+
 	bool canPeek(size_t p) const nothrow pure @safe
 	{
 		return index + p < bytes.length;
-	}
-
-	LexerRange save() const nothrow pure @safe
-	{
-		return LexerRange(bytes, index, column, line);
 	}
 
 	void popFront() pure nothrow @safe
@@ -501,7 +542,7 @@ public:
 	}
 	body
 	{
-		memoryRequested += bytes.length;
+		debug memoryRequested += bytes.length;
 		const(Item)* found = find(bytes, hash);
 		if (found is null)
 			return intern(bytes, hash);
@@ -528,7 +569,7 @@ public:
 		return items[index].str;
 	}
 
-	void printStats()
+	debug void printStats()
 	{
 		import std.stdio;
 		writeln("Load Factor:           ", cast(float) items.length / cast(float) buckets.length);
@@ -550,7 +591,7 @@ private:
 	{
 		immutable size_t newBucketCount = items.length * 2;
 		buckets = new Item*[newBucketCount];
-		rehashCount++;
+		debug rehashCount++;
 		foreach (item; items)
 		{
 			immutable size_t newIndex = item.hash % newBucketCount;
@@ -707,6 +748,6 @@ private:
 	Item*[] items;
 	Item*[] buckets;
 	Block[] blocks;
-	size_t memoryRequested;
-	uint rehashCount;
+	debug size_t memoryRequested;
+	debug uint rehashCount;
 }
