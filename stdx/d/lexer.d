@@ -1377,13 +1377,12 @@ public struct DLexer
 	Token lexDot() pure nothrow
 	{
 		mixin (tokenStart);
-		auto lookahead = range.peek(1);
-		if (lookahead.length == 0)
+		if (!range.canPeek(1))
 		{
 			range.popFront();
 			return Token(tok!".", null, line, column, index);
 		}
-		switch (lookahead[0])
+		switch (range.peekAt(1))
 		{
 		case '0': .. case '9':
 			return lexNumber();
