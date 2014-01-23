@@ -238,7 +238,13 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 
 		if (tokens.length == 1 && tokens[0].length == 1)
 		{
-			if (staticTokens.countUntil(tokens[0]) >= 0)
+			if (pseudoTokens.countUntil(tokens[0]) >= 0)
+			{
+				return "    return "
+					~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[0]) + 1]
+					~ "();\n";
+			}
+			else if (staticTokens.countUntil(tokens[0]) >= 0)
 			{
 				return "    range.popFront();\n"
 					~ "    return Token(tok!\"" ~ escape(tokens[0]) ~ "\", null, line, column, index);\n";
@@ -261,19 +267,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 			else
 				code ~= "    if ((frontBytes & " ~ generateByteMask(token.length) ~ ") == " ~ mask ~ ")\n";
 			code ~= "    {\n";
-			if (staticTokens.countUntil(token) >= 0)
-			{
-				if (token.length <= 8)
-				{
-					code ~= "        range.popFrontN(" ~ text(token.length) ~ ");\n";
-					code ~= "        return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
-				}
-				else
-				{
-					code ~= "        pragma(msg, \"long static tokens not supported\"); // " ~ escape(token) ~ "\n";
-				}
-			}
-			else if (pseudoTokens.countUntil(token) >= 0)
+			if (pseudoTokens.countUntil(token) >= 0)
 			{
 				if (token.length <= 8)
 				{
@@ -287,6 +281,18 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 					code ~= "            return "
 						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
 						~ "();\n";
+				}
+			}
+			else if (staticTokens.countUntil(token) >= 0)
+			{
+				if (token.length <= 8)
+				{
+					code ~= "        range.popFrontN(" ~ text(token.length) ~ ");\n";
+					code ~= "        return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
+				}
+				else
+				{
+					code ~= "        pragma(msg, \"long static tokens not supported\"); // " ~ escape(token) ~ "\n";
 				}
 			}
 			else
@@ -365,7 +371,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return retVal;
 	}
 
-	enum tokenSearch = generateCaseStatements(stupidToArray(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens)));
+	enum tokenSearch = generateCaseStatements(stupidToArray(uniq(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
 
 	static ulong getFront(const ubyte[] arr) pure nothrow @trusted
 	{

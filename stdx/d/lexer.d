@@ -1424,7 +1424,7 @@ public struct DLexer
 
 	bool isSeparating(size_t offset) pure nothrow @safe
 	{
-		if (!range.canPeek(offset)) return false;
+		if (!range.canPeek(offset)) return true;
 		auto c = range.peekAt(offset);
 		if (c >= 'A' && c <= 'Z') return false;
 		if (c >= 'a' && c <= 'z') return false;
