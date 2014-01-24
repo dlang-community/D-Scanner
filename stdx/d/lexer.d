@@ -8,7 +8,7 @@ import std.range;
 import stdx.lexer;
 public import stdx.lexer : StringCache;
 
-private enum staticTokens = [
+private enum operators = [
 	",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=",
 	"!>", "!>=", "$", "%", "%=", "&", "&&", "&=", "(", ")", "*", "*=", "+", "++",
 	"+=", "-", "--", "-=", ":", ";", "<", "<<", "<<=", "<=", "<>", "<>=", "=",
@@ -16,13 +16,7 @@ private enum staticTokens = [
 	"^=", "^^", "^^=", "{", "|", "|=", "||", "}", "~", "~="
 ];
 
-private enum pseudoTokens = [
-	"\"", "`", "//", "/*", "/+", ".", "'", "0", "1", "2", "3", "4", "5", "6",
-	"7", "8", "9", "q\"", "q{", "r\"", "x\"", " ", "\t", "\r", "\n", "#!",
-	"#line", "\u2028", "\u2029"
-];
-
-private enum possibleDefaultTokens = [
+private enum keywords = [
 	"abstract", "alias", "align", "asm", "assert", "auto", "body", "bool",
 	"break", "byte", "case", "cast", "catch", "cdouble", "cent", "cfloat",
 	"char", "class", "const", "continue", "creal", "dchar", "debug", "default",
@@ -82,11 +76,11 @@ private enum pseudoTokenHandlers = [
 	"#line", "lexSpecialTokenSequence"
 ];
 
-public alias IdType = TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens);
-public alias str = tokenStringRepresentation!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens);
+public alias IdType = TokenIdType!(operators, dynamicTokens, keywords);
+public alias str = tokenStringRepresentation!(IdType, operators, dynamicTokens, keywords);
 public template tok(string token)
 {
-  alias tok = TokenId!(IdType, staticTokens, dynamicTokens, possibleDefaultTokens, token);
+  alias tok = TokenId!(IdType, operators, dynamicTokens, keywords, token);
 }
 private enum extraFields = q{
 	string comment;
@@ -405,8 +399,8 @@ public struct DLexer
 {
 	import core.vararg;
 
-	mixin Lexer!(IdType, Token, lexIdentifier, staticTokens,
-		dynamicTokens, pseudoTokens, pseudoTokenHandlers, possibleDefaultTokens);
+	mixin Lexer!(IdType, Token, lexIdentifier, isSeparating, operators,
+		dynamicTokens, pseudoTokenHandlers, keywords);
 
 	this(ubyte[] range, const LexerConfig config, StringCache* cache)
 	{

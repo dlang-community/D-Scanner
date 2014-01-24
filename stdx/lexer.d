@@ -11,13 +11,6 @@
 
 module stdx.lexer;
 
-import std.typecons;
-import std.algorithm;
-import std.range;
-import std.traits;
-import std.conv;
-import std.math;
-
 /**
  * Template for determining the type used for a token type. Selects the smallest
  * unsigned integral type that is able to hold the value
@@ -81,6 +74,7 @@ string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens
 template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens, string symbol)
 {
+	import std.algorithm;
 	static if (symbol == "")
 	{
 		enum id = 0;
@@ -190,9 +184,12 @@ public:
 }
 
 mixin template Lexer(IDType, Token, alias defaultTokenFunction,
-	alias staticTokens, alias dynamicTokens, alias pseudoTokens,
+	alias tokenSeparatingFunction, alias staticTokens, alias dynamicTokens,
 	alias pseudoTokenHandlers, alias possibleDefaultTokens)
 {
+
+	static assert (pseudoTokenHandlers.length % 2 == 0, "Each pseudo-token must"
+		~ " have a corresponding handler function name.");
 
 	static string generateMask(const ubyte[] arr)
 	{
@@ -211,26 +208,28 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return format("0x%016x", ulong.max >> ((8 - l) * 8));
 	}
 
-	static string generateCaseStatements(string[] tokens)
+	static string generateCaseStatements()
 	{
 		import std.conv;
 		import std.string;
+		import std.range;
 
-
+		string[] pseudoTokens = stupidToArray(pseudoTokenHandlers.stride(2));
+		string[] allTokens = stupidToArray(sort(staticTokens ~ possibleDefaultTokens ~ pseudoTokens).uniq);
 		string code;
-		for (size_t i = 0; i < tokens.length; i++)
+		for (size_t i = 0; i < allTokens.length; i++)
 		{
 			size_t j = i + 1;
 			size_t o = i;
-			while (j < tokens.length && tokens[i][0] == tokens[j][0]) j++;
-			code ~= format("case 0x%02x:\n", cast(ubyte) tokens[i][0]);
-			code ~= printCase(tokens[i .. j]);
+			while (j < allTokens.length && allTokens[i][0] == allTokens[j][0]) j++;
+			code ~= format("case 0x%02x:\n", cast(ubyte) allTokens[i][0]);
+			code ~= printCase(allTokens[i .. j], pseudoTokens);
 			i = j - 1;
 		}
 		return code;
 	}
 
-	static string printCase(string[] tokens)
+	static string printCase(string[] tokens, string[] pseudoTokens)
 	{
 		string[] t = tokens;
 		string[] sortedTokens = stupidToArray(sort!"a.length > b.length"(t));
@@ -300,7 +299,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 				// possible default
 				if (token.length <= 8)
 				{
-					code ~= "        if (isSeparating(" ~ text(token.length) ~ "))\n";
+					code ~= "        if (tokenSeparatingFunction(" ~ text(token.length) ~ "))\n";
 					code ~= "        {\n";
 					code ~= "            range.popFrontN(" ~ text(token.length) ~ ");\n";
 					code ~= "            return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
@@ -371,7 +370,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return retVal;
 	}
 
-	enum tokenSearch = generateCaseStatements(stupidToArray(uniq(sort(staticTokens ~ pseudoTokens ~ possibleDefaultTokens))));
+	enum tokenSearch = generateCaseStatements();
 
 	static ulong getFront(const ubyte[] arr) pure nothrow @trusted
 	{
@@ -625,6 +624,7 @@ private:
 
 	const(Item)* find(const(ubyte)[] bytes, uint hash) pure nothrow const @safe
 	{
+		import std.algorithm;
 		immutable size_t index = hash % buckets.length;
 		for (const(Item)* item = buckets[index]; item !is null; item = item.next)
 		{
