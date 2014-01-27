@@ -18,6 +18,18 @@ public:
 
 protected:
 
+	bool inAggregate = false;
+
+	template visitTemplate(T)
+	{
+		override void visit(T structDec)
+		{
+			inAggregate = true;
+			structDec.accept(this);
+			inAggregate = false;
+		}
+	}
+
 	import core.vararg;
 
 	void addErrorMessage(size_t line, size_t column, string message)

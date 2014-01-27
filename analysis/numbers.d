@@ -24,7 +24,9 @@ class NumberStyleCheck : BaseAnalyzer
 
 	override void visit(Token t)
 	{
-		if (isNumberLiteral(t.type) && (t.text.matchFirst(badBinaryRegex)
+		import std.algorithm;
+		if (isNumberLiteral(t.type) && !t.text.startsWith("0x")
+			&& ((t.text.startsWith("0b") && t.text.matchFirst(badBinaryRegex))
 				|| t.text.matchFirst(badDecimalRegex)))
 		{
 			addErrorMessage(t.line, t.column,
@@ -33,5 +35,5 @@ class NumberStyleCheck : BaseAnalyzer
 	}
 
 	auto badBinaryRegex = ctRegex!(`0b[01]{9,}`);
-	auto badDecimalRegex = ctRegex!(`\d{4,}`);
+	auto badDecimalRegex = ctRegex!(`\d{5,}`);
 }

@@ -20,18 +20,7 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 		super(fileName);
 	}
 
-	bool inAggregate = false;
 	bool looking = false;
-
-	template visitTemplate(T)
-	{
-		override void visit(T structDec)
-		{
-			inAggregate = true;
-			structDec.accept(this);
-			inAggregate = false;
-		}
-	}
 
 	mixin visitTemplate!ClassDeclaration;
 	mixin visitTemplate!InterfaceDeclaration;
