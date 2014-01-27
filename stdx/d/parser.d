@@ -1874,6 +1874,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new DeleteExpression;
+		node.line = current.line;
+		node.column = current.column;
         if (expect(tok!"delete") is null) return null;
         node.unaryExpression = parseUnaryExpression();
         return node;
@@ -3990,6 +3992,7 @@ q{(int a, ...)
      */
     PragmaDeclaration parsePragmaDeclaration()
     {
+		mixin (traceEnterAndExit!(__FUNCTION__));
         auto node = new PragmaDeclaration;
         node.pragmaExpression = parsePragmaExpression();
         expect(tok!";");
@@ -4005,6 +4008,7 @@ q{(int a, ...)
      */
     PragmaExpression parsePragmaExpression()
     {
+		mixin (traceEnterAndExit!(__FUNCTION__));
         auto node = new PragmaExpression;
         expect(tok!"pragma");
         expect(tok!"(");
@@ -4264,8 +4268,9 @@ q{(int a, ...)
      *     | $(LITERAL '!<=')
      *     ;)
      */
-    ExpressionNode parseRelExpression(ExpressionNode shift = null)
+    ExpressionNode parseRelExpression(ExpressionNode shift)
     {
+        mixin (traceEnterAndExit!(__FUNCTION__));
         return parseLeftAssocBinaryExpression!(RelExpression, ShiftExpression,
             tok!"<", tok!"<=", tok!">", tok!">=", tok!"!<>=", tok!"!<>",
             tok!"<>", tok!"<>=", tok!"!>", tok!"!>=", tok!"!>=", tok!"!<",
@@ -6238,7 +6243,11 @@ protected:
         {
             auto n = new ExpressionType;
             static if (__traits(hasMember, ExpressionType, "operator"))
+			{
+				n.line = current.line;
+				n.column = current.column;
                 n.operator = advance().type;
+			}
             else
                 advance();
             n.left = node;

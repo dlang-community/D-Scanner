@@ -31,6 +31,58 @@ import std.string;
 abstract class ASTVisitor
 {
 public:
+
+	void visit(ExpressionNode n)
+	{
+		if (cast(AddExpression) n) visit(cast(AddExpression) n);
+		else if (cast(AndAndExpression) n) visit(cast(AndAndExpression) n);
+		else if (cast(AndExpression) n) visit(cast(AndExpression) n);
+		else if (cast(AsmAddExp) n) visit(cast(AsmAddExp) n);
+		else if (cast(AsmAndExp) n) visit(cast(AsmAndExp) n);
+		else if (cast(AsmEqualExp) n) visit(cast(AsmEqualExp) n);
+		else if (cast(AsmLogAndExp) n) visit(cast(AsmLogAndExp) n);
+		else if (cast(AsmLogOrExp) n) visit(cast(AsmLogOrExp) n);
+		else if (cast(AsmMulExp) n) visit(cast(AsmMulExp) n);
+		else if (cast(AsmOrExp) n) visit(cast(AsmOrExp) n);
+		else if (cast(AsmRelExp) n) visit(cast(AsmRelExp) n);
+		else if (cast(AsmShiftExp) n) visit(cast(AsmShiftExp) n);
+		else if (cast(AssertExpression) n) visit(cast(AssertExpression) n);
+		else if (cast(AssignExpression) n) visit(cast(AssignExpression) n);
+		else if (cast(CmpExpression) n) visit(cast(CmpExpression) n);
+		else if (cast(DeleteExpression) n) visit(cast(DeleteExpression) n);
+		else if (cast(EqualExpression) n) visit(cast(EqualExpression) n);
+		else if (cast(Expression) n) visit(cast(Expression) n);
+		else if (cast(FunctionCallExpression) n) visit(cast(FunctionCallExpression) n);
+		else if (cast(FunctionLiteralExpression) n) visit(cast(FunctionLiteralExpression) n);
+		else if (cast(IdentityExpression) n) visit(cast(IdentityExpression) n);
+		else if (cast(ImportExpression) n) visit(cast(ImportExpression) n);
+		else if (cast(IndexExpression) n) visit(cast(IndexExpression) n);
+		else if (cast(InExpression) n) visit(cast(InExpression) n);
+		else if (cast(IsExpression) n) visit(cast(IsExpression) n);
+		else if (cast(LambdaExpression) n) visit(cast(LambdaExpression) n);
+		else if (cast(MixinExpression) n) visit(cast(MixinExpression) n);
+		else if (cast(MulExpression) n) visit(cast(MulExpression) n);
+		else if (cast(NewAnonClassExpression) n) visit(cast(NewAnonClassExpression) n);
+		else if (cast(NewExpression) n) visit(cast(NewExpression) n);
+		else if (cast(OrExpression) n) visit(cast(OrExpression) n);
+		else if (cast(OrOrExpression) n) visit(cast(OrOrExpression) n);
+		else if (cast(PostIncDecExpression) n) visit(cast(PostIncDecExpression) n);
+		else if (cast(PowExpression) n) visit(cast(PowExpression) n);
+		else if (cast(PragmaExpression) n) visit(cast(PragmaExpression) n);
+		else if (cast(PreIncDecExpression) n) visit(cast(PreIncDecExpression) n);
+		else if (cast(PrimaryExpression) n) visit(cast(PrimaryExpression) n);
+		else if (cast(RelExpression) n) visit(cast(RelExpression) n);
+		else if (cast(ShiftExpression) n) visit(cast(ShiftExpression) n);
+		else if (cast(SliceExpression) n) visit(cast(SliceExpression) n);
+		else if (cast(TemplateMixinExpression) n) visit(cast(TemplateMixinExpression) n);
+		else if (cast(TernaryExpression) n) visit(cast(TernaryExpression) n);
+		else if (cast(TraitsExpression) n) visit(cast(TraitsExpression) n);
+		else if (cast(TypeidExpression) n) visit(cast(TypeidExpression) n);
+		else if (cast(TypeofExpression) n) visit(cast(TypeofExpression) n);
+		else if (cast(UnaryExpression) n) visit(cast(UnaryExpression) n);
+		else if (cast(XorExpression) n) visit(cast(XorExpression) n);
+	}
+
     /** */ void visit(AddExpression addExpression) { addExpression.accept(this); }
     /** */ void visit(AliasDeclaration aliasDeclaration) { aliasDeclaration.accept(this); }
     /** */ void visit(AliasInitializer aliasInitializer) { aliasInitializer.accept(this); }
@@ -104,7 +156,6 @@ public:
     /** */ void visit(EponymousTemplateDeclaration eponymousTemplateDeclaration) { eponymousTemplateDeclaration.accept(this); }
     /** */ void visit(EqualExpression equalExpression) { equalExpression.accept(this); }
     /** */ void visit(Expression expression) { expression.accept(this); }
-    /** */ void visit(ExpressionNode expressionNode) { expressionNode.accept(this); }
     /** */ void visit(ExpressionStatement expressionStatement) { expressionStatement.accept(this); }
     /** */ void visit(FinalSwitchStatement finalSwitchStatement) { finalSwitchStatement.accept(this); }
     /** */ void visit(Finally finally_) { finally_.accept(this); }
@@ -234,10 +285,11 @@ public:
 
 interface ASTNode
 {
+public:
     /** */ void accept(ASTVisitor visitor);
 }
 
-immutable string DEFAULT_ACCEPT = q{void accept(ASTVisitor visitor) {}};
+immutable string DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) {}};
 
 template visitIfNotNull(fields ...)
 {
@@ -259,19 +311,28 @@ template visitIfNotNull(fields ...)
     }
 }
 
-abstract class ExpressionNode : ASTNode {}
+abstract class ExpressionNode : ASTNode
+{
+public:
+	override void accept(ASTVisitor visitor)
+	{
+		assert (false);
+	}
+}
 
 mixin template BinaryExpressionBody()
 {
     ExpressionNode left;
     ExpressionNode right;
+	size_t line;
+	size_t column;
 }
 
 ///
 class AddExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -283,7 +344,7 @@ public:
 class AliasDeclaration : ASTNode
 {
 public:
-    void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(type, name, initializers));
     }
@@ -332,7 +393,7 @@ public:
 class AndAndExpression : ExpressionNode
 {
 public:
-    void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -343,7 +404,7 @@ public:
 class AndExpression : ExpressionNode
 {
 public:
-    void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -566,7 +627,7 @@ public:
 class AssertExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(assertion, message));
     }
@@ -578,7 +639,7 @@ public:
 class AssignExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(ternaryExpression, assignExpression));
     }
@@ -816,7 +877,7 @@ public:
 class CmpExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(shiftExpression, equalExpression,
             identityExpression, relExpression, inExpression));
@@ -1031,11 +1092,13 @@ public:
 class DeleteExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
     /** */ UnaryExpression unaryExpression;
+	/** */ size_t line;
+	/** */ size_t column;
 }
 
 ///
@@ -1151,7 +1214,7 @@ public:
 class EqualExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1163,7 +1226,7 @@ public:
 class Expression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(items));
     }
@@ -1293,7 +1356,7 @@ public:
 class FunctionCallExpression : ExpressionNode
 {
 public:
-    void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(unaryExpression, arguments, templateArguments));
     }
@@ -1306,7 +1369,7 @@ public:
 class FunctionCallStatement : ASTNode
 {
 public:
-    void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(functionCallExpression));
     }
@@ -1338,7 +1401,7 @@ public:
 class FunctionLiteralExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(type, parameters, functionAttributes,
             functionBody));
@@ -1413,7 +1476,7 @@ public:
 class IdentityExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1478,7 +1541,7 @@ public:
 class ImportExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(assignExpression));
     }
@@ -1489,7 +1552,7 @@ public:
 class IndexExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(unaryExpression, argumentList));
     }
@@ -1501,7 +1564,7 @@ public:
 class InExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1575,7 +1638,7 @@ public:
 class IsExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(type, identifier, typeSpecialization,
             templateParameterList));
@@ -1626,7 +1689,7 @@ public:
 class LambdaExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(identifier, parameters, functionAttributes,
             assignExpression));
@@ -1689,7 +1752,7 @@ public:
 class MixinExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(assignExpression));
     }
@@ -1748,7 +1811,7 @@ public:
 class MulExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1760,7 +1823,7 @@ public:
 class NewAnonClassExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(allocatorArguments, constructorArguments,
             baseClassList, structBody));
@@ -1775,7 +1838,7 @@ public:
 class NewExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(newAnonClassExpression, type, arguments,
             assignExpression));
@@ -1863,7 +1926,7 @@ public:
 class OrExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1874,7 +1937,7 @@ public:
 class OrOrExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1937,7 +2000,7 @@ public:
 class PostIncDecExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
@@ -1949,7 +2012,7 @@ public:
 class PowExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1971,7 +2034,7 @@ public:
 class PragmaExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(identifier, argumentList));
     }
@@ -1983,7 +2046,7 @@ public:
 class PreIncDecExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
@@ -1995,7 +2058,7 @@ public:
 class PrimaryExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(basicType, primary, typeofExpression,
             typeidExpression, arrayLiteral, assocArrayLiteral, expression,
@@ -2035,7 +2098,7 @@ public:
 class RelExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -2096,7 +2159,7 @@ public:
 class ShiftExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -2120,7 +2183,7 @@ public:
 class SliceExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(unaryExpression, lower, upper));
     }
@@ -2409,7 +2472,7 @@ public:
 class TemplateMixinExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(identifier, templateArguments, mixinTemplateName));
     }
@@ -2534,7 +2597,7 @@ public:
 class TernaryExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(orOrExpression, expression, ternaryExpression));
     }
@@ -2558,7 +2621,7 @@ public:
 class TraitsExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(identifier, templateArgumentList));
     }
@@ -2647,7 +2710,7 @@ public:
 class TypeidExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(type, expression));
     }
@@ -2659,7 +2722,7 @@ public:
 class TypeofExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(expression, return_));
     }
@@ -2671,7 +2734,7 @@ public:
 class UnaryExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         // TODO prefix, postfix, unary
         mixin (visitIfNotNull!(primaryExpression, newExpression,
@@ -2803,7 +2866,7 @@ public:
 class XorExpression : ExpressionNode
 {
 public:
-    /+override+/ void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor)
     {
         mixin (visitIfNotNull!(left, right));
     }

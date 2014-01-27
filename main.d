@@ -109,10 +109,11 @@ int main(string[] args)
 		}
 		else if (tokenDump)
 		{
+			writeln("text                    blank\tindex\tline\tcolumn\tcomment");
 			foreach (token; tokens)
 			{
-				writeln("«", token.text is null ? str(token.type) : token.text,
-					"» ", token.text !is null, " ", token.index, " ", token.line, " ", token.column, " ",
+				writefln("<<%20s>>%b\t%d\t%d\t%d", token.text is null ? str(token.type) : token.text,
+					token.text !is null, token.index, token.line, token.column,
 					token.comment);
 			}
 			return 0;

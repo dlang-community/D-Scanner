@@ -15,6 +15,8 @@ import analysis.base;
 import analysis.style;
 import analysis.enumarrayliteral;
 import analysis.pokemon;
+import analysis.del;
+import analysis.fish;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -63,8 +65,14 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 		auto pokemon = new PokemonExceptionCheck(fileName);
 		pokemon.visit(m);
 
+		auto del = new DeleteCheck(fileName);
+		del.visit(m);
+
+		auto fish = new FloatOperatorCheck(fileName);
+		fish.visit(m);
+
 		foreach (message; sort(chain(enums.messages, style.messages,
-			pokemon.messages).array))
+			pokemon.messages, del.messages, fish.messages).array))
 		{
 			writeln(message);
 		}

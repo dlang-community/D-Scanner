@@ -1,7 +1,98 @@
 // Written in the D programming language
 
 /**
+ * $(H2 Summary)
  * This module contains a range-based _lexer generator.
+ *
+ * $(H2 Overview)
+ * The _lexer generator consists of a template mixin, $(LREF Lexer), along with
+ * several helper templates for generating such things as token identifiers.
+ *
+ * To write a _lexer using this API:
+ * $(OL
+ *     $(LI Create the string array costants for your language.
+ *         $(UL
+ *             $(LI $(LINK2 #.StringConstants, String Constants))
+ *         ))
+ *     $(LI Create aliases for the various token and token identifier types
+ *         specific to your language.
+ *         $(UL
+ *             $(LI $(LREF TokenIdType))
+ *             $(LI $(LREF tokenStringRepresentation))
+ *             $(LI $(LREF TokenStructure))
+ *             $(LI $(LREF TokenId))
+ *         ))
+ *     $(LI Create a struct that mixes in the Lexer template mixin and
+ *         implements the necessary functions.
+ *         $(UL
+ *             $(LI $(LREF Lexer))
+ *         ))
+ * )
+ * Examples:
+ * $(UL
+ * $(LI A _lexer for D is available $(LINK2 https://github.com/Hackerpilot/Dscanner/blob/master/stdx/d/lexer.d, here).)
+ * $(LI A _lexer for Lua is available $(LINK2 https://github.com/Hackerpilot/lexer-demo/blob/master/lualexer.d, here).)
+ * )
+ * $(DDOC_ANCHOR StringConstants) $(H2 String Constants)
+ * $(DL
+ * $(DT $(B staticTokens))
+ * $(DD A listing of the tokens whose exact value never changes and which cannot
+ *     possibly be a token handled by the default token lexing function. The
+ *     most common example of this kind of token is an operator such as
+ *     $(D_STRING "*"), or $(D_STRING "-") in a programming language.)
+ * $(DT $(B dynamicTokens))
+ * $(DD A listing of tokens whose value is variable, such as whitespace,
+ *     identifiers, number literals, and string literals.)
+ * $(DT $(B possibleDefaultTokens))
+ * $(DD A listing of tokens that could posibly be one of the tokens handled by
+ *     the default token handling function. An common example of this is
+ *     a keyword such as $(D_STRING "for"), which looks like the beginning of
+ *     the identifier $(D_STRING "fortunate"). isSeparating is called to
+ *     determine if the character after the $(D_STRING 'r') separates the
+ *     identifier, indicating that the token is $(D_STRING "for"), or if lexing
+ *     should be turned over to the defaultTokenFunction.)
+ * $(DT $(B tokenHandlers))
+ * $(DD A mapping of prefixes to custom token handling function names. The
+ *     generated _lexer will search for the even-index elements of this array,
+ *     and then call the function whose name is the element immedately after the
+ *     even-indexed element. This is used for lexing complex tokens whose prefix
+ *     is fixed.)
+ * )
+ *
+ * Here are some example constants for a simple calculator _lexer:
+ * ---
+ * // There are a near infinite number of valid number literals, so numbers are
+ * // dynamic tokens.
+ * enum string[] dynamicTokens = ["numberLiteral", "whitespace"];
+ *
+ * // The operators are always the same, and cannot start a numberLiteral, so
+ * // they are staticTokens
+ * enum string[] staticTokens = ["-", "+", "*", "/"];
+ *
+ * // In this simple example there are no keywords or other tokens that could
+ * // look like dynamic tokens, so this is blank.
+ * enum string[] possibleDefaultTokens = [];
+ *
+ * // If any whitespace character or digit is encountered, pass lexing over to
+ * // our custom handler functions. These will be demonstrated in an example
+ * // later on.
+ * enum string[] tokenHandlers = [
+ *     "0", "lexNumber",
+ *     "1", "lexNumber",
+ *     "2", "lexNumber",
+ *     "3", "lexNumber",
+ *     "4", "lexNumber",
+ *     "5", "lexNumber",
+ *     "6", "lexNumber",
+ *     "7", "lexNumber",
+ *     "8", "lexNumber",
+ *     "9", "lexNumber",
+ *     " ", "lexWhitespace",
+ *     "\n", "lexWhitespace",
+ *     "\t", "lexWhitespace",
+ *     "\r", "lexWhitespace"
+ * ];
+ * ---
  *
  * Copyright: Brian Schott 2013
  * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost, License 1.0)
@@ -16,7 +107,12 @@ module stdx.lexer;
  * unsigned integral type that is able to hold the value
  * staticTokens.length + dynamicTokens.length. For example if there are 20
  * static tokens, 30 dynamic tokens, and 10 possible default tokens, this
- * template will alias itself to ubyte, as 20 + 30 + 10 < ubyte.max.
+ * template will alias itself to ubyte, as 20 + 30 + 10 < $(D_KEYWORD ubyte).max.
+ * Examples:
+ * ---
+ * // In our calculator example this means that IdType is an alias for ubyte.
+ * alias IdType = TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens);
+ * ---
  */
 template TokenIdType(alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens)
@@ -32,7 +128,15 @@ template TokenIdType(alias staticTokens, alias dynamicTokens,
 }
 
 /**
- * Looks up the string representation of the given token type.
+ * Looks up the string representation of the given token type. This is the
+ * opposite of the function of the TokenId template.
+ * Params: type = the token type identifier
+ * Examples:
+ * ---
+ * alias str = tokenStringRepresentation(IdType, staticTokens, dynamicTokens, possibleDefaultTokens);
+ * assert (str(tok!"*") == "*");
+ * ---
+ * See_also: $(LREF TokenId)
  */
 string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
 {
@@ -57,18 +161,18 @@ string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens
  *         valid token type identifier)
  * )
  * In all cases this template will alias itself to a constant of type IdType.
+ * This template will fail at compile time if $(D_PARAM symbol) is not one of
+ * the staticTokens, dynamicTokens, or possibleDefaultTokens.
  * Examples:
  * ---
- * enum string[] staticTokens = ["+", "-", "*", "/"];
- * enum string[] dynamicTokens = ["number"];
- * enum string[] possibleDefaultTokens = [];
- * alias IdType = TokenIdType!(staticTokens, dynamicTokens, possibleDefaultTokens);
  * template tok(string symbol)
  * {
  *     alias tok = TokenId!(IdType, staticTokens, dynamicTokens,
  *         possibleDefaultTokens, symbol);
  * }
+ * // num and plus are of type ubyte.
  * IdType plus = tok!"+";
+ * IdType num = tok!"numberLiteral";
  * ---
  */
 template TokenId(IdType, alias staticTokens, alias dynamicTokens,
@@ -118,35 +222,49 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 /**
  * The token that is returned by the lexer.
  * Params:
- *     IDType = The D type of the "type" token type field.
+ *     IdType = The D type of the "type" token type field.
  *     extraFields = A string containing D code for any extra fields that should
  *         be included in the token structure body. This string is passed
  *         directly to a mixin statement.
+ * Examples:
+ * ---
+ * // No extra struct fields are desired in this example, so leave it blank.
+ * alias Token = TokenStructure!(IdType, "");
+ * Token minusToken = Token(tok!"-");
+ * ---
  */
-struct TokenStructure(IDType, string extraFields = "")
+struct TokenStructure(IdType, string extraFields = "")
 {
 public:
 
 	/**
 	 * == overload for the the token type.
 	 */
-	bool opEquals(IDType type) const pure nothrow @safe
+	bool opEquals(IdType type) const pure nothrow @safe
 	{
 		return this.type == type;
 	}
 
 	/**
-	 *
+	 * Constructs a token from a token type.
+	 * Params: type = the token type
 	 */
-	this(IDType type)
+	this(IdType type)
 	{
 		this.type = type;
 	}
 
 	/**
-	 *
+	 * Constructs a token.
+	 * Params:
+	 *     type = the token type
+	 *     text = the text of the token, which may be null
+	 *     line = the line number at which this token occurs
+	 *     column = the column nmuber at which this token occurs
+	 *     index = the byte offset from the beginning of the input at which this
+	 *         token occurs
 	 */
-	this(IDType type, string text, size_t line, size_t column, size_t index)
+	this(IdType type, string text, size_t line, size_t column, size_t index)
 	{
 		this.text = text;
 		this.line = line;
@@ -156,39 +274,105 @@ public:
 	}
 
 	/**
-	 *
+	 * The _text of the token.
 	 */
 	string text;
 
 	/**
-	 *
+	 * The line number at which this token occurs.
 	 */
 	size_t line;
 
 	/**
-	 *
+	 * The Column nmuber at which this token occurs.
 	 */
 	size_t column;
 
 	/**
-	 *
+	 * The byte offset from the beginning of the input at which this token
+	 * occurs.
 	 */
 	size_t index;
 
 	/**
-	 *
+	 * The token type.
 	 */
-	IDType type;
+	IdType type;
 
 	mixin (extraFields);
 }
 
+/**
+ * The implementation of the _lexer is contained within this mixin template.
+ * To use it, this template should be mixed in to a struct that represents the
+ * _lexer for your language. This struct should implement the following methods:
+ * $(UL
+ *     $(LI popFront, which should call this mixin's _popFront() and
+ *         additionally perform any token filtering or shuffling you deem
+ *         necessary. For example, you can implement popFront to skip comment or
+ *          tokens.)
+ *     $(LI A function that serves as the default token lexing function. For
+ *         most languages this will be the identifier lexing function.)
+ *     $(LI A function that is able to determine if an identifier/keyword has
+ *         come to an end. This function must retorn $(D_KEYWORD bool) and take
+ *         a single $(D_KEYWORD size_t) argument representing the number of
+ *         bytes to skip over before looking for a separating character.)
+ *     $(LI Any functions referred to in the tokenHandlers template paramater.
+ *         These functions must be marked $(D_KEYWORD pure nothrow), take no
+ *         arguments, and return a token)
+ *     $(LI A constructor that initializes the range field as well as calls
+ *         popFront() exactly once (to initialize the _front field).)
+ * )
+ * Examples:
+ * ---
+ * struct CalculatorLexer
+ * {
+ *     mixin Lexer!(IdType, Token, defaultTokenFunction, isSeparating,
+ *         staticTokens, dynamicTokens, tokenHandlers, possibleDefaultTokens);
+ *
+ *     this (ubyte[] bytes)
+ *     {
+ *         this.range = LexerRange(bytes);
+ *         popFront();
+ *     }
+ *
+ *     void popFront() pure
+ *     {
+ *         _popFront();
+ *     }
+ *
+ *     Token lexNumber() pure nothrow @safe
+ *     {
+ *         ...
+ *     }
+ *
+ *     Token lexWhitespace() pure nothrow @safe
+ *     {
+ *         ...
+ *     }
+ *
+ *     Token defaultTokenFunction() pure nothrow @safe
+ *     {
+ *         // There is no default token in the example calculator language, so
+ *         // this is always an error.
+ *         range.popFront();
+ *         return Token(tok!"");
+ *     }
+ *
+ *     bool isSeparating(size_t offset) pure nothrow @safe
+ *     {
+ *         // For this example language, always return true.
+ *         return true;
+ *     }
+ * }
+ * ---
+ */
 mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 	alias tokenSeparatingFunction, alias staticTokens, alias dynamicTokens,
-	alias pseudoTokenHandlers, alias possibleDefaultTokens)
+	alias tokenHandlers, alias possibleDefaultTokens)
 {
 
-	static assert (pseudoTokenHandlers.length % 2 == 0, "Each pseudo-token must"
+	static assert (tokenHandlers.length % 2 == 0, "Each pseudo-token must"
 		~ " have a corresponding handler function name.");
 
 	static string generateMask(const ubyte[] arr)
@@ -214,7 +398,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		import std.string;
 		import std.range;
 
-		string[] pseudoTokens = stupidToArray(pseudoTokenHandlers.stride(2));
+		string[] pseudoTokens = stupidToArray(tokenHandlers.stride(2));
 		string[] allTokens = stupidToArray(sort(staticTokens ~ possibleDefaultTokens ~ pseudoTokens).uniq);
 		string code;
 		for (size_t i = 0; i < allTokens.length; i++)
@@ -240,7 +424,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 			if (pseudoTokens.countUntil(tokens[0]) >= 0)
 			{
 				return "    return "
-					~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[0]) + 1]
+					~ tokenHandlers[tokenHandlers.countUntil(tokens[0]) + 1]
 					~ "();\n";
 			}
 			else if (staticTokens.countUntil(tokens[0]) >= 0)
@@ -251,7 +435,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 			else if (pseudoTokens.countUntil(tokens[0]) >= 0)
 			{
 				return "    return "
-					~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(tokens[0]) + 1]
+					~ tokenHandlers[tokenHandlers.countUntil(tokens[0]) + 1]
 					~ "();\n";
 			}
 		}
@@ -271,14 +455,14 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 				if (token.length <= 8)
 				{
 					code ~= "        return "
-						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
+						~ tokenHandlers[tokenHandlers.countUntil(token) + 1]
 						~ "();\n";
 				}
 				else
 				{
 					code ~= "        if (range.peek(" ~ text(token.length - 1) ~ ") == \"" ~ escape(token) ~"\")\n";
 					code ~= "            return "
-						~ pseudoTokenHandlers[pseudoTokenHandlers.countUntil(token) + 1]
+						~ tokenHandlers[tokenHandlers.countUntil(token) + 1]
 						~ "();\n";
 				}
 			}
@@ -325,16 +509,23 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return code;
 	}
 
+	/**
+	 * Implements the range primitive front().
+	 */
 	ref const(Token) front() pure nothrow const @property
 	{
 		return _front;
 	}
+
 
 	void _popFront() pure
 	{
 		_front = advance();
 	}
 
+	/**
+	 * Implements the range primitive empty().
+	 */
 	bool empty() pure const nothrow @property
 	{
 		return _front.type == tok!"\0";
@@ -359,9 +550,7 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		return retVal;
 	}
 
-	/**
-	 * This only exists because the real array() can't be called at compile-time
-	 */
+	// This only exists because the real array() can't be called at compile-time
 	static string[] stupidToArray(R)(R range)
 	{
 		string[] retVal;
@@ -397,13 +586,30 @@ mixin template Lexer(IDType, Token, alias defaultTokenFunction,
 		}
 	}
 
+	/**
+	 * The lexer input.
+	 */
 	LexerRange range;
+
+	/**
+	 * The token that is currently at the front of the range.
+	 */
 	Token _front;
 }
 
+/**
+ * Range structure that wraps the _lexer's input.
+ */
 struct LexerRange
 {
 
+	/**
+	 * Params:
+	 *     bytes = the _lexer input
+	 *     index = the initial offset from the beginning of $(D_PARAM bytes)
+	 *     column = the initial column number
+	 *     line = the initial line number
+	 */
 	this(const(ubyte)[] bytes, size_t index = 0, size_t column = 1, size_t line = 1) pure nothrow @safe
 	{
 		this.bytes = bytes;
@@ -412,31 +618,52 @@ struct LexerRange
 		this.line = line;
 	}
 
+	/**
+	 * Returns: a mark at the current position that can then be used with slice.
+	 */
 	size_t mark() const nothrow pure @safe
 	{
 		return index;
 	}
 
+	/**
+	 * Sets the range to the given position
+	 * Params: m = the position to seek to
+	 */
 	void seek(size_t m) nothrow pure @safe
 	{
 		index = m;
 	}
 
+	/**
+	 * Returs a slice of the input byte array betwene the given mark and the
+	 * current position.
+	 * Params m = the beginning index of the slice to return
+	 */
 	const(ubyte)[] slice(size_t m) const nothrow pure @safe
 	{
 		return bytes[m .. index];
 	}
 
+	/**
+	 * Implements the range primitive _empty.
+	 */
 	bool empty() const nothrow pure @safe
 	{
 		return index >= bytes.length;
 	}
 
+	/**
+	 * Implements the range primitive _front.
+	 */
 	ubyte front() const nothrow pure @safe
 	{
 		return bytes[index];
 	}
 
+	/**
+	 * Returns: the current item as well as the items $(D_PARAM p) items ahead.
+	 */
 	const(ubyte)[] peek(size_t p) const nothrow pure @safe
 	{
 		return index + p + 1 > bytes.length
@@ -444,48 +671,79 @@ struct LexerRange
 			: bytes[index .. index + p + 1];
 	}
 
+	/**
+	 *
+	 */
 	ubyte peekAt(size_t offset) const nothrow pure @safe
 	{
 		return bytes[index + offset];
 	}
 
+	/**
+	 * Returns: true if it is possible to peek $(D_PARAM p) bytes ahead.
+	 */
 	bool canPeek(size_t p) const nothrow pure @safe
 	{
 		return index + p < bytes.length;
 	}
 
+	/**
+	 * Implements the range primitive _popFront.
+	 */
 	void popFront() pure nothrow @safe
 	{
 		index++;
 		column++;
 	}
 
+	/**
+	 * Implements the algorithm _popFrontN more efficiently.
+	 */
 	void popFrontN(size_t n) pure nothrow @safe
 	{
 		index += n;
+		column += n;
 	}
 
+	/**
+	 * Increments the range's line number and resets the column counter.
+	 */
 	void incrementLine() pure nothrow @safe
 	{
 		column = 1;
 		line++;
 	}
 
+	/**
+	 * The input _bytes.
+	 */
 	const(ubyte)[] bytes;
+
+	/**
+	 * The range's current position.
+	 */
 	size_t index;
+
+	/**
+	 * The current _column number.
+	 */
 	size_t column;
+
+	/**
+	 * The current _line number.
+	 */
 	size_t line;
 }
 
 /**
- * The string cache should be used within lexer implementations for several
- * reasons:
- * $(UL
- *     $(LI Reducing memory consumption.)
- *     $(LI Increasing performance in token comparisons)
- *     $(LI Correctly creating immutable token text if the lexing source is not
- *     immutable)
- * )
+ * The string cache implements a map/set for strings. Placing a string in the
+ * cache returns an identifier that can be used to instantly access the stored
+ * string. It is then possible to simply compare these indexes instead of
+ * performing full string comparisons when comparing the string content of
+ * dynamic tokens. The string cache also handles its own memory, so that mutable
+ * ubyte[] to lexers can still have immutable string fields in their tokens.
+ * Because the string cache also performs de-duplication it is possible to
+ * drastically reduce the memory usage of a lexer.
  */
 struct StringCache
 {
@@ -493,7 +751,10 @@ public:
 
 	@disable this();
 
-	this(size_t bucketCount = defaultBucketCount)
+	/**
+	 * Params: bucketCount = the initial number of buckets.
+	 */
+	this(size_t bucketCount)
 	{
 		buckets = new Item*[bucketCount];
 	}
@@ -512,6 +773,9 @@ public:
 		return get(cache(bytes));
 	}
 
+	/**
+	 * Equivalent to calling cache() and get().
+	 */
 	string cacheGet(const(ubyte[]) bytes, uint hash) pure nothrow @safe
 	{
 		return get(cache(bytes, hash));
@@ -536,6 +800,11 @@ public:
 		return cache(bytes, hash);
 	}
 
+	/**
+	 * Caches a string as above, but uses the given has code instead of
+	 * calculating one itself. Use this alongside hashStep() can reduce the
+	 * amount of work necessary when lexing dynamic tokens.
+	 */
 	size_t cache(const(ubyte)[] bytes, uint hash) pure nothrow @safe
 	in
 	{
@@ -583,11 +852,21 @@ public:
 		writeln("rehashes:              ", rehashCount);
 	}
 
+	/**
+	 * Incremental hashing.
+	 * Params:
+	 *     b = the byte to add to the hash
+	 *     h = the hash that has been calculated so far
+	 * Returns: the new hash code for the string.
+	 */
 	static uint hashStep(ubyte b, uint h) pure nothrow @safe
 	{
 		return (h ^ sbox[b]) * 3;
 	}
 
+	/**
+	 * The default bucket count for the string cache.
+	 */
 	static enum defaultBucketCount = 2048;
 
 private:
