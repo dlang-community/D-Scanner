@@ -59,12 +59,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<andAndExpression>");
 		output.writeln("<left>");
 		andAndExpression.left.accept(this);
-		output.writeln("<left>");
+		output.writeln("</left>");
 		if (andAndExpression.right !is null)
 		{
 			output.writeln("<right>");
 			andAndExpression.right.accept(this);
-			output.writeln("<right>");
+			output.writeln("</right>");
 		}
 		output.writeln("</andAndExpression>");
 	}
@@ -74,12 +74,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<andExpression>");
 		output.writeln("<left>");
 		andExpression.left.accept(this);
-		output.writeln("<left>");
+		output.writeln("</left>");
 		if (andExpression.right !is null)
 		{
 			output.writeln("<right>");
 			andExpression.right.accept(this);
-			output.writeln("<right>");
+			output.writeln("</right>");
 		}
 		output.writeln("</andExpression>");
 	}
@@ -429,14 +429,14 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(EqualExpression equalExpression)
 	{
-		output.writeln("<enumMember operator=\"", str(equalExpression.operator), "\">");
+		output.writeln("<equalExpression operator=\"", str(equalExpression.operator), "\">");
 		output.writeln("<left>");
-		visit(equalExpression.left);
+		equalExpression.left.accept(this);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(equalExpression.right);
+		equalExpression.right.accept(this);
 		output.writeln("</right>");
-		output.writeln("</enumMember>");
+		output.writeln("</equalExpression>");
 	}
 
 	override void visit(Expression expression)
@@ -637,17 +637,17 @@ class XMLPrinter : ASTVisitor
 				visit(ifStatement.type);
 			visit(ifStatement.identifier);
 		}
-		visit(ifStatement.expression);
+		ifStatement.expression.accept(this);
 		output.writeln("</condition>");
 
 		output.writeln("<then>");
-		visit(ifStatement.thenStatement);
+		ifStatement.thenStatement.accept(this);
 		output.writeln("</then>");
 
 		if (ifStatement.elseStatement !is null)
 		{
 			output.writeln("<else>");
-			visit(ifStatement.elseStatement);
+			ifStatement.elseStatement.accept(this);
 			output.writeln("</else>");
 		}
 		output.writeln("</ifStatement>");
@@ -983,10 +983,10 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<relExpression operator=\"",
 			xmlEscape(str(relExpression.operator)), "\">");
 		output.writeln("<left>");
-		visit(relExpression.left);
+		relExpression.left.accept(this);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(relExpression.right);
+		relExpression.right.accept(this);
 		output.writeln("</right>");
 		output.writeln("</relExpression>");
 	}
@@ -1023,10 +1023,10 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<shiftExpression operator=\"",
 			xmlEscape(str(shiftExpression.operator)), "\">");
 		output.writeln("<left>");
-		visit(shiftExpression.left);
+		shiftExpression.left.accept(this);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(shiftExpression.right);
+		shiftExpression.right.accept(this);
 		output.writeln("</right>");
 		output.writeln("</shiftExpression>");
 	}
@@ -1404,11 +1404,11 @@ class XMLPrinter : ASTVisitor
 		{
 			output.writeln("<prefix>", xmlEscape(unaryExpression.prefix.text),
 				"</prefix>");
-			visit(unaryExpression.unaryExpression);
+			unaryExpression.unaryExpression.accept(this);
 		}
 		if (unaryExpression.suffix != tok!"")
 		{
-			visit(unaryExpression.unaryExpression);
+			unaryExpression.unaryExpression.accept(this);
 			output.writeln("<suffix>", unaryExpression.suffix.text,
 				"</suffix>");
 		}

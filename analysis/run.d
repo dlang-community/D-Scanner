@@ -17,6 +17,7 @@ import analysis.enumarrayliteral;
 import analysis.pokemon;
 import analysis.del;
 import analysis.fish;
+import analysis.numbers;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -71,8 +72,12 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 		auto fish = new FloatOperatorCheck(fileName);
 		fish.visit(m);
 
+		auto numbers = new NumberStyleCheck(fileName);
+		numbers.visit(m);
+
 		foreach (message; sort(chain(enums.messages, style.messages,
-			pokemon.messages, del.messages, fish.messages).array))
+			pokemon.messages, del.messages, fish.messages, numbers.messages
+			).array))
 		{
 			writeln(message);
 		}
