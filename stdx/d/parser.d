@@ -3523,6 +3523,8 @@ invariant() foo();
         else
         {
             expect(tok!"new");
+            if (!moreTokens())
+                return null;
             node.type = parseType();
             if (currentIs(tok!"["))
             {
@@ -5651,6 +5653,8 @@ q{(int a, ...)
     UnaryExpression parseUnaryExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
+        if (!moreTokens())
+            return null;
         auto node = new UnaryExpression;
         switch (current.type)
         {
