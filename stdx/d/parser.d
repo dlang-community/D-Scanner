@@ -1780,8 +1780,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             auto dos = parseDeclarationOrStatement();
             if (dos !is null)
                 node.declarationsAndStatements ~= dos;
-            /*else
-                return null;*/
         }
         return node;
     }

@@ -1120,17 +1120,21 @@ public struct DLexer
 			if (isNewline())
 			{
 				popFrontWhitespaceAware();
-				if (range.peek(ident.text.length) == ident.text)
+				if (!range.canPeek(ident.text.length))
 				{
-					foreach (i ; 0 .. ident.text.length)
-						range.popFront();
+					error(ident.text ~ " expected");
+					break;
+				}
+				if (range.peek(ident.text.length - 1) == ident.text)
+				{
+					range.popFrontN(ident.text.length);
 					break;
 				}
 			}
 			else
 				range.popFront();
 		}
-		if (range.front == '"')
+		if (!range.empty() && range.front == '"')
 			range.popFront();
 		else
 			error(`" expected`);
