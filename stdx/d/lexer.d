@@ -1363,6 +1363,11 @@ public struct DLexer
 		import std.stdio;
 		mixin (tokenStart);
 		uint hash = 0;
+		if (isSeparating(0) || range.empty)
+		{
+			error("Invalid identifier");
+			range.popFront();
+		}
 		while (!range.empty && !isSeparating(0))
 		{
 			hash = StringCache.hashStep(range.front, hash);
