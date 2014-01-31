@@ -11,7 +11,7 @@ import stdx.d.lexer;
 import analysis.base;
 
 /**
- * Checks for use of the deprecated "delete" keyword
+ * Checks for long and hard-to-read number literals
  */
 class NumberStyleCheck : BaseAnalyzer
 {
