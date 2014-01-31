@@ -412,13 +412,14 @@ public struct DLexer
 
 	private static bool isDocComment(string comment) pure nothrow @safe
 	{
-		return comment.length >= 3 && (comment[0 .. 3] == "///"
-			|| comment[0 .. 3] == "/**" || comment[0 .. 3] == "/++");
+		return comment.length >= 3 && (comment[2] == '/'
+			|| comment[2] == '*' || comment[2] == '+');
 	}
 
 	public void popFront() pure
 	{
 		_popFront();
+		string comment = null;
 		switch (front.type)
 		{
 			case tok!"comment":
@@ -427,9 +428,9 @@ public struct DLexer
 					import std.string;
 					if (isDocComment(front.text))
 					{
-						_front.comment = _front.comment == null
+						comment = comment is null
 							? front.text
-							: format("%s\n%s", _front.comment, front.text);
+							: format("%s\n%s", comment, front.text);
 					}
 					do _popFront(); while (front == tok!"comment");
 					if (front == tok!"whitespace") goto case tok!"whitespace";
@@ -445,6 +446,7 @@ public struct DLexer
 			default:
 				break;
 		}
+		_front.comment = comment;
 	}
 
 
