@@ -215,12 +215,18 @@ class XMLPrinter : ASTVisitor
 	override void visit(CaseRangeStatement caseRangeStatement)
 	{
 		output.writeln("<caseRangeStatement>");
-		output.writeln("<low>");
-		visit(caseRangeStatement.low);
-		output.writeln("</low>");
-		output.writeln("<high>");
-		visit(caseRangeStatement.high);
-		output.writeln("</high>");
+		if (caseRangeStatement.low !is null)
+		{
+			output.writeln("<low>");
+			visit(caseRangeStatement.low);
+			output.writeln("</low>");
+		}
+		if (caseRangeStatement.high !is null)
+		{
+			output.writeln("<high>");
+			visit(caseRangeStatement.high);
+			output.writeln("</high>");
+		}
 		if (caseRangeStatement.declarationsAndStatements !is null)
 			visit(caseRangeStatement.declarationsAndStatements);
 		output.writeln("</caseRangeStatement>");
@@ -1329,12 +1335,14 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(Type2 type2)
 	{
-		output.writeln("<type2>");
 		if (type2.builtinType != tok!"")
-			output.writeln(str(type2.builtinType));
+			output.writeln("<type2>", str(type2.builtinType), "</type2>");
 		else
+		{
+			output.writeln("<type2>");
 			type2.accept(this);
-		output.writeln("</type2>");
+			output.writeln("</type2>");
+		}
 	}
 
 	override void visit(TypeSpecialization typeSpecialization)
