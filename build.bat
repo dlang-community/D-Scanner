@@ -1,1 +1,1 @@
-dmd main.d stats.d imports.d highlighter.d ctags.d astprinter.d formatter.d outliner.d stdx/*.d stdx/d/*.d analysis/*.d -ofdscanner -m64 -g -O -release -noboundscheck -inline
+dmd main.d stats.d imports.d highlighter.d ctags.d astprinter.d formatter.d outliner.d stdx/lexer.d stdx/d/ast.d stdx/d/entities.d stdx/d/lexer.d stdx/d/parser.d analysis/base.d analysis/del.d analysis/enumarrayliteral.d analysis/fish.d analysis/numbers.d analysis/objectconst.d analysis/package.d analysis/pokemon.d analysis/run.d analysis/style.d -ofdscanner -g -O -release -noboundscheck -inline
