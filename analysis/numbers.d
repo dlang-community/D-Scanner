@@ -26,8 +26,8 @@ class NumberStyleCheck : BaseAnalyzer
 	{
 		import std.algorithm;
 		if (isNumberLiteral(t.type) && !t.text.startsWith("0x")
-			&& ((t.text.startsWith("0b") && t.text.matchFirst(badBinaryRegex))
-				|| t.text.matchFirst(badDecimalRegex)))
+			&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex).empty)
+				|| !t.text.matchFirst(badDecimalRegex).empty))
 		{
 			addErrorMessage(t.line, t.column,
 				"Use underscores to improve number constant readability");
