@@ -1,5 +1,13 @@
 // Written in the D programming language
 
+/**
+ * MACROS:
+ * GRAMMAR = <pre>$0</pre>
+ * RULEDEF = $(B $(DDOC_ANCHOR $0) $0)
+ * RULE = $(LINK2 #$0, $0)
+ * LITERAL = $(D_STRING $(I $0))
+ */
+
 module stdx.d.parser;
 
 import stdx.d.lexer;
@@ -17,6 +25,7 @@ import std.string : format;
 /**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
+ *     fileName = the name of the file being parsed
  *     messageFunction = a function to call on error or warning messages.
  *         The parameters are the file name, line number, column number,
  *         the error or warning message, and a boolean (true means error, false
