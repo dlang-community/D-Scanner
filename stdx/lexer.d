@@ -260,7 +260,7 @@ public:
 	 *     type = the token type
 	 *     text = the text of the token, which may be null
 	 *     line = the line number at which this token occurs
-	 *     column = the column nmuber at which this token occurs
+	 *     column = the column number at which this token occurs
 	 *     index = the byte offset from the beginning of the input at which this
 	 *         token occurs
 	 */
@@ -284,7 +284,7 @@ public:
 	size_t line;
 
 	/**
-	 * The Column nmuber at which this token occurs.
+	 * The Column number at which this token occurs.
 	 */
 	size_t column;
 
