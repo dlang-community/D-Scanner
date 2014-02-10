@@ -105,9 +105,10 @@ module stdx.lexer;
 /**
  * Template for determining the type used for a token type. Selects the smallest
  * unsigned integral type that is able to hold the value
- * staticTokens.length + dynamicTokens.length. For example if there are 20
- * static tokens, 30 dynamic tokens, and 10 possible default tokens, this
- * template will alias itself to ubyte, as 20 + 30 + 10 < $(D_KEYWORD ubyte).max.
+ * staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length.
+ * For example if there are 20 static tokens, 30 dynamic tokens,
+ * and 10 possible default tokens, this template will alias itself to ubyte,
+ * as 20 + 30 + 10 < $(D_KEYWORD ubyte).max.
  * Examples:
  * ---
  * // In our calculator example this means that IdType is an alias for ubyte.
