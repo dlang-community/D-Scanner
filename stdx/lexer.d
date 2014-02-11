@@ -118,11 +118,11 @@ module stdx.lexer;
 template TokenIdType(alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens)
 {
-  static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length) <= ubyte.max)
+  static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length + 1) <= ubyte.max)
 		alias TokenIdType = ubyte;
-	else static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length) <= ushort.max)
+	else static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length + 1) <= ushort.max)
 		alias TokenIdType = ushort;
-	else static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length) <= uint.max)
+	else static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length + 1) <= uint.max)
 		alias TokenIdType = uint;
 	else
 		static assert (false);
