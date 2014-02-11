@@ -399,8 +399,8 @@ public struct DLexer
 {
 	import core.vararg;
 
-	mixin Lexer!(IdType, Token, lexIdentifier, isSeparating, operators,
-		dynamicTokens, pseudoTokenHandlers, keywords);
+	mixin Lexer!(Token, lexIdentifier, isSeparating, pseudoTokenHandlers,
+		operators, dynamicTokens, keywords);
 
 	this(ubyte[] range, const LexerConfig config, StringCache* cache)
 	{
