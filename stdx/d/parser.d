@@ -881,6 +881,11 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new BaseClass;
+        if (current.type.isProtection())
+        {
+            warn("Use of base class protection is deprecated.");
+            advance();
+        }
         if (currentIs(tok!"typeof"))
         {
             node.typeofExpression = parseTypeofExpression();
