@@ -325,6 +325,9 @@ public:
  *     $(LI A constructor that initializes the range field as well as calls
  *         popFront() exactly once (to initialize the _front field).)
  * )
+ * Additionally, the Lexer mixin expects to find the $(D tok(string symbol)) template
+ * that should be accessible from within the scope of where the Lexer is mixed-in.
+ * You should implement $(D tok(string symbol)) via the $(LREF TokenId) template.
  * Examples:
  * ---
  * struct CalculatorLexer
