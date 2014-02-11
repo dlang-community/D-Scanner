@@ -140,16 +140,31 @@ template TokenIdType(alias staticTokens, alias dynamicTokens,
  */
 string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
 {
+	enum tokens = staticTokens ~ dynamicTokens ~ possibleDefaultTokens;
+
 	if (type == 0)
 		return "!ERROR!";
-	else if (type < staticTokens.length + 1)
-		return staticTokens[type - 1];
-	else if (type < staticTokens.length + possibleDefaultTokens.length + 1)
-		return possibleDefaultTokens[type - staticTokens.length - 1];
-	else if (type < staticTokens.length + possibleDefaultTokens.length + dynamicTokens.length + 1)
-		return dynamicTokens[type - staticTokens.length - possibleDefaultTokens.length - 1];
+	else if (type < tokens.length + 1)
+		return tokens[type - 1];
 	else
 		return null;
+}
+
+unittest
+{
+	/// Fix https://github.com/Hackerpilot/Dscanner/issues/96
+	alias IdType = TokenIdType!(["foo"], ["bar"], ["doo"]);
+
+	template tok(string token)
+	{
+		alias tok = TokenId!(IdType, ["foo"], ["bar"], ["doo"], token);
+	}
+
+	alias str = tokenStringRepresentation!(IdType, ["foo"], ["bar"], ["doo"]);
+
+	static assert(str(tok!"foo") == "foo");
+	static assert(str(tok!"bar") == "bar");
+	static assert(str(tok!"doo") == "doo");
 }
 
 /**
@@ -178,6 +193,8 @@ string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens
 template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 	alias possibleDefaultTokens, string symbol)
 {
+	enum tokens = staticTokens ~ dynamicTokens ~ possibleDefaultTokens;
+
 	import std.algorithm;
 	static if (symbol == "")
 	{
@@ -186,36 +203,20 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 	}
 	else static if (symbol == "\0")
 	{
-		enum id = 1 + staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length;
+		enum id = 1 + tokens.length;
 		alias TokenId = id;
 	}
 	else
 	{
-		enum i = staticTokens.countUntil(symbol);
-		static if (i >= 0)
+		enum i = tokens.countUntil(symbol);
+		static if (i != -1)
 		{
 			enum id = i + 1;
+			static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
 			alias TokenId = id;
 		}
 		else
-		{
-			enum ii = possibleDefaultTokens.countUntil(symbol);
-			static if (ii >= 0)
-			{
-				enum id = ii + staticTokens.length + 1;
-				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
-				alias TokenId = id;
-			}
-			else
-			{
-				enum dynamicId = dynamicTokens.countUntil(symbol);
-				enum id = dynamicId >= 0
-					? i + staticTokens.length + possibleDefaultTokens.length + dynamicId + 1
-					: -1;
-				static assert (id >= 0 && id < IdType.max, "Invalid token: " ~ symbol);
-				alias TokenId = id;
-			}
-		}
+			static assert (0, "Invalid token: " ~ symbol);
 	}
 }
 
