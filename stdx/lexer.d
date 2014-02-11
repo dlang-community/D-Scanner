@@ -368,10 +368,11 @@ public:
  * }
  * ---
  */
-mixin template Lexer(IDType, Token, alias defaultTokenFunction,
-	alias tokenSeparatingFunction, alias staticTokens, alias dynamicTokens,
-	alias tokenHandlers, alias possibleDefaultTokens)
+mixin template Lexer(Token, alias defaultTokenFunction,
+	alias tokenSeparatingFunction, alias tokenHandlers,
+	alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)
 {
+	alias IDType = typeof(Token.type);
 
 	static assert (tokenHandlers.length % 2 == 0, "Each pseudo-token must"
 		~ " have a corresponding handler function name.");
