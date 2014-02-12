@@ -346,8 +346,9 @@ class AliasDeclaration : ASTNode
 public:
     override void accept(ASTVisitor visitor)
     {
-        mixin (visitIfNotNull!(type, name, initializers));
+        mixin (visitIfNotNull!(linkageAttribute, type, name, initializers));
     }
+    /** */ LinkageAttribute linkageAttribute;
     /** */ Type type;
     /** */ Token name;
     /** */ AliasInitializer[] initializers;

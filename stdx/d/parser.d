@@ -70,7 +70,7 @@ class Parser
      *
      * $(GRAMMAR $(RULEDEF aliasDeclaration):
      *       $(LITERAL 'alias') $(RULE aliasInitializer) $(LPAREN)$(LITERAL ',') $(RULE aliasInitializer)$(RPAREN)* $(LITERAL ';')
-     *     | $(LITERAL 'alias') $(RULE type) $(LITERAL identifier) $(LITERAL ';')
+     *     | $(LITERAL 'alias') $(RULE linkageAttribute)? $(RULE type) $(LITERAL identifier) $(LITERAL ';')
      *     ;)
      */
     AliasDeclaration parseAliasDeclaration()
@@ -78,6 +78,18 @@ class Parser
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new AliasDeclaration;
         if (expect(tok!"alias") is null) return null;
+
+        // 'alias extern(C) void function() f;' => supported in DMD and DScanner.
+        // 'alias f = extern(C) void function();' => not supported in both DMD and DScanner. See D Bugzilla 10471.
+        // 'alias extern void function() f;' => supported in DMD, not supported in DScanner since it's a storage class.
+        if (currentIs(tok!"extern"))
+        {
+            if (!peekIs(tok!"("))
+                error(`"(" expected for the linkage attribute`);
+
+            node.linkageAttribute = parseLinkageAttribute();
+        }
+
         if (startsWith(tok!"identifier", tok!"="))
         {
             do
