@@ -155,12 +155,7 @@ unittest
 {
 	/// Fix https://github.com/Hackerpilot/Dscanner/issues/96
 	alias IdType = TokenIdType!(["foo"], ["bar"], ["doo"]);
-
-	template tok(string token)
-	{
-		alias tok = TokenId!(IdType, ["foo"], ["bar"], ["doo"], token);
-	}
-
+	alias tok(string token) = TokenId!(IdType, ["foo"], ["bar"], ["doo"], token);
 	alias str = tokenStringRepresentation!(IdType, ["foo"], ["bar"], ["doo"]);
 
 	static assert(str(tok!"foo") == "foo");
@@ -373,7 +368,8 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 	alias tokenSeparatingFunction, alias tokenHandlers,
 	alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)
 {
-	alias IDType = typeof(Token.type);
+	private alias _IDType = typeof(Token.type);
+	private alias _tok(string symbol) = TokenId!(_IDType, staticTokens, dynamicTokens, possibleDefaultTokens, symbol);
 
 	static assert (tokenHandlers.length % 2 == 0, "Each pseudo-token must"
 		~ " have a corresponding handler function name.");
@@ -433,7 +429,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 			else if (staticTokens.countUntil(tokens[0]) >= 0)
 			{
 				return "    range.popFront();\n"
-					~ "    return Token(tok!\"" ~ escape(tokens[0]) ~ "\", null, line, column, index);\n";
+					~ "    return Token(_tok!\"" ~ escape(tokens[0]) ~ "\", null, line, column, index);\n";
 			}
 			else if (pseudoTokens.countUntil(tokens[0]) >= 0)
 			{
@@ -474,7 +470,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 				if (token.length <= 8)
 				{
 					code ~= "        range.popFrontN(" ~ text(token.length) ~ ");\n";
-					code ~= "        return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
+					code ~= "        return Token(_tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
 				}
 				else
 				{
@@ -489,7 +485,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 					code ~= "        if (tokenSeparatingFunction(" ~ text(token.length) ~ "))\n";
 					code ~= "        {\n";
 					code ~= "            range.popFrontN(" ~ text(token.length) ~ ");\n";
-					code ~= "            return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
+					code ~= "            return Token(_tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
 					code ~= "        }\n";
 					code ~= "        else\n";
 					code ~= "            goto default;\n";
@@ -499,7 +495,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 					code ~= "        if (range.peek(" ~ text(token.length - 1) ~ ") == \"" ~ escape(token) ~"\" && isSeparating(" ~ text(token.length) ~ "))\n";
 					code ~= "        {\n";
 					code ~= "            range.popFrontN(" ~ text(token.length) ~ ");\n";
-					code ~= "            return Token(tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
+					code ~= "            return Token(_tok!\"" ~ escape(token) ~ "\", null, line, column, index);\n";
 					code ~= "        }\n";
 					code ~= "        else\n";
 					code ~= "            goto default;\n";
@@ -531,7 +527,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 	 */
 	bool empty() pure const nothrow @property
 	{
-		return _front.type == tok!"\0";
+		return _front.type == _tok!"\0";
 	}
 
 	static string escape(string input)
@@ -575,7 +571,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 	Token advance() pure
 	{
 		if (range.empty)
-			return Token(tok!"\0");
+			return Token(_tok!"\0");
 		immutable size_t index = range.index;
 		immutable size_t column = range.column;
 		immutable size_t line = range.line;
