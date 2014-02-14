@@ -6522,7 +6522,7 @@ protected:
     /**
      * Returns: true if there are more tokens
      */
-    bool moreTokens() const nothrow
+    public bool moreTokens() const nothrow
     {
         return index < tokens.length;
     }
