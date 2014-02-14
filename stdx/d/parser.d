@@ -6035,6 +6035,15 @@ q{doStuff(5)}c;
         this.tokens = tokens;
     }
 
+    /**
+     * Returns: true if there are more tokens
+     */
+    bool moreTokens() const nothrow pure @safe
+    {
+        return index < tokens.length;
+    }
+
+
 protected:
 
     bool isCastQualifier() const
@@ -6517,14 +6526,6 @@ protected:
                 return false;
         }
         return true;
-    }
-
-    /**
-     * Returns: true if there are more tokens
-     */
-    bool moreTokens() const nothrow
-    {
-        return index < tokens.length;
     }
 
     size_t setBookmark()
