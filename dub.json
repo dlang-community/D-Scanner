@@ -1,0 +1,19 @@
+{
+    "name": "dscanner",
+    "description": "Swiss-army knife for D source code",
+    "copyright": "Copyright © 2012 -, Brian Schott",
+    "authors": ["Brian Schott"],
+    "importPaths": ["."],
+    "configurations": [
+        {
+            "name": "library",
+            "targetType": "library",
+            "sourcePaths": ["stdx"],
+        },
+        {
+            "name": "dscanner",
+            "targetType": "executable",
+            "sourcePaths": ["."],
+        },
+    ],
+}
