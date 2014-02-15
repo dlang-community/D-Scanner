@@ -1,9 +1,10 @@
 {
     "name": "dscanner",
     "description": "Swiss-army knife for D source code",
-    "copyright": "Copyright © 2012 -, Brian Schott",
+    "copyright": "© Brian Schott",
     "authors": ["Brian Schott"],
     "importPaths": ["."],
+	"license" : "Boost Software License - Version 1.0",
     "configurations": [
         {
             "name": "library",
