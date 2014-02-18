@@ -45,21 +45,23 @@ given source files.
 * Empty declarations (i.e. random ";" characters)
 * enum array literals in struct/class bodies
 * Avoid Pokémon exception handling
+* opCmp or opEquals, or toHash not declared "const".
+* Format numbers for readability.
+* *delete* keyword is deprecated.
+* "fish operators" (floating point operators) are deprecated.
+* Left side of a *foreach* or *foreach\_reverse* range expression is larger than the right.
+* Left side of a slice expression is larger than the right
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".
-* opCmp or opEquals, or toHash not declared "const".
 * Unused variables.
 * Unused imports.
 * Unused parameters (check is skipped if function is marked "override")
 * Struct constructors that have a single parameter that has a default argument.
 * Variables that are never modified and not declared immutable.
 * Public declarations not documented
-* Format numbers for readability
 * Declaring opEquals without toHash
 * Assignment in conditionals
-* delete keyword is deprecated
-* "fish operators" (floating point operators) are deprecated
 
 ### Line of Code Count
 The "--sloc" or "-l" option prints the number of lines of code in the file.
