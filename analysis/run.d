@@ -19,6 +19,7 @@ import analysis.del;
 import analysis.fish;
 import analysis.numbers;
 import analysis.objectconst;
+import analysis.range;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -79,9 +80,12 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 		auto objConst = new ObjectConstCheck(fileName);
 		objConst.visit(m);
 
+		auto backwardsRange = new BackwardsRangeCheck(fileName);
+		backwardsRange.visit(m);
+
 		foreach (message; sort(chain(enums.messages, style.messages,
 			pokemon.messages, del.messages, fish.messages, numbers.messages,
-			objConst.messages).array))
+			objConst.messages, backwardsRange.messages).array))
 		{
 			writeln(message);
 		}

@@ -23,7 +23,7 @@ class DeleteCheck : BaseAnalyzer
 
 	override void visit(DeleteExpression d)
 	{
-		addErrorMessage(d.line, d.column, "Avoid using the deprecated delete keyword");
+		addErrorMessage(d.line, d.column, "Avoid using the delete keyword");
 		d.accept(this);
 	}
 }
