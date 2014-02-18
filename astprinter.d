@@ -1050,18 +1050,20 @@ class XMLPrinter : ASTVisitor
 	override void visit(SliceExpression sliceExpression)
 	{
 		output.writeln("<sliceExpression>");
-		if (sliceExpression.unaryExpression is null)
+		visit(sliceExpression.unaryExpression);
+		if (sliceExpression.lower !is null)
 		{
-			output.writeln("<low");
+			output.writeln("<low>");
 			visit(sliceExpression.lower);
-			output.writeln("</low");
-			output.writeln("<high");
-			visit(sliceExpression.upper);
-			output.writeln("</high");
+			output.writeln("</low>");
 		}
-		else
-			visit(sliceExpression.unaryExpression);
-		output.writeln("<sliceExpression>");
+		if (sliceExpression.upper !is null)
+		{
+			output.writeln("<high>");
+			visit(sliceExpression.upper);
+			output.writeln("</high>");
+		}
+		output.writeln("</sliceExpression>");
 	}
 
 	override void visit(Statement statement)

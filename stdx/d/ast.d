@@ -2741,7 +2741,7 @@ public:
         mixin (visitIfNotNull!(primaryExpression, newExpression,
             deleteExpression, castExpression, functionCallExpression, argumentList,
             unaryExpression, type, identifierOrTemplateInstance, assertExpression,
-            indexExpression));
+            sliceExpression, indexExpression));
     }
 
     /** */ Type type;
