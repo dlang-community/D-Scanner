@@ -23,12 +23,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<addExpression operator=\"", str(addExpression.operator) ,"\">");
 		output.writeln("<left>");
-		addExpression.left.accept(this);
+		visit(addExpression.left);
 		output.writeln("</left>");
 		if (addExpression.right !is null)
 		{
 			output.writeln("<right>");
-			addExpression.right.accept(this);
+			visit(addExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</addExpression>");
@@ -850,7 +850,7 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(Module module_)
 	{
-        output.writeln("<?xml version=\"1.0\"?>");
+		output.writeln("<?xml version=\"1.0\"?>");
 		output.writeln("<module>");
 		module_.accept(this);
 		output.writeln("</module>");
@@ -865,12 +865,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<mulExpression operator=\"", str(mulExpression.operator) ,"\">");
 		output.writeln("<left>");
-		mulExpression.left.accept(this);
+		visit(mulExpression.left);
 		output.writeln("</left>");
 		if (mulExpression.right !is null)
 		{
 			output.writeln("<right>");
-			mulExpression.right.accept(this);
+			visit(mulExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</mulExpression>");
