@@ -50,8 +50,8 @@ class BackwardsRangeCheck : BaseAnalyzer
 			}
 			hasLeft = false;
 			hasRight = false;
-			foreachStatement.accept(this);
 		}
+		foreachStatement.accept(this);
 	}
 
 	override void visit(UnaryExpression unary)
@@ -83,22 +83,24 @@ class BackwardsRangeCheck : BaseAnalyzer
 
 	override void visit(SliceExpression sliceExpression)
 	{
-		import std.stdio;
-		state = State.left;
-		sliceExpression.lower.accept(this);
-		state = State.right;
-		sliceExpression.upper.accept(this);
-		state = State.ignore;
-		if (hasLeft && hasRight && left > right)
+		if (sliceExpression.lower !is null && sliceExpression.upper !is null)
 		{
-			import std.string;
-			string message = format(
-				"%d is larger than %d. This slice is likely incorrect.",
-				left, right);
-			addErrorMessage(line, this.column, message);
+			state = State.left;
+			sliceExpression.lower.accept(this);
+			state = State.right;
+			sliceExpression.upper.accept(this);
+			state = State.ignore;
+			if (hasLeft && hasRight && left > right)
+			{
+				import std.string;
+				string message = format(
+					"%d is larger than %d. This slice is likely incorrect.",
+					left, right);
+				addErrorMessage(line, this.column, message);
+			}
+			hasLeft = false;
+			hasRight = false;
 		}
-		hasLeft = false;
-		hasRight = false;
 		sliceExpression.accept(this);
 	}
 }
