@@ -10,7 +10,7 @@
  *
  * To write a _lexer using this API:
  * $(OL
- *     $(LI Create the string array costants for your language.
+ *     $(LI Create the string array constants for your language.
  *         $(UL
  *             $(LI $(LINK2 #.StringConstants, String Constants))
  *         ))
@@ -41,7 +41,7 @@
  *     most common example of this kind of token is an operator such as
  *     $(D_STRING "*"), or $(D_STRING "-") in a programming language.)
  * $(DT $(B dynamicTokens))
- * $(DD A listing of tokens whose value is variable, such as whitespace,
+ * $(DD A listing of tokens whose exact text is variable, such as whitespace,
  *     identifiers, number literals, and string literals.)
  * $(DT $(B possibleDefaultTokens))
  * $(DD A listing of tokens that could posibly be one of the tokens handled by
@@ -118,14 +118,16 @@ module stdx.lexer;
 template TokenIdType(alias staticTokens, alias dynamicTokens,
     alias possibleDefaultTokens)
 {
-  static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length + 1) <= ubyte.max)
+    immutable tokenCount = staticTokens.length + dynamicTokens.length
+        + possibleDefaultTokens.length + 1;
+    static if (tokenCount <= ubyte.max)
         alias TokenIdType = ubyte;
-    else static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length + 1) <= ushort.max)
+    else static if (tokenCount <= ushort.max)
         alias TokenIdType = ushort;
-    else static if ((staticTokens.length + dynamicTokens.length + possibleDefaultTokens.length + 1) <= uint.max)
+    else static if (tokenCount <= uint.max)
         alias TokenIdType = uint;
     else
-        static assert (false);
+        static assert (false, "The number of tokens must be less than uint.max");
 }
 
 /**
@@ -139,7 +141,8 @@ template TokenIdType(alias staticTokens, alias dynamicTokens,
  * ---
  * See_also: $(LREF TokenId)
  */
-string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens, alias possibleDefaultTokens)(IdType type) @property
+string tokenStringRepresentation(IdType, alias staticTokens, alias dynamicTokens,
+    alias possibleDefaultTokens)(IdType type) @property
 {
     enum tokens = staticTokens ~ dynamicTokens ~ possibleDefaultTokens;
 
@@ -171,9 +174,10 @@ unittest
  *     $(LI If symbol is "\0", then the token identifier will be the maximum
  *         valid token type identifier)
  * )
- * In all cases this template will alias itself to a constant of type IdType.
+ * In all cases this template will alias itself to a constant of type $(D IdType).
  * This template will fail at compile time if $(D_PARAM symbol) is not one of
- * the staticTokens, dynamicTokens, or possibleDefaultTokens.
+ * $(D_PARAM staticTokens), $(D_PARAM dynamicTokens), or
+ * $(D_PARAM possibleDefaultTokens).
  * Examples:
  * ---
  * template tok(string symbol)
@@ -235,7 +239,7 @@ struct TokenStructure(IdType, string extraFields = "")
 public:
 
     /**
-     * == overload for the the token type.
+     * Returs: true if the token has the given type, false otherwise.
      */
     bool opEquals(IdType type) const pure nothrow @safe
     {
@@ -276,12 +280,13 @@ public:
     string text;
 
     /**
-     * The line number at which this token occurs.
+     * The _line number at which this token occurs.
      */
     size_t line;
 
     /**
-     * The Column number at which this token occurs.
+     * The _column number at which this token occurs. This is measured in bytes
+     * and may not be correct when tab characters are involved.
      */
     size_t column;
 
@@ -309,7 +314,10 @@ public:
  *         necessary. For example, you can implement popFront to skip comment or
  *          tokens.)
  *     $(LI A function that serves as the default token lexing function. For
- *         most languages this will be the identifier lexing function.)
+ *         most languages this will be the identifier lexing function. This
+ *         should then be passed to the $(LREF Lexer) template mixin as the
+ *         $(LINK2 #.defaultTokenFunction defaultTokenFunction) template
+ *         parameter).
  *     $(LI A function that is able to determine if an identifier/keyword has
  *         come to an end. This function must retorn $(D_KEYWORD bool) and take
  *         a single $(D_KEYWORD size_t) argument representing the number of
@@ -516,8 +524,11 @@ mixin template Lexer(Token, alias defaultTokenFunction,
         return _front;
     }
 
-
-    void _popFront() pure
+    /**
+     * Advances the lexer to the next token and stores the new current token in
+     * the _front variable.
+     */
+    void _popFront() pure nothrow
     {
         _front = advance();
     }
