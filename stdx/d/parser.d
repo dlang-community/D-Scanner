@@ -6099,7 +6099,7 @@ protected:
             return !peekIs(tok!"switch");
         case tok!"debug":
         case tok!"version":
-            return peekIs(tok!"=");
+            return !peekIs(tok!"=");
         case tok!"synchronized":
             if (peekIs(tok!"("))
                 return false;
