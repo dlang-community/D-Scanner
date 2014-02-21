@@ -973,6 +973,8 @@ alias core.sys.posix.stdio.fileno fileno;
             expect(tok!"case");
             node.low = parseAssignExpression();
         }
+        else
+            node.low = low;
         if (expect(tok!":") is null) return null;
         if (expect(tok!"..") is null) return null;
         expect(tok!"case");
