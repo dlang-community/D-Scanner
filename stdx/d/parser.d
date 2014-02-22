@@ -3527,6 +3527,8 @@ invariant() foo();
         if (currentIs(tok!"("))
             node.allocatorArguments = parseArguments();
         expect(tok!"class");
+        if (currentIs(tok!"("))
+            node.constructorArguments = parseArguments();
         if (!currentIs(tok!"{"))
             node.baseClassList = parseBaseClassList();
         node.structBody = parseStructBody();
