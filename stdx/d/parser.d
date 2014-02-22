@@ -4149,6 +4149,8 @@ q{(int a, ...)
                 auto b = setBookmark();
                 advance(); // function | delegate
                 skipParens();
+                while (isAttribute())
+                    parseAttribute();
                 if (currentIs(tok!"=>"))
                 {
                     goToBookmark(b);
