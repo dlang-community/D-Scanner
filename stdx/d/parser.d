@@ -3384,7 +3384,7 @@ invariant() foo();
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new MixinDeclaration;
-        if (peekIs(tok!"identifier"))
+        if (peekIs(tok!"identifier") || peekIs(tok!"typeof"))
             node.templateMixinExpression = parseTemplateMixinExpression();
         else if (peekIs(tok!"("))
             node.mixinExpression = parseMixinExpression();
@@ -3527,6 +3527,8 @@ invariant() foo();
         if (currentIs(tok!"("))
             node.allocatorArguments = parseArguments();
         expect(tok!"class");
+        if (currentIs(tok!"("))
+            node.constructorArguments = parseArguments();
         if (!currentIs(tok!"{"))
             node.baseClassList = parseBaseClassList();
         node.structBody = parseStructBody();
@@ -4149,6 +4151,8 @@ q{(int a, ...)
                 auto b = setBookmark();
                 advance(); // function | delegate
                 skipParens();
+                while (isAttribute())
+                    parseAttribute();
                 if (currentIs(tok!"=>"))
                 {
                     goToBookmark(b);
