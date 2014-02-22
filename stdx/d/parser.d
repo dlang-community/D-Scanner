@@ -3384,7 +3384,7 @@ invariant() foo();
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new MixinDeclaration;
-        if (peekIs(tok!"identifier"))
+        if (peekIs(tok!"identifier") || peekIs(tok!"typeof"))
             node.templateMixinExpression = parseTemplateMixinExpression();
         else if (peekIs(tok!"("))
             node.mixinExpression = parseMixinExpression();
