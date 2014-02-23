@@ -4723,6 +4723,8 @@ q{(int a, ...)
         do
         {
             auto structMemberInitializer = parseStructMemberInitializer();
+            if (structMemberInitializer !is null)
+                node.structMemberInitializers ~= structMemberInitializer;
             if (currentIs(tok!","))
             {
                 advance();
