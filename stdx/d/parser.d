@@ -6105,7 +6105,15 @@ protected:
             return !peekIs(tok!"switch");
         case tok!"debug":
         case tok!"version":
-            return !peekIs(tok!"=");
+        {
+            if (peekIs(tok!"="))
+                return false;
+
+            auto b = setBookmark();
+            scope (exit) goToBookmark(b);
+            advance();
+            return isDeclaration();
+        }
         case tok!"synchronized":
             if (peekIs(tok!"("))
                 return false;
