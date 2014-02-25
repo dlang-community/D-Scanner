@@ -51,6 +51,7 @@ given source files.
 * "fish operators" (floating point operators) are deprecated.
 * Left side of a *foreach* or *foreach\_reverse* range expression is larger than the right.
 * Left side of a slice expression is larger than the right
+* Variable, struct, class, union, module, package, and interface names that do not comply with Phobos style guidelines
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".
