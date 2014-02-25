@@ -3712,7 +3712,13 @@ invariant() foo();
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = new NonVoidInitializer;
         if (currentIs(tok!"{"))
-            node.structInitializer = parseStructInitializer();
+        {
+            auto b = peekPastBraces();
+            if (b !is null && (b.type == tok!"("))
+                node.assignExpression = parseAssignExpression();
+            else
+                node.structInitializer = parseStructInitializer();
+        }
         else if (currentIs(tok!"["))
         {
             auto b = peekPastBrackets();
@@ -6180,6 +6186,14 @@ protected:
         case tok!"{":
         case tok!"assert":
             return false;
+        case tok!"this":
+            auto b = setBookmark();
+            scope (exit) goToBookmark(b);
+            advance();
+            auto p = peekPastParens();
+            if (p !is null && p.type == tok!";")
+                return false;
+            break;
         default:
             break;
         }
