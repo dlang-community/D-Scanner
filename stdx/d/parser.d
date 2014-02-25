@@ -6186,6 +6186,14 @@ protected:
         case tok!"{":
         case tok!"assert":
             return false;
+        case tok!"this":
+            auto b = setBookmark();
+            scope (exit) goToBookmark(b);
+            advance();
+            auto p = peekPastParens();
+            if (p !is null && p.type == tok!";")
+                return false;
+            break;
         default:
             break;
         }
