@@ -6188,9 +6188,9 @@ protected:
             return false;
         case tok!"this":
             auto b = setBookmark();
-            scope (exit) goToBookmark(b);
             advance();
             auto p = peekPastParens();
+            goToBookmark(b);
             if (p !is null && p.type == tok!";")
                 return false;
             break;
