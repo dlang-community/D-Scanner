@@ -4723,6 +4723,8 @@ q{(int a, ...)
         do
         {
             auto structMemberInitializer = parseStructMemberInitializer();
+            if (structMemberInitializer !is null)
+                node.structMemberInitializers ~= structMemberInitializer;
             if (currentIs(tok!","))
             {
                 advance();
@@ -6103,7 +6105,15 @@ protected:
             return !peekIs(tok!"switch");
         case tok!"debug":
         case tok!"version":
-            return !peekIs(tok!"=");
+        {
+            if (peekIs(tok!"="))
+                return false;
+
+            auto b = setBookmark();
+            scope (exit) goToBookmark(b);
+            advance();
+            return isDeclaration();
+        }
         case tok!"synchronized":
             if (peekIs(tok!"("))
                 return false;
