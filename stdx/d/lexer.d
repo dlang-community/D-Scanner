@@ -402,7 +402,7 @@ public struct DLexer
 	mixin Lexer!(Token, lexIdentifier, isSeparating, operators, dynamicTokens,
 		keywords, pseudoTokenHandlers);
 
-	this(ubyte[] range, const LexerConfig config, StringCache* cache)
+	this(ubyte[] range, const LexerConfig config, shared(StringCache)* cache)
 	{
 		this.range = LexerRange(range);
 		this.config = config;
@@ -550,7 +550,7 @@ public struct DLexer
 			}
 		} while (!range.empty);
 		string text = config.whitespaceBehavior == WhitespaceBehavior.skip
-			? null : cache.cacheGet(range.slice(mark));
+			? null : cache.intern(range.slice(mark));
 		return Token(tok!"whitespace", text, line, column, index);
 	}
 
@@ -631,7 +631,7 @@ public struct DLexer
 				break hexLoop;
 			}
 		}
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -662,7 +662,7 @@ public struct DLexer
 				break binaryLoop;
 			}
 		}
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -743,7 +743,7 @@ public struct DLexer
 				break decimalLoop;
 			}
 		}
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -852,7 +852,7 @@ public struct DLexer
 		mixin (tokenStart);
 		while (!range.empty && !isNewline)
 			range.popFront();
-		return Token(tok!"scriptLine", cache.cacheGet(range.slice(mark)),
+		return Token(tok!"scriptLine", cache.intern(range.slice(mark)),
 			line, column, index);
 	}
 
@@ -861,7 +861,7 @@ public struct DLexer
 		mixin (tokenStart);
 		while (!range.empty && !isNewline)
 			range.popFront();
-		return Token(tok!"specialTokenSequence", cache.cacheGet(range.slice(mark)),
+		return Token(tok!"specialTokenSequence", cache.intern(range.slice(mark)),
 			line, column, index);
 	}
 
@@ -885,7 +885,7 @@ public struct DLexer
 			else
 				popFrontWhitespaceAware();
 		}
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -901,7 +901,7 @@ public struct DLexer
 				break;
 			range.popFront();
 		}
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -935,7 +935,7 @@ public struct DLexer
 			else
 				popFrontWhitespaceAware();
 		}
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -964,7 +964,7 @@ public struct DLexer
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -1018,7 +1018,7 @@ public struct DLexer
 			}
 		}
 		lexStringSuffix(type);
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -1105,7 +1105,7 @@ public struct DLexer
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column, index);
+		return Token(type, cache.intern(range.slice(mark)), line, column, index);
 	}
 
 	Token lexHeredocString(size_t mark, size_t line, size_t column, size_t index)
@@ -1142,7 +1142,7 @@ public struct DLexer
 			error(`" expected`);
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column, index);
+		return Token(type, cache.intern(range.slice(mark)), line, column, index);
 	}
 
 	Token lexTokenString() pure
@@ -1186,7 +1186,7 @@ public struct DLexer
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cache.cacheGet(cast(const(ubyte)[]) app.data), line,
+		return Token(type, cache.intern(cast(const(ubyte)[]) app.data), line,
 			column, index);
 	}
 
@@ -1223,7 +1223,7 @@ public struct DLexer
 
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
-		return Token(type, cache.cacheGet(range.slice(mark)), line, column,
+		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
 
@@ -1332,7 +1332,7 @@ public struct DLexer
 		else if (range.front == '\'')
 		{
 			range.popFront();
-			return Token(tok!"characterLiteral", cache.cacheGet(range.slice(mark)),
+			return Token(tok!"characterLiteral", cache.intern(range.slice(mark)),
 				line, column, index);
 		}
 		else if (range.front & 0x80)
@@ -1350,7 +1350,7 @@ public struct DLexer
 		if (range.front == '\'')
 		{
 			range.popFront();
-			return Token(tok!"characterLiteral", cache.cacheGet(range.slice(mark)),
+			return Token(tok!"characterLiteral", cache.intern(range.slice(mark)),
 				line, column, index);
 		}
 		else
@@ -1375,7 +1375,7 @@ public struct DLexer
 			hash = StringCache.hashStep(range.front, hash);
 			range.popFront();
 		}
-		return Token(tok!"identifier", cache.cacheGet(range.slice(mark), hash), line,
+		return Token(tok!"identifier", cache.intern(range.slice(mark), hash), line,
 			column, index);
 	}
 
@@ -1414,7 +1414,7 @@ public struct DLexer
 		range.popFront();
 		range.popFront();
 		range.incrementLine();
-		return Token(tok!"whitespace", cache.cacheGet(range.slice(mark)), line,
+		return Token(tok!"whitespace", cache.intern(range.slice(mark)), line,
 			column, index);
 	}
 
@@ -1474,24 +1474,24 @@ public struct DLexer
 	}
 
 	Message[] messages;
-	StringCache* cache;
+	shared(StringCache)* cache;
 	LexerConfig config;
 }
 
 public auto byToken(ubyte[] range)
 {
 	LexerConfig config;
-	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
+	shared(StringCache)* cache = new shared StringCache(StringCache.defaultBucketCount);
 	return DLexer(range, config, cache);
 }
 
-public auto byToken(ubyte[] range, StringCache* cache)
+public auto byToken(ubyte[] range, shared(StringCache)* cache)
 {
 	LexerConfig config;
 	return DLexer(range, config, cache);
 }
 
-public auto byToken(ubyte[] range, const LexerConfig config, StringCache* cache)
+public auto byToken(ubyte[] range, const LexerConfig config, shared(StringCache)* cache)
 {
 	return DLexer(range, config, cache);
 }

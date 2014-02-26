@@ -20,7 +20,7 @@ void printCtags(File output, string[] fileNames)
 {
 	string[] tags;
 	LexerConfig config;
-	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
+	shared(StringCache)* cache = new shared StringCache(StringCache.defaultBucketCount);
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);

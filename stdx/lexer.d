@@ -633,7 +633,6 @@ mixin template Lexer(Token, alias defaultTokenFunction,
  */
 struct LexerRange
 {
-
     /**
      * Params:
      *     bytes = the _lexer input
@@ -767,17 +766,11 @@ struct LexerRange
 }
 
 /**
- * The string cache implements a map/set for strings. Placing a string in the
- * cache returns an identifier that can be used to instantly access the stored
- * string. It is then possible to simply compare these indexes instead of
- * performing full string comparisons when comparing the string content of
- * dynamic tokens. The string cache also handles its own memory, so that mutable
- * ubyte[] to lexers can still have immutable string fields in their tokens.
- * Because the string cache also performs de-duplication it is possible to
- * drastically reduce the memory usage of a lexer.
+ * FREAKIN' MAAAGIC
  */
-struct StringCache
+shared struct StringCache
 {
+    import core.sync.mutex;
 public:
 
     @disable this();
@@ -787,34 +780,13 @@ public:
      */
     this(size_t bucketCount)
     {
-        buckets = new Item*[bucketCount];
-    }
-
-    /**
-     * Equivalent to calling cache() and get().
-     * ---
-     * StringCache cache;
-     * ubyte[] str = ['a', 'b', 'c'];
-     * string s = cache.get(cache.cache(str));
-     * assert(s == "abc");
-     * ---
-     */
-    string cacheGet(const(ubyte[]) bytes) pure nothrow @safe
-    {
-        return get(cache(bytes));
-    }
-
-    /**
-     * Equivalent to calling cache() and get().
-     */
-    string cacheGet(const(ubyte[]) bytes, uint hash) pure nothrow @safe
-    {
-        return get(cache(bytes, hash));
+        buckets = cast(shared) new Node*[bucketCount];
+        allocating = false;
     }
 
     /**
      * Caches a string.
-     * Params: bytes = the string to _cache
+     * Params: str = the string to intern
      * Returns: A key that can be used to retrieve the cached string
      * Examples:
      * ---
@@ -825,10 +797,10 @@ public:
      * assert (first == second);
      * ---
      */
-    size_t cache(const(ubyte)[] bytes) pure nothrow @safe
+    string intern(const(ubyte)[] str) pure nothrow @safe
     {
-        immutable uint hash = hashBytes(bytes);
-        return cache(bytes, hash);
+        immutable uint hash = hashBytes(str);
+        return intern(str, hash);
     }
 
     /**
@@ -836,51 +808,14 @@ public:
      * calculating one itself. Use this alongside $(LREF hashStep)() can reduce the
      * amount of work necessary when lexing dynamic tokens.
      */
-    size_t cache(const(ubyte)[] bytes, uint hash) pure nothrow @safe
+    string intern(const(ubyte)[] str, uint hash) pure nothrow @safe
     in
     {
-        assert (bytes.length > 0);
-    }
-    out (retVal)
-    {
-        assert (retVal < items.length);
+        assert (str.length > 0);
     }
     body
     {
-        debug memoryRequested += bytes.length;
-        const(Item)* found = find(bytes, hash);
-        if (found is null)
-            return intern(bytes, hash);
-        return found.index;
-    }
-
-    /**
-     * Gets a cached string based on its key.
-     * Params: index = the key
-     * Returns: the cached string
-     */
-    string get(size_t index) const pure nothrow @safe
-    in
-    {
-        assert (items.length > index);
-        assert (items[index] !is null);
-    }
-    out (retVal)
-    {
-        assert (retVal !is null);
-    }
-    body
-    {
-        return items[index].str;
-    }
-
-    debug void printStats()
-    {
-        import std.stdio;
-        writeln("Load Factor:           ", cast(float) items.length / cast(float) buckets.length);
-        writeln("Memory used by blocks: ", blocks.length * blockSize);
-        writeln("Memory requsted:       ", memoryRequested);
-        writeln("rehashes:              ", rehashCount);
+        return _intern(str, hash);
     }
 
     /**
@@ -902,72 +837,52 @@ public:
 
 private:
 
-    private void rehash() pure nothrow @safe
+    string _intern(const(ubyte)[] bytes, uint hash) pure nothrow @trusted
     {
-        immutable size_t newBucketCount = items.length * 2;
-        buckets = new Item*[newBucketCount];
-        debug rehashCount++;
-        foreach (item; items)
+        import core.atomic;
+        import core.memory;
+        shared ubyte[] mem;
+        shared(Node*)* oldBucketRoot = &buckets[hash % buckets.length];
+        while (true)
         {
-            immutable size_t newIndex = item.hash % newBucketCount;
-            item.next = buckets[newIndex];
-            buckets[newIndex] = item;
+            bool found;
+            shared(Node)* s = find(bytes, hash, found);
+            shared(Node)* n = s is null ? null : s.next;
+            if (found)
+                return cast(string) s.str;
+            if (mem.length == 0)
+            {
+                mem = allocate(bytes.length);
+                mem[] = bytes[];
+            }
+            shared(Node)* node = new shared Node(mem, hash, null);
+            if (s is null && cas(oldBucketRoot, *oldBucketRoot, node))
+                break;
+            node.next = s.next;
+            if (cas(&s.next, n, node))
+                break;
         }
+        return cast(string) mem;
     }
 
-    size_t intern(const(ubyte)[] bytes, uint hash) pure nothrow @trusted
-    {
-        ubyte[] mem = allocate(bytes.length);
-        mem[] = bytes[];
-        Item* item = cast(Item*) allocate(Item.sizeof).ptr;
-        item.index = items.length;
-        item.str = cast(string) mem;
-        item.hash = hash;
-        item.next = buckets[hash % buckets.length];
-        immutable bool checkLoadFactor = item.next !is null;
-        buckets[hash % buckets.length] = item;
-        items ~= item;
-        if (checkLoadFactor && (cast(float) items.length / cast(float) buckets.length) > 0.75)
-            rehash();
-        return item.index;
-    }
-
-    const(Item)* find(const(ubyte)[] bytes, uint hash) pure nothrow const @safe
+    shared(Node)* find(const(ubyte)[] bytes, uint hash, ref bool found) pure nothrow @trusted
     {
         import std.algorithm;
         immutable size_t index = hash % buckets.length;
-        for (const(Item)* item = buckets[index]; item !is null; item = item.next)
+        shared(Node)* node = buckets[index];
+        while (node !is null)
         {
-            if (item.hash == hash && bytes.equal(item.str))
-                return item;
+            if (node.hash >= hash && bytes.equal(cast(ubyte[]) node.str))
+            {
+                found = true;
+                return node;
+            }
+            node = node.next;
         }
-        return null;
+        return node;
     }
 
-    ubyte[] allocate(size_t byteCount) pure nothrow @trusted
-    {
-        import core.memory;
-        if (byteCount > (blockSize / 4))
-        {
-            ubyte* mem = cast(ubyte*) GC.malloc(byteCount, GC.BlkAttr.NO_SCAN);
-            return mem[0 .. byteCount];
-        }
-        foreach (ref block; blocks)
-        {
-            immutable size_t oldUsed = block.used;
-            immutable size_t end = oldUsed + byteCount;
-            if (end > block.bytes.length)
-                continue;
-            block.used = end;
-            return block.bytes[oldUsed .. end];
-        }
-        blocks ~= Block(
-            (cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN))[0 .. blockSize],
-            byteCount);
-        return blocks[$ - 1].bytes[0 .. byteCount];
-    }
-
-    static uint hashBytes(const(ubyte)[] data) pure nothrow @safe
+    static uint hashBytes(const(ubyte)[] data) pure nothrow @trusted
     {
         uint hash = 0;
         foreach (b; data)
@@ -978,23 +893,65 @@ private:
         return hash;
     }
 
-    static struct Item
+    shared(ubyte[]) allocate(immutable size_t numBytes) pure nothrow @trusted
+    in
     {
-        size_t index;
-        string str;
-        uint hash;
-        Item* next;
+        assert (numBytes != 0);
+    }
+    body
+    {
+        import core.atomic;
+        import core.memory;
+        if (numBytes > (blockSize / 4))
+            return cast(shared) (cast(ubyte*) GC.malloc(numBytes, GC.BlkAttr.NO_SCAN))[0 .. numBytes];
+        shared(Block)* r = rootBlock;
+        while (true)
+        {
+            while (r !is null)
+            {
+                while (true)
+                {
+                    immutable size_t available = r.bytes.length;
+                    immutable size_t oldUsed = atomicLoad(r.used);
+                    immutable size_t newUsed = oldUsed + numBytes;
+                    if (newUsed > available)
+                        break;
+                    if (cas(&r.used, oldUsed, newUsed))
+                        return r.bytes[oldUsed .. newUsed];
+                }
+                r = r.next;
+            }
+            if (cas(&allocating, false, true))
+            {
+                shared(Block)* b = new shared Block(
+                    cast(shared) (cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN))[0 .. blockSize],
+                    numBytes,
+                    r);
+                atomicStore(rootBlock, b);
+                atomicStore(allocating, false);
+                r = rootBlock;
+                return b.bytes[0 .. numBytes];
+            }
+        }
     }
 
-    static struct Block
+    static shared struct Node
+    {
+        ubyte[] str;
+        uint hash;
+        shared(Node)* next;
+    }
+
+    static shared struct Block
     {
         ubyte[] bytes;
         size_t used;
+        shared(Block)* next;
     }
 
     static enum blockSize = 1024 * 16;
 
-    public static immutable uint[] sbox = [
+    static immutable uint[] sbox = [
         0xF53E1837, 0x5F14C86B, 0x9EE3964C, 0xFA796D53,
         0x32223FC3, 0x4D82BC98, 0xA0C7FA62, 0x63E2C982,
         0x24994A5B, 0x1ECE7BEE, 0x292B38EF, 0xD5CD4E56,
@@ -1061,9 +1018,7 @@ private:
         0x3C034CBA, 0xACDA62FC, 0x11923B8B, 0x45EF170A,
     ];
 
-    Item*[] items;
-    Item*[] buckets;
-    Block[] blocks;
-    debug size_t memoryRequested;
-    debug uint rehashCount;
+    shared bool allocating;
+    shared(Node)*[] buckets;
+    shared(Block)* rootBlock;
 }

@@ -91,7 +91,7 @@ int main(string[] args)
 		return 1;
 	}
 
-	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
+	shared(StringCache)* cache = new shared StringCache(StringCache.defaultBucketCount);
 
 	if (tokenDump || highlight)
 	{
