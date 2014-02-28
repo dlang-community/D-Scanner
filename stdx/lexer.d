@@ -804,16 +804,19 @@ public:
     }
 
     /**
+     * ditto
+     */
+    string intern(string str) pure nothrow @safe
+    {
+        return intern(cast(const(ubyte)[]) str);
+    }
+
+    /**
      * Caches a string as above, but uses the given hash code instead of
      * calculating one itself. Use this alongside $(LREF hashStep)() can reduce the
      * amount of work necessary when lexing dynamic tokens.
      */
     string intern(const(ubyte)[] str, uint hash) pure nothrow @safe
-    in
-    {
-        assert (str.length > 0);
-    }
-    body
     {
         return _intern(str, hash);
     }
@@ -839,6 +842,8 @@ private:
 
     string _intern(const(ubyte)[] bytes, uint hash) pure nothrow @trusted
     {
+        if (bytes.length == 0)
+            return "";
         import core.atomic;
         import core.memory;
         shared ubyte[] mem;
