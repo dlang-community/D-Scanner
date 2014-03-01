@@ -65,18 +65,19 @@ class BackwardsRangeCheck : BaseAnalyzer
 	override void visit(PrimaryExpression primary)
 	{
 		import std.conv;
+		import std.string;
 		if (state == State.ignore || !isNumberLiteral(primary.primary.type))
 			return;
 		if (state == State.left)
 		{
 			line = primary.primary.line;
-			column = primary.primary.column;
-			left = to!long(primary.primary.text);
+			this.column = primary.primary.column;
+			left = to!long(primary.primary.text.removechars("_"));
 			hasLeft = true;
 		}
 		else
 		{
-			right = to!long(primary.primary.text);
+			right = to!long(primary.primary.text.removechars("_"));
 			hasRight = true;
 		}
 	}
