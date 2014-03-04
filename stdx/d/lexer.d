@@ -1312,7 +1312,10 @@ public struct DLexer
 					return false;
 				}
 				if (range.front == ';')
+				{
+					range.popFront();
 					break;
+				}
 				else
 					range.popFront();
 			}
