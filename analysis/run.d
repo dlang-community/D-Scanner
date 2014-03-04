@@ -35,6 +35,7 @@ void syntaxCheck(File output, string[] fileNames)
 
 void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 {
+	import std.parallelism;
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
@@ -54,41 +55,35 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 				message.isError);
 		}
 
-		Module m = parseModule(app.data, fileName, &messageFunction);
+		ParseAllocator p = new ParseAllocator;
+		Module m = parseModule(app.data, fileName, p, &messageFunction);
 
 		if (!staticAnalyze)
 			return;
 
-		auto style = new StyleChecker(fileName);
-		style.visit(m);
+		BaseAnalyzer[] checks;
+		checks ~= new StyleChecker(fileName);
+		checks ~= new EnumArrayLiteralCheck(fileName);
+		checks ~= new PokemonExceptionCheck(fileName);
+		checks ~= new DeleteCheck(fileName);
+		checks ~= new FloatOperatorCheck(fileName);
+		checks ~= new NumberStyleCheck(fileName);
+		checks ~= new ObjectConstCheck(fileName);
+		checks ~= new BackwardsRangeCheck(fileName);
 
-		auto enums = new EnumArrayLiteralCheck(fileName);
-		enums.visit(m);
-
-		auto pokemon = new PokemonExceptionCheck(fileName);
-		pokemon.visit(m);
-
-		auto del = new DeleteCheck(fileName);
-		del.visit(m);
-
-		auto fish = new FloatOperatorCheck(fileName);
-		fish.visit(m);
-
-		auto numbers = new NumberStyleCheck(fileName);
-		numbers.visit(m);
-
-		auto objConst = new ObjectConstCheck(fileName);
-		objConst.visit(m);
-
-		auto backwardsRange = new BackwardsRangeCheck(fileName);
-		backwardsRange.visit(m);
-
-		foreach (message; sort(chain(enums.messages, style.messages,
-			pokemon.messages, del.messages, fish.messages, numbers.messages,
-			objConst.messages, backwardsRange.messages).array))
+		foreach (check; checks)
 		{
-			writeln(message);
+			check.visit(m);
 		}
+
+		MessageSet set = new MessageSet;
+		foreach(check; checks)
+			foreach (message; check.messages)
+				set.insert(message);
+		foreach (message; set[])
+			writefln("%s(%d:%d)[warn]: %s", message.fileName, message.line,
+				message.column, message.message);
+		p.deallocateAll();
 	}
 }
 

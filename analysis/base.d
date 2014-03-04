@@ -1,7 +1,21 @@
 module analysis.base;
 
+import std.container;
 import std.string;
 import stdx.d.ast;
+import std.array;
+
+struct Message
+{
+	string fileName;
+	size_t line;
+	size_t column;
+	string message;
+}
+
+enum comparitor = q{ a.line < b.line || a.line < b.line };
+
+alias MessageSet = RedBlackTree!(Message, comparitor);
 
 abstract class BaseAnalyzer : ASTVisitor
 {
@@ -9,11 +23,12 @@ public:
 	this(string fileName)
 	{
 		this.fileName = fileName;
+		_messages = new MessageSet;
 	}
 
-	string[] messages()
+	Message[] messages()
 	{
-		return _messages;
+		return _messages[].array;
 	}
 
 protected:
@@ -34,7 +49,7 @@ protected:
 
 	void addErrorMessage(size_t line, size_t column, string message)
 	{
-		_messages ~= format("%s(%d:%d)[warn]: %s", fileName, line, column, message);
+		_messages.insert(Message(fileName, line, column, message));
 	}
 
 	/**
@@ -42,8 +57,5 @@ protected:
 	 */
 	string fileName;
 
-	/**
-	 * Map of file names to warning messages for that file
-	 */
-	string[] _messages;
+	MessageSet _messages;
 }
