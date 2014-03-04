@@ -799,8 +799,18 @@ public:
      */
     string intern(const(ubyte)[] str) pure nothrow @safe
     {
+        if (str is null || str.length == 0)
+            return "";
         immutable uint hash = hashBytes(str);
         return intern(str, hash);
+    }
+
+    /**
+     * ditto
+     */
+    string intern(string str) pure nothrow @trusted
+    {
+        return intern(cast(ubyte[]) str);
     }
 
     /**
@@ -809,11 +819,6 @@ public:
      * amount of work necessary when lexing dynamic tokens.
      */
     string intern(const(ubyte)[] str, uint hash) pure nothrow @safe
-    in
-    {
-        assert (str.length > 0);
-    }
-    body
     {
         return _intern(str, hash);
     }
@@ -835,10 +840,14 @@ public:
      */
     static enum defaultBucketCount = 2048;
 
+    size_t allocated;
+
 private:
 
     string _intern(const(ubyte)[] bytes, uint hash) pure nothrow @trusted
     {
+        if (bytes is null || bytes.length == 0)
+            return "";
         import core.atomic;
         import core.memory;
         shared ubyte[] mem;
@@ -852,6 +861,7 @@ private:
                 return cast(string) s.str;
             if (mem.length == 0)
             {
+                atomicOp!"+="(allocated, bytes.length);
                 mem = allocate(bytes.length);
                 mem[] = bytes[];
             }
@@ -872,7 +882,7 @@ private:
         shared(Node)* node = buckets[index];
         while (node !is null)
         {
-            if (node.hash >= hash && bytes.equal(cast(ubyte[]) node.str))
+            if (node.hash >= hash && bytes == cast(ubyte[]) node.str)
             {
                 found = true;
                 return node;
@@ -883,9 +893,15 @@ private:
     }
 
     static uint hashBytes(const(ubyte)[] data) pure nothrow @trusted
+    in
+    {
+        assert (data !is null);
+        assert (data.length > 0);
+    }
+    body
     {
         uint hash = 0;
-        foreach (b; data)
+        foreach (ubyte b; data)
         {
             hash ^= sbox[b];
             hash *= 3;
@@ -897,6 +913,10 @@ private:
     in
     {
         assert (numBytes != 0);
+    }
+    out (result)
+    {
+        assert (result.length == numBytes);
     }
     body
     {
@@ -933,6 +953,7 @@ private:
                 return b.bytes[0 .. numBytes];
             }
         }
+        assert (0);
     }
 
     static shared struct Node
