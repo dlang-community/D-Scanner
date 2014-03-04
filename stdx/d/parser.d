@@ -12,6 +12,7 @@ module stdx.d.parser;
 
 import stdx.d.lexer;
 import stdx.d.ast;
+import stdx.allocator;
 import std.conv;
 import std.algorithm;
 import std.array;
@@ -23,6 +24,114 @@ import std.string : format;
 //version = std_parser_verbose;
 
 /**
+ * The parse allocator is designed so that very large number of node instances
+ * allocated by the parser can be deallocated all at once. This saves time by
+ * preventing the GC from having to scan the nodes.
+ */
+class ParseAllocator : CAllocator
+{
+public:
+
+    this(string name = "none")
+    {
+        this.name = name;
+    }
+
+    string name;
+
+    override void[] allocate(size_t size)
+    in
+    {
+        assert (size > 0);
+        assert (size < blockSize);
+    }
+    out (result)
+    {
+        assert (result.length == size);
+    }
+    body
+    {
+        enum size_t mask = ~ (cast(size_t) 7);
+        enum s = ((Node.sizeof - 1) & mask) + 8;
+        Node* current = root;
+        while (true)
+        {
+            while (current !is null)
+            {
+                immutable size_t blockLength = current.block.length;
+                immutable size_t oldUsed = current.used;
+                immutable size_t newUsed = oldUsed + size;
+                if (newUsed > blockLength)
+                    current = current.next;
+                else
+                {
+                    current.used = ((newUsed  - 1) & mask) + 8;
+//                    assert (current.used >= oldUsed + size);
+//                    assert (current.block.ptr + blockSize > current.block.ptr + newUsed);
+//                    assert (newUsed > oldUsed);
+//                    writefln("Allocating 0x%012x - 0x%012x",
+//                        cast(size_t) current.block.ptr + oldUsed,
+//                        cast(size_t) current.block.ptr + newUsed);
+                    current.block[oldUsed .. newUsed] = 0;
+                    return current.block[oldUsed .. newUsed];
+                }
+            }
+            import core.memory;
+//            stderr.writeln("Allocating new block while processing ", name);
+            ubyte* newBlock = cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN);
+//            assert (newBlock !is null);
+//            stderr.writefln("Memory spans from 0x%012x to 0x%012x",
+//                cast(size_t) newBlock, cast(size_t) newBlock + blockSize);
+            root = new Node (root, s, newBlock[0 .. blockSize]);
+//            assert (root.block.length == blockSize);
+            current = root;
+        }
+        assert (false);
+    }
+
+    /**
+     * Deallocates all memory held by this allocator. All node instances created
+     * by a parser using this allocator instance are invalid after calling this
+     * function.
+     */
+    override bool deallocateAll()
+    {
+        deallocateRecursive(root);
+        root = null;
+        return true;
+    }
+
+    override bool expand(ref void[], size_t) { return false; }
+    override bool reallocate(ref void[], size_t) { return false; }
+    override bool deallocate(void[]) { return false; }
+
+private:
+
+    void deallocateRecursive(Node* node)
+    {
+        import core.memory;
+//        import std.c.stdlib;
+//        node.block[] = 0;
+//        free(node.block.ptr);
+        GC.free(node.block.ptr);
+        if (node.next !is null)
+            deallocateRecursive(node.next);
+        node.next = null;
+    }
+
+    Node* root;
+
+    enum blockSize = 1024 * 1024 * 4;
+
+    struct Node
+    {
+        Node* next;
+        size_t used;
+        ubyte[] block;
+    }
+}
+
+/**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
  *     fileName = the name of the file being parsed
@@ -32,13 +141,14 @@ import std.string : format;
  *         means warning).
  * Returns: the parsed module
  */
-Module parseModule(const(Token)[] tokens, string fileName,
+Module parseModule(const(Token)[] tokens, string fileName, CAllocator allocator = null,
     void function(string, size_t, size_t, string, bool) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
     parser.tokens = tokens;
     parser.messageFunction = messageFunction;
+    parser.allocator = allocator;
     auto mod = parser.parseModule();
     // writefln("Parsing finished with %d errors and %d warnings.",
     //     parser.errorCount, parser.warningCount);
@@ -76,7 +186,7 @@ class Parser
     AliasDeclaration parseAliasDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AliasDeclaration;
+        auto node = allocate!AliasDeclaration;
         if (expect(tok!"alias") is null) return null;
 
         // 'alias extern(C) void function() f;' => supported in DMD and DScanner.
@@ -92,22 +202,24 @@ class Parser
 
         if (startsWith(tok!"identifier", tok!"="))
         {
+            AliasInitializer[] initializers;
             do
             {
                 auto initializer = parseAliasInitializer();
                 if (initializer is null) return null;
-                node.initializers ~= initializer;
+                initializers ~= initializer;
                 if (currentIs(tok!","))
                     advance();
                 else
                     break;
             }
             while (moreTokens());
+            node.initializers = ownArray(initializers);
         }
         else
         {
-			warn("Syntax \"'alias' type identifier ';'\" is deprecated. Please use "
-				~ " \"'alias' identifier '=' type ';'\" instead.");
+            warn("Syntax \"'alias' type identifier ';'\" is deprecated. Please use "
+                ~ " \"'alias' identifier '=' type ';'\" instead.");
             if ((node.type = parseType()) is null) return null;
             auto ident = expect(tok!"identifier");
             if (ident is null)
@@ -143,16 +255,17 @@ alias core.sys.posix.stdio.fileno fileno;
     AliasInitializer parseAliasInitializer()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AliasInitializer;
+        auto node = allocate!AliasInitializer;
         auto i = expect(tok!"identifier");
         if (i is null) return null;
+        assert (i.text.length < 10_000);
         node.name = *i;
         if (expect(tok!"=") is null) return null;
         node.type = parseType();
         return node;
     }
 
-	unittest
+    unittest
     {
         auto sourceCode = q{a = abcde!def};
         Parser p = getParserForUnittest(sourceCode, "parseAliasInitializer");
@@ -171,7 +284,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AliasThisDeclaration parseAliasThisDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AliasThisDeclaration;
+        auto node = allocate!AliasThisDeclaration;
         if (expect(tok!"alias") is null) return null;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
@@ -200,7 +313,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AlignAttribute parseAlignAttribute()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AlignAttribute;
+        auto node = allocate!AlignAttribute;
         expect(tok!"align");
         if (currentIs(tok!"("))
         {
@@ -277,7 +390,7 @@ alias core.sys.posix.stdio.fileno fileno;
     Arguments parseArguments()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Arguments;
+        auto node = allocate!Arguments;
         if (expect(tok!"(") is null) return null;
         if (!currentIs(tok!")"))
             node.argumentList = parseArgumentList();
@@ -296,18 +409,20 @@ alias core.sys.posix.stdio.fileno fileno;
     ArrayInitializer parseArrayInitializer()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ArrayInitializer;
+        auto node = allocate!ArrayInitializer;
         if (expect(tok!"[") is null) return null;
+        ArrayMemberInitialization[] arrayMemberInitializations;
         while (moreTokens())
         {
             if (currentIs(tok!"]"))
                 break;
-            node.arrayMemberInitializations ~= parseArrayMemberInitialization();
+            arrayMemberInitializations ~= parseArrayMemberInitialization();
             if (currentIs(tok!","))
                 advance();
             else
                 break;
         }
+        node.arrayMemberInitializations = ownArray(arrayMemberInitializations);
         if (expect(tok!"]") is null) return null;
         return node;
     }
@@ -322,7 +437,7 @@ alias core.sys.posix.stdio.fileno fileno;
     ArrayLiteral parseArrayLiteral()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ArrayLiteral;
+        auto node = allocate!ArrayLiteral;
         if (expect(tok!"[") is null) return null;
         if (!currentIs(tok!"]"))
             node.argumentList = parseArgumentList();
@@ -340,7 +455,7 @@ alias core.sys.posix.stdio.fileno fileno;
     ArrayMemberInitialization parseArrayMemberInitialization()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ArrayMemberInitialization;
+        auto node = allocate!ArrayMemberInitialization;
         switch (current.type)
         {
         case tok!"{":
@@ -360,7 +475,7 @@ alias core.sys.posix.stdio.fileno fileno;
             }
             else
             {
-                node.nonVoidInitializer = new NonVoidInitializer;
+                node.nonVoidInitializer = allocate!NonVoidInitializer;
                 node.nonVoidInitializer.assignExpression = assignExpression;
             }
         }
@@ -390,7 +505,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmAndExp parseAsmAndExp()
     {
-        auto node = new AsmAndExp;
+        auto node = allocate!AsmAndExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -404,7 +519,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmBrExp parseAsmBrExp()
     {
-        auto node = new AsmBrExp;
+        auto node = allocate!AsmBrExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -417,7 +532,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmEqualExp parseAsmEqualExp()
     {
-        auto node = new AsmEqualExp;
+        auto node = allocate!AsmEqualExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -430,7 +545,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmExp parseAsmExp()
     {
-        auto node = new AsmExp;
+        auto node = allocate!AsmExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -448,7 +563,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmInstruction parseAsmInstruction()
     {
-        auto node = new AsmInstruction;
+        auto node = allocate!AsmInstruction;
         assert (false, "asm"); // TODO asm
     }
 
@@ -461,7 +576,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmLogAndExp parseAsmLogAndExp()
     {
-        auto node = new AsmLogAndExp;
+        auto node = allocate!AsmLogAndExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -474,7 +589,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmLogOrExp parseAsmLogOrExp()
     {
-        auto node = new AsmLogOrExp;
+        auto node = allocate!AsmLogOrExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -487,7 +602,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmMulExp parseAsmMulExp()
     {
-        auto node = new AsmMulExp;
+        auto node = allocate!AsmMulExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -500,7 +615,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmOrExp parseAsmOrExp()
     {
-        auto node = new AsmOrExp;
+        auto node = allocate!AsmOrExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -517,7 +632,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmPrimaryExp parseAsmPrimaryExp()
     {
-        auto node = new AsmPrimaryExp;
+        auto node = allocate!AsmPrimaryExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -530,7 +645,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmRelExp parseAsmRelExp()
     {
-        auto node = new AsmRelExp;
+        auto node = allocate!AsmRelExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -543,7 +658,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmShiftExp parseAsmShiftExp()
     {
-        auto node = new AsmShiftExp;
+        auto node = allocate!AsmShiftExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -557,7 +672,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AsmStatement parseAsmStatement()
     {
         // TODO asm
-        auto node = new AsmStatement;
+        auto node = allocate!AsmStatement;
         warn("Skipping assembly statement. Not supported.");
         advance();
         skipBraces();
@@ -579,7 +694,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmTypePrefix parseAsmTypePrefix()
     {
-        auto node = new AsmTypePrefix;
+        auto node = allocate!AsmTypePrefix;
         assert (false, "asm"); // TODO asm
     }
 
@@ -598,7 +713,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmUnaExp parseAsmUnaExp()
     {
-        auto node = new AsmUnaExp;
+        auto node = allocate!AsmUnaExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -611,7 +726,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmXorExp parseAsmXorExp()
     {
-        auto node = new AsmXorExp;
+        auto node = allocate!AsmXorExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -625,7 +740,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AssertExpression parseAssertExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AssertExpression;
+        auto node = allocate!AssertExpression;
         expect(tok!"assert");
         if (expect(tok!"(") is null) return null;
         node.assertion = parseAssignExpression();
@@ -664,7 +779,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AssignExpression parseAssignExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AssignExpression;
+        auto node = allocate!AssignExpression;
         node.ternaryExpression = parseTernaryExpression();
         if (currentIsOneOf(tok!"=", tok!">>>=",
             tok!">>=", tok!"<<=",
@@ -703,7 +818,7 @@ alias core.sys.posix.stdio.fileno fileno;
     AtAttribute parseAtAttribute()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AtAttribute;
+        auto node = allocate!AtAttribute;
         if (expect(tok!"@") is null) return null;
         switch (current.type)
         {
@@ -743,7 +858,7 @@ alias core.sys.posix.stdio.fileno fileno;
     Attribute parseAttribute()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Attribute;
+        auto node = allocate!Attribute;
         switch (current.type)
         {
         case tok!"extern":
@@ -781,7 +896,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AttributeDeclaration parseAttributeDeclaration(Attribute attribute = null)
     {
-        auto node = new AttributeDeclaration;
+        auto node = allocate!AttributeDeclaration;
         node.attribute = attribute is null ? parseAttribute() : attribute;
         expect(tok!":");
         return node;
@@ -797,21 +912,25 @@ alias core.sys.posix.stdio.fileno fileno;
     AutoDeclaration parseAutoDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new AutoDeclaration;
+        auto node = allocate!AutoDeclaration;
+        Token[] identifiers;
+        Initializer[] initializers;
         do
         {
             auto ident = expect(tok!"identifier");
             if (ident is null) return null;
-            node.identifiers ~= *ident;
+            identifiers ~= *ident;
             if (expect(tok!"=") is null) return null;
             auto init = parseInitializer();
             if (init is null) return null;
-            node.initializers ~= init;
+            initializers ~= init;
             if (currentIs(tok!","))
                 advance();
             else
                 break;
         } while (moreTokens());
+        node.identifiers = ownArray(identifiers);
+        node.initializers = ownArray(initializers);
         if (expect(tok!";") is null) return null;
         return node;
     }
@@ -826,7 +945,7 @@ alias core.sys.posix.stdio.fileno fileno;
     BlockStatement parseBlockStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new BlockStatement();
+        auto node = allocate!BlockStatement;
         auto openBrace = expect(tok!"{");
         if (openBrace is null) return null;
         node.startLocation = openBrace.index;
@@ -865,7 +984,7 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         expect(tok!"break");
-        auto node = new BreakStatement;
+        auto node = allocate!BreakStatement;
         switch (current.type)
         {
         case tok!"identifier":
@@ -892,7 +1011,7 @@ alias core.sys.posix.stdio.fileno fileno;
     BaseClass parseBaseClass()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new BaseClass;
+        auto node = allocate!BaseClass;
         if (current.type.isProtection())
         {
             warn("Use of base class protection is deprecated.");
@@ -967,7 +1086,7 @@ alias core.sys.posix.stdio.fileno fileno;
     CaseRangeStatement parseCaseRangeStatement(AssignExpression low = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new CaseRangeStatement;
+        auto node = allocate!CaseRangeStatement;
         if (low is null)
         {
             expect(tok!"case");
@@ -994,7 +1113,7 @@ alias core.sys.posix.stdio.fileno fileno;
     CaseStatement parseCaseStatement(ArgumentList argumentList = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new CaseStatement;
+        auto node = allocate!CaseStatement;
         if (argumentList is null)
         {
             expect(tok!"case");
@@ -1017,7 +1136,7 @@ alias core.sys.posix.stdio.fileno fileno;
     CastExpression parseCastExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new CastExpression;
+        auto node = allocate!CastExpression;
         expect(tok!"cast");
         if (expect(tok!"(") is null) return null;
         if (!currentIs(tok!")"))
@@ -1049,7 +1168,7 @@ alias core.sys.posix.stdio.fileno fileno;
     CastQualifier parseCastQualifier()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new CastQualifier;
+        auto node = allocate!CastQualifier;
         switch (current.type)
         {
         case tok!"inout":
@@ -1146,7 +1265,7 @@ incorrect;
     Catch parseCatch()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Catch;
+        auto node = allocate!Catch;
         expect(tok!"catch");
         if (expect(tok!"(") is null) return null;
         node.type = parseType();
@@ -1168,21 +1287,21 @@ incorrect;
     Catches parseCatches()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Catches;
+        auto node = allocate!Catches;
+        Catch[] catches;
         while (moreTokens())
         {
             if (!currentIs(tok!"catch"))
                 break;
             if (peekIs(tok!"("))
-            {
-                node.catches ~= parseCatch();
-            }
+                catches ~= parseCatch();
             else
             {
                 node.lastCatch  = parseLastCatch();
                 break;
             }
         }
+        node.catches = ownArray(catches);
         return node;
     }
 
@@ -1196,7 +1315,7 @@ incorrect;
     ClassDeclaration parseClassDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ClassDeclaration;
+        auto node = allocate!ClassDeclaration;
         expect(tok!"class");
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
@@ -1280,7 +1399,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ExpressionNode parseCmpExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new CmpExpression;
+        auto node = allocate!CmpExpression;
         auto shift = parseShiftExpression();
         if (!moreTokens())
             return shift;
@@ -1335,7 +1454,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     CompileCondition parseCompileCondition()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new CompileCondition;
+        auto node = allocate!CompileCondition;
         switch (current.type)
         {
         case tok!"version":
@@ -1366,20 +1485,23 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ConditionalDeclaration parseConditionalDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ConditionalDeclaration;
+        auto node = allocate!ConditionalDeclaration;
         node.compileCondition = parseCompileCondition();
 
+        Declaration[] trueDeclarations;
         if (currentIs(tok!":"))
         {
             advance();
             while (isDeclaration())
-                node.trueDeclarations ~= parseDeclaration();
+                trueDeclarations ~= parseDeclaration();
+            node.trueDeclarations = ownArray(trueDeclarations);
             return node;
         }
 
         auto dec = parseDeclaration();
         if (dec is null) return null;
-        node.trueDeclarations ~= dec;
+        trueDeclarations ~= dec;
+        node.trueDeclarations = ownArray(trueDeclarations);
 
         if(currentIs(tok!"else"))
             advance();
@@ -1402,7 +1524,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ConditionalStatement parseConditionalStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ConditionalStatement;
+        auto node = allocate!ConditionalStatement;
         node.compileCondition = parseCompileCondition();
         node.trueStatement = parseDeclarationOrStatement();
         if (currentIs(tok!"else"))
@@ -1423,7 +1545,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Constraint parseConstraint()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Constraint;
+        auto node = allocate!Constraint;
         if (expect(tok!"if") is null) return null;
         if (expect(tok!"(") is null) return null;
         node.expression = parseExpression();
@@ -1441,7 +1563,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Constructor parseConstructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        Constructor node = new Constructor;
+        Constructor node = allocate!Constructor;
         node.comment = comment;
         comment = null;
         auto t = expect(tok!"this");
@@ -1457,8 +1579,10 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         node.parameters = parseParameters();
         if (node.parameters is null) return null;
 
+        MemberFunctionAttribute[] memberFunctionAttributes;
         while(moreTokens() && currentIsMemberFunctionAttribute())
-            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            memberFunctionAttributes ~= parseMemberFunctionAttribute();
+        node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
 
         if (isTemplate && currentIs(tok!"if"))
             node.constraint = parseConstraint();
@@ -1485,7 +1609,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (expect(tok!"continue") is null) return null;
-        auto node = new ContinueStatement;
+        auto node = allocate!ContinueStatement;
         switch (current.type)
         {
         case tok!"identifier":
@@ -1512,7 +1636,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DebugCondition parseDebugCondition()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DebugCondition;
+        auto node = allocate!DebugCondition;
         if (expect(tok!"debug") is null) return null;
         if (currentIs(tok!"("))
         {
@@ -1539,7 +1663,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DebugSpecification parseDebugSpecification()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DebugSpecification;
+        auto node = allocate!DebugSpecification;
         if (expect(tok!"debug") is null) return null;
         if (expect(tok!"=") is null) return null;
         if (currentIsOneOf(tok!"identifier", tok!"intLiteral"))
@@ -1591,8 +1715,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Declaration parseDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Declaration;
+        auto node = allocate!Declaration;
         comment = current.comment;
+        Attribute[] attributes;
         do
         {
             if (!isAttribute())
@@ -1609,8 +1734,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                 return node;
             }
             else
-                node.attributes ~= attr;
+                attributes ~= attr;
         } while (moreTokens());
+        node.attributes = ownArray(attributes);
 
         switch (current.type)
         {
@@ -1621,12 +1747,14 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             break;
         case tok!"{":
             advance();
+            Declaration[] declarations;
             while (moreTokens() && !currentIs(tok!"}"))
             {
                 auto declaration = parseDeclaration();
                 if (declaration !is null)
-                    node.declarations ~= declaration;
+                    declarations ~= declaration;
             }
+            node.declarations = ownArray(declarations);
             if (expect(tok!"}") is null) return null;
             break;
         case tok!"alias":
@@ -1802,13 +1930,15 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DeclarationsAndStatements parseDeclarationsAndStatements()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DeclarationsAndStatements;
+        auto node = allocate!DeclarationsAndStatements;
+        DeclarationOrStatement[] declarationsAndStatements;
         while (!currentIsOneOf(tok!"}") && moreTokens())
         {
             auto dos = parseDeclarationOrStatement();
             if (dos !is null)
-                node.declarationsAndStatements ~= dos;
+                declarationsAndStatements ~= dos;
         }
+        node.declarationsAndStatements = ownArray(declarationsAndStatements);
         return node;
     }
 
@@ -1823,7 +1953,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DeclarationOrStatement parseDeclarationOrStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DeclarationOrStatement;
+        auto node = allocate!DeclarationOrStatement;
         // "Any ambiguities in the grammar between Statements and
         // Declarations are resolved by the declarations taking precedence."
         if (isDeclaration())
@@ -1855,7 +1985,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Declarator parseDeclarator()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Declarator;
+        auto node = allocate!Declarator;
         auto id = expect(tok!"identifier");
         if (id is null) return null;
         node.name = *id;
@@ -1882,7 +2012,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DefaultStatement parseDefaultStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DefaultStatement;
+        auto node = allocate!DefaultStatement;
         if (expect(tok!"default") is null) return null;
         if (expect(tok!":") is null) return null;
         node.declarationsAndStatements = parseDeclarationsAndStatements();
@@ -1899,9 +2029,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DeleteExpression parseDeleteExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DeleteExpression;
-		node.line = current.line;
-		node.column = current.column;
+        auto node = allocate!DeleteExpression;
+        node.line = current.line;
+        node.column = current.column;
         if (expect(tok!"delete") is null) return null;
         node.unaryExpression = parseUnaryExpression();
         return node;
@@ -1917,7 +2047,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Deprecated parseDeprecated()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Deprecated;
+        auto node = allocate!Deprecated;
         if (expect(tok!"deprecated") is null) return null;
         if (currentIs(tok!"("))
         {
@@ -1938,7 +2068,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Destructor parseDestructor()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Destructor;
+        auto node = allocate!Destructor;
         node.comment = comment;
         comment = null;
         if (expect(tok!"~") is null) return null;
@@ -1973,7 +2103,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     DoStatement parseDoStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new DoStatement;
+        auto node = allocate!DoStatement;
         if (expect(tok!"do") is null) return null;
         node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
         if (expect(tok!"while") is null) return null;
@@ -1995,16 +2125,17 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     EnumBody parseEnumBody()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        EnumBody node = new EnumBody;
+        EnumBody node = allocate!EnumBody;
         if (!currentIs(tok!";"))
         {
             auto open = expect (tok!"{");
             if (open is null) goto ret;
             node.startLocation = open.index;
+            EnumMember[] enumMembers;
             while (moreTokens())
             {
                 if (!currentIsOneOf(tok!",", tok!"}"))
-                    node.enumMembers ~= parseEnumMember();
+                    enumMembers ~= parseEnumMember();
                 else if (currentIs(tok!","))
                 {
                     advance();
@@ -2018,6 +2149,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
                     goto ret;
                 }
             }
+            node.enumMembers = ownArray(enumMembers);
             auto close = expect (tok!"}");
             if (close !is null)
                 node.endLocation = close.index;
@@ -2036,12 +2168,12 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     EnumDeclaration parseEnumDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new EnumDeclaration;
+        auto node = allocate!EnumDeclaration;
         if (expect(tok!"enum") is null) return null;
         if (currentIs(tok!"identifier"))
             node.name = advance();
-		else
-			node.name.line = tokens[index - 1].line; // preserve line number if anonymous
+        else
+            node.name.line = tokens[index - 1].line; // preserve line number if anonymous
         node.comment = comment;
         comment = null;
         if (currentIs(tok!":"))
@@ -2064,7 +2196,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     EnumMember parseEnumMember()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new EnumMember;
+        auto node = allocate!EnumMember;
         node.comment = current.comment;
         if (currentIs(tok!"identifier"))
         {
@@ -2099,7 +2231,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     EqualExpression parseEqualExpression(ExpressionNode shift = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new EqualExpression;
+        auto node = allocate!EqualExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIsOneOf(tok!"==", tok!"!="))
             node.operator = advance().type;
@@ -2130,7 +2262,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ExpressionStatement parseExpressionStatement(Expression expression = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ExpressionStatement;
+        auto node = allocate!ExpressionStatement;
         node.expression = expression is null ? parseExpression() : expression;
         if (expect(tok!";") is null) return null;
         return node;
@@ -2146,7 +2278,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     FinalSwitchStatement parseFinalSwitchStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new FinalSwitchStatement;
+        auto node = allocate!FinalSwitchStatement;
         if (expect(tok!"final") is null) return null;
         node.switchStatement = parseSwitchStatement();
         if (node.switchStatement is null) return null;
@@ -2163,7 +2295,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     Finally parseFinally()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Finally;
+        auto node = allocate!Finally;
         if (expect(tok!"finally") is null) return null;
         node.declarationOrStatement = parseDeclarationOrStatement();
         return node;
@@ -2179,7 +2311,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ForStatement parseForStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ForStatement;
+        auto node = allocate!ForStatement;
         if (expect(tok!"for") is null) return null;
         node.startIndex = current().index;
         if (expect(tok!"(") is null) return null;
@@ -2219,7 +2351,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ForeachStatement parseForeachStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        ForeachStatement node = new ForeachStatement;
+        ForeachStatement node = allocate!ForeachStatement;
         if (currentIsOneOf(tok!"foreach", tok!"foreach_reverse"))
             node.type = advance().type;
         else
@@ -2272,7 +2404,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
     ForeachType parseForeachType()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ForeachType;
+        auto node = allocate!ForeachType;
         if (currentIsOneOf(tok!"ref", tok!"const", tok!"immutable",
             tok!"shared", tok!"inout"))
         {
@@ -2316,7 +2448,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     FunctionAttribute parseFunctionAttribute(bool validate = true)
     {
-        auto node = new FunctionAttribute;
+        auto node = allocate!FunctionAttribute;
         switch (current.type)
         {
         case tok!"@":
@@ -2344,7 +2476,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      */
     FunctionBody parseFunctionBody()
     {
-        auto node = new FunctionBody;
+        auto node = allocate!FunctionBody;
         if (currentIs(tok!";"))
         {
             advance();
@@ -2430,7 +2562,7 @@ body {} // six
     FunctionCallExpression parseFunctionCallExpression(UnaryExpression unary = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new FunctionCallExpression;
+        auto node = allocate!FunctionCallExpression;
         node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
         if (currentIs(tok!"!"))
             node.templateArguments = parseTemplateArguments();
@@ -2448,7 +2580,7 @@ body {} // six
     FunctionCallStatement parseFunctionCallStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new FunctionCallStatement;
+        auto node = allocate!FunctionCallStatement;
         node.functionCallExpression = parseFunctionCallExpression();
         if (expect(tok!";") is null) return null;
         return node;
@@ -2464,15 +2596,16 @@ body {} // six
     FunctionDeclaration parseFunctionDeclaration(Type type = null, bool isAuto = false)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new FunctionDeclaration;
+        auto node = allocate!FunctionDeclaration;
         node.comment = comment;
         comment = null;
+        MemberFunctionAttribute[] memberFunctionAttributes;
 
         if (isAuto)
             goto functionName;
 
         while(moreTokens() && currentIsMemberFunctionAttribute())
-            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            memberFunctionAttributes ~= parseMemberFunctionAttribute();
 
         node.returnType = type is null ? parseType() : type;
 
@@ -2499,7 +2632,7 @@ body {} // six
         if (node.parameters is null) return null;
 
         while(moreTokens() && currentIsMemberFunctionAttribute())
-            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            memberFunctionAttributes ~= parseMemberFunctionAttribute();
 
         if (isTemplate && currentIs(tok!"if"))
             node.constraint = parseConstraint();
@@ -2508,7 +2641,7 @@ body {} // six
             advance();
         else
             node.functionBody = parseFunctionBody();
-
+        node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
         return node;
     }
 
@@ -2521,7 +2654,7 @@ body {} // six
      */
     FunctionLiteralExpression parseFunctionLiteralExpression()
     {
-        auto node = new FunctionLiteralExpression;
+        auto node = allocate!FunctionLiteralExpression;
         if (currentIsOneOf(tok!"function", tok!"delegate"))
         {
             node.functionOrDelegate = advance().type;
@@ -2536,14 +2669,16 @@ body {} // six
         {
             node.parameters = parseParameters();
             if (node.parameters is null) return null;
+            FunctionAttribute[] functionAttributes;
             do
             {
                 auto attr = parseFunctionAttribute(false);
                 if (attr is null)
                     break;
                 else
-                    node.functionAttributes ~= attr;
+                    functionAttributes ~= attr;
             } while (moreTokens());
+            node.functionAttributes = ownArray(functionAttributes);
         }
         node.functionBody = parseFunctionBody();
         if (node.functionBody is null) return null;
@@ -2559,7 +2694,7 @@ body {} // six
      */
     GotoStatement parseGotoStatement()
     {
-        auto node = new GotoStatement;
+        auto node = allocate!GotoStatement;
         if (expect(tok!"goto") is null) return null;
         switch (current.type)
         {
@@ -2589,12 +2724,13 @@ body {} // six
      */
     IdentifierChain parseIdentifierChain()
     {
-        auto node = new IdentifierChain;
+        auto node = allocate!IdentifierChain;
+        Token[] identifiers;
         while (moreTokens())
         {
             auto ident = expect(tok!"identifier");
             if (ident is null) return null;
-            node.identifiers ~= *ident;
+            identifiers ~= *ident;
             if (currentIs(tok!"."))
             {
                 advance();
@@ -2603,6 +2739,7 @@ body {} // six
             else
                 break;
         }
+        node.identifiers = ownArray(identifiers);
         return node;
     }
 
@@ -2615,12 +2752,13 @@ body {} // six
      */
     IdentifierList parseIdentifierList()
     {
-        auto node = new IdentifierList;
+        auto node = allocate!IdentifierList;
+        Token[] identifiers;
         do
         {
             auto ident = expect(tok!"identifier");
             if (ident is null) return null;
-            node.identifiers ~= *ident;
+            identifiers ~= *ident;
             if (currentIs(tok!","))
             {
                 advance();
@@ -2629,6 +2767,7 @@ body {} // six
             else
                 break;
         } while (moreTokens());
+        node.identifiers = ownArray(identifiers);
         return node;
     }
 
@@ -2641,15 +2780,17 @@ body {} // six
      */
     IdentifierOrTemplateChain parseIdentifierOrTemplateChain()
     {
-        auto node = new IdentifierOrTemplateChain;
+        auto node = allocate!IdentifierOrTemplateChain;
+        IdentifierOrTemplateInstance[] identifiersOrTemplateInstances;
         while (moreTokens())
         {
-            node.identifiersOrTemplateInstances ~= parseIdentifierOrTemplateInstance();
+            identifiersOrTemplateInstances ~= parseIdentifierOrTemplateInstance();
             if (!currentIs(tok!"."))
                 break;
             else
                 advance();
         }
+        node.identifiersOrTemplateInstances = ownArray(identifiersOrTemplateInstances);
         return node;
     }
 
@@ -2664,7 +2805,7 @@ body {} // six
     IdentifierOrTemplateInstance parseIdentifierOrTemplateInstance()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new IdentifierOrTemplateInstance;
+        auto node = allocate!IdentifierOrTemplateInstance;
         if (peekIs(tok!"!") && !startsWith(tok!"identifier",
             tok!"!", tok!"is")
             && !startsWith(tok!"identifier", tok!"!", tok!"in"))
@@ -2690,7 +2831,7 @@ body {} // six
     ExpressionNode parseIdentityExpression(ExpressionNode shift = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new IdentityExpression;
+        auto node = allocate!IdentityExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIs(tok!"!"))
         {
@@ -2716,7 +2857,7 @@ body {} // six
     IfStatement parseIfStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new IfStatement;
+        auto node = allocate!IfStatement;
         if (expect(tok!"if") is null) return null;
         node.startIndex = current().index;
         if (expect(tok!"(") is null) return null;
@@ -2776,7 +2917,7 @@ body {} // six
      */
     ImportBind parseImportBind()
     {
-        auto node = new ImportBind;
+        auto node = allocate!ImportBind;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.left = *ident;
@@ -2799,17 +2940,19 @@ body {} // six
      */
     ImportBindings parseImportBindings(SingleImport singleImport)
     {
-        auto node = new ImportBindings;
+        auto node = allocate!ImportBindings;
         node.singleImport = singleImport is null ? parseSingleImport() : singleImport;
         if (expect(tok!":") is null) return null;
+        ImportBind[] importBinds;
         while (moreTokens())
         {
-            node.importBinds ~= parseImportBind();
+            importBinds ~= parseImportBind();
             if (currentIs(tok!","))
                 advance();
             else
                 break;
         }
+        node.importBinds = ownArray(importBinds);
         return node;
     }
 
@@ -2823,14 +2966,15 @@ body {} // six
      */
     ImportDeclaration parseImportDeclaration()
     {
-        auto node = new ImportDeclaration;
+        auto node = allocate!ImportDeclaration;
         if (expect(tok!"import") is null) return null;
         SingleImport si = parseSingleImport();
         if (currentIs(tok!":"))
             node.importBindings = parseImportBindings(si);
         else
         {
-            node.singleImports ~= si;
+            SingleImport[] singleImports;
+            singleImports ~= si;
             if (currentIs(tok!","))
             {
                 advance();
@@ -2846,7 +2990,7 @@ body {} // six
                     }
                     else
                     {
-                        node.singleImports ~= single;
+                        singleImports ~= single;
                         if (currentIs(tok!","))
                             advance();
                         else
@@ -2854,6 +2998,7 @@ body {} // six
                     }
                 }
             }
+            node.singleImports = ownArray(singleImports);
         }
         if (expect(tok!";") is null) return null;
         return node;
@@ -2921,7 +3066,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     ImportExpression parseImportExpression()
     {
-        auto node = new ImportExpression;
+        auto node = allocate!ImportExpression;
         if (expect(tok!"import") is null) return null;
         if (expect(tok!"(") is null) return null;
         node.assignExpression = parseAssignExpression();
@@ -2939,7 +3084,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
     IndexExpression parseIndexExpression(UnaryExpression unaryExpression = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new IndexExpression;
+        auto node = allocate!IndexExpression;
         node.unaryExpression = unaryExpression is null ? parseUnaryExpression() : unaryExpression;
         if (expect(tok!"[") is null) return null;
         node.argumentList = parseArgumentList();
@@ -2956,7 +3101,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     ExpressionNode parseInExpression(ExpressionNode shift = null)
     {
-        auto node = new InExpression;
+        auto node = allocate!InExpression;
         node.left = shift is null ? parseShiftExpression() : shift;
         if (currentIs(tok!"!"))
         {
@@ -2977,7 +3122,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     InStatement parseInStatement()
     {
-        auto node = new InStatement;
+        auto node = allocate!InStatement;
         if (expect(tok!"in") is null) return null;
         node.blockStatement = parseBlockStatement();
         return node;
@@ -2993,7 +3138,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     Initialize parseInitialize()
     {
-        auto node = new Initialize;
+        auto node = allocate!Initialize;
         if (!currentIs(tok!";"))
         {
             node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault();
@@ -3014,7 +3159,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     Initializer parseInitializer()
     {
-        auto node = new Initializer;
+        auto node = allocate!Initializer;
         if (currentIs(tok!"void"))
             advance();
         else
@@ -3031,7 +3176,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      */
     InterfaceDeclaration parseInterfaceDeclaration()
     {
-        auto node = new InterfaceDeclaration;
+        auto node = allocate!InterfaceDeclaration;
         if (expect(tok!"interface") is null) return null;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
@@ -3107,7 +3252,7 @@ interface "Four"
      */
     Invariant parseInvariant()
     {
-        auto node = new Invariant;
+        auto node = allocate!Invariant;
         if (expect(tok!"invariant") is null) return null;
         if (currentIs(tok!"("))
         {
@@ -3153,7 +3298,7 @@ invariant() foo();
     IsExpression parseIsExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new IsExpression;
+        auto node = allocate!IsExpression;
         if (expect(tok!"is") is null) return null;
         if (expect(tok!"(") is null) return null;
         node.type = parseType();
@@ -3174,14 +3319,14 @@ invariant() foo();
         return node;
     }
 
-	unittest
+    unittest
     {
         auto sourceCode = q{is ( x : uybte)}c;
         Parser p = getParserForUnittest(sourceCode, "parseIsExpression");
         auto isExp1 = p.parseIsExpression();
         assert (isExp1 !is null);
         assert (p.errorCount == 0);
-		stderr.writeln("Unittest for parseIsExpression passed.");
+        stderr.writeln("Unittest for parseIsExpression passed.");
     }
 
     /**
@@ -3194,7 +3339,7 @@ invariant() foo();
     KeyValuePair parseKeyValuePair()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new KeyValuePair;
+        auto node = allocate!KeyValuePair;
         node.key = parseAssignExpression();
         if (expect(tok!":") is null) return null;
         node.value = parseAssignExpression();
@@ -3211,12 +3356,13 @@ invariant() foo();
     KeyValuePairs parseKeyValuePairs()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new KeyValuePairs;
+        auto node = allocate!KeyValuePairs;
+        KeyValuePair[] keyValuePairs;
         while (moreTokens())
         {
             auto kvPair = parseKeyValuePair();
             if (kvPair !is null)
-                node.keyValuePairs ~= kvPair;
+                keyValuePairs ~= kvPair;
             if (currentIs(tok!","))
             {
                 advance();
@@ -3226,6 +3372,7 @@ invariant() foo();
             else
                 break;
         }
+        node.keyValuePairs = ownArray(keyValuePairs);
         return node;
     }
 
@@ -3239,7 +3386,7 @@ invariant() foo();
     LabeledStatement parseLabeledStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new LabeledStatement;
+        auto node = allocate!LabeledStatement;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.identifier = *ident;
@@ -3261,7 +3408,7 @@ invariant() foo();
     LambdaExpression parseLambdaExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new LambdaExpression;
+        auto node = allocate!LambdaExpression;
         if (currentIsOneOf(tok!"function", tok!"delegate"))
         {
             node.functionType = advance().type;
@@ -3273,14 +3420,16 @@ invariant() foo();
         {
         lParen:
             node.parameters = parseParameters();
+            FunctionAttribute[] functionAttributes;
             do
             {
                 auto attribute = parseFunctionAttribute(false);
                 if (attribute is null)
                     break;
-                node.functionAttributes ~= attribute;
+                functionAttributes ~= attribute;
             }
             while (moreTokens());
+            node.functionAttributes = ownArray(functionAttributes);
         }
         else
         {
@@ -3306,7 +3455,7 @@ invariant() foo();
     LastCatch parseLastCatch()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new LastCatch;
+        auto node = allocate!LastCatch;
         if (expect(tok!"catch") is null) return null;
         if ((node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault()) is null)
             return null;
@@ -3323,7 +3472,7 @@ invariant() foo();
     LinkageAttribute parseLinkageAttribute()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new LinkageAttribute;
+        auto node = allocate!LinkageAttribute;
         expect(tok!"extern");
         expect(tok!"(");
         auto ident = expect(tok!"identifier");
@@ -3352,7 +3501,7 @@ invariant() foo();
     MemberFunctionAttribute parseMemberFunctionAttribute()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new MemberFunctionAttribute;
+        auto node = allocate!MemberFunctionAttribute;
         switch (current.type)
         {
         case tok!"@":
@@ -3383,7 +3532,7 @@ invariant() foo();
     MixinDeclaration parseMixinDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new MixinDeclaration;
+        auto node = allocate!MixinDeclaration;
         if (peekIs(tok!"identifier") || peekIs(tok!"typeof"))
             node.templateMixinExpression = parseTemplateMixinExpression();
         else if (peekIs(tok!"("))
@@ -3407,7 +3556,7 @@ invariant() foo();
     MixinExpression parseMixinExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new MixinExpression;
+        auto node = allocate!MixinExpression;
         expect(tok!"mixin");
         expect(tok!"(");
         node.assignExpression = parseAssignExpression();
@@ -3425,7 +3574,7 @@ invariant() foo();
     MixinTemplateDeclaration parseMixinTemplateDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new MixinTemplateDeclaration;
+        auto node = allocate!MixinTemplateDeclaration;
         if (expect(tok!"mixin") is null) return null;
         node.templateDeclaration = parseTemplateDeclaration();
         if (node.templateDeclaration is null) return null;
@@ -3443,7 +3592,7 @@ invariant() foo();
     MixinTemplateName parseMixinTemplateName()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new MixinTemplateName;
+        auto node = allocate!MixinTemplateName;
         if (currentIs(tok!"typeof"))
         {
             node.typeofExpression = parseTypeofExpression();
@@ -3469,7 +3618,7 @@ invariant() foo();
     Module parseModule()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        Module m = new Module;
+        Module m = allocate!Module;
         if (currentIs(tok!"scriptLine"))
             advance();
         if (currentIs(tok!"module"))
@@ -3492,7 +3641,7 @@ invariant() foo();
      */
     ModuleDeclaration parseModuleDeclaration()
     {
-        auto node = new ModuleDeclaration;
+        auto node = allocate!ModuleDeclaration;
         expect(tok!"module");
         node.moduleName = parseIdentifierChain();
         expect(tok!";");
@@ -3522,7 +3671,7 @@ invariant() foo();
      */
     NewAnonClassExpression parseNewAnonClassExpression()
     {
-        auto node = new NewAnonClassExpression;
+        auto node = allocate!NewAnonClassExpression;
         expect(tok!"new");
         if (currentIs(tok!"("))
             node.allocatorArguments = parseArguments();
@@ -3545,7 +3694,7 @@ invariant() foo();
      */
     NewExpression parseNewExpression()
     {
-        auto node = new NewExpression;
+        auto node = allocate!NewExpression;
         if (peekIsOneOf(tok!"class", tok!"("))
             node.newAnonClassExpression = parseNewAnonClassExpression();
         else
@@ -3598,7 +3747,7 @@ invariant() foo();
      */
     StatementNoCaseNoDefault parseStatementNoCaseNoDefault()
     {
-        auto node = new StatementNoCaseNoDefault;
+        auto node = allocate!StatementNoCaseNoDefault;
         switch (current.type)
         {
         case tok!"{":
@@ -3710,7 +3859,7 @@ invariant() foo();
     NonVoidInitializer parseNonVoidInitializer()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new NonVoidInitializer;
+        auto node = allocate!NonVoidInitializer;
         if (currentIs(tok!"{"))
             node.structInitializer = parseStructInitializer();
         else if (currentIs(tok!"["))
@@ -3741,7 +3890,7 @@ invariant() foo();
      */
     Operands parseOperands()
     {
-        auto node = new Operands;
+        auto node = allocate!Operands;
         assert (false, "asm"); // TODO asm
     }
 
@@ -3784,7 +3933,7 @@ invariant() foo();
      */
     OutStatement parseOutStatement()
     {
-        auto node = new OutStatement;
+        auto node = allocate!OutStatement;
         expect(tok!"out");
         if (currentIs(tok!"("))
         {
@@ -3808,15 +3957,17 @@ invariant() foo();
     Parameter parseParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Parameter;
+        auto node = allocate!Parameter;
+        IdType[] parameterAttributes;
         while (moreTokens())
         {
             IdType type = parseParameterAttribute(false);
             if (type == tok!"")
                 break;
             else
-                node.parameterAttributes ~= type;
+                parameterAttributes ~= type;
         }
+        node.parameterAttributes = ownArray(parameterAttributes);
         node.type = parseType();
         if (node.type is null) return null;
         if (currentIs(tok!"identifier"))
@@ -3901,8 +4052,9 @@ invariant() foo();
     Parameters parseParameters()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Parameters;
+        auto node = allocate!Parameters;
         if (expect(tok!"(") is null) return null;
+        Parameter[] parameters;
         if (currentIs(tok!")"))
             goto end;
         if (currentIs(tok!"..."))
@@ -3924,12 +4076,13 @@ invariant() foo();
             auto param = parseParameter();
             if (param is null)
                 return null;
-            node.parameters ~= param;
+            parameters ~= param;
             if (currentIs(tok!","))
                 advance();
             else
                 break;
         }
+        node.parameters = ownArray(node.parameters);
     end:
         if (expect(tok!")") is null)
             return null;
@@ -3972,7 +4125,7 @@ q{(int a, ...)
      */
     Postblit parsePostblit()
     {
-        auto node = new Postblit;
+        auto node = allocate!Postblit;
         expect(tok!"this");
         expect(tok!"(");
         expect(tok!"this");
@@ -3993,7 +4146,7 @@ q{(int a, ...)
      */
     PostIncDecExpression parsePostIncDecExpression(UnaryExpression unary = null)
     {
-        auto node = new PostIncDecExpression;
+        auto node = allocate!PostIncDecExpression;
         node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
         node.operator = advance().type;
         return node;
@@ -4022,8 +4175,8 @@ q{(int a, ...)
      */
     PragmaDeclaration parsePragmaDeclaration()
     {
-		mixin (traceEnterAndExit!(__FUNCTION__));
-        auto node = new PragmaDeclaration;
+        mixin (traceEnterAndExit!(__FUNCTION__));
+        auto node = allocate!PragmaDeclaration;
         node.pragmaExpression = parsePragmaExpression();
         expect(tok!";");
         return node;
@@ -4038,8 +4191,8 @@ q{(int a, ...)
      */
     PragmaExpression parsePragmaExpression()
     {
-		mixin (traceEnterAndExit!(__FUNCTION__));
-        auto node = new PragmaExpression;
+        mixin (traceEnterAndExit!(__FUNCTION__));
+        auto node = allocate!PragmaExpression;
         expect(tok!"pragma");
         expect(tok!"(");
         auto ident = expect(tok!"identifier");
@@ -4064,7 +4217,7 @@ q{(int a, ...)
     PreIncDecExpression parsePreIncDecExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new PreIncDecExpression;
+        auto node = allocate!PreIncDecExpression;
         if (currentIsOneOf(tok!"++", tok!"--"))
             advance();
         else
@@ -4120,12 +4273,12 @@ q{(int a, ...)
     PrimaryExpression parsePrimaryExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new PrimaryExpression;
-		if (!moreTokens())
-		{
-			error("Expected primary statement instead of EOF");
-			return null;
-		}
+        auto node = allocate!PrimaryExpression;
+        if (!moreTokens())
+        {
+            error("Expected primary statement instead of EOF");
+            return null;
+        }
         switch (current.type)
         {
         case tok!".":
@@ -4263,7 +4416,7 @@ q{(int a, ...)
     Register parseRegister()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Register;
+        auto node = allocate!Register;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.identifier = *ident;
@@ -4319,7 +4472,7 @@ q{(int a, ...)
     ReturnStatement parseReturnStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ReturnStatement;
+        auto node = allocate!ReturnStatement;
         if (expect(tok!"return") is null) return null;
         if (!currentIs(tok!";"))
             node.expression = parseExpression();
@@ -4337,7 +4490,7 @@ q{(int a, ...)
     ScopeGuardStatement parseScopeGuardStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ScopeGuardStatement;
+        auto node = allocate!ScopeGuardStatement;
         expect(tok!"scope");
         expect(tok!"(");
         auto ident = expect(tok!"identifier");
@@ -4402,7 +4555,7 @@ q{(int a, ...)
     SingleImport parseSingleImport()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SingleImport;
+        auto node = allocate!SingleImport;
         if (startsWith(tok!"identifier", tok!"="))
         {
             node.rename = advance();
@@ -4425,7 +4578,7 @@ q{(int a, ...)
     SliceExpression parseSliceExpression(UnaryExpression unary = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SliceExpression;
+        auto node = allocate!SliceExpression;
         node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
         if (expect(tok!"[") is null) return null;
         if (!currentIs(tok!"]"))
@@ -4451,12 +4604,12 @@ q{(int a, ...)
     Statement parseStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Statement;
-		if (!moreTokens())
-		{
-			error("Expected statement instead of EOF");
-			return null;
-		}
+        auto node = allocate!Statement;
+        if (!moreTokens())
+        {
+            error("Expected statement instead of EOF");
+            return null;
+        }
         switch (current.type)
         {
         case tok!"case":
@@ -4572,7 +4725,7 @@ q{(int a, ...)
      */
     StorageClass parseStorageClass()
     {
-        auto node = new StorageClass;
+        auto node = allocate!StorageClass;
         switch (current.type)
         {
         case tok!"@":
@@ -4618,15 +4771,17 @@ q{(int a, ...)
     StructBody parseStructBody()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StructBody;
+        auto node = allocate!StructBody;
         auto start = expect(tok!"{");
         if (start !is null) node.startLocation = start.index;
+        Declaration[] declarations;
         while (!currentIs(tok!"}") && moreTokens())
         {
             auto dec = parseDeclaration();
             if (dec !is null)
-                node.declarations ~= dec;
+                declarations ~= dec;
         }
+        node.declarations = ownArray(declarations);
         auto end = expect(tok!"}");
         if (end !is null) node.endLocation = end.index;
         return node;
@@ -4642,7 +4797,7 @@ q{(int a, ...)
     StructDeclaration parseStructDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StructDeclaration;
+        auto node = allocate!StructDeclaration;
         expect(tok!"struct");
         if (currentIs(tok!"identifier"))
         {
@@ -4682,7 +4837,7 @@ q{(int a, ...)
     StructInitializer parseStructInitializer()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StructInitializer;
+        auto node = allocate!StructInitializer;
         expect(tok!"{");
         node.structMemberInitializers = parseStructMemberInitializers();
         expect(tok!"}");
@@ -4699,7 +4854,7 @@ q{(int a, ...)
     StructMemberInitializer parseStructMemberInitializer()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StructMemberInitializer;
+        auto node = allocate!StructMemberInitializer;
         if (startsWith(tok!"identifier", tok!":"))
         {
             node.identifier = tokens[index++];
@@ -4719,12 +4874,13 @@ q{(int a, ...)
     StructMemberInitializers parseStructMemberInitializers()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new StructMemberInitializers;
+        auto node = allocate!StructMemberInitializers;
+        StructMemberInitializer[] structMemberInitializers;
         do
         {
             auto structMemberInitializer = parseStructMemberInitializer();
             if (structMemberInitializer !is null)
-                node.structMemberInitializers ~= structMemberInitializer;
+                structMemberInitializers ~= structMemberInitializer;
             if (currentIs(tok!","))
             {
                 advance();
@@ -4736,6 +4892,7 @@ q{(int a, ...)
             else
                 break;
         } while (moreTokens());
+        node.structMemberInitializers = ownArray(structMemberInitializers);
         return node;
     }
 
@@ -4749,7 +4906,7 @@ q{(int a, ...)
     SwitchStatement parseSwitchStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SwitchStatement;
+        auto node = allocate!SwitchStatement;
         expect(tok!"switch");
         expect(tok!"(");
         node.expression = parseExpression();
@@ -4768,12 +4925,12 @@ q{(int a, ...)
     Symbol parseSymbol()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Symbol;
+        auto node = allocate!Symbol;
         if (currentIs(tok!"."))
-		{
-			node.dot = true;
-			advance();
-		}
+        {
+            node.dot = true;
+            advance();
+        }
         node.identifierOrTemplateChain = parseIdentifierOrTemplateChain();
         return node;
     }
@@ -4788,7 +4945,7 @@ q{(int a, ...)
     SynchronizedStatement parseSynchronizedStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new SynchronizedStatement;
+        auto node = allocate!SynchronizedStatement;
         expect(tok!"synchronized");
         if (currentIs(tok!"("))
         {
@@ -4810,7 +4967,7 @@ q{(int a, ...)
     TemplateAliasParameter parseTemplateAliasParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateAliasParameter;
+        auto node = allocate!TemplateAliasParameter;
         expect(tok!"alias");
         if (currentIs(tok!"identifier"))
         {
@@ -4858,7 +5015,7 @@ q{(int a, ...)
     TemplateArgument parseTemplateArgument()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateArgument;
+        auto node = allocate!TemplateArgument;
         auto b = setBookmark();
         auto t = parseType();
         if (t !is null && currentIsOneOf(tok!",", tok!")"))
@@ -4897,7 +5054,7 @@ q{(int a, ...)
     TemplateArguments parseTemplateArguments()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateArguments;
+        auto node = allocate!TemplateArguments;
         expect(tok!"!");
         if (currentIs(tok!"("))
         {
@@ -4922,7 +5079,7 @@ q{(int a, ...)
     TemplateDeclaration parseTemplateDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateDeclaration;
+        auto node = allocate!TemplateDeclaration;
         node.comment = comment;
         comment = null;
         if (currentIs(tok!"enum"))
@@ -4938,12 +5095,14 @@ q{(int a, ...)
         if (currentIs(tok!"if"))
             node.constraint = parseConstraint();
         if (expect(tok!"{") is null) return null;
+        Declaration[] declarations;
         while (moreTokens() && !currentIs(tok!"}"))
         {
             auto decl = parseDeclaration();
             if (decl !is null)
-                node.declarations ~= decl;
+                declarations ~= decl;
         }
+        node.declarations = ownArray(declarations);
         expect(tok!"}");
         return node;
     }
@@ -4958,7 +5117,7 @@ q{(int a, ...)
     EponymousTemplateDeclaration parseEponymousTemplateDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new EponymousTemplateDeclaration;
+        auto node = allocate!EponymousTemplateDeclaration;
         expect(tok!"enum");
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
@@ -4980,7 +5139,7 @@ q{(int a, ...)
     TemplateInstance parseTemplateInstance()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateInstance;
+        auto node = allocate!TemplateInstance;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.identifier = *ident;
@@ -5000,7 +5159,7 @@ q{(int a, ...)
     TemplateMixinExpression parseTemplateMixinExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateMixinExpression;
+        auto node = allocate!TemplateMixinExpression;
         if (expect(tok!"mixin") is null) return null;
         node.mixinTemplateName = parseMixinTemplateName();
         if (currentIs(tok!"!"))
@@ -5024,7 +5183,7 @@ q{(int a, ...)
     TemplateParameter parseTemplateParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateParameter;
+        auto node = allocate!TemplateParameter;
         switch (current.type)
         {
         case tok!"alias":
@@ -5071,7 +5230,7 @@ q{(int a, ...)
     TemplateParameters parseTemplateParameters()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateParameters;
+        auto node = allocate!TemplateParameters;
         if (expect(tok!"(") is null) return null;
         if (!currentIs(tok!")"))
             node.templateParameterList = parseTemplateParameterList();
@@ -5108,7 +5267,7 @@ q{(int a, ...)
     TemplateSingleArgument parseTemplateSingleArgument()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateSingleArgument;
+        auto node = allocate!TemplateSingleArgument;
         switch (current.type)
         {
         case tok!"true":
@@ -5138,7 +5297,7 @@ q{(int a, ...)
     TemplateThisParameter parseTemplateThisParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateThisParameter;
+        auto node = allocate!TemplateThisParameter;
         expect(tok!"this");
         node.templateTypeParameter = parseTemplateTypeParameter();
         return node;
@@ -5154,7 +5313,7 @@ q{(int a, ...)
     TemplateTupleParameter parseTemplateTupleParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateTupleParameter;
+        auto node = allocate!TemplateTupleParameter;
         auto i = expect(tok!"identifier");
         if (i is null)
             return null;
@@ -5173,7 +5332,7 @@ q{(int a, ...)
     TemplateTypeParameter parseTemplateTypeParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateTypeParameter;
+        auto node = allocate!TemplateTypeParameter;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
         node.identifier = *ident;
@@ -5200,7 +5359,7 @@ q{(int a, ...)
     TemplateValueParameter parseTemplateValueParameter()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateValueParameter;
+        auto node = allocate!TemplateValueParameter;
         if ((node.type = parseType()) is null) return null;
         auto ident = expect(tok!"identifier");
         if (ident is null) return null;
@@ -5228,7 +5387,7 @@ q{(int a, ...)
     TemplateValueParameterDefault parseTemplateValueParameterDefault()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TemplateValueParameterDefault;
+        auto node = allocate!TemplateValueParameterDefault;
         expect(tok!"=");
         switch (current.type)
         {
@@ -5256,7 +5415,7 @@ q{(int a, ...)
     ExpressionNode parseTernaryExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TernaryExpression;
+        auto node = allocate!TernaryExpression;
         node.orOrExpression = parseOrOrExpression();
         if (currentIs(tok!"?"))
         {
@@ -5278,7 +5437,7 @@ q{(int a, ...)
     ThrowStatement parseThrowStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new ThrowStatement;
+        auto node = allocate!ThrowStatement;
         expect(tok!"throw");
         node.expression = parseExpression();
         expect(tok!";");
@@ -5295,7 +5454,7 @@ q{(int a, ...)
     TraitsExpression parseTraitsExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TraitsExpression;
+        auto node = allocate!TraitsExpression;
         if (expect(tok!"__traits") is null) return null;
         if (expect(tok!"(") is null) return null;
         auto ident = expect(tok!"identifier");
@@ -5320,7 +5479,7 @@ q{(int a, ...)
     TryStatement parseTryStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TryStatement;
+        auto node = allocate!TryStatement;
         expect(tok!"try");
         node.declarationOrStatement = parseDeclarationOrStatement();
         if (currentIs(tok!"catch"))
@@ -5340,7 +5499,7 @@ q{(int a, ...)
     Type parseType()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Type;
+        auto node = allocate!Type;
         switch(current.type)
         {
         case tok!"const":
@@ -5359,6 +5518,7 @@ q{(int a, ...)
         node.type2 = parseType2();
         if (node.type2 is null)
             return null;
+        TypeSuffix[] typeSuffixes;
         loop: while (moreTokens()) switch (current.type)
         {
         case tok!"*":
@@ -5367,13 +5527,14 @@ q{(int a, ...)
         case tok!"function":
             auto suffix = parseTypeSuffix();
             if (suffix !is null)
-                node.typeSuffixes ~= suffix;
+                typeSuffixes ~= suffix;
             else
                 return null;
             break;
         default:
             break loop;
         }
+        node.typeSuffixes = ownArray(typeSuffixes);
         return node;
     }
 
@@ -5390,7 +5551,7 @@ q{(int a, ...)
     Type2 parseType2()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new Type2;
+        auto node = allocate!Type2;
         switch (current.type)
         {
         case tok!"identifier":
@@ -5510,7 +5671,7 @@ q{(int a, ...)
     TypeSpecialization parseTypeSpecialization()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TypeSpecialization;
+        auto node = allocate!TypeSpecialization;
         switch (current.type)
         {
         case tok!"struct":
@@ -5554,7 +5715,7 @@ q{(int a, ...)
     TypeSuffix parseTypeSuffix()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TypeSuffix;
+        auto node = allocate!TypeSuffix;
         switch(current.type)
         {
         case tok!"*":
@@ -5595,8 +5756,10 @@ q{(int a, ...)
         case tok!"function":
             node.delegateOrFunction = advance();
             node.parameters = parseParameters();
+            MemberFunctionAttribute[] memberFunctionAttributes;
             while (currentIsMemberFunctionAttribute())
-                node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+                memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
             return node;
         default:
             error(`"*", "[", "delegate", or "function" expected.`);
@@ -5614,7 +5777,7 @@ q{(int a, ...)
     TypeidExpression parseTypeidExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TypeidExpression;
+        auto node = allocate!TypeidExpression;
         expect(tok!"typeid");
         expect(tok!"(");
         auto b = setBookmark();
@@ -5645,7 +5808,7 @@ q{(int a, ...)
     TypeofExpression parseTypeofExpression()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new TypeofExpression;
+        auto node = allocate!TypeofExpression;
         expect(tok!"typeof");
         expect(tok!"(");
         if (currentIs(tok!"return"))
@@ -5687,7 +5850,7 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (!moreTokens())
             return null;
-        auto node = new UnaryExpression;
+        auto node = allocate!UnaryExpression;
         switch (current.type)
         {
         case tok!"&":
@@ -5760,19 +5923,19 @@ q{(int a, ...)
                 break loop;
 
         case tok!"(":
-            auto newUnary = new UnaryExpression();
+            auto newUnary = allocate!UnaryExpression();
             newUnary.functionCallExpression = parseFunctionCallExpression(node);
             node = newUnary;
             break;
         case tok!"++":
         case tok!"--":
-            auto n = new UnaryExpression();
+            auto n = allocate!UnaryExpression();
             n.unaryExpression = node;
             n.suffix = advance();
             node = n;
             break;
         case tok!"[":
-            auto n = new UnaryExpression;
+            auto n = allocate!UnaryExpression;
             if (isSliceExpression())
                 n.sliceExpression = parseSliceExpression(node);
             else
@@ -5781,7 +5944,7 @@ q{(int a, ...)
             break;
         case tok!".":
             advance();
-            auto n = new UnaryExpression();
+            auto n = allocate!UnaryExpression();
             n.unaryExpression = node;
             n.identifierOrTemplateInstance = parseIdentifierOrTemplateInstance();
             node = n;
@@ -5815,7 +5978,7 @@ q{doStuff(5)}c;
     UnionDeclaration parseUnionDeclaration()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new UnionDeclaration;
+        auto node = allocate!UnionDeclaration;
         // grab line number even if it's anonymous
         auto l = expect(tok!"union").line;
         bool templated = false;
@@ -5869,7 +6032,7 @@ q{doStuff(5)}c;
     VariableDeclaration parseVariableDeclaration(Type type = null, bool isAuto = false)
     {
         mixin (traceEnterAndExit!(__FUNCTION__));
-        auto node = new VariableDeclaration;
+        auto node = allocate!VariableDeclaration;
         if (isAuto)
         {
             node.autoDeclaration = parseAutoDeclaration();
@@ -5878,16 +6041,18 @@ q{doStuff(5)}c;
 
         node.type = type is null ? parseType() : type;
 
+        Declarator[] declarators;
         while(true)
         {
             auto declarator = parseDeclarator();
             if (declarator is null) return null;
-            node.declarators ~= declarator;
+            declarators ~= declarator;
             if (moreTokens() && currentIs(tok!","))
                 advance();
             else
                 break;
         }
+        node.declarators = ownArray(declarators);
         expect(tok!";");
         return node;
     }
@@ -5915,7 +6080,7 @@ q{doStuff(5)}c;
     VersionCondition parseVersionCondition()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new VersionCondition;
+        auto node = allocate!VersionCondition;
         mixin (expectSequence!(tok!"version", tok!"("));
         if (currentIsOneOf(tok!"intLiteral", tok!"identifier",
             tok!"unittest", tok!"assert"))
@@ -5941,7 +6106,7 @@ q{doStuff(5)}c;
     VersionSpecification parseVersionSpecification()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new VersionSpecification;
+        auto node = allocate!VersionSpecification;
         mixin (expectSequence!(tok!"version", tok!"="));
         if (!currentIsOneOf(tok!"identifier", tok!"intLiteral"))
         {
@@ -5963,7 +6128,7 @@ q{doStuff(5)}c;
     WhileStatement parseWhileStatement()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        auto node = new WhileStatement;
+        auto node = allocate!WhileStatement;
         expect(tok!"while");
         node.startIndex = current().index;
         expect(tok!"(");
@@ -6024,6 +6189,11 @@ q{doStuff(5)}c;
     string fileName;
 
     /**
+     * Allocator used for creating AST nodes
+     */
+    CAllocator allocator;
+
+    /**
      * Function that is called when a warning or error is encountered.
      * The parameters are the file name, line number, column number,
      * and the error or warning message.
@@ -6051,8 +6221,28 @@ q{doStuff(5)}c;
         return index < tokens.length;
     }
 
-
 protected:
+
+    T[] ownArray(T)(T[] from)
+    {
+        if (allocator is null)
+            return from;
+        T[] to = cast(T[]) allocator.allocate(T.sizeof * from.length);
+        to[] = from[];
+        return to;
+    }
+
+    T allocate(T, Args...)(auto ref Args args)
+    {
+        import std.stdio;
+        if (allocator is null)
+            return new T(args);
+        enum numBytes = __traits(classInstanceSize, T);
+        void[] mem = allocator.allocate(numBytes);
+        T t = emplace!T(mem, args);
+        assert (cast(void*) t == mem.ptr, "%x, %x".format(cast(void*) t, mem.ptr));
+        return t;
+    }
 
     bool isCastQualifier() const
     {
@@ -6294,13 +6484,13 @@ protected:
         mixin ("node = part is null ? parse" ~ ExpressionPartType.stringof ~ "() : part;");
         while (currentIsOneOf(Operators))
         {
-            auto n = new ExpressionType;
+            auto n = allocate!ExpressionType;
             static if (__traits(hasMember, ExpressionType, "operator"))
-			{
-				n.line = current.line;
-				n.column = current.column;
+            {
+                n.line = current.line;
+                n.column = current.column;
                 n.operator = advance().type;
-			}
+            }
             else
                 advance();
             n.left = node;
@@ -6312,10 +6502,11 @@ protected:
 
     ListType parseCommaSeparatedRule(alias ListType, alias ItemType)(bool allowTrailingComma = false)
     {
-        auto node = new ListType;
+        auto node = allocate!ListType;
+        ItemType[] items;
         while (moreTokens())
         {
-            mixin ("node.items ~= parse" ~ ItemType.stringof ~ "();");
+            mixin ("items ~= parse" ~ ItemType.stringof ~ "();");
             if (currentIs(tok!","))
             {
                 advance();
@@ -6330,6 +6521,7 @@ protected:
             else
                 break;
         }
+        node.items = ownArray(items);
         return node;
     }
 
@@ -6565,7 +6757,7 @@ protected:
         string testName)
     {
         auto r = byToken(cast(ubyte[]) sourceCode);
-        Parser p = new Parser;
+        Parser p = allocate!Parser;
         p.messageFunction = &doNothingErrorFunction;
         p.fileName = testName ~ ".d";
         p.tokens = r.array();
@@ -6575,13 +6767,13 @@ protected:
     template simpleParse(NodeType, parts ...)
     {
         static if (__traits(hasMember, NodeType, "comment"))
-            enum simpleParse = "auto node = new " ~ NodeType.stringof ~ ";\n"
+            enum simpleParse = "auto node = allocate!" ~ NodeType.stringof ~ ";\n"
                 ~ "node.comment = comment;\n"
                 ~ "comment = null;\n"
                 ~ simpleParseItems!(parts)
                 ~ "\nreturn node;\n";
         else
-            enum simpleParse = "auto node = new " ~ NodeType.stringof ~ ";\n"
+            enum simpleParse = "auto node = allocate!" ~ NodeType.stringof ~ ";\n"
                 ~ simpleParseItems!(parts)
                 ~ "\nreturn node;\n";
     }
@@ -6627,7 +6819,7 @@ protected:
     {
         void trace(lazy string message)
         {
-			auto depth = format("%4d ", _traceDepth);
+            auto depth = format("%4d ", _traceDepth);
             if (suppressMessages > 0)
                 return;
             if (index < tokens.length)
