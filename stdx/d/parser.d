@@ -4084,7 +4084,7 @@ invariant() foo();
             else
                 break;
         }
-        node.parameters = ownArray(node.parameters);
+        node.parameters = ownArray(parameters);
     end:
         if (expect(tok!")") is null)
             return null;
