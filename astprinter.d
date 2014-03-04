@@ -36,7 +36,10 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(const AliasDeclaration aliasDeclaration)
 	{
-		mixin (tagAndAccept!"aliasDeclaration");
+		output.writeln("<aliasDeclaration line=\"", aliasDeclaration.name.line, "\">");
+		writeDdoc(aliasDeclaration.comment);
+		aliasDeclaration.accept(this);
+		output.writeln("</aliasDeclaration>");
 	}
 
 	override void visit(const AliasInitializer aliasInitializer)

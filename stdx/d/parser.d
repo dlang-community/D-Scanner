@@ -188,6 +188,8 @@ class Parser
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!AliasDeclaration;
         if (expect(tok!"alias") is null) return null;
+        node.comment = comment;
+        comment = null;
 
         // 'alias extern(C) void function() f;' => supported in DMD and DScanner.
         // 'alias f = extern(C) void function();' => not supported in both DMD and DScanner. See D Bugzilla 10471.
