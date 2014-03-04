@@ -22,7 +22,7 @@ class NumberStyleCheck : BaseAnalyzer
 		super(fileName);
 	}
 
-	override void visit(Token t)
+	override void visit(const Token t)
 	{
 		import std.algorithm;
 		if (isNumberLiteral(t.type) && !t.text.startsWith("0x")

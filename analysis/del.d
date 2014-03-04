@@ -21,7 +21,7 @@ class DeleteCheck : BaseAnalyzer
 		super(fileName);
 	}
 
-	override void visit(DeleteExpression d)
+	override void visit(const DeleteExpression d)
 	{
 		addErrorMessage(d.line, d.column, "Avoid using the delete keyword");
 		d.accept(this);

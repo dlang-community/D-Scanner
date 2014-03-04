@@ -10,7 +10,7 @@ import std.stdio;
 
 class ImportPrinter : ASTVisitor
 {
-	override void visit(SingleImport singleImport)
+	override void visit(const SingleImport singleImport)
 	{
 		ignore = false;
 		singleImport.accept(this);
@@ -18,7 +18,7 @@ class ImportPrinter : ASTVisitor
 		ignore = true;
 	}
 
-	override void visit(IdentifierChain identifierChain)
+	override void visit(const IdentifierChain identifierChain)
 	{
 		if (ignore) return;
 		bool first = true;

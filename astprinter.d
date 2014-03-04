@@ -19,7 +19,7 @@ template tagAndAccept(string tagName)
 
 class XMLPrinter : ASTVisitor
 {
-	override void visit(AddExpression addExpression)
+	override void visit(const AddExpression addExpression)
 	{
 		output.writeln("<addExpression operator=\"", str(addExpression.operator) ,"\">");
 		output.writeln("<left>");
@@ -34,27 +34,27 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</addExpression>");
 	}
 
-	override void visit(AliasDeclaration aliasDeclaration)
+	override void visit(const AliasDeclaration aliasDeclaration)
 	{
 		mixin (tagAndAccept!"aliasDeclaration");
 	}
 
-	override void visit(AliasInitializer aliasInitializer)
+	override void visit(const AliasInitializer aliasInitializer)
 	{
 		mixin (tagAndAccept!"aliasInitializer");
 	}
 
-	override void visit(AliasThisDeclaration aliasThisDeclaration)
+	override void visit(const AliasThisDeclaration aliasThisDeclaration)
 	{
 		mixin (tagAndAccept!"aliasThisDeclaration");
 	}
 
-	override void visit(AlignAttribute alignAttribute)
+	override void visit(const AlignAttribute alignAttribute)
 	{
 		output.writeln("<alignAttribute align=\"", alignAttribute.intLiteral.text, "\">");
 	}
 
-	override void visit(AndAndExpression andAndExpression)
+	override void visit(const AndAndExpression andAndExpression)
 	{
 		output.writeln("<andAndExpression>");
 		output.writeln("<left>");
@@ -69,7 +69,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</andAndExpression>");
 	}
 
-	override void visit(AndExpression andExpression)
+	override void visit(const AndExpression andExpression)
 	{
 		output.writeln("<andExpression>");
 		output.writeln("<left>");
@@ -84,32 +84,32 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</andExpression>");
 	}
 
-	override void visit(ArgumentList argumentList)
+	override void visit(const ArgumentList argumentList)
 	{
 		mixin (tagAndAccept!"argumentList");
 	}
 
-	override void visit(Arguments arguments)
+	override void visit(const Arguments arguments)
 	{
 		mixin (tagAndAccept!"arguments");
 	}
 
-	override void visit(ArrayInitializer arrayInitializer)
+	override void visit(const ArrayInitializer arrayInitializer)
 	{
 		mixin (tagAndAccept!"arrayInitializer");
 	}
 
-	override void visit(ArrayLiteral arrayLiteral)
+	override void visit(const ArrayLiteral arrayLiteral)
 	{
 		mixin (tagAndAccept!"arrayLiteral");
 	}
 
-	override void visit(ArrayMemberInitialization arrayMemberInitialization)
+	override void visit(const ArrayMemberInitialization arrayMemberInitialization)
 	{
 		mixin (tagAndAccept!"arrayMemberInitialization");
 	}
 
-	override void visit(AssertExpression assertExpression)
+	override void visit(const AssertExpression assertExpression)
 	{
 		output.writeln("<assertExpression>");
 		output.writeln("<assertion>");
@@ -124,7 +124,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</assertExpression>");
 	}
 
-	override void visit(AssignExpression assignExpression)
+	override void visit(const AssignExpression assignExpression)
 	{
 		if (assignExpression.assignExpression is null)
 			output.writeln("<assignExpression>");
@@ -135,12 +135,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</assignExpression>");
 	}
 
-	override void visit(AssocArrayLiteral assocArrayLiteral)
+	override void visit(const AssocArrayLiteral assocArrayLiteral)
 	{
 		mixin (tagAndAccept!"assocArrayLiteral");
 	}
 
-	override void visit(AtAttribute atAttribute)
+	override void visit(const AtAttribute atAttribute)
 	{
 		output.writeln("<atAttribute>");
 		if (atAttribute.identifier.type == tok!"")
@@ -150,7 +150,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</atAttribute>");
 	}
 
-	override void visit(Attribute attribute)
+	override void visit(const Attribute attribute)
 	{
 		output.writeln("<attribute>");
 		if (attribute.attribute == tok!"")
@@ -160,13 +160,13 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</attribute>");
 	}
 
-	override void visit(AttributeDeclaration attributeDeclaration)
+	override void visit(const AttributeDeclaration attributeDeclaration)
 	{
 		assert (attributeDeclaration !is null);
 		mixin (tagAndAccept!"attributeDeclaration");
 	}
 
-	override void visit(AutoDeclaration autoDec)
+	override void visit(const AutoDeclaration autoDec)
 	{
 		output.writeln("<autoDeclaration>");
 		for (size_t i = 0; i < autoDec.identifiers.length; i++)
@@ -180,21 +180,21 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</autoDeclaration>");
 	}
 
-	override void visit(BlockStatement blockStatement)
+	override void visit(const BlockStatement blockStatement)
 	{
 		output.writeln("<blockStatement>");
 		blockStatement.accept(this);
 		output.writeln("</blockStatement>");
 	}
 
-	override void visit(BodyStatement bodyStatement)
+	override void visit(const BodyStatement bodyStatement)
 	{
 		output.writeln("<bodyStatement>");
 		bodyStatement.accept(this);
 		output.writeln("</bodyStatement>");
 	}
 
-	override void visit(BreakStatement breakStatement)
+	override void visit(const BreakStatement breakStatement)
 	{
 		if (breakStatement.label.type == tok!"")
 			output.writeln("<breakStatement/>");
@@ -202,17 +202,17 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<breakStatement label=\"", breakStatement.label.text, "\"/>");
 	}
 
-	override void visit(BaseClass baseClass)
+	override void visit(const BaseClass baseClass)
 	{
 		mixin (tagAndAccept!"baseClass");
 	}
 
-	override void visit(BaseClassList baseClassList)
+	override void visit(const BaseClassList baseClassList)
 	{
 		mixin (tagAndAccept!"baseClassList");
 	}
 
-	override void visit(CaseRangeStatement caseRangeStatement)
+	override void visit(const CaseRangeStatement caseRangeStatement)
 	{
 		output.writeln("<caseRangeStatement>");
 		if (caseRangeStatement.low !is null)
@@ -232,34 +232,34 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</caseRangeStatement>");
 	}
 
-	override void visit(CaseStatement caseStatement)
+	override void visit(const CaseStatement caseStatement)
 	{
 		mixin (tagAndAccept!"caseStatement");
 	}
 
-	override void visit(CastExpression castExpression)
+	override void visit(const CastExpression castExpression)
 	{
 		mixin (tagAndAccept!"castExpression");
 	}
 
-	override void visit(CastQualifier castQualifier)
+	override void visit(const CastQualifier castQualifier)
 	{
 		mixin (tagAndAccept!"castQualifier");
 	}
 
-	override void visit(Catches catches)
+	override void visit(const Catches catches)
 	{
 		mixin (tagAndAccept!"catches");
 	}
 
-	override void visit(Catch catch_)
+	override void visit(const Catch catch_)
 	{
 		output.writeln("<catch>");
 		catch_.accept(this);
 		output.writeln("</catch>");
 	}
 
-	override void visit(ClassDeclaration classDec)
+	override void visit(const ClassDeclaration classDec)
 	{
 		output.writeln("<classDeclaration line=\"", classDec.name.line, "\">");
 		output.writeln("<name>", classDec.name.text, "</name>");
@@ -268,17 +268,17 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</classDeclaration>");
 	}
 
-	override void visit(CmpExpression cmpExpression)
+	override void visit(const CmpExpression cmpExpression)
 	{
 		mixin (tagAndAccept!"cmpExpression");
 	}
 
-	override void visit(CompileCondition compileCondition)
+	override void visit(const CompileCondition compileCondition)
 	{
 		mixin (tagAndAccept!"compileCondition");
 	}
 
-	override void visit(ConditionalDeclaration conditionalDeclaration)
+	override void visit(const ConditionalDeclaration conditionalDeclaration)
 	{
 		output.writeln("<conditionalDeclaration>");
 		visit(conditionalDeclaration.compileCondition);
@@ -295,7 +295,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</conditionalDeclaration>");
 	}
 
-	override void visit(ConditionalStatement conditionalStatement)
+	override void visit(const ConditionalStatement conditionalStatement)
 	{
 		output.writeln("<conditionalStatement>");
 		visit(conditionalStatement.compileCondition);
@@ -311,19 +311,19 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</conditionalStatement>");
 	}
 
-	override void visit(Constraint constraint)
+	override void visit(const Constraint constraint)
 	{
 		output.writeln("<constraint>");
 		constraint.accept(this);
 		output.writeln("</constraint>");
 	}
 
-	override void visit(Constructor constructor)
+	override void visit(const Constructor constructor)
 	{
 		mixin (tagAndAccept!"constructor");
 	}
 
-	override void visit(ContinueStatement continueStatement)
+	override void visit(const ContinueStatement continueStatement)
 	{
 		if (continueStatement.label.type == tok!"")
 			output.writeln("<continueStatement/>");
@@ -332,7 +332,7 @@ class XMLPrinter : ASTVisitor
 				continueStatement.label.text, "\"/>");
 	}
 
-	override void visit(DebugCondition debugCondition)
+	override void visit(const DebugCondition debugCondition)
 	{
 		if (debugCondition.identifierOrInteger.type == tok!"")
 			output.writeln("<debugCondition/>");
@@ -341,7 +341,7 @@ class XMLPrinter : ASTVisitor
 				debugCondition.identifierOrInteger.text, "\"/>");
 	}
 
-	override void visit(DebugSpecification debugSpecification)
+	override void visit(const DebugSpecification debugSpecification)
 	{
 		if (debugSpecification.identifierOrInteger.type == tok!"")
 			output.writeln("<debugSpecification/>");
@@ -350,22 +350,22 @@ class XMLPrinter : ASTVisitor
 				debugSpecification.identifierOrInteger.text, "\"/>");
 	}
 
-	override void visit(Declaration declaration)
+	override void visit(const Declaration declaration)
 	{
 		mixin (tagAndAccept!"declaration");
 	}
 
-	override void visit(DeclarationsAndStatements declarationsAndStatements)
+	override void visit(const DeclarationsAndStatements declarationsAndStatements)
 	{
 		mixin (tagAndAccept!"declarationsAndStatements");
 	}
 
-	override void visit(DeclarationOrStatement declarationOrStatement)
+	override void visit(const DeclarationOrStatement declarationOrStatement)
 	{
 		mixin (tagAndAccept!"declarationOrStatement");
 	}
 
-	override void visit(Declarator declarator)
+	override void visit(const Declarator declarator)
 	{
 		output.writeln("<declarator line=\"", declarator.name.line, "\">");
 		output.writeln("<name>", declarator.name.text, "</name>");
@@ -373,22 +373,22 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</declarator>");
 	}
 
-	override void visit(DefaultStatement defaultStatement)
+	override void visit(const DefaultStatement defaultStatement)
 	{
 		mixin (tagAndAccept!"defaultStatement");
 	}
 
-	override void visit(DeleteExpression deleteExpression)
+	override void visit(const DeleteExpression deleteExpression)
 	{
 		mixin (tagAndAccept!"deleteExpression");
 	}
 
-	override void visit(DeleteStatement deleteStatement)
+	override void visit(const DeleteStatement deleteStatement)
 	{
 		mixin (tagAndAccept!"deleteStatement");
 	}
 
-	override void visit(Deprecated deprecated_)
+	override void visit(const Deprecated deprecated_)
 	{
 		if (deprecated_.assignExpression !is null)
 		{
@@ -400,22 +400,22 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<deprecated/>");
 	}
 
-	override void visit(Destructor destructor)
+	override void visit(const Destructor destructor)
 	{
 		mixin (tagAndAccept!"destructor");
 	}
 
-	override void visit(DoStatement doStatement)
+	override void visit(const DoStatement doStatement)
 	{
 		mixin (tagAndAccept!"doStatement");
 	}
 
-	override void visit(EnumBody enumBody)
+	override void visit(const EnumBody enumBody)
 	{
 		mixin (tagAndAccept!"enumBody");
 	}
 
-	override void visit(EnumDeclaration enumDec)
+	override void visit(const EnumDeclaration enumDec)
 	{
 		output.writeln("<enumDeclaration line=\"", enumDec.name.line, "\">");
         writeDdoc(enumDec.comment);
@@ -425,7 +425,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</enumDeclaration>");
 	}
 
-	override void visit(EnumMember enumMem)
+	override void visit(const EnumMember enumMem)
 	{
 		output.writeln("<enumMember line=\"", enumMem.name.line, "\">");
         writeDdoc(enumMem.comment);
@@ -433,7 +433,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</enumMember>");
 	}
 
-	override void visit(EqualExpression equalExpression)
+	override void visit(const EqualExpression equalExpression)
 	{
 		output.writeln("<equalExpression operator=\"", str(equalExpression.operator), "\">");
 		output.writeln("<left>");
@@ -445,35 +445,35 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</equalExpression>");
 	}
 
-	override void visit(Expression expression)
+	override void visit(const Expression expression)
 	{
 		output.writeln("<expression>");
 		expression.accept(this);
 		output.writeln("</expression>");
 	}
 
-	override void visit(ExpressionStatement expressionStatement)
+	override void visit(const ExpressionStatement expressionStatement)
 	{
 		output.writeln("<expressionStatement>");
 		expressionStatement.accept(this);
 		output.writeln("</expressionStatement>");
 	}
 
-	override void visit(FinalSwitchStatement finalSwitchStatement)
+	override void visit(const FinalSwitchStatement finalSwitchStatement)
 	{
 		output.writeln("<finalSwitchStatement>");
 		finalSwitchStatement.accept(this);
 		output.writeln("</finalSwitchStatement>");
 	}
 
-	override void visit(Finally finally_)
+	override void visit(const Finally finally_)
 	{
 		output.writeln("<finally>");
 		finally_.accept(this);
 		output.writeln("</finally>");
 	}
 
-	override void visit(ForStatement forStatement)
+	override void visit(const ForStatement forStatement)
 	{
 		output.writeln("<forStatement>");
 		if (forStatement.declarationOrStatement !is null)
@@ -498,7 +498,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</forStatement>");
 	}
 
-	override void visit(ForeachStatement foreachStatement)
+	override void visit(const ForeachStatement foreachStatement)
 	{
 		output.writeln("<foreachStatement type=\"", str(
 			foreachStatement.type), "\">");
@@ -519,7 +519,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</foreachStatement>");
 	}
 
-	override void visit(ForeachType foreachType)
+	override void visit(const ForeachType foreachType)
 	{
 		output.writeln("<foreachType>");
 		foreach (constructor; foreachType.typeConstructors)
@@ -533,32 +533,32 @@ class XMLPrinter : ASTVisitor
 
 	}
 
-	override void visit(ForeachTypeList foreachTypeList)
+	override void visit(const ForeachTypeList foreachTypeList)
 	{
 		mixin (tagAndAccept!"foreachTypeList");
 	}
 
-	override void visit(FunctionAttribute functionAttribute)
+	override void visit(const FunctionAttribute functionAttribute)
 	{
 		mixin (tagAndAccept!"functionAttribute");
 	}
 
-	override void visit(FunctionBody functionBody)
+	override void visit(const FunctionBody functionBody)
 	{
 		mixin (tagAndAccept!"functionBody");
 	}
 
-	override void visit(FunctionCallExpression functionCallExpression)
+	override void visit(const FunctionCallExpression functionCallExpression)
 	{
 		mixin (tagAndAccept!"functionCallExpression");
 	}
 
-	override void visit(FunctionCallStatement functionCallStatement)
+	override void visit(const FunctionCallStatement functionCallStatement)
 	{
 		mixin (tagAndAccept!"functionCallStatement");
 	}
 
-	override void visit(FunctionDeclaration functionDec)
+	override void visit(const FunctionDeclaration functionDec)
 	{
 		output.writeln("<functionDeclaration line=\"", functionDec.name.line, "\">");
 		output.writeln("<name>", functionDec.name.text, "</name>");
@@ -571,7 +571,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</functionDeclaration>");
 	}
 
-	override void visit(FunctionLiteralExpression functionLiteralExpression)
+	override void visit(const FunctionLiteralExpression functionLiteralExpression)
 	{
 		output.writeln("<functionLiteralExpression type=\"",
 			str(functionLiteralExpression.functionOrDelegate), "\">");
@@ -579,7 +579,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</functionLiteralExpression>");
 	}
 
-	override void visit(GotoStatement gotoStatement)
+	override void visit(const GotoStatement gotoStatement)
 	{
 		if (gotoStatement.label.type == tok!"default")
 			output.writeln("<gotoStatement default=\"true\"/>");
@@ -595,27 +595,27 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(IdentifierChain identifierChain)
+	override void visit(const IdentifierChain identifierChain)
 	{
 		mixin (tagAndAccept!"identifierChain");
 	}
 
-	override void visit(IdentifierList identifierList)
+	override void visit(const IdentifierList identifierList)
 	{
 		mixin (tagAndAccept!"identifierList");
 	}
 
-	override void visit(IdentifierOrTemplateChain identifierOrTemplateChain)
+	override void visit(const IdentifierOrTemplateChain identifierOrTemplateChain)
 	{
 		mixin (tagAndAccept!"identifierOrTemplateChain");
 	}
 
-	override void visit(IdentifierOrTemplateInstance identifierOrTemplateInstance)
+	override void visit(const IdentifierOrTemplateInstance identifierOrTemplateInstance)
 	{
 		mixin (tagAndAccept!"identifierOrTemplateInstance");
 	}
 
-	override void visit(IdentityExpression identityExpression)
+	override void visit(const IdentityExpression identityExpression)
 	{
 		if (identityExpression.negated)
 			output.writeln("<identityExpression operator=\"!is\">");
@@ -630,7 +630,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</identityExpression>");
 	}
 
-	override void visit(IfStatement ifStatement)
+	override void visit(const IfStatement ifStatement)
 	{
 		output.writeln("<ifStatement>");
 
@@ -659,7 +659,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</ifStatement>");
 	}
 
-	override void visit(ImportBind importBind)
+	override void visit(const ImportBind importBind)
 	{
 		if (importBind.right.type == tok!"")
 			output.writeln("<importBind symbol=\"", importBind.left.text, "\">");
@@ -668,27 +668,27 @@ class XMLPrinter : ASTVisitor
 				"\" rename=\"", importBind.left.text, "\">");
 	}
 
-	override void visit(ImportBindings importBindings)
+	override void visit(const ImportBindings importBindings)
 	{
 		mixin (tagAndAccept!"importBindings");
 	}
 
-	override void visit(ImportDeclaration importDeclaration)
+	override void visit(const ImportDeclaration importDeclaration)
 	{
 		mixin (tagAndAccept!"importDeclaration");
 	}
 
-	override void visit(ImportExpression importExpression)
+	override void visit(const ImportExpression importExpression)
 	{
 		mixin (tagAndAccept!"importExpression");
 	}
 
-	override void visit(IndexExpression indexExpression)
+	override void visit(const IndexExpression indexExpression)
 	{
 		mixin (tagAndAccept!"indexExpression");
 	}
 
-	override void visit(InExpression inExpression)
+	override void visit(const InExpression inExpression)
 	{
 		if (inExpression.negated)
 			output.writeln("<inExpression operator=\"!in\">");
@@ -703,12 +703,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</inExpression>");
 	}
 
-	override void visit(InStatement inStatement)
+	override void visit(const InStatement inStatement)
 	{
 		mixin (tagAndAccept!"inStatement");
 	}
 
-	override void visit(Initialize initialize)
+	override void visit(const Initialize initialize)
 	{
 		if (initialize.statementNoCaseNoDefault is null)
 			output.writeln("<initialize/>");
@@ -720,7 +720,7 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(Initializer initializer)
+	override void visit(const Initializer initializer)
 	{
 		if (initializer.nonVoidInitializer is null)
 			output.writeln("<initializer void=\"true\"/>");
@@ -732,7 +732,7 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(InterfaceDeclaration interfaceDec)
+	override void visit(const InterfaceDeclaration interfaceDec)
 	{
 		output.writeln("<interfaceDeclaration line=\"", interfaceDec.name.line, "\">");
 		output.writeln("<name>", interfaceDec.name.text, "</name>");
@@ -741,7 +741,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</interfaceDeclaration>");
 	}
 
-	override void visit(Invariant invariant_)
+	override void visit(const Invariant invariant_)
 	{
 		output.writeln("<invariant>");
         writeDdoc(invariant_.comment);
@@ -749,7 +749,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</invariant>");
 	}
 
-	override void visit(IsExpression isExpression)
+	override void visit(const IsExpression isExpression)
 	{
 		output.writeln("<isExpression>");
 		visit(isExpression.type);
@@ -768,7 +768,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</isExpression>");
 	}
 
-	override void visit(KeyValuePair keyValuePair)
+	override void visit(const KeyValuePair keyValuePair)
 	{
 		output.writeln("<keyValuePair>");
 		output.writeln("<key>");
@@ -780,12 +780,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</keyValuePair>");
 	}
 
-	override void visit(KeyValuePairs keyValuePairs)
+	override void visit(const KeyValuePairs keyValuePairs)
 	{
 		mixin (tagAndAccept!"keyValuePairs");
 	}
 
-	override void visit (LabeledStatement labeledStatement)
+	override void visit (const LabeledStatement labeledStatement)
 	{
 		output.writeln("<labeledStatement label=\"",
 			labeledStatement.identifier.text ,"\">");
@@ -793,7 +793,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</labeledStatement>");
 	}
 
-	override void visit(LambdaExpression lambdaExpression)
+	override void visit(const LambdaExpression lambdaExpression)
 	{
 		output.writeln("<lambdaExpression>");
 		if (lambdaExpression.functionType == tok!"function")
@@ -804,12 +804,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</lambdaExpression>");
 	}
 
-	override void visit(LastCatch lastCatch)
+	override void visit(const LastCatch lastCatch)
 	{
 		mixin (tagAndAccept!"lastCatch");
 	}
 
-	override void visit(LinkageAttribute linkageAttribute)
+	override void visit(const LinkageAttribute linkageAttribute)
 	{
 		if (linkageAttribute.hasPlusPlus)
 			output.writeln("<linkageAttribute linkage=\"c++\"/>");
@@ -818,7 +818,7 @@ class XMLPrinter : ASTVisitor
 				linkageAttribute.identifier.text, "\"/>");
 	}
 
-	override void visit(MemberFunctionAttribute memberFunctionAttribute)
+	override void visit(const MemberFunctionAttribute memberFunctionAttribute)
 	{
 		output.writeln("<memberFunctionAttribute>");
 		if (memberFunctionAttribute.atAttribute is null)
@@ -828,27 +828,27 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</memberFunctionAttribute>");
 	}
 
-	override void visit(MixinDeclaration mixinDeclaration)
+	override void visit(const MixinDeclaration mixinDeclaration)
 	{
 		mixin (tagAndAccept!"mixinDeclaration");
 	}
 
-	override void visit(MixinExpression mixinExpression)
+	override void visit(const MixinExpression mixinExpression)
 	{
 		mixin (tagAndAccept!"mixinExpression");
 	}
 
-	override void visit(MixinTemplateDeclaration mixinTemplateDeclaration)
+	override void visit(const MixinTemplateDeclaration mixinTemplateDeclaration)
 	{
 		mixin (tagAndAccept!"mixinTemplateDeclaration");
 	}
 
-	override void visit(MixinTemplateName mixinTemplateName)
+	override void visit(const MixinTemplateName mixinTemplateName)
 	{
 		mixin (tagAndAccept!"mixinTemplateName");
 	}
 
-	override void visit(Module module_)
+	override void visit(const Module module_)
 	{
 		output.writeln("<?xml version=\"1.0\"?>");
 		output.writeln("<module>");
@@ -856,12 +856,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</module>");
 	}
 
-	override void visit(ModuleDeclaration moduleDeclaration)
+	override void visit(const ModuleDeclaration moduleDeclaration)
 	{
 		mixin (tagAndAccept!"moduleDeclaration");
 	}
 
-	override void visit(MulExpression mulExpression)
+	override void visit(const MulExpression mulExpression)
 	{
 		output.writeln("<mulExpression operator=\"", str(mulExpression.operator) ,"\">");
 		output.writeln("<left>");
@@ -876,42 +876,42 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</mulExpression>");
 	}
 
-	override void visit(NewAnonClassExpression newAnonClassExpression)
+	override void visit(const NewAnonClassExpression newAnonClassExpression)
 	{
 		mixin (tagAndAccept!"newAnonClassExpression");
 	}
 
-	override void visit(NewExpression newExpression)
+	override void visit(const NewExpression newExpression)
 	{
 		mixin (tagAndAccept!"newExpression");
 	}
 
-	override void visit(StatementNoCaseNoDefault statementNoCaseNoDefault)
+	override void visit(const StatementNoCaseNoDefault statementNoCaseNoDefault)
 	{
 		mixin (tagAndAccept!"statementNoCaseNoDefault");
 	}
 
-	override void visit(NonVoidInitializer nonVoidInitializer)
+	override void visit(const NonVoidInitializer nonVoidInitializer)
 	{
 		mixin (tagAndAccept!"nonVoidInitializer");
 	}
 
-	override void visit(OrExpression orExpression)
+	override void visit(const OrExpression orExpression)
 	{
 		mixin (tagAndAccept!"orExpression");
 	}
 
-	override void visit(OrOrExpression orOrExpression)
+	override void visit(const OrOrExpression orOrExpression)
 	{
 		mixin (tagAndAccept!"orOrExpression");
 	}
 
-	override void visit(OutStatement outStatement)
+	override void visit(const OutStatement outStatement)
 	{
 		mixin (tagAndAccept!"outStatement");
 	}
 
-	override void visit(Parameter param)
+	override void visit(const Parameter param)
 	{
 		output.writeln("<parameter>");
 		if (param.name.type == tok!"identifier")
@@ -926,17 +926,17 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</parameter>");
 	}
 
-	override void visit(Parameters parameters)
+	override void visit(const Parameters parameters)
 	{
 		mixin (tagAndAccept!"parameters");
 	}
 
-	override void visit(Postblit postblit)
+	override void visit(const Postblit postblit)
 	{
 		mixin (tagAndAccept!"postblit");
 	}
 
-	override void visit(PostIncDecExpression postIncDecExpression)
+	override void visit(const PostIncDecExpression postIncDecExpression)
 	{
 		output.writeln("<postIncDecExpression operator=\"",
 			str(postIncDecExpression.operator), "\">");
@@ -944,7 +944,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</postIncDecExpression>");
 	}
 
-	override void visit(PowExpression powExpression)
+	override void visit(const PowExpression powExpression)
 	{
 		output.writeln("<powExpression>");
 		output.writeln("<left>");
@@ -959,17 +959,17 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</powExpression>");
 	}
 
-	override void visit(PragmaDeclaration pragmaDeclaration)
+	override void visit(const PragmaDeclaration pragmaDeclaration)
 	{
 		mixin (tagAndAccept!"pragmaDeclaration");
 	}
 
-	override void visit(PragmaExpression pragmaExpression)
+	override void visit(const PragmaExpression pragmaExpression)
 	{
 		mixin (tagAndAccept!"pragmaExpression");
 	}
 
-	override void visit(PreIncDecExpression preIncDecExpression)
+	override void visit(const PreIncDecExpression preIncDecExpression)
 	{
 		output.writeln("<preIncDecExpression operator=\"",
 			str(preIncDecExpression.operator), "\">");
@@ -977,14 +977,14 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</preIncDecExpression>");
 	}
 
-	override void visit(PrimaryExpression primaryExpression)
+	override void visit(const PrimaryExpression primaryExpression)
 	{
 		mixin (tagAndAccept!"primaryExpression");
 	}
 
 	// TODO: Register
 
-	override void visit(RelExpression relExpression)
+	override void visit(const RelExpression relExpression)
 	{
 		output.writeln("<relExpression operator=\"",
 			xmlEscape(str(relExpression.operator)), "\">");
@@ -997,7 +997,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</relExpression>");
 	}
 
-	override void visit(ReturnStatement returnStatement)
+	override void visit(const ReturnStatement returnStatement)
 	{
 		if (returnStatement.expression is null)
 			output.writeln("<returnStatement/>");
@@ -1009,22 +1009,22 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(ScopeGuardStatement scopeGuardStatement)
+	override void visit(const ScopeGuardStatement scopeGuardStatement)
 	{
 		mixin (tagAndAccept!"scopeGuardStatement");
 	}
 
-	override void visit(SharedStaticConstructor sharedStaticConstructor)
+	override void visit(const SharedStaticConstructor sharedStaticConstructor)
 	{
 		mixin (tagAndAccept!"sharedStaticConstructor");
 	}
 
-	override void visit(SharedStaticDestructor sharedStaticDestructor)
+	override void visit(const SharedStaticDestructor sharedStaticDestructor)
 	{
 		mixin (tagAndAccept!"sharedStaticDestructor");
 	}
 
-	override void visit(ShiftExpression shiftExpression)
+	override void visit(const ShiftExpression shiftExpression)
 	{
 		output.writeln("<shiftExpression operator=\"",
 			xmlEscape(str(shiftExpression.operator)), "\">");
@@ -1037,7 +1037,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</shiftExpression>");
 	}
 
-	override void visit(SingleImport singleImport)
+	override void visit(const SingleImport singleImport)
 	{
 		if (singleImport.rename.type == tok!"")
 			output.writeln("<singleImport>");
@@ -1047,7 +1047,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</singleImport>");
 	}
 
-	override void visit(SliceExpression sliceExpression)
+	override void visit(const SliceExpression sliceExpression)
 	{
 		output.writeln("<sliceExpression>");
 		visit(sliceExpression.unaryExpression);
@@ -1066,47 +1066,47 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</sliceExpression>");
 	}
 
-	override void visit(Statement statement)
+	override void visit(const Statement statement)
 	{
 		mixin (tagAndAccept!"statement");
 	}
 
-	override void visit(StaticAssertDeclaration staticAssertDeclaration)
+	override void visit(const StaticAssertDeclaration staticAssertDeclaration)
 	{
 		mixin (tagAndAccept!"staticAssertDeclaration");
 	}
 
-	override void visit(StaticAssertStatement staticAssertStatement)
+	override void visit(const StaticAssertStatement staticAssertStatement)
 	{
 		mixin (tagAndAccept!"staticAssertStatement");
 	}
 
-	override void visit(StaticConstructor staticConstructor)
+	override void visit(const StaticConstructor staticConstructor)
 	{
 		mixin (tagAndAccept!"staticConstructor");
 	}
 
-	override void visit(StaticDestructor staticDestructor)
+	override void visit(const StaticDestructor staticDestructor)
 	{
 		mixin (tagAndAccept!"staticDestructor");
 	}
 
-	override void visit(StaticIfCondition staticIfCondition)
+	override void visit(const StaticIfCondition staticIfCondition)
 	{
 		mixin (tagAndAccept!"staticIfCondition");
 	}
 
-	override void visit(StorageClass storageClass)
+	override void visit(const StorageClass storageClass)
 	{
 		mixin (tagAndAccept!"storageClass");
 	}
 
-	override void visit(StructBody structBody)
+	override void visit(const StructBody structBody)
 	{
 		mixin (tagAndAccept!"structBody");
 	}
 
-	override void visit(StructDeclaration structDec)
+	override void visit(const StructDeclaration structDec)
 	{
 		output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
 		output.writeln("<name>", structDec.name.text, "</name>");
@@ -1115,37 +1115,37 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</structDeclaration>");
 	}
 
-	override void visit(StructInitializer structInitializer)
+	override void visit(const StructInitializer structInitializer)
 	{
 		mixin (tagAndAccept!"structInitializer");
 	}
 
-	override void visit(StructMemberInitializer structMemberInitializer)
+	override void visit(const StructMemberInitializer structMemberInitializer)
 	{
 		mixin (tagAndAccept!"structMemberInitializer");
 	}
 
-	override void visit(StructMemberInitializers structMemberInitializers)
+	override void visit(const StructMemberInitializers structMemberInitializers)
 	{
 		mixin (tagAndAccept!"structMemberInitializers");
 	}
 
-	override void visit(SwitchStatement switchStatement)
+	override void visit(const SwitchStatement switchStatement)
 	{
 		mixin (tagAndAccept!"switchStatement");
 	}
 
-	override void visit(Symbol symbol)
+	override void visit(const Symbol symbol)
 	{
 		mixin (tagAndAccept!"symbol");
 	}
 
-	override void visit(SynchronizedStatement synchronizedStatement)
+	override void visit(const SynchronizedStatement synchronizedStatement)
 	{
 		mixin (tagAndAccept!"synchronizedStatement");
 	}
 
-	override void visit(TemplateAliasParameter templateAliasParameter)
+	override void visit(const TemplateAliasParameter templateAliasParameter)
 	{
 		output.writeln("<templateAliasParameter>");
 		if (templateAliasParameter.type !is null)
@@ -1180,27 +1180,27 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</templateAliasParameter>");
 	}
 
-	override void visit(TemplateArgument templateArgument)
+	override void visit(const TemplateArgument templateArgument)
 	{
 		mixin (tagAndAccept!"templateArgument");
 	}
 
-	override void visit(TemplateArgumentList templateArgumentList)
+	override void visit(const TemplateArgumentList templateArgumentList)
 	{
 		mixin (tagAndAccept!"templateArgumentList");
 	}
 
-	override void visit(TemplateArguments templateArguments)
+	override void visit(const TemplateArguments templateArguments)
 	{
 		mixin (tagAndAccept!"templateArguments");
 	}
 
-	override void visit (EponymousTemplateDeclaration eponymousTemplateDeclaration)
+	override void visit (const EponymousTemplateDeclaration eponymousTemplateDeclaration)
 	{
 		mixin (tagAndAccept!"eponymousTemplateDeclaration");
 	}
 
-	override void visit(TemplateDeclaration templateDeclaration)
+	override void visit(const TemplateDeclaration templateDeclaration)
 	{
 		if (templateDeclaration.eponymousTemplateDeclaration !is null)
 		{
@@ -1223,72 +1223,72 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</templateDeclaration>");
 	}
 
-	override void visit(TemplateInstance templateInstance)
+	override void visit(const TemplateInstance templateInstance)
 	{
 		mixin (tagAndAccept!"templateInstance");
 	}
 
-	override void visit(TemplateMixinExpression templateMixinExpression)
+	override void visit(const TemplateMixinExpression templateMixinExpression)
 	{
 		mixin (tagAndAccept!"templateMixinExpression");
 	}
 
-	override void visit(TemplateParameter templateParameter)
+	override void visit(const TemplateParameter templateParameter)
 	{
 		mixin (tagAndAccept!"templateParameter");
 	}
 
-	override void visit(TemplateParameterList templateParameterList)
+	override void visit(const TemplateParameterList templateParameterList)
 	{
 		mixin (tagAndAccept!"templateParameterList");
 	}
 
-	override void visit(TemplateParameters templateParameters)
+	override void visit(const TemplateParameters templateParameters)
 	{
 		mixin (tagAndAccept!"templateParameters");
 	}
 
-	override void visit(TemplateSingleArgument templateSingleArgument)
+	override void visit(const TemplateSingleArgument templateSingleArgument)
 	{
 		mixin (tagAndAccept!"templateSingleArgument");
 	}
 
-	override void visit(TemplateThisParameter templateThisParameter)
+	override void visit(const TemplateThisParameter templateThisParameter)
 	{
 		mixin (tagAndAccept!"templateThisParameter");
 	}
 
-	override void visit(TemplateTupleParameter templateTupleParameter)
+	override void visit(const TemplateTupleParameter templateTupleParameter)
 	{
 		mixin (tagAndAccept!"templateTupleParameter");
 	}
 
-	override void visit(TemplateTypeParameter templateTypeParameter)
+	override void visit(const TemplateTypeParameter templateTypeParameter)
 	{
 		mixin (tagAndAccept!"templateTypeParameter");
 	}
 
-	override void visit(TemplateValueParameter templateValueParameter)
+	override void visit(const TemplateValueParameter templateValueParameter)
 	{
 		mixin (tagAndAccept!"templateValueParameter");
 	}
 
-	override void visit(TemplateValueParameterDefault templateValueParameterDefault)
+	override void visit(const TemplateValueParameterDefault templateValueParameterDefault)
 	{
 		mixin (tagAndAccept!"templateValueParameterDefault");
 	}
 
-	override void visit(TernaryExpression ternaryExpression)
+	override void visit(const TernaryExpression ternaryExpression)
 	{
 		mixin (tagAndAccept!"ternaryExpression");
 	}
 
-	override void visit(ThrowStatement throwStatement)
+	override void visit(const ThrowStatement throwStatement)
 	{
 		mixin (tagAndAccept!"throwStatement");
 	}
 
-	override void visit(Token token)
+	override void visit(const Token token)
 	{
 		string tagName;
 		switch (token.type)
@@ -1315,17 +1315,17 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
 	}
 
-	override void visit(TraitsExpression traitsExpression)
+	override void visit(const TraitsExpression traitsExpression)
 	{
 		mixin (tagAndAccept!"traitsExpression");
 	}
 
-	override void visit(TryStatement tryStatement)
+	override void visit(const TryStatement tryStatement)
 	{
 		mixin (tagAndAccept!"tryStatement");
 	}
 
-	override void visit(Type type)
+	override void visit(const Type type)
 	{
 		auto app = appender!string();
 		auto formatter = new Formatter!(typeof(app))(app);
@@ -1335,7 +1335,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</type>");
 	}
 
-	override void visit(Type2 type2)
+	override void visit(const Type2 type2)
 	{
 		if (type2.builtinType != tok!"")
 			output.writeln("<type2>", str(type2.builtinType), "</type2>");
@@ -1347,12 +1347,12 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(TypeSpecialization typeSpecialization)
+	override void visit(const TypeSpecialization typeSpecialization)
 	{
 		mixin (tagAndAccept!"typeSpecialization");
 	}
 
-	override void visit(TypeSuffix typeSuffix)
+	override void visit(const TypeSuffix typeSuffix)
 	{
 		if (typeSuffix.star)
 			output.writeln("<typeSuffix type=\"*\"/>");
@@ -1397,17 +1397,17 @@ class XMLPrinter : ASTVisitor
 		}
 	}
 
-	override void visit(TypeidExpression typeidExpression)
+	override void visit(const TypeidExpression typeidExpression)
 	{
 		mixin (tagAndAccept!"typeidExpression");
 	}
 
-	override void visit(TypeofExpression typeofExpression)
+	override void visit(const TypeofExpression typeofExpression)
 	{
 		mixin (tagAndAccept!"typeofExpression");
 	}
 
-	override void visit(UnaryExpression unaryExpression)
+	override void visit(const UnaryExpression unaryExpression)
 	{
 		output.writeln("<unaryExpression>");
 		if (unaryExpression.prefix != tok!"")
@@ -1427,7 +1427,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</unaryExpression>");
 	}
 
-	override void visit(UnionDeclaration unionDeclaration)
+	override void visit(const UnionDeclaration unionDeclaration)
 	{
 		output.writeln("<unionDeclaration line=\"", unionDeclaration.name.line, "\">");
 		if (unionDeclaration.name != tok!"")
@@ -1441,14 +1441,14 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</unionDeclaration>");
 	}
 
-	override void visit(Unittest unittest_)
+	override void visit(const Unittest unittest_)
 	{
 		output.writeln("<unittest>");
 		unittest_.accept(this);
 		output.writeln("</unittest>");
 	}
 
-	override void visit(VariableDeclaration variableDeclaration)
+	override void visit(const VariableDeclaration variableDeclaration)
 	{
         output.writeln("<variableDeclaration>");
         writeDdoc(variableDeclaration.comment);
@@ -1456,32 +1456,32 @@ class XMLPrinter : ASTVisitor
         output.writeln("</variableDeclaration>");
 	}
 
-	override void visit(Vector vector)
+	override void visit(const Vector vector)
 	{
 		mixin (tagAndAccept!"vector");
 	}
 
-	override void visit(VersionCondition versionCondition)
+	override void visit(const VersionCondition versionCondition)
 	{
 		mixin (tagAndAccept!"versionCondition");
 	}
 
-	override void visit(VersionSpecification versionSpecification)
+	override void visit(const VersionSpecification versionSpecification)
 	{
 		mixin (tagAndAccept!"versionSpecification");
 	}
 
-	override void visit(WhileStatement whileStatement)
+	override void visit(const WhileStatement whileStatement)
 	{
 		mixin (tagAndAccept!"whileStatement");
 	}
 
-	override void visit(WithStatement withStatement)
+	override void visit(const WithStatement withStatement)
 	{
 		mixin (tagAndAccept!"withStatement");
 	}
 
-	override void visit(XorExpression xorExpression)
+	override void visit(const XorExpression xorExpression)
 	{
 		output.writeln("<xorExpression>");
 		output.writeln("<left>");

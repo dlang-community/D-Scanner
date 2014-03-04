@@ -21,7 +21,7 @@ class FloatOperatorCheck : BaseAnalyzer
 		super(fileName);
 	}
 
-	override void visit(RelExpression r)
+	override void visit(const RelExpression r)
 	{
 		if (r.operator == tok!"<>"
 			|| r.operator == tok!"!<>"

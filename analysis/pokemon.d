@@ -13,8 +13,11 @@ import analysis.base;
  * Checks for Pokémon exception handling, i.e. "gotta' catch 'em all".
  *
  * ---
- * catch (Exception e)
- * ...
+ * try {
+ *    choose(pikachu);
+ * } catch (Exception e) {
+ *    ...
+ * }
  * ---
  */
 class PokemonExceptionCheck : BaseAnalyzer
@@ -26,7 +29,7 @@ class PokemonExceptionCheck : BaseAnalyzer
 		super(fileName);
 	}
 
-	override void visit(Catch c)
+	override void visit(const Catch c)
 	{
 		if (c.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length != 1)
 		{

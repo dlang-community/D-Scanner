@@ -25,7 +25,7 @@ class StyleChecker : BaseAnalyzer
 		super(fileName);
 	}
 
-	override void visit(ModuleDeclaration dec)
+	override void visit(const ModuleDeclaration dec)
 	{
 		foreach (part; dec.moduleName.identifiers)
 		{
@@ -35,36 +35,36 @@ class StyleChecker : BaseAnalyzer
 		}
 	}
 
-	override void visit(Declarator dec)
+	override void visit(const Declarator dec)
 	{
 		checkLowercaseName("Variable", dec.name);
 	}
 
-	override void visit(FunctionDeclaration dec)
+	override void visit(const FunctionDeclaration dec)
 	{
 		checkLowercaseName("Function", dec.name);
 	}
 
-	void checkLowercaseName(string type, ref Token name)
+	void checkLowercaseName(string type, ref const Token name)
 	{
 		if (name.text.matchFirst(varFunNameRegex).length == 0)
 			addErrorMessage(name.line, name.column, type ~ " name "
 				~ name.text ~ " does not match style guidelines");
 	}
 
-	override void visit(ClassDeclaration dec)
+	override void visit(const ClassDeclaration dec)
 	{
 		checkAggregateName("Class", dec.name);
 		dec.accept(this);
 	}
 
-	override void visit(InterfaceDeclaration dec)
+	override void visit(const InterfaceDeclaration dec)
 	{
 		checkAggregateName("Interface", dec.name);
 		dec.accept(this);
 	}
 
-	override void visit(EnumDeclaration dec)
+	override void visit(const EnumDeclaration dec)
 	{
 		if (dec.name.text is null || dec.name.text.length == 0)
 			return;
@@ -72,7 +72,7 @@ class StyleChecker : BaseAnalyzer
 		dec.accept(this);
 	}
 
-	override void visit(StructDeclaration dec)
+	override void visit(const StructDeclaration dec)
 	{
 		checkAggregateName("Struct", dec.name);
 		dec.accept(this);

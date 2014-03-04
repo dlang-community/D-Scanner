@@ -31,7 +31,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 		super(fileName);
 	}
 
-	override void visit(ForeachStatement foreachStatement)
+	override void visit(const ForeachStatement foreachStatement)
 	{
 		if (foreachStatement.low !is null && foreachStatement.high !is null)
 		{
@@ -54,7 +54,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 		foreachStatement.accept(this);
 	}
 
-	override void visit(UnaryExpression unary)
+	override void visit(const UnaryExpression unary)
 	{
 		if (state != State.ignore && unary.primaryExpression is null)
 			return;
@@ -62,7 +62,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 			unary.accept(this);
 	}
 
-	override void visit(PrimaryExpression primary)
+	override void visit(const PrimaryExpression primary)
 	{
 		import std.conv;
 		import std.string;
@@ -82,7 +82,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 		}
 	}
 
-	override void visit(SliceExpression sliceExpression)
+	override void visit(const SliceExpression sliceExpression)
 	{
 		if (sliceExpression.lower !is null && sliceExpression.upper !is null)
 		{

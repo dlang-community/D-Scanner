@@ -32,7 +32,7 @@ abstract class ASTVisitor
 {
 public:
 
-	void visit(ExpressionNode n)
+	void visit(const ExpressionNode n)
 	{
 		if (cast(AddExpression) n) visit(cast(AddExpression) n);
 		else if (cast(AndAndExpression) n) visit(cast(AndAndExpression) n);
@@ -83,213 +83,213 @@ public:
 		else if (cast(XorExpression) n) visit(cast(XorExpression) n);
 	}
 
-    /** */ void visit(AddExpression addExpression) { addExpression.accept(this); }
-    /** */ void visit(AliasDeclaration aliasDeclaration) { aliasDeclaration.accept(this); }
-    /** */ void visit(AliasInitializer aliasInitializer) { aliasInitializer.accept(this); }
-    /** */ void visit(AliasThisDeclaration aliasThisDeclaration) { aliasThisDeclaration.accept(this); }
-    /** */ void visit(AlignAttribute alignAttribute) { alignAttribute.accept(this); }
-    /** */ void visit(AndAndExpression andAndExpression) { andAndExpression.accept(this); }
-    /** */ void visit(AndExpression andExpression) { andExpression.accept(this); }
-    /** */ void visit(ArgumentList argumentList) { argumentList.accept(this); }
-    /** */ void visit(Arguments arguments) { arguments.accept(this); }
-    /** */ void visit(ArrayInitializer arrayInitializer) { arrayInitializer.accept(this); }
-    /** */ void visit(ArrayLiteral arrayLiteral) { arrayLiteral.accept(this); }
-    /** */ void visit(ArrayMemberInitialization arrayMemberInitialization) { arrayMemberInitialization.accept(this); }
-    /** */ void visit(AsmAddExp asmAddExp) { asmAddExp.accept(this); }
-    /** */ void visit(AsmAndExp asmAndExp) { asmAndExp.accept(this); }
-    /** */ void visit(AsmBrExp asmBrExp) { asmBrExp.accept(this); }
-    /** */ void visit(AsmEqualExp asmEqualExp) { asmEqualExp.accept(this); }
-    /** */ void visit(AsmExp asmExp) { asmExp.accept(this); }
-    /** */ void visit(AsmInstruction asmInstruction) { asmInstruction.accept(this); }
-    /** */ void visit(AsmLogAndExp asmLogAndExp) { asmLogAndExp.accept(this); }
-    /** */ void visit(AsmLogOrExp asmLogOrExp) { asmLogOrExp.accept(this); }
-    /** */ void visit(AsmMulExp asmMulExp) { asmMulExp.accept(this); }
-    /** */ void visit(AsmOrExp asmOrExp) { asmOrExp.accept(this); }
-    /** */ void visit(AsmPrimaryExp asmPrimaryExp) { asmPrimaryExp.accept(this); }
-    /** */ void visit(AsmRelExp asmRelExp) { asmRelExp.accept(this); }
-    /** */ void visit(AsmShiftExp asmShiftExp) { asmShiftExp.accept(this); }
-    /** */ void visit(AsmStatement asmStatement) { asmStatement.accept(this); }
-    /** */ void visit(AsmTypePrefix asmTypePrefix) { asmTypePrefix.accept(this); }
-    /** */ void visit(AsmUnaExp asmUnaExp) { asmUnaExp.accept(this); }
-    /** */ void visit(AsmXorExp asmXorExp) { asmXorExp.accept(this); }
-    /** */ void visit(AssertExpression assertExpression) { assertExpression.accept(this); }
-    /** */ void visit(AssignExpression assignExpression) { assignExpression.accept(this); }
-    /** */ void visit(AssocArrayLiteral assocArrayLiteral) { assocArrayLiteral.accept(this); }
-    /** */ void visit(AtAttribute atAttribute) { atAttribute.accept(this); }
-    /** */ void visit(Attribute attribute) { attribute.accept(this); }
-    /** */ void visit(AttributeDeclaration attributeDeclaration) { attributeDeclaration.accept(this); }
-    /** */ void visit(AutoDeclaration autoDeclaration) { autoDeclaration.accept(this); }
-    /** */ void visit(BlockStatement blockStatement) { blockStatement.accept(this); }
-    /** */ void visit(BodyStatement bodyStatement) { bodyStatement.accept(this); }
-    /** */ void visit(BreakStatement breakStatement) { breakStatement.accept(this); }
-    /** */ void visit(BaseClass baseClass) { baseClass.accept(this); }
-    /** */ void visit(BaseClassList baseClassList) { baseClassList.accept(this); }
-    /** */ void visit(CaseRangeStatement caseRangeStatement) { caseRangeStatement.accept(this); }
-    /** */ void visit(CaseStatement caseStatement) { caseStatement.accept(this); }
-    /** */ void visit(CastExpression castExpression) { castExpression.accept(this); }
-    /** */ void visit(CastQualifier castQualifier) { castQualifier.accept(this); }
-    /** */ void visit(Catch catch_) { catch_.accept(this); }
-    /** */ void visit(Catches catches) { catches.accept(this); }
-    /** */ void visit(ClassDeclaration classDeclaration) { classDeclaration.accept(this); }
-    /** */ void visit(CmpExpression cmpExpression) { cmpExpression.accept(this); }
-    /** */ void visit(CompileCondition compileCondition) { compileCondition.accept(this); }
-    /** */ void visit(ConditionalDeclaration conditionalDeclaration) { conditionalDeclaration.accept(this); }
-    /** */ void visit(ConditionalStatement conditionalStatement) { conditionalStatement.accept(this); }
-    /** */ void visit(Constraint constraint) { constraint.accept(this); }
-    /** */ void visit(Constructor constructor) { constructor.accept(this); }
-    /** */ void visit(ContinueStatement continueStatement) { continueStatement.accept(this); }
-    /** */ void visit(DebugCondition debugCondition) { debugCondition.accept(this); }
-    /** */ void visit(DebugSpecification debugSpecification) { debugSpecification.accept(this); }
-    /** */ void visit(Declaration declaration) { declaration.accept(this); }
-    /** */ void visit(DeclarationOrStatement declarationsOrStatement) { declarationsOrStatement.accept(this); }
-    /** */ void visit(DeclarationsAndStatements declarationsAndStatements) { declarationsAndStatements.accept(this); }
-    /** */ void visit(Declarator declarator) { declarator.accept(this); }
-    /** */ void visit(DefaultStatement defaultStatement) { defaultStatement.accept(this); }
-    /** */ void visit(DeleteExpression deleteExpression) { deleteExpression.accept(this); }
-    /** */ void visit(DeleteStatement deleteStatement) { deleteStatement.accept(this); }
-    /** */ void visit(Deprecated deprecated_) { deprecated_.accept(this); }
-    /** */ void visit(Destructor destructor) { destructor.accept(this); }
-    /** */ void visit(DoStatement doStatement) { doStatement.accept(this); }
-    /** */ void visit(EnumBody enumBody) { enumBody.accept(this); }
-    /** */ void visit(EnumDeclaration enumDeclaration) { enumDeclaration.accept(this); }
-    /** */ void visit(EnumMember enumMember) { enumMember.accept(this); }
-    /** */ void visit(EponymousTemplateDeclaration eponymousTemplateDeclaration) { eponymousTemplateDeclaration.accept(this); }
-    /** */ void visit(EqualExpression equalExpression) { equalExpression.accept(this); }
-    /** */ void visit(Expression expression) { expression.accept(this); }
-    /** */ void visit(ExpressionStatement expressionStatement) { expressionStatement.accept(this); }
-    /** */ void visit(FinalSwitchStatement finalSwitchStatement) { finalSwitchStatement.accept(this); }
-    /** */ void visit(Finally finally_) { finally_.accept(this); }
-    /** */ void visit(ForStatement forStatement) { forStatement.accept(this); }
-    /** */ void visit(ForeachStatement foreachStatement) { foreachStatement.accept(this); }
-    /** */ void visit(ForeachType foreachType) { foreachType.accept(this); }
-    /** */ void visit(ForeachTypeList foreachTypeList) { foreachTypeList.accept(this); }
-    /** */ void visit(FunctionAttribute functionAttribute) { functionAttribute.accept(this); }
-    /** */ void visit(FunctionBody functionBody) { functionBody.accept(this); }
-    /** */ void visit(FunctionCallExpression functionCallExpression) { functionCallExpression.accept(this); }
-    /** */ void visit(FunctionCallStatement functionCallStatement) { functionCallStatement.accept(this); }
-    /** */ void visit(FunctionDeclaration functionDeclaration) { functionDeclaration.accept(this); }
-    /** */ void visit(FunctionLiteralExpression functionLiteralExpression) { functionLiteralExpression.accept(this); }
-    /** */ void visit(GotoStatement gotoStatement) { gotoStatement.accept(this); }
-    /** */ void visit(IdentifierChain identifierChain) { identifierChain.accept(this); }
-    /** */ void visit(IdentifierList identifierList) { identifierList.accept(this); }
-    /** */ void visit(IdentifierOrTemplateChain identifierOrTemplateChain) { identifierOrTemplateChain.accept(this); }
-    /** */ void visit(IdentifierOrTemplateInstance identifierOrTemplateInstance) { identifierOrTemplateInstance.accept(this); }
-    /** */ void visit(IdentityExpression identityExpression) { identityExpression.accept(this); }
-    /** */ void visit(IfStatement ifStatement) { ifStatement.accept(this); }
-    /** */ void visit(ImportBind importBind) { importBind.accept(this); }
-    /** */ void visit(ImportBindings importBindings) { importBindings.accept(this); }
-    /** */ void visit(ImportDeclaration importDeclaration) { importDeclaration.accept(this); }
-    /** */ void visit(ImportExpression importExpression) { importExpression.accept(this); }
-    /** */ void visit(IndexExpression indexExpression) { indexExpression.accept(this); }
-    /** */ void visit(InExpression inExpression) { inExpression.accept(this); }
-    /** */ void visit(InStatement inStatement) { inStatement.accept(this); }
-    /** */ void visit(Initialize initialize) { initialize.accept(this); }
-    /** */ void visit(Initializer initializer) { initializer.accept(this); }
-    /** */ void visit(InterfaceDeclaration interfaceDeclaration) { interfaceDeclaration.accept(this); }
-    /** */ void visit(Invariant invariant_) { invariant_.accept(this); }
-    /** */ void visit(IsExpression isExpression) { isExpression.accept(this); }
-    /** */ void visit(KeyValuePair keyValuePair) { keyValuePair.accept(this); }
-    /** */ void visit(KeyValuePairs keyValuePairs) { keyValuePairs.accept(this); }
-    /** */ void visit(LabeledStatement labeledStatement) { labeledStatement.accept(this); }
-    /** */ void visit(LambdaExpression lambdaExpression) { lambdaExpression.accept(this); }
-    /** */ void visit(LastCatch lastCatch) { lastCatch.accept(this); }
-    /** */ void visit(LinkageAttribute linkageAttribute) { linkageAttribute.accept(this); }
-    /** */ void visit(MemberFunctionAttribute memberFunctionAttribute) { memberFunctionAttribute.accept(this); }
-    /** */ void visit(MixinDeclaration mixinDeclaration) { mixinDeclaration.accept(this); }
-    /** */ void visit(MixinExpression mixinExpression) { mixinExpression.accept(this); }
-    /** */ void visit(MixinTemplateDeclaration mixinTemplateDeclaration) { mixinTemplateDeclaration.accept(this); }
-    /** */ void visit(MixinTemplateName mixinTemplateName) { mixinTemplateName.accept(this); }
-    /** */ void visit(Module module_) { module_.accept(this); }
-    /** */ void visit(ModuleDeclaration moduleDeclaration) { moduleDeclaration.accept(this); }
-    /** */ void visit(MulExpression mulExpression) { mulExpression.accept(this); }
-    /** */ void visit(NewAnonClassExpression newAnonClassExpression) { newAnonClassExpression.accept(this); }
-    /** */ void visit(NewExpression newExpression) { newExpression.accept(this); }
-    /** */ void visit(NonVoidInitializer nonVoidInitializer) { nonVoidInitializer.accept(this); }
-    /** */ void visit(Operand operand) { operand.accept(this); }
-    /** */ void visit(Operands operands) { operands.accept(this); }
-    /** */ void visit(OrExpression orExpression) { orExpression.accept(this); }
-    /** */ void visit(OrOrExpression orOrExpression) { orOrExpression.accept(this); }
-    /** */ void visit(OutStatement outStatement) { outStatement.accept(this); }
-    /** */ void visit(Parameter parameter) { parameter.accept(this); }
-    /** */ void visit(Parameters parameters) { parameters.accept(this); }
-    /** */ void visit(Postblit postblit) { postblit.accept(this); }
-    /** */ void visit(PostIncDecExpression postIncDecExpression) { postIncDecExpression.accept(this); }
-    /** */ void visit(PowExpression powExpression) { powExpression.accept(this); }
-    /** */ void visit(PragmaDeclaration pragmaDeclaration) { pragmaDeclaration.accept(this); }
-    /** */ void visit(PragmaExpression pragmaExpression) { pragmaExpression.accept(this); }
-    /** */ void visit(PreIncDecExpression preIncDecExpression) { preIncDecExpression.accept(this); }
-    /** */ void visit(PrimaryExpression primaryExpression) { primaryExpression.accept(this); }
-    /** */ void visit(Register register) { register.accept(this); }
-    /** */ void visit(RelExpression relExpression) { relExpression.accept(this); }
-    /** */ void visit(ReturnStatement returnStatement) { returnStatement.accept(this); }
-    /** */ void visit(ScopeGuardStatement scopeGuardStatement) { scopeGuardStatement.accept(this); }
-    /** */ void visit(SharedStaticConstructor sharedStaticConstructor) { sharedStaticConstructor.accept(this); }
-    /** */ void visit(SharedStaticDestructor sharedStaticDestructor) { sharedStaticDestructor.accept(this); }
-    /** */ void visit(ShiftExpression shiftExpression) { shiftExpression.accept(this); }
-    /** */ void visit(SingleImport singleImport) { singleImport.accept(this); }
-    /** */ void visit(SliceExpression sliceExpression) { sliceExpression.accept(this); }
-    /** */ void visit(Statement statement) { statement.accept(this); }
-    /** */ void visit(StatementNoCaseNoDefault statementNoCaseNoDefault) { statementNoCaseNoDefault.accept(this); }
-    /** */ void visit(StaticAssertDeclaration staticAssertDeclaration) { staticAssertDeclaration.accept(this); }
-    /** */ void visit(StaticAssertStatement staticAssertStatement) { staticAssertStatement.accept(this); }
-    /** */ void visit(StaticConstructor staticConstructor) { staticConstructor.accept(this); }
-    /** */ void visit(StaticDestructor staticDestructor) { staticDestructor.accept(this); }
-    /** */ void visit(StaticIfCondition staticIfCondition) { staticIfCondition.accept(this); }
-    /** */ void visit(StorageClass storageClass) { storageClass.accept(this); }
-    /** */ void visit(StructBody structBody) { structBody.accept(this); }
-    /** */ void visit(StructDeclaration structDeclaration) { structDeclaration.accept(this); }
-    /** */ void visit(StructInitializer structInitializer) { structInitializer.accept(this); }
-    /** */ void visit(StructMemberInitializer structMemberInitializer) { structMemberInitializer.accept(this); }
-    /** */ void visit(StructMemberInitializers structMemberInitializers) { structMemberInitializers.accept(this); }
-    /** */ void visit(SwitchStatement switchStatement) { switchStatement.accept(this); }
-    /** */ void visit(Symbol symbol) { symbol.accept(this); }
-    /** */ void visit(SynchronizedStatement synchronizedStatement) { synchronizedStatement.accept(this); }
-    /** */ void visit(TemplateAliasParameter templateAliasParameter) { templateAliasParameter.accept(this); }
-    /** */ void visit(TemplateArgument templateArgument) { templateArgument.accept(this); }
-    /** */ void visit(TemplateArgumentList templateArgumentList) { templateArgumentList.accept(this); }
-    /** */ void visit(TemplateArguments templateArguments) { templateArguments.accept(this); }
-    /** */ void visit(TemplateDeclaration templateDeclaration) { templateDeclaration.accept(this); }
-    /** */ void visit(TemplateInstance templateInstance) { templateInstance.accept(this); }
-    /** */ void visit(TemplateMixinExpression templateMixinExpression) { templateMixinExpression.accept(this); }
-    /** */ void visit(TemplateParameter templateParameter) { templateParameter.accept(this); }
-    /** */ void visit(TemplateParameterList templateParameterList) { templateParameterList.accept(this); }
-    /** */ void visit(TemplateParameters templateParameters) { templateParameters.accept(this); }
-    /** */ void visit(TemplateSingleArgument templateSingleArgument) { templateSingleArgument.accept(this); }
-    /** */ void visit(TemplateThisParameter templateThisParameter) { templateThisParameter.accept(this); }
-    /** */ void visit(TemplateTupleParameter templateTupleParameter) { templateTupleParameter.accept(this); }
-    /** */ void visit(TemplateTypeParameter templateTypeParameter) { templateTypeParameter.accept(this); }
-    /** */ void visit(TemplateValueParameter templateValueParameter) { templateValueParameter.accept(this); }
-    /** */ void visit(TemplateValueParameterDefault templateValueParameterDefault) { templateValueParameterDefault.accept(this); }
-    /** */ void visit(TernaryExpression ternaryExpression) { ternaryExpression.accept(this); }
-    /** */ void visit(ThrowStatement throwStatement) { throwStatement.accept(this); }
-    /** */ void visit(Token token) { }
-    /** */ void visit(TraitsExpression traitsExpression) { traitsExpression.accept(this); }
-    /** */ void visit(TryStatement tryStatement) { tryStatement.accept(this); }
-    /** */ void visit(Type type) { type.accept(this); }
-    /** */ void visit(Type2 type2) { type2.accept(this); }
-    /** */ void visit(TypeSpecialization typeSpecialization) { typeSpecialization.accept(this); }
-    /** */ void visit(TypeSuffix typeSuffix) { typeSuffix.accept(this); }
-    /** */ void visit(TypeidExpression typeidExpression) { typeidExpression.accept(this); }
-    /** */ void visit(TypeofExpression typeofExpression) { typeofExpression.accept(this); }
-    /** */ void visit(UnaryExpression unaryExpression) { unaryExpression.accept(this); }
-    /** */ void visit(UnionDeclaration unionDeclaration) { unionDeclaration.accept(this); }
-    /** */ void visit(Unittest unittest_) { unittest_.accept(this); }
-    /** */ void visit(VariableDeclaration variableDeclaration) { variableDeclaration.accept(this); }
-    /** */ void visit(Vector vector) { vector.accept(this); }
-    /** */ void visit(VersionCondition versionCondition) { versionCondition.accept(this); }
-    /** */ void visit(VersionSpecification versionSpecification) { versionSpecification.accept(this); }
-    /** */ void visit(WhileStatement whileStatement) { whileStatement.accept(this); }
-    /** */ void visit(WithStatement withStatement) { withStatement.accept(this); }
-    /** */ void visit(XorExpression xorExpression) { xorExpression.accept(this); }
+    /** */ void visit(const AddExpression addExpression) { addExpression.accept(this); }
+    /** */ void visit(const AliasDeclaration aliasDeclaration) { aliasDeclaration.accept(this); }
+    /** */ void visit(const AliasInitializer aliasInitializer) { aliasInitializer.accept(this); }
+    /** */ void visit(const AliasThisDeclaration aliasThisDeclaration) { aliasThisDeclaration.accept(this); }
+    /** */ void visit(const AlignAttribute alignAttribute) { alignAttribute.accept(this); }
+    /** */ void visit(const AndAndExpression andAndExpression) { andAndExpression.accept(this); }
+    /** */ void visit(const AndExpression andExpression) { andExpression.accept(this); }
+    /** */ void visit(const ArgumentList argumentList) { argumentList.accept(this); }
+    /** */ void visit(const Arguments arguments) { arguments.accept(this); }
+    /** */ void visit(const ArrayInitializer arrayInitializer) { arrayInitializer.accept(this); }
+    /** */ void visit(const ArrayLiteral arrayLiteral) { arrayLiteral.accept(this); }
+    /** */ void visit(const ArrayMemberInitialization arrayMemberInitialization) { arrayMemberInitialization.accept(this); }
+    /** */ void visit(const AsmAddExp asmAddExp) { asmAddExp.accept(this); }
+    /** */ void visit(const AsmAndExp asmAndExp) { asmAndExp.accept(this); }
+    /** */ void visit(const AsmBrExp asmBrExp) { asmBrExp.accept(this); }
+    /** */ void visit(const AsmEqualExp asmEqualExp) { asmEqualExp.accept(this); }
+    /** */ void visit(const AsmExp asmExp) { asmExp.accept(this); }
+    /** */ void visit(const AsmInstruction asmInstruction) { asmInstruction.accept(this); }
+    /** */ void visit(const AsmLogAndExp asmLogAndExp) { asmLogAndExp.accept(this); }
+    /** */ void visit(const AsmLogOrExp asmLogOrExp) { asmLogOrExp.accept(this); }
+    /** */ void visit(const AsmMulExp asmMulExp) { asmMulExp.accept(this); }
+    /** */ void visit(const AsmOrExp asmOrExp) { asmOrExp.accept(this); }
+    /** */ void visit(const AsmPrimaryExp asmPrimaryExp) { asmPrimaryExp.accept(this); }
+    /** */ void visit(const AsmRelExp asmRelExp) { asmRelExp.accept(this); }
+    /** */ void visit(const AsmShiftExp asmShiftExp) { asmShiftExp.accept(this); }
+    /** */ void visit(const AsmStatement asmStatement) { asmStatement.accept(this); }
+    /** */ void visit(const AsmTypePrefix asmTypePrefix) { asmTypePrefix.accept(this); }
+    /** */ void visit(const AsmUnaExp asmUnaExp) { asmUnaExp.accept(this); }
+    /** */ void visit(const AsmXorExp asmXorExp) { asmXorExp.accept(this); }
+    /** */ void visit(const AssertExpression assertExpression) { assertExpression.accept(this); }
+    /** */ void visit(const AssignExpression assignExpression) { assignExpression.accept(this); }
+    /** */ void visit(const AssocArrayLiteral assocArrayLiteral) { assocArrayLiteral.accept(this); }
+    /** */ void visit(const AtAttribute atAttribute) { atAttribute.accept(this); }
+    /** */ void visit(const Attribute attribute) { attribute.accept(this); }
+    /** */ void visit(const AttributeDeclaration attributeDeclaration) { attributeDeclaration.accept(this); }
+    /** */ void visit(const AutoDeclaration autoDeclaration) { autoDeclaration.accept(this); }
+    /** */ void visit(const BlockStatement blockStatement) { blockStatement.accept(this); }
+    /** */ void visit(const BodyStatement bodyStatement) { bodyStatement.accept(this); }
+    /** */ void visit(const BreakStatement breakStatement) { breakStatement.accept(this); }
+    /** */ void visit(const BaseClass baseClass) { baseClass.accept(this); }
+    /** */ void visit(const BaseClassList baseClassList) { baseClassList.accept(this); }
+    /** */ void visit(const CaseRangeStatement caseRangeStatement) { caseRangeStatement.accept(this); }
+    /** */ void visit(const CaseStatement caseStatement) { caseStatement.accept(this); }
+    /** */ void visit(const CastExpression castExpression) { castExpression.accept(this); }
+    /** */ void visit(const CastQualifier castQualifier) { castQualifier.accept(this); }
+    /** */ void visit(const Catch catch_) { catch_.accept(this); }
+    /** */ void visit(const Catches catches) { catches.accept(this); }
+    /** */ void visit(const ClassDeclaration classDeclaration) { classDeclaration.accept(this); }
+    /** */ void visit(const CmpExpression cmpExpression) { cmpExpression.accept(this); }
+    /** */ void visit(const CompileCondition compileCondition) { compileCondition.accept(this); }
+    /** */ void visit(const ConditionalDeclaration conditionalDeclaration) { conditionalDeclaration.accept(this); }
+    /** */ void visit(const ConditionalStatement conditionalStatement) { conditionalStatement.accept(this); }
+    /** */ void visit(const Constraint constraint) { constraint.accept(this); }
+    /** */ void visit(const Constructor constructor) { constructor.accept(this); }
+    /** */ void visit(const ContinueStatement continueStatement) { continueStatement.accept(this); }
+    /** */ void visit(const DebugCondition debugCondition) { debugCondition.accept(this); }
+    /** */ void visit(const DebugSpecification debugSpecification) { debugSpecification.accept(this); }
+    /** */ void visit(const Declaration declaration) { declaration.accept(this); }
+    /** */ void visit(const DeclarationOrStatement declarationsOrStatement) { declarationsOrStatement.accept(this); }
+    /** */ void visit(const DeclarationsAndStatements declarationsAndStatements) { declarationsAndStatements.accept(this); }
+    /** */ void visit(const Declarator declarator) { declarator.accept(this); }
+    /** */ void visit(const DefaultStatement defaultStatement) { defaultStatement.accept(this); }
+    /** */ void visit(const DeleteExpression deleteExpression) { deleteExpression.accept(this); }
+    /** */ void visit(const DeleteStatement deleteStatement) { deleteStatement.accept(this); }
+    /** */ void visit(const Deprecated deprecated_) { deprecated_.accept(this); }
+    /** */ void visit(const Destructor destructor) { destructor.accept(this); }
+    /** */ void visit(const DoStatement doStatement) { doStatement.accept(this); }
+    /** */ void visit(const EnumBody enumBody) { enumBody.accept(this); }
+    /** */ void visit(const EnumDeclaration enumDeclaration) { enumDeclaration.accept(this); }
+    /** */ void visit(const EnumMember enumMember) { enumMember.accept(this); }
+    /** */ void visit(const EponymousTemplateDeclaration eponymousTemplateDeclaration) { eponymousTemplateDeclaration.accept(this); }
+    /** */ void visit(const EqualExpression equalExpression) { equalExpression.accept(this); }
+    /** */ void visit(const Expression expression) { expression.accept(this); }
+    /** */ void visit(const ExpressionStatement expressionStatement) { expressionStatement.accept(this); }
+    /** */ void visit(const FinalSwitchStatement finalSwitchStatement) { finalSwitchStatement.accept(this); }
+    /** */ void visit(const Finally finally_) { finally_.accept(this); }
+    /** */ void visit(const ForStatement forStatement) { forStatement.accept(this); }
+    /** */ void visit(const ForeachStatement foreachStatement) { foreachStatement.accept(this); }
+    /** */ void visit(const ForeachType foreachType) { foreachType.accept(this); }
+    /** */ void visit(const ForeachTypeList foreachTypeList) { foreachTypeList.accept(this); }
+    /** */ void visit(const FunctionAttribute functionAttribute) { functionAttribute.accept(this); }
+    /** */ void visit(const FunctionBody functionBody) { functionBody.accept(this); }
+    /** */ void visit(const FunctionCallExpression functionCallExpression) { functionCallExpression.accept(this); }
+    /** */ void visit(const FunctionCallStatement functionCallStatement) { functionCallStatement.accept(this); }
+    /** */ void visit(const FunctionDeclaration functionDeclaration) { functionDeclaration.accept(this); }
+    /** */ void visit(const FunctionLiteralExpression functionLiteralExpression) { functionLiteralExpression.accept(this); }
+    /** */ void visit(const GotoStatement gotoStatement) { gotoStatement.accept(this); }
+    /** */ void visit(const IdentifierChain identifierChain) { identifierChain.accept(this); }
+    /** */ void visit(const IdentifierList identifierList) { identifierList.accept(this); }
+    /** */ void visit(const IdentifierOrTemplateChain identifierOrTemplateChain) { identifierOrTemplateChain.accept(this); }
+    /** */ void visit(const IdentifierOrTemplateInstance identifierOrTemplateInstance) { identifierOrTemplateInstance.accept(this); }
+    /** */ void visit(const IdentityExpression identityExpression) { identityExpression.accept(this); }
+    /** */ void visit(const IfStatement ifStatement) { ifStatement.accept(this); }
+    /** */ void visit(const ImportBind importBind) { importBind.accept(this); }
+    /** */ void visit(const ImportBindings importBindings) { importBindings.accept(this); }
+    /** */ void visit(const ImportDeclaration importDeclaration) { importDeclaration.accept(this); }
+    /** */ void visit(const ImportExpression importExpression) { importExpression.accept(this); }
+    /** */ void visit(const IndexExpression indexExpression) { indexExpression.accept(this); }
+    /** */ void visit(const InExpression inExpression) { inExpression.accept(this); }
+    /** */ void visit(const InStatement inStatement) { inStatement.accept(this); }
+    /** */ void visit(const Initialize initialize) { initialize.accept(this); }
+    /** */ void visit(const Initializer initializer) { initializer.accept(this); }
+    /** */ void visit(const InterfaceDeclaration interfaceDeclaration) { interfaceDeclaration.accept(this); }
+    /** */ void visit(const Invariant invariant_) { invariant_.accept(this); }
+    /** */ void visit(const IsExpression isExpression) { isExpression.accept(this); }
+    /** */ void visit(const KeyValuePair keyValuePair) { keyValuePair.accept(this); }
+    /** */ void visit(const KeyValuePairs keyValuePairs) { keyValuePairs.accept(this); }
+    /** */ void visit(const LabeledStatement labeledStatement) { labeledStatement.accept(this); }
+    /** */ void visit(const LambdaExpression lambdaExpression) { lambdaExpression.accept(this); }
+    /** */ void visit(const LastCatch lastCatch) { lastCatch.accept(this); }
+    /** */ void visit(const LinkageAttribute linkageAttribute) { linkageAttribute.accept(this); }
+    /** */ void visit(const MemberFunctionAttribute memberFunctionAttribute) { memberFunctionAttribute.accept(this); }
+    /** */ void visit(const MixinDeclaration mixinDeclaration) { mixinDeclaration.accept(this); }
+    /** */ void visit(const MixinExpression mixinExpression) { mixinExpression.accept(this); }
+    /** */ void visit(const MixinTemplateDeclaration mixinTemplateDeclaration) { mixinTemplateDeclaration.accept(this); }
+    /** */ void visit(const MixinTemplateName mixinTemplateName) { mixinTemplateName.accept(this); }
+    /** */ void visit(const Module module_) { module_.accept(this); }
+    /** */ void visit(const ModuleDeclaration moduleDeclaration) { moduleDeclaration.accept(this); }
+    /** */ void visit(const MulExpression mulExpression) { mulExpression.accept(this); }
+    /** */ void visit(const NewAnonClassExpression newAnonClassExpression) { newAnonClassExpression.accept(this); }
+    /** */ void visit(const NewExpression newExpression) { newExpression.accept(this); }
+    /** */ void visit(const NonVoidInitializer nonVoidInitializer) { nonVoidInitializer.accept(this); }
+    /** */ void visit(const Operand operand) { operand.accept(this); }
+    /** */ void visit(const Operands operands) { operands.accept(this); }
+    /** */ void visit(const OrExpression orExpression) { orExpression.accept(this); }
+    /** */ void visit(const OrOrExpression orOrExpression) { orOrExpression.accept(this); }
+    /** */ void visit(const OutStatement outStatement) { outStatement.accept(this); }
+    /** */ void visit(const Parameter parameter) { parameter.accept(this); }
+    /** */ void visit(const Parameters parameters) { parameters.accept(this); }
+    /** */ void visit(const Postblit postblit) { postblit.accept(this); }
+    /** */ void visit(const PostIncDecExpression postIncDecExpression) { postIncDecExpression.accept(this); }
+    /** */ void visit(const PowExpression powExpression) { powExpression.accept(this); }
+    /** */ void visit(const PragmaDeclaration pragmaDeclaration) { pragmaDeclaration.accept(this); }
+    /** */ void visit(const PragmaExpression pragmaExpression) { pragmaExpression.accept(this); }
+    /** */ void visit(const PreIncDecExpression preIncDecExpression) { preIncDecExpression.accept(this); }
+    /** */ void visit(const PrimaryExpression primaryExpression) { primaryExpression.accept(this); }
+    /** */ void visit(const Register register) { register.accept(this); }
+    /** */ void visit(const RelExpression relExpression) { relExpression.accept(this); }
+    /** */ void visit(const ReturnStatement returnStatement) { returnStatement.accept(this); }
+    /** */ void visit(const ScopeGuardStatement scopeGuardStatement) { scopeGuardStatement.accept(this); }
+    /** */ void visit(const SharedStaticConstructor sharedStaticConstructor) { sharedStaticConstructor.accept(this); }
+    /** */ void visit(const SharedStaticDestructor sharedStaticDestructor) { sharedStaticDestructor.accept(this); }
+    /** */ void visit(const ShiftExpression shiftExpression) { shiftExpression.accept(this); }
+    /** */ void visit(const SingleImport singleImport) { singleImport.accept(this); }
+    /** */ void visit(const SliceExpression sliceExpression) { sliceExpression.accept(this); }
+    /** */ void visit(const Statement statement) { statement.accept(this); }
+    /** */ void visit(const StatementNoCaseNoDefault statementNoCaseNoDefault) { statementNoCaseNoDefault.accept(this); }
+    /** */ void visit(const StaticAssertDeclaration staticAssertDeclaration) { staticAssertDeclaration.accept(this); }
+    /** */ void visit(const StaticAssertStatement staticAssertStatement) { staticAssertStatement.accept(this); }
+    /** */ void visit(const StaticConstructor staticConstructor) { staticConstructor.accept(this); }
+    /** */ void visit(const StaticDestructor staticDestructor) { staticDestructor.accept(this); }
+    /** */ void visit(const StaticIfCondition staticIfCondition) { staticIfCondition.accept(this); }
+    /** */ void visit(const StorageClass storageClass) { storageClass.accept(this); }
+    /** */ void visit(const StructBody structBody) { structBody.accept(this); }
+    /** */ void visit(const StructDeclaration structDeclaration) { structDeclaration.accept(this); }
+    /** */ void visit(const StructInitializer structInitializer) { structInitializer.accept(this); }
+    /** */ void visit(const StructMemberInitializer structMemberInitializer) { structMemberInitializer.accept(this); }
+    /** */ void visit(const StructMemberInitializers structMemberInitializers) { structMemberInitializers.accept(this); }
+    /** */ void visit(const SwitchStatement switchStatement) { switchStatement.accept(this); }
+    /** */ void visit(const Symbol symbol) { symbol.accept(this); }
+    /** */ void visit(const SynchronizedStatement synchronizedStatement) { synchronizedStatement.accept(this); }
+    /** */ void visit(const TemplateAliasParameter templateAliasParameter) { templateAliasParameter.accept(this); }
+    /** */ void visit(const TemplateArgument templateArgument) { templateArgument.accept(this); }
+    /** */ void visit(const TemplateArgumentList templateArgumentList) { templateArgumentList.accept(this); }
+    /** */ void visit(const TemplateArguments templateArguments) { templateArguments.accept(this); }
+    /** */ void visit(const TemplateDeclaration templateDeclaration) { templateDeclaration.accept(this); }
+    /** */ void visit(const TemplateInstance templateInstance) { templateInstance.accept(this); }
+    /** */ void visit(const TemplateMixinExpression templateMixinExpression) { templateMixinExpression.accept(this); }
+    /** */ void visit(const TemplateParameter templateParameter) { templateParameter.accept(this); }
+    /** */ void visit(const TemplateParameterList templateParameterList) { templateParameterList.accept(this); }
+    /** */ void visit(const TemplateParameters templateParameters) { templateParameters.accept(this); }
+    /** */ void visit(const TemplateSingleArgument templateSingleArgument) { templateSingleArgument.accept(this); }
+    /** */ void visit(const TemplateThisParameter templateThisParameter) { templateThisParameter.accept(this); }
+    /** */ void visit(const TemplateTupleParameter templateTupleParameter) { templateTupleParameter.accept(this); }
+    /** */ void visit(const TemplateTypeParameter templateTypeParameter) { templateTypeParameter.accept(this); }
+    /** */ void visit(const TemplateValueParameter templateValueParameter) { templateValueParameter.accept(this); }
+    /** */ void visit(const TemplateValueParameterDefault templateValueParameterDefault) { templateValueParameterDefault.accept(this); }
+    /** */ void visit(const TernaryExpression ternaryExpression) { ternaryExpression.accept(this); }
+    /** */ void visit(const ThrowStatement throwStatement) { throwStatement.accept(this); }
+    /** */ void visit(const Token token) { }
+    /** */ void visit(const TraitsExpression traitsExpression) { traitsExpression.accept(this); }
+    /** */ void visit(const TryStatement tryStatement) { tryStatement.accept(this); }
+    /** */ void visit(const Type type) { type.accept(this); }
+    /** */ void visit(const Type2 type2) { type2.accept(this); }
+    /** */ void visit(const TypeSpecialization typeSpecialization) { typeSpecialization.accept(this); }
+    /** */ void visit(const TypeSuffix typeSuffix) { typeSuffix.accept(this); }
+    /** */ void visit(const TypeidExpression typeidExpression) { typeidExpression.accept(this); }
+    /** */ void visit(const TypeofExpression typeofExpression) { typeofExpression.accept(this); }
+    /** */ void visit(const UnaryExpression unaryExpression) { unaryExpression.accept(this); }
+    /** */ void visit(const UnionDeclaration unionDeclaration) { unionDeclaration.accept(this); }
+    /** */ void visit(const Unittest unittest_) { unittest_.accept(this); }
+    /** */ void visit(const VariableDeclaration variableDeclaration) { variableDeclaration.accept(this); }
+    /** */ void visit(const Vector vector) { vector.accept(this); }
+    /** */ void visit(const VersionCondition versionCondition) { versionCondition.accept(this); }
+    /** */ void visit(const VersionSpecification versionSpecification) { versionSpecification.accept(this); }
+    /** */ void visit(const WhileStatement whileStatement) { whileStatement.accept(this); }
+    /** */ void visit(const WithStatement withStatement) { withStatement.accept(this); }
+    /** */ void visit(const XorExpression xorExpression) { xorExpression.accept(this); }
 }
 
 interface ASTNode
 {
 public:
-    /** */ void accept(ASTVisitor visitor);
+    /** */ void accept(ASTVisitor visitor) const;
 }
 
-immutable string DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) {}};
+immutable string DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) const {}};
 
 template visitIfNotNull(fields ...)
 {
@@ -299,7 +299,7 @@ template visitIfNotNull(fields ...)
     {
         static if (typeof(fields[0]).stringof[$ - 2 .. $] == "[]")
         {
-            static if (__traits(hasMember, typeof(fields[0]), "classinfo"))
+            static if (__traits(hasMember, typeof(fields[0][0]), "classinfo"))
                 immutable visitIfNotNull = "foreach (i; " ~ fields[0].stringof ~ ") if (i !is null) visitor.visit(i);\n";
             else
                 immutable visitIfNotNull = "foreach (i; " ~ fields[0].stringof ~ ") visitor.visit(i);\n";
@@ -314,7 +314,7 @@ template visitIfNotNull(fields ...)
 abstract class ExpressionNode : ASTNode
 {
 public:
-	override void accept(ASTVisitor visitor)
+	override void accept(ASTVisitor visitor) const
 	{
 		assert (false);
 	}
@@ -329,10 +329,10 @@ mixin template BinaryExpressionBody()
 }
 
 ///
-class AddExpression : ExpressionNode
+final class AddExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -341,10 +341,10 @@ public:
 }
 
 ///
-class AliasDeclaration : ASTNode
+final class AliasDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(linkageAttribute, type, name, initializers));
     }
@@ -356,10 +356,10 @@ public:
 }
 
 ///
-class AliasInitializer : ASTNode
+final class AliasInitializer : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(name, type));
     }
@@ -369,10 +369,10 @@ public:
 }
 
 ///
-class AliasThisDeclaration : ASTNode
+final class AliasThisDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier));
     }
@@ -380,10 +380,10 @@ public:
 }
 
 ///
-class AlignAttribute : ASTNode
+final class AlignAttribute : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(intLiteral));
     }
@@ -391,10 +391,10 @@ public:
 }
 
 ///
-class AndAndExpression : ExpressionNode
+final class AndAndExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -402,10 +402,10 @@ public:
 }
 
 ///
-class AndExpression : ExpressionNode
+final class AndExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -413,10 +413,10 @@ public:
 }
 
 ///
-class ArgumentList : ASTNode
+final class ArgumentList : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(items));
     }
@@ -424,10 +424,10 @@ public:
 }
 
 ///
-class Arguments : ASTNode
+final class Arguments : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(argumentList));
     }
@@ -435,10 +435,10 @@ public:
 }
 
 ///
-class ArrayInitializer : ASTNode
+final class ArrayInitializer : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(arrayMemberInitializations));
     }
@@ -446,10 +446,10 @@ public:
 }
 
 ///
-class ArrayLiteral : ASTNode
+final class ArrayLiteral : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(argumentList));
     }
@@ -457,10 +457,10 @@ public:
 }
 
 ///
-class ArrayMemberInitialization : ASTNode
+final class ArrayMemberInitialization : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assignExpression, nonVoidInitializer));
     }
@@ -469,7 +469,7 @@ public:
 }
 
 ///
-class AsmAddExp : ExpressionNode
+final class AsmAddExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -478,7 +478,7 @@ public:
 }
 
 ///
-class AsmAndExp : ExpressionNode
+final class AsmAndExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -486,7 +486,7 @@ public:
 }
 
 ///
-class AsmBrExp : ASTNode
+final class AsmBrExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -496,7 +496,7 @@ public:
 }
 
 ///
-class AsmEqualExp : ExpressionNode
+final class AsmEqualExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -505,7 +505,7 @@ public:
 }
 
 ///
-class AsmExp : ASTNode
+final class AsmExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -515,7 +515,7 @@ public:
 }
 
 ///
-class AsmInstruction : ASTNode
+final class AsmInstruction : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -526,7 +526,7 @@ public:
 }
 
 ///
-class AsmLogAndExp : ExpressionNode
+final class AsmLogAndExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -534,7 +534,7 @@ public:
 }
 
 ///
-class AsmLogOrExp : ExpressionNode
+final class AsmLogOrExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -542,7 +542,7 @@ public:
 }
 
 ///
-class AsmMulExp : ExpressionNode
+final class AsmMulExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -552,7 +552,7 @@ public:
 }
 
 ///
-class AsmOrExp : ExpressionNode
+final class AsmOrExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -560,7 +560,7 @@ public:
 }
 
 ///
-class AsmPrimaryExp : ASTNode
+final class AsmPrimaryExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -570,7 +570,7 @@ public:
 }
 
 ///
-class AsmRelExp : ExpressionNode
+final class AsmRelExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -579,7 +579,7 @@ public:
 }
 
 ///
-class AsmShiftExp : ExpressionNode
+final class AsmShiftExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -588,7 +588,7 @@ public:
 }
 
 ///
-class AsmStatement : ASTNode
+final class AsmStatement : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -596,7 +596,7 @@ public:
 }
 
 ///
-class AsmTypePrefix : ASTNode
+final class AsmTypePrefix : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -605,7 +605,7 @@ public:
 }
 
 ///
-class AsmUnaExp : ASTNode
+final class AsmUnaExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -617,7 +617,7 @@ public:
 }
 
 ///
-class AsmXorExp : ASTNode
+final class AsmXorExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -625,10 +625,10 @@ public:
 }
 
 ///
-class AssertExpression : ExpressionNode
+final class AssertExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assertion, message));
     }
@@ -637,10 +637,10 @@ public:
 }
 
 ///
-class AssignExpression : ExpressionNode
+final class AssignExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(ternaryExpression, assignExpression));
     }
@@ -650,10 +650,10 @@ public:
 }
 
 ///
-class AssocArrayLiteral : ASTNode
+final class AssocArrayLiteral : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(keyValuePairs));
     }
@@ -661,10 +661,10 @@ public:
 }
 
 ///
-class AtAttribute : ASTNode
+final class AtAttribute : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionCallExpression, argumentList));
     }
@@ -674,10 +674,10 @@ public:
 }
 
 ///
-class Attribute : ASTNode
+final class Attribute : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(linkageAttribute, alignAttribute,
             pragmaExpression, storageClass));
@@ -690,9 +690,9 @@ public:
 }
 
 ///
-class AttributeDeclaration : ASTNode
+final class AttributeDeclaration : ASTNode
 {
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(attribute));
     }
@@ -700,10 +700,10 @@ class AttributeDeclaration : ASTNode
 }
 
 ///
-class AutoDeclaration : ASTNode
+final class AutoDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         foreach (i; 0 .. initializers.length)
         {
@@ -715,10 +715,10 @@ public:
 }
 
 ///
-class BlockStatement : ASTNode
+final class BlockStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declarationsAndStatements));
     }
@@ -737,10 +737,10 @@ public:
 }
 
 ///
-class BodyStatement : ASTNode
+final class BodyStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(blockStatement));
     }
@@ -748,10 +748,10 @@ public:
 }
 
 ///
-class BreakStatement : ASTNode
+final class BreakStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(label));
     }
@@ -759,10 +759,10 @@ public:
 }
 
 ///
-class BaseClass : ASTNode
+final class BaseClass : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifierOrTemplateChain, typeofExpression));
     }
@@ -771,10 +771,10 @@ public:
 }
 
 ///
-class BaseClassList : ASTNode
+final class BaseClassList : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(items));
     }
@@ -782,10 +782,10 @@ public:
 }
 
 ///
-class CaseRangeStatement : ASTNode
+final class CaseRangeStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(low, high, declarationsAndStatements));
     }
@@ -795,10 +795,10 @@ public:
 }
 
 ///
-class CaseStatement: ASTNode
+final class CaseStatement: ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(argumentList, declarationsAndStatements));
     }
@@ -807,10 +807,10 @@ public:
 }
 
 ///
-class CastExpression: ASTNode
+final class CastExpression: ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, castQualifier, unaryExpression));
     }
@@ -820,10 +820,10 @@ public:
 }
 
 ///
-class CastQualifier: ASTNode
+final class CastQualifier: ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(first, second));
     }
@@ -832,10 +832,10 @@ public:
 }
 
 ///
-class Catches: ASTNode
+final class Catches: ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(catches, lastCatch));
     }
@@ -844,10 +844,10 @@ public:
 }
 
 ///
-class Catch: ASTNode
+final class Catch: ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, identifier, declarationOrStatement));
     }
@@ -857,10 +857,10 @@ public:
 }
 
 ///
-class ClassDeclaration: ASTNode
+final class ClassDeclaration: ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateParameters, constraint, baseClassList,
             structBody));
@@ -875,10 +875,10 @@ public:
 }
 
 ///
-class CmpExpression : ExpressionNode
+final class CmpExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(shiftExpression, equalExpression,
             identityExpression, relExpression, inExpression));
@@ -891,10 +891,10 @@ public:
 }
 
 ///
-class CompileCondition : ASTNode
+final class CompileCondition : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(versionCondition, debugCondition, staticIfCondition));
     }
@@ -904,10 +904,10 @@ public:
 }
 
 ///
-class ConditionalDeclaration : ASTNode
+final class ConditionalDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(compileCondition, trueDeclarations, falseDeclaration));
     }
@@ -917,10 +917,10 @@ public:
 }
 
 ///
-class ConditionalStatement : ASTNode
+final class ConditionalStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(compileCondition, trueStatement, falseStatement));
     }
@@ -930,10 +930,10 @@ public:
 }
 
 ///
-class Constraint : ASTNode
+final class Constraint : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression));
     }
@@ -941,10 +941,10 @@ public:
 }
 
 ///
-class Constructor : ASTNode
+final class Constructor : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(parameters, templateParameters, constraint,
             memberFunctionAttributes, functionBody));
@@ -959,10 +959,10 @@ public:
 }
 
 ///
-class ContinueStatement : ASTNode
+final class ContinueStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(label));
     }
@@ -970,10 +970,10 @@ public:
 }
 
 ///
-class DebugCondition : ASTNode
+final class DebugCondition : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifierOrInteger));
     }
@@ -981,10 +981,10 @@ public:
 }
 
 ///
-class DebugSpecification : ASTNode
+final class DebugSpecification : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifierOrInteger));
     }
@@ -992,11 +992,11 @@ public:
 }
 
 ///
-class Declaration : ASTNode
+final class Declaration : ASTNode
 {
 public:
 
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(attributes, attributeDeclaration,
             importDeclaration, functionDeclaration,
@@ -1043,9 +1043,9 @@ public:
 }
 
 ///
-class DeclarationsAndStatements : ASTNode
+final class DeclarationsAndStatements : ASTNode
 {
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declarationsAndStatements));
     }
@@ -1054,10 +1054,10 @@ class DeclarationsAndStatements : ASTNode
 }
 
 ///
-class DeclarationOrStatement : ASTNode
+final class DeclarationOrStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declaration, statement));
     }
@@ -1067,10 +1067,10 @@ public:
 }
 
 ///
-class Declarator : ASTNode
+final class Declarator : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(initializer));
     }
@@ -1079,10 +1079,10 @@ public:
 }
 
 ///
-class DefaultStatement : ASTNode
+final class DefaultStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declarationsAndStatements));
     }
@@ -1090,10 +1090,10 @@ public:
 }
 
 ///
-class DeleteExpression : ExpressionNode
+final class DeleteExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
@@ -1103,10 +1103,10 @@ public:
 }
 
 ///
-class DeleteStatement : ASTNode
+final class DeleteStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(deleteExpression));
     }
@@ -1114,10 +1114,10 @@ public:
 }
 
 ///
-class Deprecated : ASTNode
+final class Deprecated : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assignExpression));
     }
@@ -1125,10 +1125,10 @@ public:
 }
 
 ///
-class Destructor : ASTNode
+final class Destructor : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionBody));
     }
@@ -1138,10 +1138,10 @@ public:
 }
 
 ///
-class DoStatement : ASTNode
+final class DoStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression, statementNoCaseNoDefault));
     }
@@ -1150,10 +1150,10 @@ public:
 }
 
 ///
-class EnumBody : ASTNode
+final class EnumBody : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(enumMembers));
     }
@@ -1171,10 +1171,10 @@ public:
 }
 
 ///
-class EnumDeclaration : ASTNode
+final class EnumDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, enumBody));
     }
@@ -1185,10 +1185,10 @@ public:
 }
 
 ///
-class EnumMember : ASTNode
+final class EnumMember : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(name, type, assignExpression));
     }
@@ -1199,10 +1199,10 @@ public:
 }
 
 ///
-class EponymousTemplateDeclaration : ASTNode
+final class EponymousTemplateDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(name, templateParameters, assignExpression));
     }
@@ -1212,10 +1212,10 @@ public:
 }
 
 ///
-class EqualExpression : ExpressionNode
+final class EqualExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1224,10 +1224,10 @@ public:
 }
 
 ///
-class Expression : ExpressionNode
+final class Expression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(items));
     }
@@ -1235,10 +1235,10 @@ public:
 }
 
 ///
-class ExpressionStatement : ASTNode
+final class ExpressionStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression));
     }
@@ -1246,10 +1246,10 @@ public:
 }
 
 ///
-class FinalSwitchStatement : ASTNode
+final class FinalSwitchStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(switchStatement));
     }
@@ -1257,10 +1257,10 @@ public:
 }
 
 ///
-class Finally : ASTNode
+final class Finally : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declarationOrStatement));
     }
@@ -1268,10 +1268,10 @@ public:
 }
 
 ///
-class ForStatement : ASTNode
+final class ForStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(initialization, test, increment,
             declarationOrStatement));
@@ -1284,10 +1284,10 @@ public:
 }
 
 ///
-class ForeachStatement : ASTNode
+final class ForeachStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(foreachType, foreachTypeList, low, high,
             declarationOrStatement));
@@ -1302,10 +1302,10 @@ public:
 }
 
 ///
-class ForeachType : ASTNode
+final class ForeachType : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, identifier));
     }
@@ -1315,10 +1315,10 @@ public:
 }
 
 ///
-class ForeachTypeList : ASTNode
+final class ForeachTypeList : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(items));
     }
@@ -1326,10 +1326,10 @@ public:
 }
 
 ///
-class FunctionAttribute : ASTNode
+final class FunctionAttribute : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token, atAttribute));
     }
@@ -1338,10 +1338,10 @@ public:
 }
 
 ///
-class FunctionBody : ASTNode
+final class FunctionBody : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(inStatement, outStatement, bodyStatement,
             blockStatement));
@@ -1354,10 +1354,10 @@ public:
 }
 
 ///
-class FunctionCallExpression : ExpressionNode
+final class FunctionCallExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(unaryExpression, arguments, templateArguments));
     }
@@ -1367,10 +1367,10 @@ public:
 }
 
 ///
-class FunctionCallStatement : ASTNode
+final class FunctionCallStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionCallExpression));
     }
@@ -1378,10 +1378,10 @@ public:
 }
 
 ///
-class FunctionDeclaration : ASTNode
+final class FunctionDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(returnType, parameters, templateParameters,
             constraint, memberFunctionAttributes, functionBody));
@@ -1399,10 +1399,10 @@ public:
 }
 
 ///
-class FunctionLiteralExpression : ExpressionNode
+final class FunctionLiteralExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, parameters, functionAttributes,
             functionBody));
@@ -1415,10 +1415,10 @@ public:
 }
 
 ///
-class GotoStatement : ASTNode
+final class GotoStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(label, expression));
     }
@@ -1427,10 +1427,10 @@ public:
 }
 
 ///
-class IdentifierChain : ASTNode
+final class IdentifierChain : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifiers));
     }
@@ -1438,10 +1438,10 @@ public:
 }
 
 ///
-class IdentifierList : ASTNode
+final class IdentifierList : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifiers));
     }
@@ -1449,10 +1449,10 @@ public:
 }
 
 ///
-class IdentifierOrTemplateChain : ASTNode
+final class IdentifierOrTemplateChain : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifiersOrTemplateInstances));
     }
@@ -1461,10 +1461,10 @@ public:
 }
 
 ///
-class IdentifierOrTemplateInstance : ASTNode
+final class IdentifierOrTemplateInstance : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, templateInstance));
     }
@@ -1474,10 +1474,10 @@ public:
 }
 
 ///
-class IdentityExpression : ExpressionNode
+final class IdentityExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1486,10 +1486,10 @@ public:
 }
 
 ///
-class IfStatement : ASTNode
+final class IfStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, type, expression, thenStatement,
             elseStatement));
@@ -1503,10 +1503,10 @@ public:
 }
 
 ///
-class ImportBind : ASTNode
+final class ImportBind : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1515,10 +1515,10 @@ public:
 }
 
 ///
-class ImportBindings : ASTNode
+final class ImportBindings : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(singleImport, importBinds));
     }
@@ -1527,10 +1527,10 @@ public:
 }
 
 ///
-class ImportDeclaration : ASTNode
+final class ImportDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(singleImports, importBindings));
     }
@@ -1539,10 +1539,10 @@ public:
 }
 
 ///
-class ImportExpression : ExpressionNode
+final class ImportExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assignExpression));
     }
@@ -1550,10 +1550,10 @@ public:
 }
 
 ///
-class IndexExpression : ExpressionNode
+final class IndexExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(unaryExpression, argumentList));
     }
@@ -1562,10 +1562,10 @@ public:
 }
 
 ///
-class InExpression : ExpressionNode
+final class InExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1574,10 +1574,10 @@ public:
 }
 
 ///
-class InStatement : ASTNode
+final class InStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(blockStatement));
     }
@@ -1585,10 +1585,10 @@ public:
 }
 
 ///
-class Initialize : ASTNode
+final class Initialize : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(statementNoCaseNoDefault));
     }
@@ -1596,10 +1596,10 @@ public:
 }
 
 ///
-class Initializer : ASTNode
+final class Initializer : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(nonVoidInitializer));
     }
@@ -1607,10 +1607,10 @@ public:
 }
 
 ///
-class InterfaceDeclaration : ASTNode
+final class InterfaceDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateParameters, constraint, baseClassList,
             structBody));
@@ -1624,10 +1624,10 @@ public:
 }
 
 ///
-class Invariant : ASTNode
+final class Invariant : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(blockStatement));
     }
@@ -1636,10 +1636,10 @@ public:
 }
 
 ///
-class IsExpression : ExpressionNode
+final class IsExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, identifier, typeSpecialization,
             templateParameterList));
@@ -1652,10 +1652,10 @@ public:
 }
 
 ///
-class KeyValuePair : ASTNode
+final class KeyValuePair : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(key, value));
     }
@@ -1664,10 +1664,10 @@ public:
 }
 
 ///
-class KeyValuePairs : ASTNode
+final class KeyValuePairs : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(keyValuePairs));
     }
@@ -1675,10 +1675,10 @@ public:
 }
 
 ///
-class LabeledStatement : ASTNode
+final class LabeledStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, declarationOrStatement));
     }
@@ -1687,10 +1687,10 @@ public:
 }
 
 ///
-class LambdaExpression : ExpressionNode
+final class LambdaExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, parameters, functionAttributes,
             assignExpression));
@@ -1703,10 +1703,10 @@ public:
 }
 
 ///
-class LastCatch : ASTNode
+final class LastCatch : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(statementNoCaseNoDefault));
     }
@@ -1714,10 +1714,10 @@ public:
 }
 
 ///
-class LinkageAttribute : ASTNode
+final class LinkageAttribute : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier));
     }
@@ -1726,10 +1726,10 @@ public:
 }
 
 ///
-class MemberFunctionAttribute : ASTNode
+final class MemberFunctionAttribute : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(atAttribute));
     }
@@ -1738,10 +1738,10 @@ public:
 }
 
 ///
-class MixinDeclaration : ASTNode
+final class MixinDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(mixinExpression, templateMixinExpression));
     }
@@ -1750,10 +1750,10 @@ public:
 }
 
 ///
-class MixinExpression : ExpressionNode
+final class MixinExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assignExpression));
     }
@@ -1761,10 +1761,10 @@ public:
 }
 
 ///
-class MixinTemplateDeclaration : ASTNode
+final class MixinTemplateDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateDeclaration));
     }
@@ -1772,10 +1772,10 @@ public:
 }
 
 ///
-class MixinTemplateName : ASTNode
+final class MixinTemplateName : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(symbol, typeofExpression, identifierOrTemplateChain));
     }
@@ -1785,10 +1785,10 @@ public:
 }
 
 ///
-class Module : ASTNode
+final class Module : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(moduleDeclaration, declarations));
     }
@@ -1797,10 +1797,10 @@ public:
 }
 
 ///
-class ModuleDeclaration : ASTNode
+final class ModuleDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(moduleName));
     }
@@ -1809,10 +1809,10 @@ public:
 
 
 ///
-class MulExpression : ExpressionNode
+final class MulExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1821,10 +1821,10 @@ public:
 }
 
 ///
-class NewAnonClassExpression : ExpressionNode
+final class NewAnonClassExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(allocatorArguments, constructorArguments,
             baseClassList, structBody));
@@ -1836,10 +1836,10 @@ public:
 }
 
 ///
-class NewExpression : ExpressionNode
+final class NewExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(newAnonClassExpression, type, arguments,
             assignExpression));
@@ -1852,10 +1852,10 @@ public:
 
 
 ///
-class StatementNoCaseNoDefault : ASTNode
+final class StatementNoCaseNoDefault : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(labeledStatement, blockStatement, ifStatement,
             whileStatement, doStatement, forStatement, foreachStatement,
@@ -1894,10 +1894,10 @@ public:
 }
 
 ///
-class NonVoidInitializer : ASTNode
+final class NonVoidInitializer : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assignExpression, arrayInitializer, structInitializer));
     }
@@ -1908,7 +1908,7 @@ public:
 }
 
 ///
-class Operand : ASTNode
+final class Operand : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -1916,7 +1916,7 @@ public:
 }
 
 ///
-class Operands : ASTNode
+final class Operands : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -1924,10 +1924,10 @@ public:
 }
 
 ///
-class OrExpression : ExpressionNode
+final class OrExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1935,10 +1935,10 @@ public:
 }
 
 ///
-class OrOrExpression : ExpressionNode
+final class OrOrExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -1946,10 +1946,10 @@ public:
 }
 
 ///
-class OutStatement : ASTNode
+final class OutStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(parameter, blockStatement));
     }
@@ -1958,10 +1958,10 @@ public:
 }
 
 ///
-class Parameter : ASTNode
+final class Parameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, name, default_));
     }
@@ -1974,10 +1974,10 @@ public:
 }
 
 ///
-class Parameters : ASTNode
+final class Parameters : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(parameters));
     }
@@ -1987,10 +1987,10 @@ public:
 }
 
 ///
-class Postblit : ASTNode
+final class Postblit : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionBody));
     }
@@ -1998,10 +1998,10 @@ public:
 }
 
 ///
-class PostIncDecExpression : ExpressionNode
+final class PostIncDecExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
@@ -2010,10 +2010,10 @@ public:
 }
 
 ///
-class PowExpression : ExpressionNode
+final class PowExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -2021,10 +2021,10 @@ public:
 }
 
 ///
-class PragmaDeclaration : ASTNode
+final class PragmaDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(pragmaExpression));
     }
@@ -2032,10 +2032,10 @@ public:
 }
 
 ///
-class PragmaExpression : ExpressionNode
+final class PragmaExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, argumentList));
     }
@@ -2044,10 +2044,10 @@ public:
 }
 
 ///
-class PreIncDecExpression : ExpressionNode
+final class PreIncDecExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(unaryExpression));
     }
@@ -2056,10 +2056,10 @@ public:
 }
 
 ///
-class PrimaryExpression : ExpressionNode
+final class PrimaryExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(basicType, primary, typeofExpression,
             typeidExpression, arrayLiteral, assocArrayLiteral, expression,
@@ -2086,7 +2086,7 @@ public:
 }
 
 ///
-class Register : ASTNode
+final class Register : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
@@ -2096,10 +2096,10 @@ public:
 }
 
 ///
-class RelExpression : ExpressionNode
+final class RelExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -2108,10 +2108,10 @@ public:
 }
 
 ///
-class ReturnStatement : ASTNode
+final class ReturnStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression));
     }
@@ -2119,10 +2119,10 @@ public:
 }
 
 ///
-class ScopeGuardStatement : ASTNode
+final class ScopeGuardStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, statementNoCaseNoDefault));
     }
@@ -2131,10 +2131,10 @@ public:
 }
 
 ///
-class SharedStaticConstructor : ASTNode
+final class SharedStaticConstructor : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionBody));
     }
@@ -2144,10 +2144,10 @@ public:
 }
 
 ///
-class SharedStaticDestructor : ASTNode
+final class SharedStaticDestructor : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionBody));
     }
@@ -2157,10 +2157,10 @@ public:
 }
 
 ///
-class ShiftExpression : ExpressionNode
+final class ShiftExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }
@@ -2169,10 +2169,10 @@ public:
 }
 
 ///
-class SingleImport : ASTNode
+final class SingleImport : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(rename, identifierChain));
     }
@@ -2181,10 +2181,10 @@ public:
 }
 
 ///
-class SliceExpression : ExpressionNode
+final class SliceExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(unaryExpression, lower, upper));
     }
@@ -2194,10 +2194,10 @@ public:
 }
 
 ///
-class Statement : ASTNode
+final class Statement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(statementNoCaseNoDefault, caseStatement,
             caseRangeStatement, defaultStatement));
@@ -2209,10 +2209,10 @@ public:
 }
 
 ///
-class StaticAssertDeclaration : ASTNode
+final class StaticAssertDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(staticAssertStatement));
     }
@@ -2220,10 +2220,10 @@ public:
 }
 
 ///
-class StaticAssertStatement : ASTNode
+final class StaticAssertStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assertExpression));
     }
@@ -2231,10 +2231,10 @@ public:
 }
 
 ///
-class StaticConstructor : ASTNode
+final class StaticConstructor : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionBody));
     }
@@ -2244,10 +2244,10 @@ public:
 }
 
 ///
-class StaticDestructor : ASTNode
+final class StaticDestructor : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(functionBody));
     }
@@ -2257,10 +2257,10 @@ public:
 }
 
 ///
-class StaticIfCondition : ASTNode
+final class StaticIfCondition : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(assignExpression));
     }
@@ -2268,10 +2268,10 @@ public:
 }
 
 ///
-class StorageClass : ASTNode
+final class StorageClass : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token, deprecated_, atAttribute));
     }
@@ -2281,10 +2281,10 @@ public:
 }
 
 ///
-class StructBody : ASTNode
+final class StructBody : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declarations));
     }
@@ -2302,10 +2302,10 @@ public:
 }
 
 ///
-class StructDeclaration : ASTNode
+final class StructDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateParameters, constraint, structBody));
     }
@@ -2317,10 +2317,10 @@ public:
 }
 
 ///
-class StructInitializer : ASTNode
+final class StructInitializer : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(structMemberInitializers));
     }
@@ -2329,10 +2329,10 @@ public:
 }
 
 ///
-class StructMemberInitializer : ASTNode
+final class StructMemberInitializer : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, nonVoidInitializer));
     }
@@ -2341,10 +2341,10 @@ public:
 }
 
 ///
-class StructMemberInitializers : ASTNode
+final class StructMemberInitializers : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(structMemberInitializers));
     }
@@ -2352,10 +2352,10 @@ public:
 }
 
 ///
-class SwitchStatement : ASTNode
+final class SwitchStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression, statement));
     }
@@ -2364,10 +2364,10 @@ public:
 }
 
 ///
-class Symbol : ASTNode
+final class Symbol : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifierOrTemplateChain));
     }
@@ -2377,10 +2377,10 @@ public:
 }
 
 ///
-class SynchronizedStatement : ASTNode
+final class SynchronizedStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression, statementNoCaseNoDefault));
     }
@@ -2389,10 +2389,10 @@ public:
 }
 
 ///
-class TemplateAliasParameter : ASTNode
+final class TemplateAliasParameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, identifier, colonType, colonExpression,
             assignType, assignExpression));
@@ -2406,10 +2406,10 @@ public:
 }
 
 ///
-class TemplateArgument : ASTNode
+final class TemplateArgument : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, assignExpression));
     }
@@ -2418,10 +2418,10 @@ public:
 }
 
 ///
-class TemplateArgumentList : ASTNode
+final class TemplateArgumentList : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(items));
     }
@@ -2429,10 +2429,10 @@ public:
 }
 
 ///
-class TemplateArguments : ASTNode
+final class TemplateArguments : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateArgumentList, templateSingleArgument));
     }
@@ -2441,10 +2441,10 @@ public:
 }
 
 ///
-class TemplateDeclaration : ASTNode
+final class TemplateDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(name, templateParameters, constraint,
             declarations, eponymousTemplateDeclaration));
@@ -2458,10 +2458,10 @@ public:
 }
 
 ///
-class TemplateInstance : ASTNode
+final class TemplateInstance : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, templateArguments));
     }
@@ -2470,10 +2470,10 @@ public:
 }
 
 ///
-class TemplateMixinExpression : ExpressionNode
+final class TemplateMixinExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, templateArguments, mixinTemplateName));
     }
@@ -2483,10 +2483,10 @@ public:
 }
 
 ///
-class TemplateParameter : ASTNode
+final class TemplateParameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateTypeParameter, templateValueParameter,
             templateAliasParameter, templateTupleParameter,
@@ -2500,10 +2500,10 @@ public:
 }
 
 ///
-class TemplateParameterList : ASTNode
+final class TemplateParameterList : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(items));
     }
@@ -2511,10 +2511,10 @@ public:
 }
 
 ///
-class TemplateParameters : ASTNode
+final class TemplateParameters : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateParameterList));
     }
@@ -2522,10 +2522,10 @@ public:
 }
 
 ///
-class TemplateSingleArgument : ASTNode
+final class TemplateSingleArgument : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token));
     }
@@ -2533,10 +2533,10 @@ public:
 }
 
 ///
-class TemplateThisParameter : ASTNode
+final class TemplateThisParameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(templateTypeParameter));
     }
@@ -2544,10 +2544,10 @@ public:
 }
 
 ///
-class TemplateTupleParameter : ASTNode
+final class TemplateTupleParameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier));
     }
@@ -2555,10 +2555,10 @@ public:
 }
 
 ///
-class TemplateTypeParameter : ASTNode
+final class TemplateTypeParameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, colonType, assignType));
     }
@@ -2568,10 +2568,10 @@ public:
 }
 
 ///
-class TemplateValueParameter : ASTNode
+final class TemplateValueParameter : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, identifier, expression,
             templateValueParameterDefault));
@@ -2583,10 +2583,10 @@ public:
 }
 
 ///
-class TemplateValueParameterDefault : ASTNode
+final class TemplateValueParameterDefault : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token, assignExpression));
     }
@@ -2595,10 +2595,10 @@ public:
 }
 
 ///
-class TernaryExpression : ExpressionNode
+final class TernaryExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(orOrExpression, expression, ternaryExpression));
     }
@@ -2608,10 +2608,10 @@ public:
 }
 
 ///
-class ThrowStatement : ASTNode
+final class ThrowStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression));
     }
@@ -2619,10 +2619,10 @@ public:
 }
 
 ///
-class TraitsExpression : ExpressionNode
+final class TraitsExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(identifier, templateArgumentList));
     }
@@ -2631,10 +2631,10 @@ public:
 }
 
 ///
-class TryStatement : ASTNode
+final class TryStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(declarationOrStatement, catches, finally_));
     }
@@ -2644,10 +2644,10 @@ public:
 }
 
 ///
-class Type : ASTNode
+final class Type : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type2, typeSuffixes));
     }
@@ -2658,10 +2658,10 @@ public:
 }
 
 ///
-class Type2 : ASTNode
+final class Type2 : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(symbol, typeofExpression,
             identifierOrTemplateChain, type));
@@ -2676,10 +2676,10 @@ public:
 }
 
 ///
-class TypeSpecialization : ASTNode
+final class TypeSpecialization : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token, type));
     }
@@ -2688,10 +2688,10 @@ public:
 }
 
 ///
-class TypeSuffix : ASTNode
+final class TypeSuffix : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, low, high, delegateOrFunction, parameters,
             memberFunctionAttributes));
@@ -2708,10 +2708,10 @@ public:
 }
 
 ///
-class TypeidExpression : ExpressionNode
+final class TypeidExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type, expression));
     }
@@ -2720,10 +2720,10 @@ public:
 }
 
 ///
-class TypeofExpression : ExpressionNode
+final class TypeofExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression, return_));
     }
@@ -2732,10 +2732,10 @@ public:
 }
 
 ///
-class UnaryExpression : ExpressionNode
+final class UnaryExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         // TODO prefix, postfix, unary
         mixin (visitIfNotNull!(primaryExpression, newExpression,
@@ -2761,10 +2761,10 @@ public:
 }
 
 ///
-class UnionDeclaration : ASTNode
+final class UnionDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(name, templateParameters, constraint, structBody));
     }
@@ -2777,10 +2777,10 @@ public:
 }
 
 ///
-class Unittest : ASTNode
+final class Unittest : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(blockStatement));
     }
@@ -2789,10 +2789,10 @@ public:
 }
 
 ///
-class VariableDeclaration : ASTNode
+final class VariableDeclaration : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(storageClass, type, declarators, autoDeclaration));
     }
@@ -2804,10 +2804,10 @@ public:
 }
 
 ///
-class Vector : ASTNode
+final class Vector : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(type));
     }
@@ -2815,10 +2815,10 @@ public:
 }
 
 ///
-class VersionCondition : ASTNode
+final class VersionCondition : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token));
     }
@@ -2826,10 +2826,10 @@ public:
 }
 
 ///
-class VersionSpecification : ASTNode
+final class VersionSpecification : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(token));
     }
@@ -2837,10 +2837,10 @@ public:
 }
 
 ///
-class WhileStatement : ASTNode
+final class WhileStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression, declarationOrStatement));
     }
@@ -2851,10 +2851,10 @@ public:
 }
 
 ///
-class WithStatement : ASTNode
+final class WithStatement : ASTNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(expression, statementNoCaseNoDefault));
     }
@@ -2864,10 +2864,10 @@ public:
 }
 
 ///
-class XorExpression : ExpressionNode
+final class XorExpression : ExpressionNode
 {
 public:
-    override void accept(ASTVisitor visitor)
+    override void accept(ASTVisitor visitor) const
     {
         mixin (visitIfNotNull!(left, right));
     }

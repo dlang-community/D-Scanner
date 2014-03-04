@@ -18,7 +18,7 @@ class Outliner : ASTVisitor
 		this.output = output;
 	}
 
-	override void visit(ClassDeclaration classDec)
+	override void visit(const ClassDeclaration classDec)
 	{
 		printIndentation();
 		output.writeln("class ", classDec.name.text, " : ", classDec.name.line);
@@ -28,7 +28,7 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(EnumDeclaration enumDec)
+	override void visit(const EnumDeclaration enumDec)
 	{
 		printIndentation();
 		output.writeln("enum ", enumDec.name.text, " : ", enumDec.name.line);
@@ -38,14 +38,14 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(EnumMember enumMem)
+	override void visit(const EnumMember enumMem)
 	{
 		printIndentation();
 		output.writeln(enumMem.name.text, " : ", enumMem.name.line);
 		finish();
 	}
 
-	override void visit(FunctionDeclaration functionDec)
+	override void visit(const FunctionDeclaration functionDec)
 	{
 		printIndentation();
 		if (functionDec.hasAuto)
@@ -65,7 +65,7 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(InterfaceDeclaration interfaceDec)
+	override void visit(const InterfaceDeclaration interfaceDec)
 	{
 		printIndentation();
 		output.writeln("interface ", interfaceDec.name.text, " : ",
@@ -76,7 +76,7 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(StructDeclaration structDec)
+	override void visit(const StructDeclaration structDec)
 	{
 		printIndentation();
 		output.writeln("struct ", structDec.name.text, " : ",
@@ -87,7 +87,7 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(TemplateDeclaration templateDeclaration)
+	override void visit(const TemplateDeclaration templateDeclaration)
 	{
 		printIndentation();
 		output.writeln("template ", templateDeclaration.name.text, " : ",
@@ -98,14 +98,14 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(StaticConstructor s) {}
-	override void visit(StaticDestructor s) {}
-	override void visit(SharedStaticConstructor s) {}
-	override void visit(SharedStaticDestructor s) {}
-	override void visit(Constructor c) {}
-	override void visit(Unittest u) {}
+	override void visit(const StaticConstructor s) {}
+	override void visit(const StaticDestructor s) {}
+	override void visit(const SharedStaticConstructor s) {}
+	override void visit(const SharedStaticDestructor s) {}
+	override void visit(const Constructor c) {}
+	override void visit(const Unittest u) {}
 
-	override void visit(UnionDeclaration unionDeclaration)
+	override void visit(const UnionDeclaration unionDeclaration)
 	{
 		printIndentation();
 		output.writeln("union ", unionDeclaration.name.text, " : ",
@@ -116,9 +116,9 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
-	override void visit(VariableDeclaration variableDeclaration)
+	override void visit(const VariableDeclaration variableDeclaration)
 	{
-		foreach (Declarator d; variableDeclaration.declarators)
+		foreach (const Declarator d; variableDeclaration.declarators)
 		{
 			printIndentation();
 			auto app = appender!(char[])();

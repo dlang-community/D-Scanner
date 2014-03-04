@@ -27,7 +27,7 @@ void printCtags(File output, string[] fileNames)
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = byToken(bytes, config, cache);
-		Module m = parseModule(tokens.array, fileName, &doNothing);
+		Module m = parseModule(tokens.array, fileName, null, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
 		printer.visit(m);
@@ -42,7 +42,7 @@ void printCtags(File output, string[] fileNames)
 
 class CTagsPrinter : ASTVisitor
 {
-	override void visit(ClassDeclaration dec)
+	override void visit(const ClassDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tc%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
@@ -51,7 +51,7 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(StructDeclaration dec)
+	override void visit(const StructDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\ts%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
@@ -60,7 +60,7 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(InterfaceDeclaration dec)
+	override void visit(const InterfaceDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\ti%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
@@ -69,7 +69,7 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(TemplateDeclaration dec)
+	override void visit(const TemplateDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.text, fileName, dec.name.line, context);
 		auto c = context;
@@ -78,7 +78,7 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(FunctionDeclaration dec)
+	override void visit(const FunctionDeclaration dec)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\tf\tarity:%d%s\n".format(dec.name.text, fileName,
 			dec.name.line, dec.parameters.parameters.length, context);
@@ -88,7 +88,7 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(EnumDeclaration dec)
+	override void visit(const EnumDeclaration dec)
 	{
 		if (dec.name == tok!"")
 		{
@@ -103,7 +103,7 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(UnionDeclaration dec)
+	override void visit(const UnionDeclaration dec)
 	{
 		if (dec.name == tok!"")
 		{
@@ -118,13 +118,13 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
-	override void visit(EnumMember mem)
+	override void visit(const EnumMember mem)
 	{
 		tagLines ~= "%s\t%s\t%d;\"\te%s\n".format(mem.name.text, fileName,
 			mem.name.line, context);
 	}
 
-	override void visit(VariableDeclaration dec)
+	override void visit(const VariableDeclaration dec)
 	{
 		foreach (d; dec.declarators)
 		{

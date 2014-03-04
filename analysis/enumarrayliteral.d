@@ -27,7 +27,7 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 	mixin visitTemplate!UnionDeclaration;
 	mixin visitTemplate!StructDeclaration;
 
-	override void visit(Declaration dec)
+	override void visit(const Declaration dec)
 	{
 		if (inAggregate) foreach (attr; dec.attributes)
 		{
@@ -41,7 +41,7 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 		looking = false;
 	}
 
-	override void visit(AutoDeclaration autoDec)
+	override void visit(const AutoDeclaration autoDec)
 	{
 		if (looking)
 		{

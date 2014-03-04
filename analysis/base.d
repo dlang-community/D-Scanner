@@ -22,7 +22,7 @@ protected:
 
 	template visitTemplate(T)
 	{
-		override void visit(T structDec)
+		override void visit(const T structDec)
 		{
 			inAggregate = true;
 			structDec.accept(this);

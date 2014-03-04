@@ -27,7 +27,7 @@ class ObjectConstCheck : BaseAnalyzer
 	mixin visitTemplate!UnionDeclaration;
 	mixin visitTemplate!StructDeclaration;
 
-	override void visit(Declaration d)
+	override void visit(const Declaration d)
 	{
 		if (inAggregate && d.functionDeclaration !is null
 			&& isInteresting(d.functionDeclaration.name.text)
@@ -41,14 +41,14 @@ class ObjectConstCheck : BaseAnalyzer
 		d.accept(this);
 	}
 
-	private static bool hasConst(Attribute[] attributes)
+	private static bool hasConst(const Attribute[] attributes)
 	{
 		import std.algorithm;
 		return attributes.any!(a => a.attribute == tok!"const"
 			|| (a.storageClass !is null && a.storageClass.token == tok!"const"));
 	}
 
-	private static bool hasConst(MemberFunctionAttribute[] attributes)
+	private static bool hasConst(const MemberFunctionAttribute[] attributes)
 	{
 		import std.algorithm;
 		return attributes.any!(a => a.tokenType == tok!"const");
