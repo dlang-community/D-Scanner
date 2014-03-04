@@ -819,6 +819,11 @@ public:
      * amount of work necessary when lexing dynamic tokens.
      */
     string intern(const(ubyte)[] str, uint hash) pure nothrow @safe
+    in
+    {
+        assert (str.length > 0);
+    }
+    body
     {
         return _intern(str, hash);
     }
@@ -882,7 +887,7 @@ private:
         shared(Node)* node = buckets[index];
         while (node !is null)
         {
-            if (node.hash >= hash && bytes == cast(ubyte[]) node.str)
+            if (node.hash >= hash && bytes.equal(cast(ubyte[]) node.str))
             {
                 found = true;
                 return node;
