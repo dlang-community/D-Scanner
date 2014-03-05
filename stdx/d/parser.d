@@ -2558,18 +2558,32 @@ body {} // six
      * Parses a FunctionCallExpression
      *
      * $(GRAMMAR $(RULEDEF functionCallExpression):
-     *     $(RULE unaryExpression) $(RULE templateArguments)? $(RULE arguments)
+     *      $(RULE unaryExpression) $(RULE templateArguments)? $(RULE arguments)
+     *     | $(RULE type) $(RULE arguments)
      *     ;)
      */
     FunctionCallExpression parseFunctionCallExpression(UnaryExpression unary = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!FunctionCallExpression;
-        node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
-        if (currentIs(tok!"!"))
-            node.templateArguments = parseTemplateArguments();
+        switch (current.type)
+        {
+        case tok!"const":
+        case tok!"immutable":
+        case tok!"inout":
+        case tok!"shared":
+        case tok!"scope":
+        case tok!"pure":
+        case tok!"nothrow":
+            node.type = parseType();
+            break;
+        default:
+            node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
+            if (currentIs(tok!"!"))
+                node.templateArguments = parseTemplateArguments();
+    }
         node.arguments = parseArguments();
-        return node;
+        return node.arguments is null ? null : node;
     }
 
     /**
@@ -5855,6 +5869,16 @@ q{(int a, ...)
         auto node = allocate!UnaryExpression;
         switch (current.type)
         {
+        case tok!"const":
+        case tok!"immutable":
+        case tok!"inout":
+        case tok!"shared":
+        case tok!"scope":
+        case tok!"pure":
+        case tok!"nothrow":
+            warn("parsing function call expression");
+            node.functionCallExpression = parseFunctionCallExpression();
+            break;
         case tok!"&":
         case tok!"!":
         case tok!"*":
@@ -5923,7 +5947,6 @@ q{(int a, ...)
                 goto case tok!"(";
             else
                 break loop;
-
         case tok!"(":
             auto newUnary = allocate!UnaryExpression();
             newUnary.functionCallExpression = parseFunctionCallExpression(node);

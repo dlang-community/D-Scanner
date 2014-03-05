@@ -1359,8 +1359,9 @@ final class FunctionCallExpression : ExpressionNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(unaryExpression, arguments, templateArguments));
+        mixin (visitIfNotNull!(type, unaryExpression, templateArguments, arguments));
     }
+	/** */ Type type;
     /** */ UnaryExpression unaryExpression;
     /** */ TemplateArguments templateArguments;
     /** */ Arguments arguments;
