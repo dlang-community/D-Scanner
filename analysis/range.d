@@ -72,12 +72,12 @@ class BackwardsRangeCheck : BaseAnalyzer
 		{
 			line = primary.primary.line;
 			this.column = primary.primary.column;
-			left = to!long(primary.primary.text.removechars("_"));
+			left = to!long(primary.primary.text.removechars("_uUlL"));
 			hasLeft = true;
 		}
 		else
 		{
-			right = to!long(primary.primary.text.removechars("_"));
+			right = to!long(primary.primary.text.removechars("_uUlL"));
 			hasRight = true;
 		}
 	}
