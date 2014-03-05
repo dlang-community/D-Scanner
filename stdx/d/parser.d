@@ -191,17 +191,6 @@ class Parser
         node.comment = comment;
         comment = null;
 
-        // 'alias extern(C) void function() f;' => supported in DMD and DScanner.
-        // 'alias f = extern(C) void function();' => not supported in both DMD and DScanner. See D Bugzilla 10471.
-        // 'alias extern void function() f;' => supported in DMD, not supported in DScanner since it's a storage class.
-        if (currentIs(tok!"extern"))
-        {
-            if (!peekIs(tok!"("))
-                error(`"(" expected for the linkage attribute`);
-
-            node.linkageAttribute = parseLinkageAttribute();
-        }
-
         if (startsWith(tok!"identifier", tok!"="))
         {
             AliasInitializer[] initializers;
@@ -220,6 +209,15 @@ class Parser
         }
         else
         {
+            // 'alias extern(C) void function() f;' => supported in DMD and DScanner.
+            // 'alias f = extern(C) void function();' => not supported in both DMD and DScanner. See D Bugzilla 10471.
+            // 'alias extern void function() f;' => supported in DMD, not supported in DScanner since it's a storage class.
+            if (currentIs(tok!"extern"))
+            {
+                if (!peekIs(tok!"("))
+                    error(`"(" expected for the linkage attribute`);
+                node.linkageAttribute = parseLinkageAttribute();
+            }
             warn("Syntax \"'alias' type identifier ';'\" is deprecated. Please use "
                 ~ " \"'alias' identifier '=' type ';'\" instead.");
             if ((node.type = parseType()) is null) return null;
