@@ -4134,7 +4134,7 @@ q{(int a, ...)
      * Parses a Postblit
      *
      * $(GRAMMAR $(RULEDEF postblit):
-     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
+     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Postblit parsePostblit()
@@ -4144,6 +4144,8 @@ q{(int a, ...)
         expect(tok!"(");
         expect(tok!"this");
         expect(tok!")");
+        while (currentIsMemberFunctionAttribute())
+            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
         if (currentIs(tok!";"))
             advance();
         else
