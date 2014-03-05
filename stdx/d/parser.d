@@ -5876,7 +5876,6 @@ q{(int a, ...)
         case tok!"scope":
         case tok!"pure":
         case tok!"nothrow":
-            warn("parsing function call expression");
             node.functionCallExpression = parseFunctionCallExpression();
             break;
         case tok!"&":
