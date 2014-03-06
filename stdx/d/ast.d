@@ -1996,6 +1996,7 @@ public:
         mixin (visitIfNotNull!(functionBody));
     }
     /** */ FunctionBody functionBody;
+    /** */ MemberFunctionAttribute[] memberFunctionAttributes;
 }
 
 ///
