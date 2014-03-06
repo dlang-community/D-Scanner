@@ -3875,7 +3875,13 @@ invariant() foo();
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!NonVoidInitializer;
         if (currentIs(tok!"{"))
-            node.structInitializer = parseStructInitializer();
+        {
+            auto b = peekPastBraces();
+            if (b !is null && (b.type == tok!"("))
+                node.assignExpression = parseAssignExpression();
+            else
+                node.structInitializer = parseStructInitializer();
+        }
         else if (currentIs(tok!"["))
         {
             auto b = peekPastBrackets();
