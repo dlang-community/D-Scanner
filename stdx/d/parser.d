@@ -4144,8 +4144,10 @@ q{(int a, ...)
         expect(tok!"(");
         expect(tok!"this");
         expect(tok!")");
+        MemberFunctionAttribute[] memberFunctionAttributes;
         while (currentIsMemberFunctionAttribute())
-            node.memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            memberFunctionAttributes ~= parseMemberFunctionAttribute();
+        node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
         if (currentIs(tok!";"))
             advance();
         else
