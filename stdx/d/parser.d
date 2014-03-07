@@ -1309,7 +1309,7 @@ incorrect;
      * Parses a ClassDeclaration
      *
      * $(GRAMMAR $(RULEDEF classDeclaration):
-     *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     $(LITERAL 'class') $(LITERAL Identifier) ($(LITERAL ';') | ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody))
      *     ;)
      */
     ClassDeclaration parseClassDeclaration()
@@ -1322,6 +1322,11 @@ incorrect;
         node.name = *ident;
         node.comment = comment;
         comment = null;
+        if (currentIs(tok!";"))
+        {
+            advance();
+            return node;
+        }
         if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
@@ -3185,7 +3190,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      * Parses an InterfaceDeclaration
      *
      * $(GRAMMAR $(RULEDEF interfaceDeclaration):
-     *     $(LITERAL 'interface') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     $(LITERAL 'interface') $(LITERAL Identifier) ($(LITERAL ';') | ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody))
      *     ;)
      */
     InterfaceDeclaration parseInterfaceDeclaration()
@@ -3197,6 +3202,11 @@ import core.stdc.stdio, std.string : KeepTerminator;
         node.name = *ident;
         node.comment = comment;
         comment = null;
+        if (currentIs(tok!";"))
+        {
+            advance();
+            return node;
+        }
         if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
