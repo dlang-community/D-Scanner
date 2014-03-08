@@ -1731,6 +1731,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             if (currentIs(tok!":"))
             {
                 node.attributeDeclaration = parseAttributeDeclaration(attr);
+                node.attributes = ownArray(attributes);
                 return node;
             }
             else
