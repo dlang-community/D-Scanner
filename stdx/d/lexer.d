@@ -619,13 +619,33 @@ public struct DLexer
 				lexExponent(type);
 				break hexLoop;
 			case '.':
-				if (foundDot)
+				if (foundDot || !range.canPeek(1) || range.peekAt(1) == '.')
 					break hexLoop;
-				if (range.peek(1).length && range.peek(1)[0] == '.')
-					break hexLoop;
-				range.popFront();
-				foundDot = true;
-				type = tok!"doubleLiteral";
+				else
+				{
+					// The following bit of silliness tries to tell the
+					// difference between "int dot identifier" and
+					// "double identifier".
+					if (range.canPeek(1))
+					{
+						switch (range.peekAt(1))
+						{
+						case '0': .. case '9':
+						case 'A': .. case 'F':
+						case 'a': .. case 'f':
+							goto doubleLiteral;
+						default:
+							break hexLoop;
+						}
+					}
+					else
+					{
+					doubleLiteral:
+						range.popFront();
+						foundDot = true;
+						type = tok!"doubleLiteral";
+					}
+				}
 				break;
 			default:
 				break hexLoop;
