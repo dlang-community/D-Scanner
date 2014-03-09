@@ -142,7 +142,7 @@ private:
  * Returns: the parsed module
  */
 Module parseModule(const(Token)[] tokens, string fileName, CAllocator allocator = null,
-    void delegate(string, size_t, size_t, string, bool) messageFunction = null)
+    void function(string, size_t, size_t, string, bool) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
@@ -6241,7 +6241,7 @@ q{doStuff(5)}c;
      * The parameters are the file name, line number, column number,
      * and the error or warning message.
      */
-    void delegate(string, size_t, size_t, string, bool) messageFunction;
+    void function(string, size_t, size_t, string, bool) messageFunction;
 
     bool isSliceExpression()
     {
