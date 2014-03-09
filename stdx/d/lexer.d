@@ -1272,8 +1272,26 @@ public struct DLexer
 			range.popFront();
 			break;
 		case 'x':
-			// TODO
 			range.popFront();
+			foreach (i; 0 .. 2)
+			{
+				if (range.empty)
+				{
+					error("Error: 2 hex digits expected.");
+					return false;
+				}
+				switch (range.front)
+				{
+				case '0': .. case '9':
+				case 'a': .. case 'f':
+				case 'A': .. case 'F':
+					range.popFront();
+					break;
+				default:
+					error("Error: 2 hex digits expected.");
+					return false;
+				}
+			}
 			break;
 		case '1': .. case '7':
 			for (size_t i = 0; i < 3 && !range.empty && range.front >= '0' && range.front <= '7'; i++)
@@ -1525,4 +1543,25 @@ unittest
 	auto tokens = byToken(source);
 	assert (tokens.map!"a.type"().equal([tok!"import", tok!"identifier", tok!".",
 		tok!"identifier", tok!";"]));
+}
+
+/// Test \x char sequence
+unittest
+{
+	auto toks = (string s) => byToken(cast(ubyte[])s);
+
+	// valid
+	enum hex = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','A','B','C','D','E','F'];
+	auto source = "";
+	foreach(h1; hex)
+		foreach(h2; hex)
+			source ~= "'\\x" ~ h1 ~ h2 ~ "'";
+	assert(toks(source).filter!(t => t.type != tok!"characterLiteral").empty);
+
+	// invalid
+	assert(toks(`'\x'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
+	assert(toks(`'\x_'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
+	assert(toks(`'\xA'`).messages[0] == DLexer.Message(1,5,"Error: 2 hex digits expected.",true));
+	assert(toks(`'\xAY'`).messages[0] == DLexer.Message(1,5,"Error: 2 hex digits expected.",true));
+	assert(toks(`'\xXX'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
 }

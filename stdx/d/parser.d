@@ -1309,7 +1309,7 @@ incorrect;
      * Parses a ClassDeclaration
      *
      * $(GRAMMAR $(RULEDEF classDeclaration):
-     *     $(LITERAL 'class') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     $(LITERAL 'class') $(LITERAL Identifier) ($(LITERAL ';') | ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody))
      *     ;)
      */
     ClassDeclaration parseClassDeclaration()
@@ -1322,6 +1322,11 @@ incorrect;
         node.name = *ident;
         node.comment = comment;
         comment = null;
+        if (currentIs(tok!";"))
+        {
+            advance();
+            return node;
+        }
         if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
@@ -1731,6 +1736,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             if (currentIs(tok!":"))
             {
                 node.attributeDeclaration = parseAttributeDeclaration(attr);
+                node.attributes = ownArray(attributes);
                 return node;
             }
             else
@@ -3185,7 +3191,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
      * Parses an InterfaceDeclaration
      *
      * $(GRAMMAR $(RULEDEF interfaceDeclaration):
-     *     $(LITERAL 'interface') $(LITERAL Identifier) ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     $(LITERAL 'interface') $(LITERAL Identifier) ($(LITERAL ';') | ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody))
      *     ;)
      */
     InterfaceDeclaration parseInterfaceDeclaration()
@@ -3197,6 +3203,11 @@ import core.stdc.stdio, std.string : KeepTerminator;
         node.name = *ident;
         node.comment = comment;
         comment = null;
+        if (currentIs(tok!";"))
+        {
+            advance();
+            return node;
+        }
         if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
@@ -3875,7 +3886,13 @@ invariant() foo();
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!NonVoidInitializer;
         if (currentIs(tok!"{"))
-            node.structInitializer = parseStructInitializer();
+        {
+            auto b = peekPastBraces();
+            if (b !is null && (b.type == tok!"("))
+                node.assignExpression = parseAssignExpression();
+            else
+                node.structInitializer = parseStructInitializer();
+        }
         else if (currentIs(tok!"["))
         {
             auto b = peekPastBrackets();
@@ -4134,7 +4151,7 @@ q{(int a, ...)
      * Parses a Postblit
      *
      * $(GRAMMAR $(RULEDEF postblit):
-     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
+     *     $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL 'this') $(LITERAL '$(RPAREN)') $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Postblit parsePostblit()
@@ -4144,6 +4161,10 @@ q{(int a, ...)
         expect(tok!"(");
         expect(tok!"this");
         expect(tok!")");
+        MemberFunctionAttribute[] memberFunctionAttributes;
+        while (currentIsMemberFunctionAttribute())
+            memberFunctionAttributes ~= parseMemberFunctionAttribute();
+        node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
         if (currentIs(tok!";"))
             advance();
         else
