@@ -980,7 +980,7 @@ public struct DLexer
 				lexEscapeSequence();
 			}
 			else
-				range.popFront();
+				popFrontWhitespaceAware();
 		}
 		IdType type = tok!"stringLiteral";
 		lexStringSuffix(type);
