@@ -142,7 +142,7 @@ private:
  * Returns: the parsed module
  */
 Module parseModule(const(Token)[] tokens, string fileName, CAllocator allocator = null,
-    void function(string, size_t, size_t, string, bool) messageFunction = null)
+    void delegate(string, size_t, size_t, string, bool) messageFunction = null)
 {
     auto parser = new Parser();
     parser.fileName = fileName;
@@ -218,8 +218,8 @@ class Parser
                     error(`"(" expected for the linkage attribute`);
                 node.linkageAttribute = parseLinkageAttribute();
             }
-            warn("Syntax \"'alias' type identifier ';'\" is deprecated. Please use "
-                ~ " \"'alias' identifier '=' type ';'\" instead.");
+            warn("Prefer the new \"'alias' identifier '=' type ';'\" syntax"
+				~ " to the  old \"'alias' type identifier ';'\" syntax");
             if ((node.type = parseType()) is null) return null;
             auto ident = expect(tok!"identifier");
             if (ident is null)
@@ -6220,7 +6220,7 @@ q{doStuff(5)}c;
      * The parameters are the file name, line number, column number,
      * and the error or warning message.
      */
-    void function(string, size_t, size_t, string, bool) messageFunction;
+    void delegate(string, size_t, size_t, string, bool) messageFunction;
 
     bool isSliceExpression()
     {
