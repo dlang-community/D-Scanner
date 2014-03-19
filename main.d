@@ -175,6 +175,8 @@ int main(string[] args)
 			{
 				auto visitor = new ImportPrinter;
 				visitor.visit(mod);
+				foreach (imp; visitor.imports[])
+					writeln(imp);
 			}
 			else if (ast)
 			{
