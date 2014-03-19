@@ -169,7 +169,8 @@ int main(string[] args)
 		else if (imports || ast || outline)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1],
+				null, &doNothing);
 			if (imports)
 			{
 				auto visitor = new ImportPrinter;
@@ -291,3 +292,5 @@ options:
         directories and its sub-directories.`,
         programName);
 }
+
+void doNothing(string, size_t, size_t, string, bool) {}
