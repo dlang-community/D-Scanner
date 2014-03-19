@@ -665,10 +665,10 @@ class XMLPrinter : ASTVisitor
 	override void visit(const ImportBind importBind)
 	{
 		if (importBind.right.type == tok!"")
-			output.writeln("<importBind symbol=\"", importBind.left.text, "\">");
+			output.writeln("<importBind symbol=\"", importBind.left.text, "\"/>");
 		else
 			output.writeln("<importBind symbol=\"", importBind.right.text,
-				"\" rename=\"", importBind.left.text, "\">");
+				"\" rename=\"", importBind.left.text, "\"/>");
 	}
 
 	override void visit(const ImportBindings importBindings)
