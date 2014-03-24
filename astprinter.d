@@ -133,7 +133,7 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<assignExpression>");
 		else
 			output.writeln("<assignExpression operator=\"",
-				str(assignExpression.operator), "\">");
+				xmlEscape(str(assignExpression.operator)), "\">");
 		assignExpression.accept(this);
 		output.writeln("</assignExpression>");
 	}
