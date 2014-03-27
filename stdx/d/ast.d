@@ -1130,8 +1130,9 @@ final class Destructor : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(functionBody));
+        mixin (visitIfNotNull!(memberFunctionAttributes, functionBody));
     }
+	/** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ FunctionBody functionBody;
     /** */ size_t location;
     /** */ string comment;

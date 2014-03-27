@@ -24,114 +24,6 @@ import std.string : format;
 //version = std_parser_verbose;
 
 /**
- * The parse allocator is designed so that very large number of node instances
- * allocated by the parser can be deallocated all at once. This saves time by
- * preventing the GC from having to scan the nodes.
- */
-class ParseAllocator : CAllocator
-{
-public:
-
-    this(string name = "none")
-    {
-        this.name = name;
-    }
-
-    string name;
-
-    override void[] allocate(size_t size)
-    in
-    {
-        assert (size > 0);
-        assert (size < blockSize);
-    }
-    out (result)
-    {
-        assert (result.length == size);
-    }
-    body
-    {
-        enum size_t mask = ~ (cast(size_t) 7);
-        enum s = ((Node.sizeof - 1) & mask) + 8;
-        Node* current = root;
-        while (true)
-        {
-            while (current !is null)
-            {
-                immutable size_t blockLength = current.block.length;
-                immutable size_t oldUsed = current.used;
-                immutable size_t newUsed = oldUsed + size;
-                if (newUsed > blockLength)
-                    current = current.next;
-                else
-                {
-                    current.used = ((newUsed  - 1) & mask) + 8;
-//                    assert (current.used >= oldUsed + size);
-//                    assert (current.block.ptr + blockSize > current.block.ptr + newUsed);
-//                    assert (newUsed > oldUsed);
-//                    writefln("Allocating 0x%012x - 0x%012x",
-//                        cast(size_t) current.block.ptr + oldUsed,
-//                        cast(size_t) current.block.ptr + newUsed);
-                    current.block[oldUsed .. newUsed] = 0;
-                    return current.block[oldUsed .. newUsed];
-                }
-            }
-            import core.memory;
-//            stderr.writeln("Allocating new block while processing ", name);
-            ubyte* newBlock = cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN);
-//            assert (newBlock !is null);
-//            stderr.writefln("Memory spans from 0x%012x to 0x%012x",
-//                cast(size_t) newBlock, cast(size_t) newBlock + blockSize);
-            root = new Node (root, s, newBlock[0 .. blockSize]);
-//            assert (root.block.length == blockSize);
-            current = root;
-        }
-        assert (false);
-    }
-
-    /**
-     * Deallocates all memory held by this allocator. All node instances created
-     * by a parser using this allocator instance are invalid after calling this
-     * function.
-     */
-    override bool deallocateAll()
-    {
-        deallocateRecursive(root);
-        root = null;
-        return true;
-    }
-
-    override bool expand(ref void[], size_t) { return false; }
-    override bool reallocate(ref void[], size_t) { return false; }
-    override bool deallocate(void[]) { return false; }
-
-private:
-
-    void deallocateRecursive(Node* node)
-    {
-        import core.memory;
-//        import std.c.stdlib;
-//        node.block[] = 0;
-//        free(node.block.ptr);
-        GC.free(node.block.ptr);
-        if (node.next !is null)
-            deallocateRecursive(node.next);
-        node.next = null;
-    }
-
-    Node* root;
-
-    enum blockSize = 1024 * 1024 * 4;
-
-    struct Node
-    {
-        Node* next;
-        size_t used;
-        ubyte[] block;
-    }
-}
-
-/**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
  *     fileName = the name of the file being parsed
@@ -2084,7 +1976,14 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIs(tok!";"))
             advance();
         else
-            node.functionBody = parseFunctionBody();
+		{
+			MemberFunctionAttribute[] memberFunctionAttributes;
+			while(moreTokens() && currentIsMemberFunctionAttribute())
+				memberFunctionAttributes ~= parseMemberFunctionAttribute();
+			node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
+
+			node.functionBody = parseFunctionBody();
+		}
         return node;
     }
 
@@ -6271,6 +6170,7 @@ protected:
         if (allocator is null)
             return from;
         T[] to = cast(T[]) allocator.allocate(T.sizeof * from.length);
+        assert (to.length == from.length, format("from.length = %d, to.length = %d", from.length, to.length));
         to[] = from[];
         return to;
     }
@@ -6282,6 +6182,7 @@ protected:
             return new T(args);
         enum numBytes = __traits(classInstanceSize, T);
         void[] mem = allocator.allocate(numBytes);
+        assert (mem.length == numBytes, format("%d", mem.length));
         T t = emplace!T(mem, args);
         assert (cast(void*) t == mem.ptr, "%x, %x".format(cast(void*) t, mem.ptr));
         return t;
