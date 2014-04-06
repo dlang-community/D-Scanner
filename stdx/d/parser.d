@@ -23,6 +23,8 @@ import std.string : format;
 // Caution: generates 180 megabytes of logging for std.datetime
 //version = std_parser_verbose;
 
+alias ParseAllocator = CAllocatorImpl!(Mallocator);
+
 /**
  * Params:
  *     tokens = the tokens parsed by std.d.lexer
