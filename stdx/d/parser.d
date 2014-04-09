@@ -1468,6 +1468,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto t = expect(tok!"this");
         if (t is null) return null;
         node.location = t.index;
+        node.line = t.line;
+        node.column = t.column;
         auto p = peekPastParens();
         bool isTemplate = false;
         if (p !is null && p.type == tok!"(")
