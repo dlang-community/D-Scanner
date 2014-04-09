@@ -559,7 +559,7 @@ struct GCAllocator
     /**
     Standard allocator methods per the semantics defined above. The $(D deallocate) and $(D reallocate) methods are $(D @system) because they may move memory around, leaving dangling pointers in user code.
     */
-    @trusted void[] allocate(size_t bytes) shared
+    @trusted void[] allocate(size_t bytes) shared nothrow pure @safe
     {
         auto p = GC.malloc(bytes);
         return p ? p[0 .. bytes] : null;
@@ -581,7 +581,7 @@ struct GCAllocator
     }
 
     /// Ditto
-    @system bool reallocate(ref void[] b, size_t newSize) shared
+    @system bool reallocate(ref void[] b, size_t newSize) shared nothrow pure
     {
         import core.exception : OutOfMemoryError;
         try
@@ -598,15 +598,20 @@ struct GCAllocator
     }
 
     /// Ditto
-    @system void deallocate(void[] b) shared
+    @system void deallocate(void[] b) shared nothrow pure
     {
         GC.free(b.ptr);
     }
 
+	static shared(GCAllocator) it() pure nothrow @property @trusted
+	{
+		return cast(typeof(return)) _it;
+	}
+
     /**
     Returns the global instance of this allocator type. The garbage collected allocator is thread-safe, therefore all of its methods and $(D it) itself are $(D shared).
     */
-    static shared GCAllocator it;
+    private static shared const GCAllocator _it;
 
     // Leave it undocummented for now.
     @trusted void collect() shared
@@ -854,7 +859,7 @@ unittest
 /**
 Returns s rounded up to a multiple of base.
 */
-private size_t roundUpToMultipleOf(size_t s, uint base)
+private size_t roundUpToMultipleOf(size_t s, uint base) pure nothrow @safe
 {
     assert(base);
     auto rem = s % base;
@@ -943,7 +948,7 @@ struct AffixAllocator(Allocator, Prefix, Suffix = void)
     static assert(
         !stateSize!Prefix || Allocator.alignment >= Prefix.alignof,
         "AffixAllocator does not work with allocators offering a smaller"
-        " alignment than the prefix alignment.");
+        ~ " alignment than the prefix alignment.");
     static assert(alignment % Suffix.alignof == 0,
         "This restriction could be relaxed in the future.");
 
@@ -960,7 +965,7 @@ struct AffixAllocator(Allocator, Prefix, Suffix = void)
     parent allocator.
     */
     static if (stateSize!Allocator) Allocator parent;
-    else alias Allocator.it parent;
+    else alias parent = Allocator.it;
 
     template Impl()
     {
@@ -1118,7 +1123,7 @@ unittest
 
 unittest
 {
-    alias AffixAllocator!(Mallocator, size_t) A;
+    alias A = AffixAllocator!(Mallocator, size_t);
     auto b = A.it.allocate(10);
     A.it.prefix(b) = 10;
     assert(A.it.prefix(b) == 10);
@@ -1902,10 +1907,10 @@ struct FallbackAllocator(Primary, Fallback)
     If both $(D Primary) and $(D Fallback) are stateless, $(D FallbackAllocator)
     defines a static instance $(D it).
     */
-    static if (!stateSize!Primary && !stateSize!Fallback)
+    /+static if (!stateSize!Primary && !stateSize!Fallback)
     {
         static FallbackAllocator it;
-    }
+    }+/
 
     /**
     The alignment offered is the minimum of the two allocators' alignment.
@@ -1916,7 +1921,7 @@ struct FallbackAllocator(Primary, Fallback)
     Allocates memory trying the primary allocator first. If it returns $(D
     null), the fallback allocator is tried.
     */
-    void[] allocate(size_t s)
+    void[] allocate(size_t s) pure nothrow @safe
     {
         auto result = primary.allocate(s);
         return result ? result : fallback.allocate(s);
@@ -1959,9 +1964,9 @@ struct FallbackAllocator(Primary, Fallback)
     allocation from $(D fallback) to $(D primary).
 
     */
-    bool reallocate(ref void[] b, size_t newSize)
+    bool reallocate(ref void[] b, size_t newSize) pure nothrow @trusted
     {
-        bool crossAllocatorMove(From, To)(ref From from, ref To to)
+        bool crossAllocatorMove(From, To)(auto ref From from, auto ref To to)
         {
             auto b1 = to.allocate(newSize);
             if (!b1) return false;
@@ -2004,7 +2009,7 @@ struct FallbackAllocator(Primary, Fallback)
     */
     static if (hasMember!(Primary, "deallocate")
         || hasMember!(Fallback, "deallocate"))
-    void deallocate(void[] b)
+    void deallocate(void[] b) pure nothrow @trusted
     {
         if (primary.owns(b))
         {
@@ -2014,7 +2019,7 @@ struct FallbackAllocator(Primary, Fallback)
         else
         {
             static if (hasMember!(Fallback, "deallocate"))
-                return fallback.deallocate(b);
+                fallback.deallocate(b);
         }
     }
 }
@@ -2216,11 +2221,6 @@ struct Freelist(ParentAllocator,
     Allocates memory either off of the free list or from the parent allocator.
     */
     void[] allocate(size_t bytes)
-	in
-	{
-		assert (_root !is null);
-	}
-	body
     {
         assert(bytes < size_t.max / 2);
         if (!inRange(bytes)) return parent.allocate(bytes);
@@ -2941,7 +2941,7 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
     accommodate the request. For efficiency reasons, if $(D bytes == 0) the
     function returns an empty non-null slice.
     */
-    void[] allocate(size_t bytes)
+    void[] allocate(size_t bytes) pure nothrow @trusted
     {
         // Oddity: we don't return null for null allocation. Instead, we return
         // an empty slice with a non-null ptr.
@@ -2984,7 +2984,7 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
     allocation. For efficiency reasons, if $(D b is null) the function returns
     $(D false).
     */
-    bool owns(void[] b) const
+    bool owns(void[] b) const nothrow pure @trusted
     {
         // No nullptr
         return b.ptr >= _store.ptr
@@ -2994,7 +2994,7 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
     /**
     Deallocates all memory allocated with this allocator.
     */
-    void deallocateAll()
+    void deallocateAll() pure nothrow @safe
     {
         _crt = _store.ptr;
     }
@@ -3716,6 +3716,12 @@ struct CascadingAllocator(alias make)
 
     /// Ditto
     void[] allocate(size_t s)
+	out (res)
+	{
+		import std.string;
+		assert (res.length == s, "res.length = %d, s = %d".format(res.length, s));
+	}
+	body
     {
         auto result = allocateNoGrow(s);
         if (result) return result;
