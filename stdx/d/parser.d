@@ -2,7 +2,7 @@
 
 /**
  * MACROS:
- * GRAMMAR = <pre>$0</pre>
+ * GRAMMAR = <pre class="grammar">$0</pre>
  * RULEDEF = $(B $(DDOC_ANCHOR $0) $0)
  * RULE = $(LINK2 #$0, $0)
  * LITERAL = $(D_STRING $(I $0))
@@ -1960,7 +1960,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a Destructor
      *
      * $(GRAMMAR $(RULEDEF destructor):
-     *     $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
+     *     $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Destructor parseDestructor()
