@@ -420,6 +420,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 
     private static string generateCaseStatements()
     {
+        import std.algorithm;
         import std.conv;
         import std.string;
         import std.range;
@@ -443,6 +444,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 
     private static string printCase(string[] tokens, string[] pseudoTokens)
     {
+        import std.algorithm;
         string[] t = tokens;
         string[] sortedTokens = stupidToArray(sort!"a.length > b.length"(t));
         import std.conv;
