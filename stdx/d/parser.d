@@ -6384,6 +6384,14 @@ protected:
                 return true;
             }
             return true;
+        case tok!"pragma":
+            auto b = setBookmark();
+            scope(exit) goToBookmark(b);
+            advance();
+            auto past = peekPastParens();
+            if (past is null || *past == tok!";")
+                return false;
+            return true;
         case tok!"deprecated":
         case tok!"private":
         case tok!"package":
