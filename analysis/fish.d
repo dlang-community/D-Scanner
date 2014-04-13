@@ -24,6 +24,7 @@ class FloatOperatorCheck : BaseAnalyzer
 	override void visit(const RelExpression r)
 	{
 		if (r.operator == tok!"<>"
+			|| r.operator == tok!"<>="
 			|| r.operator == tok!"!<>"
 			|| r.operator == tok!"!>"
 			|| r.operator == tok!"!<"
