@@ -412,8 +412,8 @@ public struct DLexer
 
 	private static bool isDocComment(string comment) pure nothrow @safe
 	{
-		return comment.length >= 3 && (comment[2] == '/'
-			|| comment[2] == '*' || comment[2] == '+');
+		return comment.length >= 3 && (comment[0 .. 3] == "///"
+			|| comment[0 .. 3] == "/++" || comment[0 .. 3] == "/**");
 	}
 
 	public void popFront() pure
