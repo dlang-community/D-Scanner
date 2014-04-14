@@ -4522,8 +4522,18 @@ q{(int a, ...)
         if (!currentIs(tok!"]"))
         {
             node.lower = parseAssignExpression();
+			if (node.lower is null)
+			{
+				error("assignExpression expected");
+				return null;
+			}
             expect(tok!"..");
             node.upper = parseAssignExpression();
+			if (node.upper is null)
+			{
+				error("assignExpression expected");
+				return null;
+			}
         }
         if (expect(tok!"]") is null) return null;
         return node;
@@ -4777,8 +4787,13 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!StructInitializer;
         expect(tok!"{");
-        node.structMemberInitializers = parseStructMemberInitializers();
-        expect(tok!"}");
+		if (currentIs(tok!"}"))
+			advance();
+		else
+		{
+			node.structMemberInitializers = parseStructMemberInitializers();
+			expect(tok!"}");
+		}
         return node;
     }
 
