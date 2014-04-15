@@ -729,7 +729,8 @@ struct LexerRange
     }
 
     /**
-     * Implements the algorithm _popFrontN more efficiently.
+     * Implements the algorithm _popFrontN more efficiently. This function does
+	 * not detect or handle newlines.
      */
     void popFrontN(size_t n) pure nothrow @safe
     {
