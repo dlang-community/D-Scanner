@@ -71,7 +71,9 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const TemplateDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.text, fileName, dec.name.line, context);
+		auto name = dec.eponymousTemplateDeclaration is null ? dec.name
+			: dec.eponymousTemplateDeclaration.name;
+		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(name.text, fileName, name.line, context);
 		auto c = context;
 		context = "\ttemplate:" ~ dec.name.text;
 		dec.accept(this);
