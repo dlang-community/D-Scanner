@@ -1903,11 +1903,13 @@ final class NonVoidInitializer : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(assignExpression, arrayInitializer, structInitializer));
+        mixin (visitIfNotNull!(assignExpression, arrayInitializer,
+            structInitializer, functionBody));
     }
     /** */ AssignExpression assignExpression;
     /** */ ArrayInitializer arrayInitializer;
     /** */ StructInitializer structInitializer;
+    /** */ FunctionBody functionBody;
 
 }
 

@@ -3782,6 +3782,7 @@ invariant() foo();
      *       $(RULE assignExpression)
      *     | $(RULE arrayInitializer)
      *     | $(RULE structInitializer)
+     *     | $(RULE functionBody)
      *     ;)
      */
     NonVoidInitializer parseNonVoidInitializer()
@@ -3793,6 +3794,8 @@ invariant() foo();
             auto b = peekPastBraces();
             if (b !is null && (b.type == tok!"("))
                 node.assignExpression = parseAssignExpression();
+            else if (hasMagicDelimiter!(tok!"{", tok!";")())
+                node.functionBody = parseFunctionBody();
             else
                 node.structInitializer = parseStructInitializer();
         }
@@ -3810,8 +3813,15 @@ invariant() foo();
             else
                 node.assignExpression = parseAssignExpression();
         }
+        else if (currentIsOneOf(tok!"in", tok!"out", tok!"body"))
+            node.functionBody = parseFunctionBody();
         else
             node.assignExpression = parseAssignExpression();
+        if (node.assignExpression is null && node.arrayInitializer is null
+        && node.structInitializer is null && node.functionBody is null)
+        {
+            return null;
+        }
         return node;
     }
 
@@ -5987,6 +5997,7 @@ q{doStuff(5)}c;
      *
      * $(GRAMMAR $(RULEDEF variableDeclaration):
      *       $(RULE _type) $(RULE declarator) ($(LITERAL ',') $(RULE declarator))* $(LITERAL ';')
+     *     | $(RULE _type) $(RULE declarator) $(LITERAL '=') $(RULE functionBody)
      *     | $(RULE autoDeclaration)
      *     ;)
      */
@@ -6013,9 +6024,19 @@ q{doStuff(5)}c;
             else
                 break;
         }
-        node.declarators = ownArray(declarators);
-        expect(tok!";");
-        return node;
+//        node.declarators = ownArray(declarators);
+//        if (node.declarators.length == 1
+//            && node.declarators[0].initializer !is null
+//            && node.declarators[0].initializer.nonVoidInitializer !is null
+//            && node.declarators[0].initializer.nonVoidInitializer.functionBody !is null)
+//        {
+//            return node;
+//        }
+//        else
+        {
+            expect(tok!";");
+            return node;
+        }
     }
 
     /**
@@ -6166,7 +6187,7 @@ q{doStuff(5)}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (startsWith(tok!"[", tok!"]"))
             return true;
-        return hasMagicDelimiter!(tok!"..")();
+        return hasMagicDelimiter!(tok!"[", tok!"..")();
     }
 
     void setTokens(const(Token)[] tokens)
@@ -6226,22 +6247,22 @@ protected:
 
     bool isAssociativeArrayLiteral()
     {
-        return hasMagicDelimiter!(tok!":")();
+        return hasMagicDelimiter!(tok!"[", tok!":")();
     }
 
-    bool hasMagicDelimiter(alias T)()
+    bool hasMagicDelimiter(alias L, alias T)()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto i = index;
         scope(exit) index = i;
-        assert(currentIs(tok!"["));
+        assert(currentIs(L));
         advance();
         while (moreTokens()) switch (current.type)
         {
         case tok!"{": skipBraces(); break;
         case tok!"(": skipParens(); break;
         case tok!"[": skipBrackets(); break;
-        case tok!"]": return false;
+        case tok!"]": case tok!"}": return false;
         case T: return true;
         default: advance(); break;
         }
