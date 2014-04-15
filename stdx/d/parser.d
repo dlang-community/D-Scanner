@@ -6024,7 +6024,7 @@ q{doStuff(5)}c;
             else
                 break;
         }
-//        node.declarators = ownArray(declarators);
+        node.declarators = ownArray(declarators);
 //        if (node.declarators.length == 1
 //            && node.declarators[0].initializer !is null
 //            && node.declarators[0].initializer.nonVoidInitializer !is null
