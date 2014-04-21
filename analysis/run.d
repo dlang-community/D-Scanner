@@ -20,6 +20,7 @@ import analysis.fish;
 import analysis.numbers;
 import analysis.objectconst;
 import analysis.range;
+import analysis.ifelsesame;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -70,6 +71,7 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 		checks ~= new NumberStyleCheck(fileName);
 		checks ~= new ObjectConstCheck(fileName);
 		checks ~= new BackwardsRangeCheck(fileName);
+		checks ~= new IfElseSameCheck(fileName);
 
 		foreach (check; checks)
 		{

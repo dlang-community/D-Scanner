@@ -557,7 +557,7 @@ public struct DLexer
 	Token lexNumber() pure nothrow
 	{
 		mixin (tokenStart);
-		if (range.canPeek(1) && range.front == '0')
+		if (range.front == '0' && range.canPeek(1))
 		{
 			auto ahead = range.peek(1)[1];
 			switch (ahead)
