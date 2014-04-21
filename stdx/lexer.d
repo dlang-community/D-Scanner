@@ -249,6 +249,11 @@ struct TokenStructure(IdType, string extraFields = "")
 {
 public:
 
+    bool opEquals(ref const typeof(this) other) const pure nothrow @safe
+    {
+        return this.type == other.type && this.text == other.text;
+    }
+
     /**
      * Returs: true if the token has the given type, false otherwise.
      */
