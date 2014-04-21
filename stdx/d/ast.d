@@ -1223,8 +1223,9 @@ final class Destructor : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(functionBody));
+        mixin (visitIfNotNull!(memberFunctionAttributes, functionBody));
     }
+	/** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ FunctionBody functionBody;
     /** */ size_t location;
     /** */ string comment;
@@ -2052,11 +2053,13 @@ final class NonVoidInitializer : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(assignExpression, arrayInitializer, structInitializer));
+        mixin (visitIfNotNull!(assignExpression, arrayInitializer,
+            structInitializer, functionBody));
     }
     /** */ AssignExpression assignExpression;
     /** */ ArrayInitializer arrayInitializer;
     /** */ StructInitializer structInitializer;
+    /** */ FunctionBody functionBody;
 
     mixin OpEquals;
 }
