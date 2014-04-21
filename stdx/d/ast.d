@@ -291,14 +291,6 @@ public:
 
 immutable string DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) const {}};
 
-mixin template OpEquals()
-{
-    override bool opEquals(Object other) const
-    {
-        mixin (generateOpEquals!(typeof(this)));
-    }
-}
-
 template visitIfNotNull(fields ...)
 {
     static if (fields.length > 1)
@@ -319,6 +311,14 @@ template visitIfNotNull(fields ...)
     }
 }
 
+mixin template OpEquals()
+{
+    override bool opEquals(Object other) const
+    {
+        mixin (generateOpEquals!(typeof(this)));
+    }
+}
+
 template generateOpEquals(T)
 {
     template opEqualsPart(p ...)
@@ -326,14 +326,26 @@ template generateOpEquals(T)
         import std.traits;
         static if (p.length == 0)
             enum opEqualsPart = "";
-        else static if (!isSomeFunction!(__traits(getMember, T, p[0])) && p[0] != "line" && p[0] != "column")
-            enum opEqualsPart = "\n\t&& obj." ~ p[0] ~ " == this." ~ p[0] ~ opEqualsPart!(p[1 .. $]);
+        else static if (!isSomeFunction!(__traits(getMember, T, p[0]))
+            && p[0] != "line" && p[0] != "column" && p[0] != "startLocation"
+            && p[0] != "endLocation")
+        {
+            static if (typeof(__traits(getMember, T, p[0])).stringof[$ - 2 .. $] == "[]")
+            {
+                enum opEqualsPart = "\nif (obj." ~ p[0] ~ ".length != this." ~ p[0] ~ ".length) return false;\n"
+                    ~ "foreach (i; 0 .. this." ~ p[0] ~ ".length)\n"
+                    ~ "\tif (this." ~ p[0] ~ "[i] != obj." ~ p[0] ~ "[i]) return false;";
+            }
+            else
+                enum opEqualsPart = "\nif (obj." ~ p[0] ~ " != this." ~ p[0] ~ ") return false;" ~ opEqualsPart!(p[1 .. $]);
+        }
         else
             enum opEqualsPart = opEqualsPart!(p[1 .. $]);
     }
     enum generateOpEquals = T.stringof ~ " obj = cast(" ~ T.stringof ~ ") other;\n"
-        ~ "return obj !is null"
-        ~ opEqualsPart!(__traits(derivedMembers, T)) ~ ";";
+        ~ "if (obj is null) return false;"
+        ~ opEqualsPart!(__traits(derivedMembers, T)) ~ "\n"
+        ~ "return true;";
 }
 
 abstract class ExpressionNode : ASTNode
@@ -1225,7 +1237,7 @@ public:
     {
         mixin (visitIfNotNull!(memberFunctionAttributes, functionBody));
     }
-	/** */ MemberFunctionAttribute[] memberFunctionAttributes;
+    /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ FunctionBody functionBody;
     /** */ size_t location;
     /** */ string comment;
