@@ -674,6 +674,8 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!AssignExpression;
+        node.line = current().line;
+        node.column = current().column;
         node.ternaryExpression = parseTernaryExpression();
         if (currentIsOneOf(tok!"=", tok!">>>=",
             tok!">>=", tok!"<<=",
@@ -2781,6 +2783,8 @@ body {} // six
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!IfStatement;
+        node.line = current().line;
+        node.column = current().column;
         if (expect(tok!"if") is null) return null;
         node.startIndex = current().index;
         if (expect(tok!"(") is null) return null;

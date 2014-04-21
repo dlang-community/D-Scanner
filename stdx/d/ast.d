@@ -32,56 +32,56 @@ abstract class ASTVisitor
 {
 public:
 
-	void visit(const ExpressionNode n)
-	{
-		if (cast(AddExpression) n) visit(cast(AddExpression) n);
-		else if (cast(AndAndExpression) n) visit(cast(AndAndExpression) n);
-		else if (cast(AndExpression) n) visit(cast(AndExpression) n);
-		else if (cast(AsmAddExp) n) visit(cast(AsmAddExp) n);
-		else if (cast(AsmAndExp) n) visit(cast(AsmAndExp) n);
-		else if (cast(AsmEqualExp) n) visit(cast(AsmEqualExp) n);
-		else if (cast(AsmLogAndExp) n) visit(cast(AsmLogAndExp) n);
-		else if (cast(AsmLogOrExp) n) visit(cast(AsmLogOrExp) n);
-		else if (cast(AsmMulExp) n) visit(cast(AsmMulExp) n);
-		else if (cast(AsmOrExp) n) visit(cast(AsmOrExp) n);
-		else if (cast(AsmRelExp) n) visit(cast(AsmRelExp) n);
-		else if (cast(AsmShiftExp) n) visit(cast(AsmShiftExp) n);
-		else if (cast(AssertExpression) n) visit(cast(AssertExpression) n);
-		else if (cast(AssignExpression) n) visit(cast(AssignExpression) n);
-		else if (cast(CmpExpression) n) visit(cast(CmpExpression) n);
-		else if (cast(DeleteExpression) n) visit(cast(DeleteExpression) n);
-		else if (cast(EqualExpression) n) visit(cast(EqualExpression) n);
-		else if (cast(Expression) n) visit(cast(Expression) n);
-		else if (cast(FunctionCallExpression) n) visit(cast(FunctionCallExpression) n);
-		else if (cast(FunctionLiteralExpression) n) visit(cast(FunctionLiteralExpression) n);
-		else if (cast(IdentityExpression) n) visit(cast(IdentityExpression) n);
-		else if (cast(ImportExpression) n) visit(cast(ImportExpression) n);
-		else if (cast(IndexExpression) n) visit(cast(IndexExpression) n);
-		else if (cast(InExpression) n) visit(cast(InExpression) n);
-		else if (cast(IsExpression) n) visit(cast(IsExpression) n);
-		else if (cast(LambdaExpression) n) visit(cast(LambdaExpression) n);
-		else if (cast(MixinExpression) n) visit(cast(MixinExpression) n);
-		else if (cast(MulExpression) n) visit(cast(MulExpression) n);
-		else if (cast(NewAnonClassExpression) n) visit(cast(NewAnonClassExpression) n);
-		else if (cast(NewExpression) n) visit(cast(NewExpression) n);
-		else if (cast(OrExpression) n) visit(cast(OrExpression) n);
-		else if (cast(OrOrExpression) n) visit(cast(OrOrExpression) n);
-		else if (cast(PostIncDecExpression) n) visit(cast(PostIncDecExpression) n);
-		else if (cast(PowExpression) n) visit(cast(PowExpression) n);
-		else if (cast(PragmaExpression) n) visit(cast(PragmaExpression) n);
-		else if (cast(PreIncDecExpression) n) visit(cast(PreIncDecExpression) n);
-		else if (cast(PrimaryExpression) n) visit(cast(PrimaryExpression) n);
-		else if (cast(RelExpression) n) visit(cast(RelExpression) n);
-		else if (cast(ShiftExpression) n) visit(cast(ShiftExpression) n);
-		else if (cast(SliceExpression) n) visit(cast(SliceExpression) n);
-		else if (cast(TemplateMixinExpression) n) visit(cast(TemplateMixinExpression) n);
-		else if (cast(TernaryExpression) n) visit(cast(TernaryExpression) n);
-		else if (cast(TraitsExpression) n) visit(cast(TraitsExpression) n);
-		else if (cast(TypeidExpression) n) visit(cast(TypeidExpression) n);
-		else if (cast(TypeofExpression) n) visit(cast(TypeofExpression) n);
-		else if (cast(UnaryExpression) n) visit(cast(UnaryExpression) n);
-		else if (cast(XorExpression) n) visit(cast(XorExpression) n);
-	}
+    void visit(const ExpressionNode n)
+    {
+        if (cast(AddExpression) n) visit(cast(AddExpression) n);
+        else if (cast(AndAndExpression) n) visit(cast(AndAndExpression) n);
+        else if (cast(AndExpression) n) visit(cast(AndExpression) n);
+        else if (cast(AsmAddExp) n) visit(cast(AsmAddExp) n);
+        else if (cast(AsmAndExp) n) visit(cast(AsmAndExp) n);
+        else if (cast(AsmEqualExp) n) visit(cast(AsmEqualExp) n);
+        else if (cast(AsmLogAndExp) n) visit(cast(AsmLogAndExp) n);
+        else if (cast(AsmLogOrExp) n) visit(cast(AsmLogOrExp) n);
+        else if (cast(AsmMulExp) n) visit(cast(AsmMulExp) n);
+        else if (cast(AsmOrExp) n) visit(cast(AsmOrExp) n);
+        else if (cast(AsmRelExp) n) visit(cast(AsmRelExp) n);
+        else if (cast(AsmShiftExp) n) visit(cast(AsmShiftExp) n);
+        else if (cast(AssertExpression) n) visit(cast(AssertExpression) n);
+        else if (cast(AssignExpression) n) visit(cast(AssignExpression) n);
+        else if (cast(CmpExpression) n) visit(cast(CmpExpression) n);
+        else if (cast(DeleteExpression) n) visit(cast(DeleteExpression) n);
+        else if (cast(EqualExpression) n) visit(cast(EqualExpression) n);
+        else if (cast(Expression) n) visit(cast(Expression) n);
+        else if (cast(FunctionCallExpression) n) visit(cast(FunctionCallExpression) n);
+        else if (cast(FunctionLiteralExpression) n) visit(cast(FunctionLiteralExpression) n);
+        else if (cast(IdentityExpression) n) visit(cast(IdentityExpression) n);
+        else if (cast(ImportExpression) n) visit(cast(ImportExpression) n);
+        else if (cast(IndexExpression) n) visit(cast(IndexExpression) n);
+        else if (cast(InExpression) n) visit(cast(InExpression) n);
+        else if (cast(IsExpression) n) visit(cast(IsExpression) n);
+        else if (cast(LambdaExpression) n) visit(cast(LambdaExpression) n);
+        else if (cast(MixinExpression) n) visit(cast(MixinExpression) n);
+        else if (cast(MulExpression) n) visit(cast(MulExpression) n);
+        else if (cast(NewAnonClassExpression) n) visit(cast(NewAnonClassExpression) n);
+        else if (cast(NewExpression) n) visit(cast(NewExpression) n);
+        else if (cast(OrExpression) n) visit(cast(OrExpression) n);
+        else if (cast(OrOrExpression) n) visit(cast(OrOrExpression) n);
+        else if (cast(PostIncDecExpression) n) visit(cast(PostIncDecExpression) n);
+        else if (cast(PowExpression) n) visit(cast(PowExpression) n);
+        else if (cast(PragmaExpression) n) visit(cast(PragmaExpression) n);
+        else if (cast(PreIncDecExpression) n) visit(cast(PreIncDecExpression) n);
+        else if (cast(PrimaryExpression) n) visit(cast(PrimaryExpression) n);
+        else if (cast(RelExpression) n) visit(cast(RelExpression) n);
+        else if (cast(ShiftExpression) n) visit(cast(ShiftExpression) n);
+        else if (cast(SliceExpression) n) visit(cast(SliceExpression) n);
+        else if (cast(TemplateMixinExpression) n) visit(cast(TemplateMixinExpression) n);
+        else if (cast(TernaryExpression) n) visit(cast(TernaryExpression) n);
+        else if (cast(TraitsExpression) n) visit(cast(TraitsExpression) n);
+        else if (cast(TypeidExpression) n) visit(cast(TypeidExpression) n);
+        else if (cast(TypeofExpression) n) visit(cast(TypeofExpression) n);
+        else if (cast(UnaryExpression) n) visit(cast(UnaryExpression) n);
+        else if (cast(XorExpression) n) visit(cast(XorExpression) n);
+    }
 
     /** */ void visit(const AddExpression addExpression) { addExpression.accept(this); }
     /** */ void visit(const AliasDeclaration aliasDeclaration) { aliasDeclaration.accept(this); }
@@ -291,6 +291,14 @@ public:
 
 immutable string DEFAULT_ACCEPT = q{override void accept(ASTVisitor visitor) const {}};
 
+mixin template OpEquals()
+{
+    override bool opEquals(Object other) const
+    {
+        mixin (generateOpEquals!(typeof(this)));
+    }
+}
+
 template visitIfNotNull(fields ...)
 {
     static if (fields.length > 1)
@@ -311,21 +319,38 @@ template visitIfNotNull(fields ...)
     }
 }
 
+template generateOpEquals(T)
+{
+    template opEqualsPart(p ...)
+    {
+        import std.traits;
+        static if (p.length == 0)
+            enum opEqualsPart = "";
+        else static if (!isSomeFunction!(__traits(getMember, T, p[0])) && p[0] != "line" && p[0] != "column")
+            enum opEqualsPart = "\n\t&& obj." ~ p[0] ~ " == this." ~ p[0] ~ opEqualsPart!(p[1 .. $]);
+        else
+            enum opEqualsPart = opEqualsPart!(p[1 .. $]);
+    }
+    enum generateOpEquals = T.stringof ~ " obj = cast(" ~ T.stringof ~ ") other;\n"
+        ~ "return obj !is null"
+        ~ opEqualsPart!(__traits(derivedMembers, T)) ~ ";";
+}
+
 abstract class ExpressionNode : ASTNode
 {
 public:
-	override void accept(ASTVisitor visitor) const
-	{
-		assert (false);
-	}
+    override void accept(ASTVisitor visitor) const
+    {
+        assert (false);
+    }
 }
 
 mixin template BinaryExpressionBody()
 {
     ExpressionNode left;
     ExpressionNode right;
-	size_t line;
-	size_t column;
+    size_t line;
+    size_t column;
 }
 
 ///
@@ -336,6 +361,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
+    mixin OpEquals;
     /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
@@ -348,6 +374,7 @@ public:
     {
         mixin (visitIfNotNull!(linkageAttribute, type, name, initializers));
     }
+    mixin OpEquals;
     /** */ LinkageAttribute linkageAttribute;
     /** */ Type type;
     /** */ Token name;
@@ -363,7 +390,7 @@ public:
     {
         mixin (visitIfNotNull!(name, type));
     }
-
+    mixin OpEquals;
     /** */ Token name;
     /** */ Type type;
 }
@@ -376,6 +403,7 @@ public:
     {
         mixin (visitIfNotNull!(identifier));
     }
+    mixin OpEquals;
     /** */ Token identifier;
 }
 
@@ -387,6 +415,7 @@ public:
     {
         mixin (visitIfNotNull!(intLiteral));
     }
+    mixin OpEquals;
     /** */ Token intLiteral;
 }
 
@@ -398,6 +427,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
+    mixin OpEquals;
     mixin BinaryExpressionBody;
 }
 
@@ -409,6 +439,7 @@ public:
     {
         mixin (visitIfNotNull!(left, right));
     }
+    mixin OpEquals;
     mixin BinaryExpressionBody;
 }
 
@@ -420,6 +451,7 @@ public:
     {
         mixin (visitIfNotNull!(items));
     }
+    mixin OpEquals;
     /** */ AssignExpression[] items;
 }
 
@@ -431,6 +463,7 @@ public:
     {
         mixin (visitIfNotNull!(argumentList));
     }
+    mixin OpEquals;
     /** */ ArgumentList argumentList;
 }
 
@@ -442,6 +475,7 @@ public:
     {
         mixin (visitIfNotNull!(arrayMemberInitializations));
     }
+    mixin OpEquals;
     /** */ ArrayMemberInitialization[] arrayMemberInitializations;
 }
 
@@ -453,6 +487,7 @@ public:
     {
         mixin (visitIfNotNull!(argumentList));
     }
+    mixin OpEquals;
     /** */ ArgumentList argumentList;
 }
 
@@ -464,6 +499,7 @@ public:
     {
         mixin (visitIfNotNull!(assignExpression, nonVoidInitializer));
     }
+    mixin OpEquals;
     /** */ AssignExpression assignExpression;
     /** */ NonVoidInitializer nonVoidInitializer;
 }
@@ -473,6 +509,7 @@ final class AsmAddExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
+    mixin OpEquals;
     /** */ IdType operator;
     mixin BinaryExpressionBody;
 }
@@ -482,6 +519,7 @@ final class AsmAndExp : ExpressionNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
+    mixin OpEquals;
     mixin BinaryExpressionBody;
 }
 
@@ -490,6 +528,7 @@ final class AsmBrExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
+    mixin OpEquals;
     /** */ AsmBrExp asmBrExp;
     /** */ AsmEqualExp asmEqualExp;
     /** */ AsmUnaExp asmUnaExp;
@@ -501,6 +540,7 @@ final class AsmEqualExp : ExpressionNode
 public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
+    mixin OpEquals;
     /** */ Token operator;
 }
 
@@ -509,6 +549,7 @@ final class AsmExp : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
+    mixin OpEquals;
     /** */ AsmLogOrExp left;
     /** */ AsmExp middle;
     /** */ AsmExp right;
@@ -519,6 +560,7 @@ final class AsmInstruction : ASTNode
 {
 public:
     mixin (DEFAULT_ACCEPT);
+    mixin OpEquals;
     /** */ Token identifierOrIntegerOrOpcode;
     /** */ bool hasAlign;
     /** */ AsmExp asmExp;
@@ -531,6 +573,7 @@ final class AsmLogAndExp : ExpressionNode
 public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -539,6 +582,7 @@ final class AsmLogOrExp : ExpressionNode
 public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -548,6 +592,7 @@ public:
     mixin (DEFAULT_ACCEPT);
     /** */ IdType operator;
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 
 }
 
@@ -557,6 +602,7 @@ final class AsmOrExp : ExpressionNode
 public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -567,6 +613,7 @@ public:
     /** */ IdentifierChain identifierChain;
     /** */ Register register;
     /** */ Token token;
+    mixin OpEquals;
 }
 
 ///
@@ -576,6 +623,7 @@ public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
     /** */ Token operator;
+    mixin OpEquals;
 }
 
 ///
@@ -585,6 +633,7 @@ public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
     /** */ Token operator;
+    mixin OpEquals;
 }
 
 ///
@@ -593,6 +642,7 @@ final class AsmStatement : ASTNode
 public:
     mixin (DEFAULT_ACCEPT);
     /** */ AsmInstruction[] asmInstructions;
+    mixin OpEquals;
 }
 
 ///
@@ -602,6 +652,7 @@ public:
     mixin (DEFAULT_ACCEPT);
     /** */ Token left;
     /** */ Token right;
+    mixin OpEquals;
 }
 
 ///
@@ -614,6 +665,7 @@ public:
     /** */ Token prefix;
     /** */ AsmPrimaryExp asmPrimaryExp;
     /** */ AsmUnaExp asmUnaExp;
+    mixin OpEquals;
 }
 
 ///
@@ -622,6 +674,7 @@ final class AsmXorExp : ASTNode
 public:
     mixin (DEFAULT_ACCEPT);
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -634,6 +687,7 @@ public:
     }
     /** */ AssignExpression assertion;
     /** */ AssignExpression message;
+    mixin OpEquals;
 }
 
 ///
@@ -647,6 +701,9 @@ public:
     /** */ ExpressionNode ternaryExpression;
     /** */ ExpressionNode assignExpression;
     /** */ IdType operator;
+    size_t line;
+    size_t column;
+    mixin OpEquals;
 }
 
 ///
@@ -658,6 +715,7 @@ public:
         mixin (visitIfNotNull!(keyValuePairs));
     }
     /** */ KeyValuePairs keyValuePairs;
+    mixin OpEquals;
 }
 
 ///
@@ -671,6 +729,7 @@ public:
     /** */ FunctionCallExpression functionCallExpression;
     /** */ ArgumentList argumentList;
     /** */ Token identifier;
+    mixin OpEquals;
 }
 
 ///
@@ -687,6 +746,7 @@ public:
     /** */ PragmaExpression pragmaExpression;
     /** */ StorageClass storageClass;
     /** */ IdType attribute;
+    mixin OpEquals;
 }
 
 ///
@@ -697,6 +757,7 @@ final class AttributeDeclaration : ASTNode
         mixin (visitIfNotNull!(attribute));
     }
     /** */ Attribute attribute;
+    mixin OpEquals;
 }
 
 ///
@@ -712,6 +773,7 @@ public:
     }
     /** */ Token[] identifiers;
     /** */ Initializer[] initializers;
+    mixin OpEquals;
 }
 
 ///
@@ -734,6 +796,7 @@ public:
     size_t endLocation;
 
     /** */ DeclarationsAndStatements declarationsAndStatements;
+    mixin OpEquals;
 }
 
 ///
@@ -745,6 +808,7 @@ public:
         mixin (visitIfNotNull!(blockStatement));
     }
     /** */ BlockStatement blockStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -756,6 +820,7 @@ public:
         mixin (visitIfNotNull!(label));
     }
     /** */ Token label;
+    mixin OpEquals;
 }
 
 ///
@@ -768,6 +833,7 @@ public:
     }
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
     /** */ TypeofExpression typeofExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -779,6 +845,7 @@ public:
         mixin (visitIfNotNull!(items));
     }
     /** */ BaseClass[] items;
+    mixin OpEquals;
 }
 
 ///
@@ -792,6 +859,7 @@ public:
     /** */ AssignExpression low;
     /** */ AssignExpression high;
     /** */ DeclarationsAndStatements declarationsAndStatements;
+    mixin OpEquals;
 }
 
 ///
@@ -804,6 +872,7 @@ public:
     }
     /** */ ArgumentList argumentList;
     /** */ DeclarationsAndStatements declarationsAndStatements;
+    mixin OpEquals;
 }
 
 ///
@@ -817,6 +886,7 @@ public:
     /** */ Type type;
     /** */ CastQualifier castQualifier;
     /** */ UnaryExpression unaryExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -829,6 +899,7 @@ public:
     }
     /** */ Token first;
     /** */ Token second;
+    mixin OpEquals;
 }
 
 ///
@@ -841,6 +912,7 @@ public:
     }
     /** */ Catch[] catches;
     /** */ LastCatch lastCatch;
+    mixin OpEquals;
 }
 
 ///
@@ -854,6 +926,7 @@ public:
     /** */ Type type;
     /** */ Token identifier;
     /** */ DeclarationOrStatement declarationOrStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -872,6 +945,7 @@ public:
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -888,6 +962,7 @@ public:
     /** */ ExpressionNode identityExpression;
     /** */ ExpressionNode relExpression;
     /** */ ExpressionNode inExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -901,6 +976,7 @@ public:
     /** */ VersionCondition versionCondition;
     /** */ DebugCondition debugCondition;
     /** */ StaticIfCondition staticIfCondition;
+    mixin OpEquals;
 }
 
 ///
@@ -914,6 +990,7 @@ public:
     /** */ CompileCondition compileCondition;
     /** */ Declaration[] trueDeclarations;
     /** */ Declaration falseDeclaration;
+    mixin OpEquals;
 }
 
 ///
@@ -927,6 +1004,7 @@ public:
     /** */ CompileCondition compileCondition;
     /** */ DeclarationOrStatement trueStatement;
     /** */ DeclarationOrStatement falseStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -938,6 +1016,7 @@ public:
         mixin (visitIfNotNull!(expression));
     }
     /** */ Expression expression;
+    mixin OpEquals;
 }
 
 ///
@@ -958,6 +1037,7 @@ public:
     /** */ size_t line;
     /** */ size_t column;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -969,6 +1049,7 @@ public:
         mixin (visitIfNotNull!(label));
     }
     /** */ Token label;
+    mixin OpEquals;
 }
 
 ///
@@ -980,6 +1061,7 @@ public:
         mixin (visitIfNotNull!(identifierOrInteger));
     }
     /** */ Token identifierOrInteger;
+    mixin OpEquals;
 }
 
 ///
@@ -991,6 +1073,7 @@ public:
         mixin (visitIfNotNull!(identifierOrInteger));
     }
     /** */ Token identifierOrInteger;
+    mixin OpEquals;
 }
 
 ///
@@ -1010,7 +1093,7 @@ public:
             destructor, staticConstructor, staticDestructor,
             sharedStaticDestructor, sharedStaticConstructor,
             conditionalDeclaration, pragmaDeclaration, versionSpecification,
-			invariant_, postblit, declarations));
+            invariant_, postblit, declarations));
     }
 
     /** */ Attribute[] attributes;
@@ -1042,6 +1125,7 @@ public:
     /** */ Invariant invariant_;
     /** */ Postblit postblit;
     /** */ Declaration[] declarations;
+    mixin OpEquals;
 }
 
 ///
@@ -1053,6 +1137,7 @@ final class DeclarationsAndStatements : ASTNode
     }
 
     /** */ DeclarationOrStatement[] declarationsAndStatements;
+    mixin OpEquals;
 }
 
 ///
@@ -1066,6 +1151,7 @@ public:
 
     /** */ Declaration declaration;
     /** */ Statement statement;
+    mixin OpEquals;
 }
 
 ///
@@ -1078,6 +1164,7 @@ public:
     }
     /** */ Token name;
     /** */ Initializer initializer;
+    mixin OpEquals;
 }
 
 ///
@@ -1089,6 +1176,7 @@ public:
         mixin (visitIfNotNull!(declarationsAndStatements));
     }
     /** */ DeclarationsAndStatements declarationsAndStatements;
+    mixin OpEquals;
 }
 
 ///
@@ -1100,8 +1188,9 @@ public:
         mixin (visitIfNotNull!(unaryExpression));
     }
     /** */ UnaryExpression unaryExpression;
-	/** */ size_t line;
-	/** */ size_t column;
+    /** */ size_t line;
+    /** */ size_t column;
+    mixin OpEquals;
 }
 
 ///
@@ -1113,6 +1202,7 @@ public:
         mixin (visitIfNotNull!(deleteExpression));
     }
     /** */ DeleteExpression deleteExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1124,6 +1214,7 @@ public:
         mixin (visitIfNotNull!(assignExpression));
     }
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1132,12 +1223,12 @@ final class Destructor : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(memberFunctionAttributes, functionBody));
+        mixin (visitIfNotNull!(functionBody));
     }
-	/** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ FunctionBody functionBody;
     /** */ size_t location;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -1150,6 +1241,7 @@ public:
     }
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
     /** */ Expression expression;
+    mixin OpEquals;
 }
 
 ///
@@ -1171,6 +1263,7 @@ public:
      * Byte position of the closing brace
      */
     size_t endLocation;
+    mixin OpEquals;
 }
 
 ///
@@ -1185,6 +1278,7 @@ public:
     /** */ Type type;
     /** */ EnumBody enumBody;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -1199,6 +1293,7 @@ public:
     /** */ Type type;
     /** */ AssignExpression assignExpression;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -1212,6 +1307,7 @@ public:
     /** */ Token name;
     /** */ TemplateParameters templateParameters;
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1224,6 +1320,7 @@ public:
     }
     /** */ IdType operator;
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1235,6 +1332,7 @@ public:
         mixin (visitIfNotNull!(items));
     }
     /** */ AssignExpression[] items;
+    mixin OpEquals;
 }
 
 ///
@@ -1246,6 +1344,7 @@ public:
         mixin (visitIfNotNull!(expression));
     }
     /** */ Expression expression;
+    mixin OpEquals;
 }
 
 ///
@@ -1257,6 +1356,7 @@ public:
         mixin (visitIfNotNull!(switchStatement));
     }
     /** */ SwitchStatement switchStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1268,6 +1368,7 @@ public:
         mixin (visitIfNotNull!(declarationOrStatement));
     }
     /** */ DeclarationOrStatement declarationOrStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1283,7 +1384,8 @@ public:
     /** */ ExpressionStatement test;
     /** */ Expression increment;
     /** */ DeclarationOrStatement declarationOrStatement;
-	/** */ size_t startIndex;
+    /** */ size_t startIndex;
+    mixin OpEquals;
 }
 
 ///
@@ -1297,11 +1399,12 @@ public:
     }
     /** */ IdType type;
     /** */ ForeachTypeList foreachTypeList;
-	/** */ ForeachType foreachType;
+    /** */ ForeachType foreachType;
     /** */ Expression low;
     /** */ Expression high;
     /** */ DeclarationOrStatement declarationOrStatement;
-	/** */ size_t startIndex;
+    /** */ size_t startIndex;
+    mixin OpEquals;
 }
 
 ///
@@ -1315,6 +1418,7 @@ public:
     /** */ IdType[] typeConstructors;
     /** */ Type type;
     /** */ Token identifier;
+    mixin OpEquals;
 }
 
 ///
@@ -1326,6 +1430,7 @@ public:
         mixin (visitIfNotNull!(items));
     }
     /** */ ForeachType[] items;
+    mixin OpEquals;
 }
 
 ///
@@ -1338,6 +1443,7 @@ public:
     }
     /** */ Token token;
     /** */ AtAttribute atAttribute;
+    mixin OpEquals;
 }
 
 ///
@@ -1354,6 +1460,7 @@ public:
     /** */ BodyStatement bodyStatement;
     /** */ OutStatement outStatement;
     /** */ InStatement inStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1364,10 +1471,11 @@ public:
     {
         mixin (visitIfNotNull!(type, unaryExpression, templateArguments, arguments));
     }
-	/** */ Type type;
+    /** */ Type type;
     /** */ UnaryExpression unaryExpression;
     /** */ TemplateArguments templateArguments;
     /** */ Arguments arguments;
+    mixin OpEquals;
 }
 
 ///
@@ -1379,6 +1487,7 @@ public:
         mixin (visitIfNotNull!(functionCallExpression));
     }
     /** */ FunctionCallExpression functionCallExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1400,6 +1509,7 @@ public:
     /** */ FunctionBody functionBody;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -1416,6 +1526,7 @@ public:
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;
     /** */ FunctionBody functionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1428,6 +1539,7 @@ public:
     }
     /** */ Expression expression;
     /** */ Token label;
+    mixin OpEquals;
 }
 
 ///
@@ -1439,6 +1551,7 @@ public:
         mixin (visitIfNotNull!(identifiers));
     }
     /** */ Token[] identifiers;
+    mixin OpEquals;
 }
 
 ///
@@ -1450,6 +1563,7 @@ public:
         mixin (visitIfNotNull!(identifiers));
     }
     /** */ Token[] identifiers;
+    mixin OpEquals;
 }
 
 ///
@@ -1462,6 +1576,7 @@ public:
     }
 
     /** */ IdentifierOrTemplateInstance[] identifiersOrTemplateInstances;
+    mixin OpEquals;
 }
 
 ///
@@ -1475,6 +1590,7 @@ public:
 
     /** */ Token identifier;
     /** */ TemplateInstance templateInstance;
+    mixin OpEquals;
 }
 
 ///
@@ -1487,6 +1603,7 @@ public:
     }
     /** */ bool negated;
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1503,7 +1620,10 @@ public:
     /** */ Expression expression;
     /** */ DeclarationOrStatement thenStatement;
     /** */ DeclarationOrStatement elseStatement;
-	/** */ size_t startIndex;
+    /** */ size_t startIndex;
+    /** */ size_t line;
+    /** */ size_t column;
+    mixin OpEquals;
 }
 
 ///
@@ -1516,6 +1636,7 @@ public:
     }
     /** */ Token left;
     /** */ Token right;
+    mixin OpEquals;
 }
 
 ///
@@ -1528,6 +1649,7 @@ public:
     }
     /** */ SingleImport singleImport;
     /** */ ImportBind[] importBinds;
+    mixin OpEquals;
 }
 
 ///
@@ -1540,6 +1662,7 @@ public:
     }
     /** */ SingleImport[] singleImports;
     /** */ ImportBindings importBindings;
+    mixin OpEquals;
 }
 
 ///
@@ -1551,6 +1674,7 @@ public:
         mixin (visitIfNotNull!(assignExpression));
     }
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1563,6 +1687,7 @@ public:
     }
     /** */ UnaryExpression unaryExpression;
     /** */ ArgumentList argumentList;
+    mixin OpEquals;
 }
 
 ///
@@ -1575,6 +1700,7 @@ public:
     }
     mixin BinaryExpressionBody;
     bool negated;
+    mixin OpEquals;
 }
 
 ///
@@ -1586,6 +1712,7 @@ public:
         mixin (visitIfNotNull!(blockStatement));
     }
     /** */ BlockStatement blockStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1597,6 +1724,7 @@ public:
         mixin (visitIfNotNull!(statementNoCaseNoDefault));
     }
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    mixin OpEquals;
 }
 
 ///
@@ -1608,6 +1736,7 @@ public:
         mixin (visitIfNotNull!(nonVoidInitializer));
     }
     /** */ NonVoidInitializer nonVoidInitializer;
+    mixin OpEquals;
 }
 
 ///
@@ -1625,6 +1754,7 @@ public:
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -1637,6 +1767,7 @@ public:
     }
     /** */ BlockStatement blockStatement;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -1653,6 +1784,7 @@ public:
     /** */ TypeSpecialization typeSpecialization;
     /** */ TemplateParameterList templateParameterList;
     /** */ IdType equalsOrColon;
+    mixin OpEquals;
 }
 
 ///
@@ -1665,6 +1797,7 @@ public:
     }
     /** */ AssignExpression key;
     /** */ AssignExpression value;
+    mixin OpEquals;
 }
 
 ///
@@ -1676,6 +1809,7 @@ public:
         mixin (visitIfNotNull!(keyValuePairs));
     }
     /** */ KeyValuePair[] keyValuePairs;
+    mixin OpEquals;
 }
 
 ///
@@ -1688,6 +1822,7 @@ public:
     }
     Token identifier;
     /** */ DeclarationOrStatement declarationOrStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1704,6 +1839,7 @@ public:
     /** */ Parameters parameters;
     /** */ FunctionAttribute[] functionAttributes;
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1715,6 +1851,7 @@ public:
         mixin (visitIfNotNull!(statementNoCaseNoDefault));
     }
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    mixin OpEquals;
 }
 
 ///
@@ -1727,6 +1864,7 @@ public:
     }
     /** */ Token identifier;
     /** */ bool hasPlusPlus;
+    mixin OpEquals;
 }
 
 ///
@@ -1739,6 +1877,7 @@ public:
     }
     /** */ IdType tokenType;
     /** */ AtAttribute atAttribute;
+    mixin OpEquals;
 }
 
 ///
@@ -1751,6 +1890,7 @@ public:
     }
     /** */ MixinExpression mixinExpression;
     /** */ TemplateMixinExpression templateMixinExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1762,6 +1902,7 @@ public:
         mixin (visitIfNotNull!(assignExpression));
     }
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1773,6 +1914,7 @@ public:
         mixin (visitIfNotNull!(templateDeclaration));
     }
     /** */ TemplateDeclaration templateDeclaration;
+    mixin OpEquals;
 }
 
 ///
@@ -1786,6 +1928,7 @@ public:
     /** */ Symbol symbol;
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
     /** */ TypeofExpression typeofExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -1798,6 +1941,7 @@ public:
     }
     /** */ ModuleDeclaration moduleDeclaration;
     /** */ Declaration[] declarations;
+    mixin OpEquals;
 }
 
 ///
@@ -1809,6 +1953,7 @@ public:
         mixin (visitIfNotNull!(moduleName));
     }
     /** */ IdentifierChain moduleName;
+    mixin OpEquals;
 }
 
 
@@ -1822,6 +1967,7 @@ public:
     }
     /** */ IdType operator;
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1837,6 +1983,7 @@ public:
     /** */ Arguments constructorArguments;
     /** */ BaseClassList baseClassList;
     /** */ StructBody structBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1852,6 +1999,7 @@ public:
     /** */ NewAnonClassExpression newAnonClassExpression;
     /** */ Arguments arguments;
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 
@@ -1895,6 +2043,7 @@ public:
     /** */ DebugSpecification debugSpecification;
     /** */ FunctionCallStatement functionCallStatement;
     /** */ ExpressionStatement expressionStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1903,14 +2052,13 @@ final class NonVoidInitializer : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(assignExpression, arrayInitializer,
-            structInitializer, functionBody));
+        mixin (visitIfNotNull!(assignExpression, arrayInitializer, structInitializer));
     }
     /** */ AssignExpression assignExpression;
     /** */ ArrayInitializer arrayInitializer;
     /** */ StructInitializer structInitializer;
-    /** */ FunctionBody functionBody;
 
+    mixin OpEquals;
 }
 
 ///
@@ -1919,6 +2067,7 @@ final class Operand : ASTNode
 public:
     mixin (DEFAULT_ACCEPT);
     /** */ AsmExp asmExp;
+    mixin OpEquals;
 }
 
 ///
@@ -1927,6 +2076,7 @@ final class Operands : ASTNode
 public:
     mixin (DEFAULT_ACCEPT);
     /** */ Operand[] operands;
+    mixin OpEquals;
 }
 
 ///
@@ -1938,6 +2088,7 @@ public:
         mixin (visitIfNotNull!(left, right));
     }
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1949,6 +2100,7 @@ public:
         mixin (visitIfNotNull!(left, right));
     }
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -1961,6 +2113,7 @@ public:
     }
     /** */ Token parameter;
     /** */ BlockStatement blockStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -1977,6 +2130,7 @@ public:
     /** */ Token name;
     /** */ bool vararg;
     /** */ AssignExpression default_;
+    mixin OpEquals;
 }
 
 ///
@@ -1990,6 +2144,7 @@ public:
 
     /** */ Parameter[] parameters;
     /** */ bool hasVarargs;
+    mixin OpEquals;
 }
 
 ///
@@ -2002,6 +2157,7 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
+    mixin OpEquals;
 }
 
 ///
@@ -2014,6 +2170,7 @@ public:
     }
     /** */ IdType operator;
     /** */ UnaryExpression unaryExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2025,6 +2182,7 @@ public:
         mixin (visitIfNotNull!(left, right));
     }
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -2036,6 +2194,7 @@ public:
         mixin (visitIfNotNull!(pragmaExpression));
     }
     /** */ PragmaExpression pragmaExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2048,6 +2207,7 @@ public:
     }
     /** */ Token identifier;
     /** */ ArgumentList argumentList;
+    mixin OpEquals;
 }
 
 ///
@@ -2060,6 +2220,7 @@ public:
     }
     /** */ IdType operator;
     /** */ UnaryExpression unaryExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2090,6 +2251,7 @@ public:
     /** */ MixinExpression mixinExpression;
     /** */ ImportExpression importExpression;
     /** */ Vector vector;
+    mixin OpEquals;
 }
 
 ///
@@ -2100,6 +2262,7 @@ public:
     /** */ Token identifier;
     /** */ Token intLiteral;
     /** */ bool hasIntegerLiteral;
+    mixin OpEquals;
 }
 
 ///
@@ -2112,6 +2275,7 @@ public:
     }
     /** */ IdType operator;
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -2123,6 +2287,7 @@ public:
         mixin (visitIfNotNull!(expression));
     }
     /** */ Expression expression;
+    mixin OpEquals;
 }
 
 ///
@@ -2135,6 +2300,7 @@ public:
     }
     /** */ Token identifier;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    mixin OpEquals;
 }
 
 ///
@@ -2148,6 +2314,7 @@ public:
     /** */ FunctionBody functionBody;
     /** */ size_t location;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2161,6 +2328,7 @@ public:
     /** */ FunctionBody functionBody;
     /** */ size_t location;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2173,6 +2341,7 @@ public:
     }
     /** */ IdType operator;
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }
 
 ///
@@ -2185,6 +2354,7 @@ public:
     }
     /** */ Token rename;
     /** */ IdentifierChain identifierChain;
+    mixin OpEquals;
 }
 
 ///
@@ -2198,6 +2368,7 @@ public:
     /** */ UnaryExpression unaryExpression;
     /** */ AssignExpression lower;
     /** */ AssignExpression upper;
+    mixin OpEquals;
 }
 
 ///
@@ -2213,6 +2384,7 @@ public:
     /** */ CaseStatement caseStatement;
     /** */ CaseRangeStatement caseRangeStatement;
     /** */ DefaultStatement defaultStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -2224,6 +2396,7 @@ public:
         mixin (visitIfNotNull!(staticAssertStatement));
     }
     /** */ StaticAssertStatement staticAssertStatement;
+    mixin OpEquals;
 }
 
 ///
@@ -2235,6 +2408,7 @@ public:
         mixin (visitIfNotNull!(assertExpression));
     }
     /** */ AssertExpression assertExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2247,7 +2421,8 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
-	/** */ string comment;
+    /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2260,7 +2435,8 @@ public:
     }
     /** */ FunctionBody functionBody;
     /** */ size_t location;
-	/** */ string comment;
+    /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2272,6 +2448,7 @@ public:
         mixin (visitIfNotNull!(assignExpression));
     }
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2285,6 +2462,7 @@ public:
     /** */ AtAttribute atAttribute;
     /** */ Deprecated deprecated_;
     /** */ Token token;
+    mixin OpEquals;
 }
 
 ///
@@ -2306,6 +2484,7 @@ public:
      */
     size_t endLocation;
     /** */ Declaration[] declarations;
+    mixin OpEquals;
 }
 
 ///
@@ -2321,6 +2500,7 @@ public:
     /** */ Constraint constraint;
     /** */ StructBody structBody;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2333,6 +2513,7 @@ public:
     }
     /** */ StructMemberInitializers structMemberInitializers;
 
+    mixin OpEquals;
 }
 
 ///
@@ -2345,6 +2526,7 @@ public:
     }
     /** */ Token identifier;
     /** */ NonVoidInitializer nonVoidInitializer;
+    mixin OpEquals;
 }
 
 ///
@@ -2356,6 +2538,7 @@ public:
         mixin (visitIfNotNull!(structMemberInitializers));
     }
     /** */ StructMemberInitializer[] structMemberInitializers;
+    mixin OpEquals;
 }
 
 ///
@@ -2368,6 +2551,7 @@ public:
     }
     /** */ Expression expression;
     /** */ Statement statement;
+    mixin OpEquals;
 }
 
 ///
@@ -2381,6 +2565,7 @@ public:
 
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
     /** */ bool dot;
+    mixin OpEquals;
 }
 
 ///
@@ -2393,6 +2578,7 @@ public:
     }
     /** */ Expression expression;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    mixin OpEquals;
 }
 
 ///
@@ -2410,6 +2596,7 @@ public:
     /** */ AssignExpression colonExpression;
     /** */ Type assignType;
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2422,6 +2609,7 @@ public:
     }
     /** */ Type type;
     /** */ AssignExpression assignExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2433,6 +2621,7 @@ public:
         mixin (visitIfNotNull!(items));
     }
     /** */ TemplateArgument[] items;
+    mixin OpEquals;
 }
 
 ///
@@ -2445,6 +2634,7 @@ public:
     }
     /** */ TemplateArgumentList templateArgumentList;
     /** */ TemplateSingleArgument templateSingleArgument;
+    mixin OpEquals;
 }
 
 ///
@@ -2462,6 +2652,7 @@ public:
     /** */ Declaration[] declarations;
     /** */ EponymousTemplateDeclaration eponymousTemplateDeclaration;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2474,6 +2665,7 @@ public:
     }
     /** */ Token identifier;
     /** */ TemplateArguments templateArguments;
+    mixin OpEquals;
 }
 
 ///
@@ -2487,6 +2679,7 @@ public:
     /** */ Token identifier;
     /** */ TemplateArguments templateArguments;
     /** */ MixinTemplateName mixinTemplateName;
+    mixin OpEquals;
 }
 
 ///
@@ -2504,6 +2697,7 @@ public:
     /** */ TemplateAliasParameter templateAliasParameter;
     /** */ TemplateTupleParameter templateTupleParameter;
     /** */ TemplateThisParameter templateThisParameter;
+    mixin OpEquals;
 }
 
 ///
@@ -2515,6 +2709,7 @@ public:
         mixin (visitIfNotNull!(items));
     }
     /** */ TemplateParameter[] items;
+    mixin OpEquals;
 }
 
 ///
@@ -2526,6 +2721,7 @@ public:
         mixin (visitIfNotNull!(templateParameterList));
     }
     /** */ TemplateParameterList templateParameterList;
+    mixin OpEquals;
 }
 
 ///
@@ -2537,6 +2733,7 @@ public:
         mixin (visitIfNotNull!(token));
     }
     /** */ Token token;
+    mixin OpEquals;
 }
 
 ///
@@ -2548,6 +2745,7 @@ public:
         mixin (visitIfNotNull!(templateTypeParameter));
     }
     /** */ TemplateTypeParameter templateTypeParameter;
+    mixin OpEquals;
 }
 
 ///
@@ -2559,6 +2757,7 @@ public:
         mixin (visitIfNotNull!(identifier));
     }
     /** */ Token identifier;
+    mixin OpEquals;
 }
 
 ///
@@ -2572,6 +2771,7 @@ public:
     /** */ Token identifier;
     /** */ Type colonType;
     /** */ Type assignType;
+    mixin OpEquals;
 }
 
 ///
@@ -2587,6 +2787,7 @@ public:
     /** */ Token identifier;
     /** */ Expression expression;
     /** */ TemplateValueParameterDefault templateValueParameterDefault;
+    mixin OpEquals;
 }
 
 ///
@@ -2599,6 +2800,7 @@ public:
     }
     /** */ AssignExpression assignExpression;
     /** */ Token token;
+    mixin OpEquals;
 }
 
 ///
@@ -2612,6 +2814,7 @@ public:
     /** */ ExpressionNode orOrExpression;
     /** */ ExpressionNode expression;
     /** */ ExpressionNode ternaryExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2623,6 +2826,7 @@ public:
         mixin (visitIfNotNull!(expression));
     }
     /** */ Expression expression;
+    mixin OpEquals;
 }
 
 ///
@@ -2635,6 +2839,7 @@ public:
     }
     /** */ Token identifier;
     /** */ TemplateArgumentList templateArgumentList;
+    mixin OpEquals;
 }
 
 ///
@@ -2648,6 +2853,7 @@ public:
     /** */ DeclarationOrStatement declarationOrStatement;
     /** */ Catches catches;
     /** */ Finally finally_;
+    mixin OpEquals;
 }
 
 ///
@@ -2662,6 +2868,7 @@ public:
     /** */ IdType[] typeConstructors;
     /** */ TypeSuffix[] typeSuffixes;
     /** */ Type2 type2;
+    mixin OpEquals;
 }
 
 ///
@@ -2680,6 +2887,7 @@ public:
     /** */ IdentifierOrTemplateChain identifierOrTemplateChain;
     /** */ IdType typeConstructor;
     /** */ Type type;
+    mixin OpEquals;
 }
 
 ///
@@ -2692,6 +2900,7 @@ public:
     }
     /** */ Token token;
     /** */ Type type;
+    mixin OpEquals;
 }
 
 ///
@@ -2712,6 +2921,7 @@ public:
     /** */ AssignExpression high;
     /** */ Parameters parameters;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
+    mixin OpEquals;
 }
 
 ///
@@ -2724,6 +2934,7 @@ public:
     }
     /** */ Type type;
     /** */ Expression expression;
+    mixin OpEquals;
 }
 
 ///
@@ -2736,6 +2947,7 @@ public:
     }
     /** */ Expression expression;
     /** */ Token return_;
+    mixin OpEquals;
 }
 
 ///
@@ -2765,6 +2977,7 @@ public:
     /** */ AssertExpression assertExpression;
     /** */ SliceExpression sliceExpression;
     /** */ IndexExpression indexExpression;
+    mixin OpEquals;
 }
 
 ///
@@ -2781,6 +2994,7 @@ public:
     /** */ Constraint constraint;
     /** */ StructBody structBody;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2793,6 +3007,7 @@ public:
     }
     /** */ BlockStatement blockStatement;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2808,6 +3023,7 @@ public:
     /** */ StorageClass storageClass;
     /** */ AutoDeclaration autoDeclaration;
     /** */ string comment;
+    mixin OpEquals;
 }
 
 ///
@@ -2819,6 +3035,7 @@ public:
         mixin (visitIfNotNull!(type));
     }
     /** */ Type type;
+    mixin OpEquals;
 }
 
 ///
@@ -2830,6 +3047,7 @@ public:
         mixin (visitIfNotNull!(token));
     }
     /** */ Token token;
+    mixin OpEquals;
 }
 
 ///
@@ -2841,6 +3059,7 @@ public:
         mixin (visitIfNotNull!(token));
     }
     /** */ Token token;
+    mixin OpEquals;
 }
 
 ///
@@ -2854,7 +3073,8 @@ public:
 
     /** */ Expression expression;
     /** */ DeclarationOrStatement declarationOrStatement;
-	/** */ size_t startIndex;
+    /** */ size_t startIndex;
+    mixin OpEquals;
 }
 
 ///
@@ -2868,6 +3088,7 @@ public:
 
     /** */ Expression expression;
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    mixin OpEquals;
 }
 
 ///
@@ -2879,4 +3100,5 @@ public:
         mixin (visitIfNotNull!(left, right));
     }
     mixin BinaryExpressionBody;
+    mixin OpEquals;
 }

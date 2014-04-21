@@ -64,22 +64,35 @@ class BackwardsRangeCheck : BaseAnalyzer
 
 	override void visit(const PrimaryExpression primary)
 	{
-		import std.conv;
-		import std.string;
 		if (state == State.ignore || !isNumberLiteral(primary.primary.type))
 			return;
 		if (state == State.left)
 		{
 			line = primary.primary.line;
 			this.column = primary.primary.column;
-			left = to!long(primary.primary.text.removechars("_uUlL"));
+			left = parseNumber(primary.primary.text);
 			hasLeft = true;
 		}
 		else
 		{
-			right = to!long(primary.primary.text.removechars("_uUlL"));
+			right = parseNumber(primary.primary.text);
 			hasRight = true;
 		}
+	}
+
+	long parseNumber(string te)
+	{
+		import std.conv;
+		import std.string;
+		string t = te.removechars("_uUlL");
+		if (t.length > 2)
+		{
+			if (t[1] == 'x' || t[1] == 'X')
+				return to!long(t[2..$], 16);
+			if (t[1] == 'b' || t[1] == 'B')
+				return to!long(t[2..$], 2);
+		}
+		return to!long(t);
 	}
 
 	override void visit(const SliceExpression sliceExpression)
