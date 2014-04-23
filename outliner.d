@@ -3,8 +3,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-import stdx.d.lexer;
-import stdx.d.ast;
+import std.d.lexer;
+import std.d.ast;
 import std.stdio;
 import std.string;
 import std.array;

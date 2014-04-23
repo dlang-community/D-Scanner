@@ -246,7 +246,7 @@ uses an array of allocators, one per bucket, to satisfy requests.))
 )
  */
 
-module stdx.allocator;
+module std.allocator;
 
 // Example in the synopsis above
 unittest

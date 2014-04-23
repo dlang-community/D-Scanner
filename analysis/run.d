@@ -6,10 +6,9 @@ import std.conv;
 import std.algorithm;
 import std.range;
 import std.array;
-
-import stdx.d.lexer;
-import stdx.d.parser;
-import stdx.d.ast;
+import std.d.lexer;
+import std.d.parser;
+import std.d.ast;
 
 import analysis.base;
 import analysis.style;

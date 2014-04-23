@@ -5,8 +5,8 @@
 
 module analysis.style;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 import std.regex;
 import std.array;
 import std.conv;

@@ -14,9 +14,9 @@
  * Source: $(PHOBOSSRC std/d/_ast.d)
  */
 
-module stdx.d.ast;
+module std.d.ast;
 
-import stdx.d.lexer;
+import std.d.lexer;
 import std.traits;
 import std.algorithm;
 import std.array;

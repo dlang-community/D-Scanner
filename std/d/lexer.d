@@ -1,12 +1,12 @@
-module stdx.d.lexer;
+module std.d.lexer;
 
 import std.typecons;
 import std.typetuple;
 import std.array;
 import std.algorithm;
 import std.range;
-import stdx.lexer;
-public import stdx.lexer : StringCache;
+import std.lexer;
+public import std.lexer : StringCache;
 
 private enum operators = [
 	",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=",
@@ -91,7 +91,7 @@ private enum extraFields = q{
 		return 0;
 	}
 };
-public alias Token = stdx.lexer.TokenStructure!(IdType, extraFields);
+public alias Token = std.lexer.TokenStructure!(IdType, extraFields);
 
 /**
  * Configure string lexing behavior
@@ -742,13 +742,18 @@ public struct DLexer
 					// "double identifier".
 					if (range.canPeek(1))
 					{
-						switch (range.peekAt(1))
+						auto ch = range.peekAt(1);
+						if (ch <= 0x2f
+							|| (ch >= '0' && ch <= '9')
+							|| (ch >= ':' && ch <= '@')
+							|| (ch >= '[' && ch <= '^')
+							|| (ch >= '{' && ch <= '~')
+							|| ch == '`' || ch == '_')
 						{
-						case '0': .. case '9':
 							goto doubleLiteral;
-						default:
-							break decimalLoop;
 						}
+						else
+							break decimalLoop;
 					}
 					else
 					{

@@ -8,11 +8,11 @@
  * LITERAL = $(D_STRING $(I $0))
  */
 
-module stdx.d.parser;
+module std.d.parser;
 
-import stdx.d.lexer;
-import stdx.d.ast;
-import stdx.allocator;
+import std.d.lexer;
+import std.d.ast;
+import std.allocator;
 import std.conv;
 import std.algorithm;
 import std.array;

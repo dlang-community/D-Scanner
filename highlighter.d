@@ -8,7 +8,7 @@ module highlighter;
 
 import std.stdio;
 import std.array;
-import stdx.d.lexer;
+import std.d.lexer;
 
 // http://ethanschoonover.com/solarized
 void highlight(R)(ref R tokens, string fileName)

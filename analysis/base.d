@@ -2,7 +2,7 @@ module analysis.base;
 
 import std.container;
 import std.string;
-import stdx.d.ast;
+import std.d.ast;
 import std.array;
 
 struct Message

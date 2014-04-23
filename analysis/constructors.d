@@ -1,7 +1,7 @@
 module analysis.constructors;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 import analysis.base;
 
 class ConstructorCheck : BaseAnalyzer

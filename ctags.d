@@ -5,9 +5,9 @@
 
 module ctags;
 
-import stdx.d.parser;
-import stdx.d.lexer;
-import stdx.d.ast;
+import std.d.parser;
+import std.d.lexer;
+import std.d.ast;
 import std.algorithm;
 import std.range;
 import std.stdio;

@@ -1,7 +1,7 @@
 module formatter;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 
 /**
  * The only brace styles worth using.

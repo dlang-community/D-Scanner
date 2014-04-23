@@ -7,8 +7,8 @@ dmd\
 	astprinter.d\
 	formatter.d\
 	outliner.d\
-	stdx/*.d\
-	stdx/d/*.d\
+	std/*.d\
+	std/d/*.d\
 	analysis/*.d\
 	-ofdscanner\
 	-m64 -g\

@@ -112,7 +112,7 @@
  * Source: $(PHOBOSSRC std/_lexer.d)
  */
 
-module stdx.lexer;
+module std.lexer;
 
 /**
  * Template for determining the type used for a token type. Selects the smallest

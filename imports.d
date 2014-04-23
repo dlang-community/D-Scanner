@@ -5,7 +5,7 @@
 
 module imports;
 
-import stdx.d.ast;
+import std.d.ast;
 import std.stdio;
 import std.container;
 
