@@ -6337,8 +6337,9 @@ protected:
         case tok!"abstract":
         case tok!"pure":
         case tok!"nothrow":
+			return true;
         mixin(BASIC_TYPE_CASES);
-            return true;
+            return !peekIs(tok!".");
         case tok!"case":
         case tok!"default":
         case tok!"return":
