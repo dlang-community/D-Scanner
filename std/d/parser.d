@@ -6255,7 +6255,11 @@ protected:
 
     bool isAssociativeArrayLiteral()
     {
-        return hasMagicDelimiter!(tok!"[", tok!":")();
+        auto b = setBookmark();
+        scope(exit) goToBookmark(b);
+        advance();
+        Expression e = parseExpression();
+        return e !is null && currentIs(tok!":");
     }
 
     bool hasMagicDelimiter(alias L, alias T)()
