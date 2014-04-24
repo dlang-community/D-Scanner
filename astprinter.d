@@ -592,9 +592,8 @@ class XMLPrinter : ASTVisitor
 		{
 			output.writeln("<gotoStatement>");
 			output.writeln("<case>");
-            if (gotoStatement.expression) {
-                visit(gotoStatement.expression);
-            }
+			if (gotoStatement.expression)
+				visit(gotoStatement.expression);
 			output.writeln("</case>");
 			output.writeln("</gotoStatement>");
 		}
