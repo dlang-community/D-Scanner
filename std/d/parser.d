@@ -4425,10 +4425,14 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!ReturnStatement;
-        if (expect(tok!"return") is null) return null;
+        auto start = expect(tok!"return");
+        if (start is null) return null;
+        node.startLocation = start.index;
         if (!currentIs(tok!";"))
             node.expression = parseExpression();
-        if (expect(tok!";") is null) return null;
+        auto semicolon = expect(tok!";");
+        if (semicolon is null) return null;
+        node.endLocation = semicolon.index;
         return node;
     }
 
