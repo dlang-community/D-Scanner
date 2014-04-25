@@ -325,7 +325,7 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an ArrayLiteral
      *
      * $(GRAMMAR $(RULEDEF arrayLiteral):
-     *     $(LITERAL '[') ($(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression))*)? $(LITERAL ']')
+     *     $(LITERAL '[') $(RULE argumentList)? $(LITERAL ']')
      *     ;)
      */
     ArrayLiteral parseArrayLiteral()
@@ -6258,8 +6258,7 @@ protected:
         auto b = setBookmark();
         scope(exit) goToBookmark(b);
         advance();
-        Expression e = parseExpression();
-        return e !is null && currentIs(tok!":");
+        return !currentIs(tok!"]") && parseExpression() !is null && currentIs(tok!":");
     }
 
     bool hasMagicDelimiter(alias L, alias T)()
