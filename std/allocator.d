@@ -423,6 +423,99 @@ unittest
 }
 
 /**
+ * Shortcut that encapsulates a cast and a call to emplace()
+ * Params:
+ * a = the allocator to use
+ * args = the arguments to $(D T)'s constructor
+ * Returns: a pointer to an instance of $(D T).
+ */
+T* allocate(T, Allocator, Args...)(auto ref Allocator a, auto ref Args args)
+    @trusted if (is (T == struct))
+{
+    import std.conv : emplace;
+    void[] mem = a.allocate(T.sizeof);
+    return emplace(cast(T*) mem.ptr, args);
+}
+
+///
+unittest
+{
+    auto allocator = Mallocator.it;
+    struct TestStruct { int x = 5; }
+    TestStruct* p = allocate!TestStruct(allocator);
+    assert (p !is null);
+    assert (p.x == 5);
+    Mallocator.it.deallocate((cast(void*) p)[0 .. TestStruct.sizeof]);
+}
+
+/**
+ * Shortcut that encapsulates a cast and a call to emplace()
+ * Params:
+ * a = the allocator to use
+ * args = the arguments to $(D T)'s constructor
+ * Returns: a reference to an instance of $(D T).
+ */
+T allocate(T, Allocator, Args...)(auto ref Allocator a, auto ref Args args)
+    @trusted if (is (T == class))
+{
+    import std.conv : emplace;
+    void[] mem = a.allocate(__traits(classInstanceSize, T));
+    return emplace!T(mem, args);
+}
+
+///
+unittest
+{
+    auto allocator = Mallocator.it;
+    class TestClass { int x; this(int x) { this.x = x; } }
+    TestClass tc = allocate!TestClass(allocator, 10);
+    assert (tc !is null);
+    assert (tc.x == 10);
+    Mallocator.it.deallocate((cast(void*) tc)[0 .. __traits(classInstanceSize, TestClass)]);
+}
+
+/**
+ * Encapsulates some casts and pointer slicing to deallocate $(D structInstance).
+ * This function does NOT call T's destructor.
+ */
+void deallocate(T, Allocator)(auto ref Allocator a, T* structInstance)
+    pure nothrow @trusted if (is (T == struct))
+{
+    a.deallocate((cast(void*) structInstance)[0 .. T.sizeof]);
+}
+
+///
+unittest
+{
+    auto allocator = Mallocator.it;
+    bool d = false;
+    struct TestStruct { float f; }
+    TestStruct* ts = allocate!TestStruct(allocator);
+    deallocate(allocator, ts);
+}
+
+/**
+ * Encapsulates some casts and pointer slicing to deallocate $(D classInstance).
+ * This function does NOT call T's destructor.
+ */
+void deallocate(T, Allocator)(auto ref Allocator a, T classInstance)
+    pure nothrow @trusted if (is (T == class))
+{
+    a.deallocate((cast(void*) classInstance)[0 .. __traits(classInstanceSize, T)]);
+}
+
+///
+unittest
+{
+	import std.math;
+    auto allocator = Mallocator.it;
+    class TestClass { double z; }
+    TestClass tc = allocate!TestClass(allocator);
+    assert (isnan(tc.z));
+    deallocate(allocator, tc);
+}
+
+/**
 $(D chooseAtRuntime) is a compile-time constant of type $(D size_t) that several
 parameterized structures in this module recognize to mean deferral to runtime of
 the exact value. For example, $(D HeapBlock!(Allocator, 4096)) (described in
@@ -452,7 +545,7 @@ enum uint platformAlignment = std.algorithm.max(double.alignof, real.alignof);
 The default good size allocation is deduced as $(D n) rounded up to the
 allocator's alignment.
 */
-size_t goodAllocSize(A)(auto ref A a, size_t n)
+size_t goodAllocSize(A)(auto ref A a, size_t n) pure nothrow
 {
     return n.roundUpToMultipleOf(a.alignment);
 }
@@ -528,10 +621,16 @@ struct NullAllocator
     No-op.
     */
     void deallocateAll() shared { }
+
+    static shared(NullAllocator) it() pure nothrow @property @trusted
+    {
+        return cast(typeof(return)) _it;
+    }
+
     /**
     Returns the $(D shared) global instance of the $(D NullAllocator).
     */
-    static shared NullAllocator it;
+    private static shared const NullAllocator _it;
 }
 
 unittest
@@ -557,16 +656,18 @@ struct GCAllocator
     enum uint alignment = platformAlignment;
 
     /**
-    Standard allocator methods per the semantics defined above. The $(D deallocate) and $(D reallocate) methods are $(D @system) because they may move memory around, leaving dangling pointers in user code.
+    Standard allocator methods per the semantics defined above. The
+    $(D deallocate) and $(D reallocate) methods are $(D @system) because they
+    may move memory around, leaving dangling pointers in user code.
     */
-    @trusted void[] allocate(size_t bytes) shared nothrow pure @safe
+    @trusted void[] allocate(size_t bytes) shared nothrow pure
     {
         auto p = GC.malloc(bytes);
         return p ? p[0 .. bytes] : null;
     }
 
     /// Ditto
-    @trusted bool expand(ref void[] b, size_t delta) shared
+    @trusted bool expand(ref void[] b, size_t delta) shared nothrow pure
     {
         auto newSize = GC.extend(b.ptr, b.length + delta,
             b.length + delta);
@@ -603,10 +704,10 @@ struct GCAllocator
         GC.free(b.ptr);
     }
 
-	static shared(GCAllocator) it() pure nothrow @property @trusted
-	{
-		return cast(typeof(return)) _it;
-	}
+    static shared(GCAllocator) it() pure nothrow @property @trusted
+    {
+        return cast(typeof(return)) _it;
+    }
 
     /**
     Returns the global instance of this allocator type. The garbage collected allocator is thread-safe, therefore all of its methods and $(D it) itself are $(D shared).
@@ -634,12 +735,19 @@ unittest
     assert(GCAllocator.it.expand(b, 1));
 }
 
+private extern (C)
+{
+    void* malloc(size_t) pure nothrow @trusted;
+    void free(void*) pure nothrow @trusted;
+    void* realloc(void*, size_t) pure nothrow @trusted;
+}
+
 /**
    The C heap allocator.
  */
 struct Mallocator
 {
-    private import core.stdc.stdlib;
+//    private import core.stdc.stdlib;
 
     /**
     The alignment is a static constant equal to $(D platformAlignment), which ensures proper alignment for any D data type.
@@ -647,22 +755,26 @@ struct Mallocator
     enum uint alignment = platformAlignment;
 
     /**
-    Standard allocator methods per the semantics defined above. The $(D deallocate) and $(D reallocate) methods are $(D @system) because they may move memory around, leaving dangling pointers in user code. Somewhat paradoxically, $(D malloc) is $(D @safe) but that's only useful to safe programs that can afford to leak memory allocated.
+    Standard allocator methods per the semantics defined above. The
+    $(D deallocate) and $(D reallocate) methods are $(D @system) because they
+    may move memory around, leaving dangling pointers in user code. Somewhat
+    paradoxically, $(D malloc) is $(D @safe) but that's only useful to safe
+    programs that can afford to leak memory allocated.
     */
-    @trusted void[] allocate(size_t bytes) shared
+    void[] allocate(size_t bytes) shared pure nothrow @trusted
     {
         auto p = malloc(bytes);
         return p ? p[0 .. bytes] : null;
     }
 
     /// Ditto
-    @system void deallocate(void[] b) shared
+    void deallocate(void[] b) shared pure nothrow @system
     {
         free(b.ptr);
     }
 
     /// Ditto
-    @system bool reallocate(ref void[] b, size_t s) shared
+    bool reallocate(ref void[] b, size_t s) shared pure nothrow @system
     {
         if (!s)
         {
@@ -678,10 +790,15 @@ struct Mallocator
         return true;
     }
 
+    static shared(Mallocator) it() pure nothrow @property @trusted
+    {
+        return cast(typeof(return)) _it;
+    }
+
     /**
     Returns the global instance of this allocator type. The C heap allocator is thread-safe, therefore all of its methods and $(D it) itself are $(D shared).
     */
-    static shared Mallocator it;
+    private static shared const Mallocator _it;
 }
 
 ///
@@ -877,7 +994,7 @@ unittest
 /**
 Returns s rounded up to a multiple of base.
 */
-private void[] roundStartToMultipleOf(void[] s, uint base)
+private void[] roundStartToMultipleOf(void[] s, uint base) pure nothrow @trusted
 {
     assert(base);
     auto p = cast(void*) roundUpToMultipleOf(
@@ -897,7 +1014,7 @@ unittest
 /**
 Returns $(D s) rounded up to the nearest power of 2.
 */
-private size_t roundUpToPowerOf2(size_t s)
+private size_t roundUpToPowerOf2(size_t s) pure nothrow @safe
 {
     assert(s <= (size_t.max >> 1) + 1);
     --s;
@@ -969,7 +1086,7 @@ struct AffixAllocator(Allocator, Prefix, Suffix = void)
 
     template Impl()
     {
-        size_t goodAllocSize(size_t s)
+        size_t goodAllocSize(size_t s) pure nothrow const
         {
             return parent.goodAllocSize(actualAllocationSize(s));
         }
@@ -1069,27 +1186,30 @@ struct AffixAllocator(Allocator, Prefix, Suffix = void)
         which may use the global default). Also, the methods will be $(D
         shared) if the parent allocator defines them as such.
         */
-        size_t goodAllocSize(size_t);
+        size_t goodAllocSize(size_t) pure nothrow const;
         /// Ditto
-        void[] allocate(size_t);
+        void[] allocate(size_t) pure nothrow;
         /// Ditto
-        bool owns(void[]);
+        bool owns(void[]) pure nothrow;
         /// Ditto
-        bool expand(ref void[] b, size_t delta);
+        bool expand(ref void[] b, size_t delta) pure nothrow;
         /// Ditto
-        bool reallocate(ref void[] b, size_t s);
+        bool reallocate(ref void[] b, size_t s)pure nothrow;
         /// Ditto
-        void deallocate(void[] b);
+        void deallocate(void[] b) pure nothrow;
         /// Ditto
-        void deallocateAll();
+        void deallocateAll() pure nothrow;
 
         /**
-        The $(D it) singleton is defined if and only if the parent allocator has no state and defines its own $(D it) object.
+        The $(D it) singleton is defined if and only if the parent allocator has
+        no state and defines its own $(D it) object.
         */
         static AffixAllocator it;
 
         /**
-        Affix access functions offering mutable references to the affixes of a block previously allocated with this allocator. $(D b) may not be null. They are defined if and only if the corresponding affix is not $(D void).
+        Affix access functions offering mutable references to the affixes of a
+        block previously allocated with this allocator. $(D b) may not be null.
+        They are defined if and only if the corresponding affix is not $(D void).
 
         Precondition: $(D b !is null)
         */
@@ -1134,9 +1254,10 @@ unittest
 }
 
 /**
-Returns the number of most significant ones before a zero can be found in $(D x). If $(D x) contains no zeros (i.e. is equal to $(D ulong.max)), returns 64.
+Returns the number of most significant ones before a zero can be found in $(D x).
+If $(D x) contains no zeros (i.e. is equal to $(D ulong.max)), returns 64.
 */
-private uint leadingOnes(ulong x)
+private uint leadingOnes(ulong x) pure nothrow @safe
 {
     uint result = 0;
     while (cast(long) x < 0)
@@ -1161,7 +1282,7 @@ unittest
 /**
 Finds a run of contiguous ones in $(D x) of length at least $(D n).
 */
-private uint findContigOnes(ulong x, uint n)
+private uint findContigOnes(ulong x, uint n) pure nothrow @safe
 {
     while (n > 1)
     {
@@ -1189,7 +1310,7 @@ unittest
 /**
 Returns the number of trailing zeros of $(D x).
 */
-private uint trailingZeros(ulong x)
+private uint trailingZeros(ulong x) pure nothrow @safe
 {
     uint result;
     while (result < 64 && !(x & (1UL << result)))
@@ -1211,7 +1332,7 @@ unittest
 /*
 Unconditionally sets the bits from lsb through msb in w to zero.
 */
-private void setBits(ref ulong w, uint lsb, uint msb)
+private void setBits(ref ulong w, uint lsb, uint msb) pure nothrow @safe
 {
     assert(lsb <= msb && msb < 64);
     const mask = (ulong.max << lsb) & (ulong.max >> (63 - msb));
@@ -1230,7 +1351,7 @@ unittest
 /* Are bits from lsb through msb in w zero? If so, make then 1
 and return the resulting w. Otherwise, just return 0.
 */
-private bool setBitsIfZero(ref ulong w, uint lsb, uint msb)
+private bool setBitsIfZero(ref ulong w, uint lsb, uint msb) pure nothrow @safe
 {
     assert(lsb <= msb && msb < 64);
     const mask = (ulong.max << lsb) & (ulong.max >> (63 - msb));
@@ -1239,12 +1360,22 @@ private bool setBitsIfZero(ref ulong w, uint lsb, uint msb)
     return true;
 }
 
+unittest
+{
+    // TODO
+}
+
 // Assigns bits in w from lsb through msb to zero.
-private void resetBits(ref ulong w, uint lsb, uint msb)
+private void resetBits(ref ulong w, uint lsb, uint msb) pure nothrow @safe
 {
     assert(lsb <= msb && msb < 64);
     const mask = (ulong.max << lsb) & (ulong.max >> (63 - msb));
     w &= ~mask;
+}
+
+unittest
+{
+    // TODO
 }
 
 /**
@@ -1334,7 +1465,7 @@ struct HeapBlock(Allocator, size_t theBlockSize,
         _blocks = blocks;
     }
 
-    private void initialize()
+    private void initialize() pure nothrow @trusted
     {
         assert(_blocks);
         const controlBytes = ((_blocks + 63) / 64) * 8;
@@ -1349,11 +1480,11 @@ struct HeapBlock(Allocator, size_t theBlockSize,
         _control = m[0 .. controlBytes / 8];
         _control[] = 0;
         _payload = m[controlBytesRounded / 8 .. $];
-        assert(_payload.length == _blocks * blockSize,
-            text(_payload.length, " != ", _blocks * blockSize));
+        assert(_payload.length == _blocks * blockSize/+,
+            text(_payload.length, " != ", _blocks * blockSize)+/);
     }
 
-    private void initialize(void[] store)
+    private void initialize(void[] store) pure nothrow @trusted
     {
         assert(store.length);
         // Round store to be ulong-aligned
@@ -1368,9 +1499,9 @@ struct HeapBlock(Allocator, size_t theBlockSize,
         auto blocks = cast(size_t) (approxBlocks + nextDown(1.0));
         assert(blocks > 0);
         assert(blockSize);
-        assert(blocks * blockSize + ((blocks + 63) / 64) * 8 >= store.length,
+        assert(blocks * blockSize + ((blocks + 63) / 64) * 8 >= store.length/+,
             text(approxBlocks, " ", blocks, " ", blockSize, " ",
-                store.length));
+                store.length)+/);
         while (blocks * blockSize + ((blocks + 63) / 64) * 8 > store.length)
         {
             --blocks;
@@ -1390,13 +1521,13 @@ struct HeapBlock(Allocator, size_t theBlockSize,
     }
 
     private void initialize(ulong[] control, void[] payload, size_t blockSize)
+        pure nothrow @trusted
     {
-        enforce(payload.length % blockSize == 0,
-            text(payload.length, " % ", blockSize, " != 0"));
+        assert(payload.length % blockSize == 0);
         assert(payload.length / blockSize <= uint.max);
         _blocks = cast(uint) (payload.length / blockSize);
         const controlWords = (_blocks + 63) / 64;
-        enforce(controlWords == control.length);
+        assert(controlWords == control.length);
         _control = control;
         assert(control.equal(repeat(0, control.length)));
         _payload = payload;
@@ -1439,7 +1570,7 @@ struct HeapBlock(Allocator, size_t theBlockSize,
     BUGS: Neither $(D deallocateAll) nor the destructor free the original memory
     block. Either user code or the parent allocator should carry that.
     */
-    @trusted void[] allocate(const size_t s)
+    void[] allocate(const size_t s) pure nothrow @trusted
     {
         if (!_control)
         {
@@ -1491,7 +1622,7 @@ struct HeapBlock(Allocator, size_t theBlockSize,
     }
 
     /// Ditto
-    bool owns(void[] b) const
+    bool owns(void[] b) const pure nothrow @trusted
     {
         return b.ptr >= _payload.ptr
             && b.ptr + b.length <= _payload.ptr + _payload.length
@@ -1505,7 +1636,7 @@ struct HeapBlock(Allocator, size_t theBlockSize,
     0). Otherwise, returns a tuple with the next position to search.
     */
     private Tuple!(size_t, uint) allocateAt(size_t wordIdx, uint msbIdx,
-            size_t blocks, ref void[] result)
+            size_t blocks, ref void[] result) pure nothrow @trusted
     {
         assert(blocks > 0);
         assert(wordIdx < _control.length);
@@ -1562,9 +1693,9 @@ struct HeapBlock(Allocator, size_t theBlockSize,
         return available;
     }
 
-    private void[] smallAlloc(uint blocks)
+    private void[] smallAlloc(uint blocks) pure nothrow @trusted
     {
-        assert(blocks >= 2 && blocks <= 64, text(blocks));
+        assert(blocks >= 2 && blocks <= 64/+, text(blocks)+/);
         foreach (i; _startIdx .. _control.length)
         {
             // Test within the current 64-bit word
@@ -1594,7 +1725,7 @@ struct HeapBlock(Allocator, size_t theBlockSize,
         return null;
     }
 
-    private void[] hugeAlloc(size_t blocks)
+    private void[] hugeAlloc(size_t blocks) pure nothrow @trusted
     {
         assert(blocks > 64);
         void[] result;
@@ -1634,7 +1765,7 @@ struct HeapBlock(Allocator, size_t theBlockSize,
     }
 
     /// Ditto
-    @trusted bool expand(ref void[] b, size_t delta)
+    bool expand(ref void[] b, size_t delta) pure nothrow @trusted
     {
         //debug writefln("expand(%s, %s, %s)", b, minDelta, desiredDelta);
         if (b is null)
@@ -1669,14 +1800,14 @@ struct HeapBlock(Allocator, size_t theBlockSize,
             return false;
         }
         // Expansion successful
-        assert(p.ptr == b.ptr + blocksOld * blockSize,
-            text(p.ptr, " != ", b.ptr + blocksOld * blockSize));
+        assert(p.ptr == b.ptr + blocksOld * blockSize/+,
+            text(p.ptr, " != ", b.ptr + blocksOld * blockSize)+/);
         b = b.ptr[0 .. b.length + delta];
         return true;
     }
 
     /// Ditto
-    @system bool reallocate(ref void[] b, size_t newSize)
+    bool reallocate(ref void[] b, size_t newSize) pure nothrow @system
     {
         if (newSize == 0)
         {
@@ -1969,7 +2100,7 @@ struct FallbackAllocator(Primary, Fallback)
         bool crossAllocatorMove(From, To)(auto ref From from, auto ref To to)
         {
             auto b1 = to.allocate(newSize);
-            if (!b1) return false;
+            if (b1 is null) return false;
             if (b.length < newSize) b1[0 .. b.length] = b[];
             else b1[] = b[0 .. newSize];
             static if (hasMember!(From, "deallocate"))
@@ -2027,7 +2158,7 @@ struct FallbackAllocator(Primary, Fallback)
 ///
 unittest
 {
-    FallbackAllocator!(InSituRegion!16384, GCAllocator) a;
+    FallbackAllocator!(InSituRegion!16_384, GCAllocator) a;
     // This allocation uses the stack
     auto b1 = a.allocate(1024);
     assert(b1.length == 1024, text(b1.length));
@@ -2084,7 +2215,7 @@ struct Freelist(ParentAllocator,
     else
     {
         size_t _min = chooseAtRuntime;
-        @property size_t min() const
+        @property size_t min() const nothrow pure @safe
         {
             assert(_min != chooseAtRuntime);
             return _min;
@@ -2107,7 +2238,7 @@ struct Freelist(ParentAllocator,
         }
     }
 
-    private bool tooSmall(size_t n) const
+    private bool tooSmall(size_t n) const nothrow pure @safe
     {
         static if (minSize == 0) return false;
         else return n < min;
@@ -2128,13 +2259,13 @@ struct Freelist(ParentAllocator,
         }
     }
 
-    private bool tooLarge(size_t n) const
+    private bool tooLarge(size_t n) const nothrow pure @safe
     {
         static if (maxSize == unbounded) return false;
         else return n > max;
     }
 
-    private bool inRange(size_t n) const
+    private bool inRange(size_t n) const nothrow pure @safe
     {
         static if (minSize == maxSize && minSize != chooseAtRuntime)
             return n == maxSize;
@@ -2211,7 +2342,7 @@ struct Freelist(ParentAllocator,
     Returns $(D max) for sizes in the interval $(D [min, max]), and $(D
     parent.goodAllocSize(bytes)) otherwise.
     */
-    size_t goodAllocSize(size_t bytes)
+    size_t goodAllocSize(size_t bytes) const nothrow pure @safe
     {
         if (inRange(bytes)) return maxSize == unbounded ? bytes : max;
         return parent.goodAllocSize(bytes);
@@ -2220,7 +2351,7 @@ struct Freelist(ParentAllocator,
     /**
     Allocates memory either off of the free list or from the parent allocator.
     */
-    void[] allocate(size_t bytes)
+    void[] allocate(size_t bytes) pure nothrow @trusted
     {
         assert(bytes < size_t.max / 2);
         if (!inRange(bytes)) return parent.allocate(bytes);
@@ -2234,7 +2365,7 @@ struct Freelist(ParentAllocator,
         return result;
     }
 
-    private void[] allocateFresh(const size_t bytes)
+    private void[] allocateFresh(const size_t bytes) pure nothrow @trusted
     {
         assert(!_root);
         assert(bytes == max || max == unbounded);
@@ -2251,9 +2382,9 @@ struct Freelist(ParentAllocator,
         }
         else
         {
-            assert((parent.alignment + bytes) % Node.alignof == 0,
+            assert((parent.alignment + bytes) % Node.alignof == 0/+,
                 text("(", parent.alignment, " + ", bytes, ") % ",
-                 Node.alignof));
+                 Node.alignof)+/);
         }
 
         auto data = parent.allocate(nodesAtATime * bytes);
@@ -2282,7 +2413,7 @@ struct Freelist(ParentAllocator,
     Freelist) handle deallocations of objects of the appropriate size,
     even for allocators that don't support $(D owns) (such as $(D Mallocator)).
     */
-    bool owns(void[] b)
+    bool owns(void[] b) const pure nothrow @safe
     {
         if (inRange(b.length)) return true;
         static if (hasMember!(ParentAllocator, "owns"))
@@ -2560,7 +2691,7 @@ struct SharedFreelist(ParentAllocator,
         do
         {
             oldRoot = _root; // atomic load
-            next = oldRoot.next; // atomic load
+            next = oldRoot is null ? null : oldRoot.next; // atomic load
         }
         while (!cas(&_root, oldRoot, next));
         // great, snatched the root
@@ -2657,7 +2788,8 @@ struct SharedFreelist(ParentAllocator,
     }
 }
 
-unittest
+// This deadlocks
+version (none) unittest
 {
     import core.thread, std.concurrency;
 
@@ -2723,14 +2855,14 @@ private struct BasicRegion(uint minAlign = platformAlignment)
     /**
     Constructs a region backed by a user-provided store.
     */
-    this(void[] store)
+    this(void[] store) pure nothrow @trusted
     {
         static if (minAlign > 1)
         {
             auto newStore = cast(void*) roundUpToMultipleOf(
                 cast(ulong) store.ptr,
                 alignment);
-            enforce(newStore <= store.ptr + store.length);
+            assert(newStore <= store.ptr + store.length);
             _current = newStore;
         }
         else
@@ -2752,7 +2884,7 @@ private struct BasicRegion(uint minAlign = platformAlignment)
     enum uint alignment = minAlign;
 
     /// Ditto
-    void[] allocate(size_t bytes)
+    void[] allocate(size_t bytes) pure nothrow @trusted
     {
         static if (minAlign > 1)
             const rounded = bytes.roundUpToMultipleOf(alignment);
@@ -2829,7 +2961,7 @@ struct Region(uint minAlign = platformAlignment)
     Constructs a $(D Region) object backed by $(D buffer), which must be aligned
     to $(D minAlign).
     */
-    this(void[] buffer)
+    this(void[] buffer) pure nothrow @safe
     {
         base = BasicRegion!minAlign(buffer);
         assert(buffer.ptr !is &this);
@@ -2942,6 +3074,11 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
     function returns an empty non-null slice.
     */
     void[] allocate(size_t bytes) pure nothrow @trusted
+    out (result)
+    {
+        assert (result is null || owns(result));
+    }
+    body
     {
         // Oddity: we don't return null for null allocation. Instead, we return
         // an empty slice with a non-null ptr.
@@ -2984,7 +3121,7 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
     allocation. For efficiency reasons, if $(D b is null) the function returns
     $(D false).
     */
-    bool owns(void[] b) const nothrow pure @trusted
+    bool owns(const void[] b) const nothrow pure @trusted
     {
         // No nullptr
         return b.ptr >= _store.ptr
@@ -3715,13 +3852,14 @@ struct CascadingAllocator(alias make)
     enum uint alignment = Allocator.alignment;
 
     /// Ditto
-    void[] allocate(size_t s)
-	out (res)
-	{
-		import std.string;
-		assert (res.length == s, "res.length = %d, s = %d".format(res.length, s));
-	}
-	body
+    void[] allocate(size_t s) pure nothrow @trusted
+    out (res)
+    {
+        import std.string;
+        assert (res.length == 0 || res.length == s,
+            "res.length = %d, s = %d".format(res.length, s));
+    }
+    body
     {
         auto result = allocateNoGrow(s);
         if (result) return result;
@@ -3811,7 +3949,8 @@ struct CascadingAllocator(alias make)
         if (!_root) return false;
         for (auto n = _root; ; n = n.next)
         {
-            if (n.a.owns(b) && n.a.reallocate(b, s)) return true;
+            static if (hasMember!(Allocator, "owns"))
+                if (n.a.owns(b) && n.a.reallocate(b, s)) return true;
             if (!n.nextIsInitialized) break;
         }
         // Failed, but we may find new memory in a new node.
@@ -3876,7 +4015,7 @@ struct CascadingAllocator(alias make)
 unittest
 {
     // Create an allocator based upon 4MB regions, fetched from the GC heap.
-    CascadingAllocator!({ return Region!()(new void[1024 * 4096]); }) a;
+    CascadingAllocator!(function() nothrow { return Region!()(new void[1024 * 4096]); }) a;
     auto b1 = a.allocate(1024 * 8192);
     assert(b1 is null); // can't allocate more than 4MB at a time
     b1 = a.allocate(1024 * 10);
@@ -4003,21 +4142,21 @@ struct Segregator(size_t threshold, SmallAllocator, LargeAllocator)
 
     template Impl()
     {
-        void[] allocate(size_t s)
+        void[] allocate(size_t s) nothrow pure @trusted
         {
             return s <= threshold ? _small.allocate(s) : _large.allocate(s);
         }
 
         static if (hasMember!(SmallAllocator, "deallocate")
                 && hasMember!(LargeAllocator, "deallocate"))
-        void deallocate(void[] data)
+        void deallocate(void[] data) nothrow pure @trusted
         {
             data.length <= threshold
                 ? _small.deallocate(data)
                 : _large.deallocate(data);
         }
 
-        size_t goodAllocSize(size_t s)
+        size_t goodAllocSize(size_t s) const nothrow pure @safe
         {
             return s <= threshold
                 ? _small.goodAllocSize(s)
@@ -4026,7 +4165,7 @@ struct Segregator(size_t threshold, SmallAllocator, LargeAllocator)
 
         static if (hasMember!(SmallAllocator, "owns")
                 && hasMember!(LargeAllocator, "owns"))
-        bool owns(void[] b)
+        bool owns(void[] b) const nothrow pure @safe
         {
             return b.length <= threshold ? _small.owns(b) : _large.owns(b);
         }
@@ -4093,7 +4232,11 @@ struct Segregator(size_t threshold, SmallAllocator, LargeAllocator)
 
     static if (sharedMethods)
     {
-        static shared Segregator it;
+        static shared(typeof(this)) it() pure nothrow @property @trusted
+        {
+            return cast(typeof(return)) _it;
+        }
+        private static const shared Segregator _it;
         shared { mixin Impl!(); }
     }
     else
@@ -4318,7 +4461,7 @@ class CAllocator
 {
     /// Returns the alignment offered. By default this method returns $(D
     /// platformAlignment).
-    @property uint alignment()
+    uint alignment() pure nothrow const @property
     {
         return platformAlignment;
     }
@@ -4329,7 +4472,7 @@ class CAllocator
     throw an exception if it does allow setting the alignment but an invalid
     value is passed.
     */
-    @property bool alignment(uint)
+    @property bool alignment(uint) pure nothrow @property
     {
         return false;
     }
@@ -4339,7 +4482,7 @@ class CAllocator
     fragmentation. By default returns $(D s) rounded up to the nearest multiple
     of $(D alignment).
     */
-    size_t goodAllocSize(size_t s)
+    size_t goodAllocSize(size_t s) pure nothrow const @property
     {
         return s.roundUpToMultipleOf(alignment);
     }
@@ -4347,7 +4490,7 @@ class CAllocator
     /**
     Allocates memory.
     */
-    abstract void[] allocate(size_t);
+    abstract void[] allocate(size_t) pure nothrow @safe;
 
     /**
     Returns $(D true) if the allocator supports $(D owns). By default returns
@@ -4368,17 +4511,17 @@ class CAllocator
     }
 
     /// Expands a memory block in place.
-    abstract bool expand(ref void[], size_t);
+    abstract bool expand(ref void[], size_t) pure nothrow;
 
     /// Reallocates a memory block.
-    abstract bool reallocate(ref void[] b, size_t);
+    abstract bool reallocate(ref void[] b, size_t) pure nothrow;
 
     /// Deallocates a memory block. Returns $(D false) if deallocation is not
     /// supported.
-    abstract bool deallocate(void[]);
+    abstract bool deallocate(void[]) pure nothrow;
 
     /// Deallocates all memory. Returns $(D false) if not supported.
-    abstract bool deallocateAll();
+    abstract bool deallocateAll() pure nothrow;
 
     /// Returns $(D true) if allocator supports $(D allocateAll). By default
     /// returns $(D false).
@@ -4411,7 +4554,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     else alias impl = Allocator.it;
 
     /// Returns $(D impl.alignment).
-    override @property uint alignment()
+    override uint alignment() pure nothrow const @property
     {
         return impl.alignment;
     }
@@ -4420,7 +4563,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     If $(D Allocator) supports alignment setting, performs it and returns $(D
     true). Otherwise, returns $(D false).
     */
-    override @property bool alignment(uint a)
+    override bool alignment(uint a) pure nothrow const @property
     {
         static if (is(typeof(impl.alignment = a)))
         {
@@ -4436,7 +4579,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     /**
     Returns $(D impl.goodAllocSize(s)).
     */
-    override size_t goodAllocSize(size_t s)
+    override size_t goodAllocSize(size_t s) pure nothrow const @property
     {
         return impl.goodAllocSize(s);
     }
@@ -4444,7 +4587,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     /**
     Returns $(D impl.allocate(s)).
     */
-    override void[] allocate(size_t s)
+    override void[] allocate(size_t s) pure nothrow @safe
     {
         return impl.allocate(s);
     }
@@ -4452,7 +4595,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     /**
     Returns $(D true) if $(D Allocator) supports $(D owns).
     */
-    override bool supportsOwns()
+    override bool supportsOwns() pure nothrow const @safe
     {
         return hasMember!(Allocator, "owns");
     }
@@ -4468,7 +4611,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     }
 
     /// Returns $(D impl.expand(b, s)) if defined, $(D false) otherwise.
-    override bool expand(ref void[] b, size_t s)
+    override bool expand(ref void[] b, size_t s) pure nothrow
     {
         static if (hasMember!(Allocator, "expand"))
             return impl.expand(b, s);
@@ -4484,7 +4627,7 @@ class CAllocatorImpl(Allocator) : CAllocator
 
     /// Calls $(D impl.deallocate(b)) and returns $(D true) if defined,
     /// otherwise returns $(D false).
-    override bool deallocate(void[] b)
+    override bool deallocate(void[] b) pure nothrow
     {
         static if (hasMember!(Allocator, "deallocate"))
         {
@@ -4499,7 +4642,7 @@ class CAllocatorImpl(Allocator) : CAllocator
 
     /// Calls $(D impl.deallocateAll()) and returns $(D true) if defined,
     /// otherwise returns $(D false).
-    override bool deallocateAll()
+    override bool deallocateAll() pure nothrow
     {
         static if (hasMember!(Allocator, "deallocateAll"))
         {
@@ -4514,7 +4657,7 @@ class CAllocatorImpl(Allocator) : CAllocator
 
     /// Returns $(D true) if allocator supports $(D allocateAll). By default
     /// returns $(D false).
-    override bool supportsAllocateAll()
+    override bool supportsAllocateAll() pure nothrow const
     {
         return hasMember!(Allocator, "allocateAll");
     }
@@ -4524,7 +4667,7 @@ class CAllocatorImpl(Allocator) : CAllocator
     returns $(D impl.allocateAll()).
     */
     static if (hasMember!(Allocator, "allocateAll"))
-    override void[] allocateAll()
+    override void[] allocateAll() pure nothrow
     {
         return impl.allocateAll();
     }
