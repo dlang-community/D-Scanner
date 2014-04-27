@@ -11,7 +11,7 @@ dmd\
 	std/d/*.d\
 	analysis/*.d\
 	-ofdscanner\
-	-m64 -g\
+	-g\
 	-O -release
 
 #gdc\
