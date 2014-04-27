@@ -780,7 +780,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</key>");
 		output.writeln("<value>");
 		visit(keyValuePair.value);
-		output.writeln("<value>");
+		output.writeln("</value>");
 		output.writeln("</keyValuePair>");
 	}
 
