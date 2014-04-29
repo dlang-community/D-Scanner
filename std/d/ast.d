@@ -1873,12 +1873,12 @@ final class LinkageAttribute : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-		version (DIP61) mixin (visitIfNotNull!(identifier, identifierChain));
+        version (DIP61) mixin (visitIfNotNull!(identifier, identifierChain));
         else mixin (visitIfNotNull!(identifier));
     }
     /** */ Token identifier;
     /** */ bool hasPlusPlus;
-	version (DIP61) /** */ IdentifierChain identifierChain;
+    version (DIP61) /** */ IdentifierChain identifierChain;
     mixin OpEquals;
 }
 

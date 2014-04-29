@@ -113,7 +113,7 @@ class Parser
                 node.linkageAttribute = parseLinkageAttribute();
             }
             warn("Prefer the new \"'alias' identifier '=' type ';'\" syntax"
-				~ " to the  old \"'alias' type identifier ';'\" syntax");
+                ~ " to the  old \"'alias' type identifier ';'\" syntax");
             if ((node.type = parseType()) is null) return null;
             auto ident = expect(tok!"identifier");
             if (ident is null)
@@ -1982,14 +1982,13 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         if (currentIs(tok!";"))
             advance();
         else
-		{
-			MemberFunctionAttribute[] memberFunctionAttributes;
-			while(moreTokens() && currentIsMemberFunctionAttribute())
-				memberFunctionAttributes ~= parseMemberFunctionAttribute();
-			node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
-
-			node.functionBody = parseFunctionBody();
-		}
+        {
+            MemberFunctionAttribute[] memberFunctionAttributes;
+            while(moreTokens() && currentIsMemberFunctionAttribute())
+                memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
+            node.functionBody = parseFunctionBody();
+        }
         return node;
     }
 
@@ -3414,11 +3413,11 @@ invariant() foo();
         {
             advance();
             node.hasPlusPlus = true;
-			version(DIP61) if (currentIs(tok!","))
-			{
-				advance();
-				node.identifierChain = parseIdentifierChain();
-			}
+            version(DIP61) if (currentIs(tok!","))
+            {
+                advance();
+                node.identifierChain = parseIdentifierChain();
+            }
         }
         expect(tok!")");
         return node;
@@ -4545,18 +4544,18 @@ q{(int a, ...)
         if (!currentIs(tok!"]"))
         {
             node.lower = parseAssignExpression();
-			if (node.lower is null)
-			{
-				error("assignExpression expected");
-				return null;
-			}
+            if (node.lower is null)
+            {
+                error("assignExpression expected");
+                return null;
+            }
             expect(tok!"..");
             node.upper = parseAssignExpression();
-			if (node.upper is null)
-			{
-				error("assignExpression expected");
-				return null;
-			}
+            if (node.upper is null)
+            {
+                error("assignExpression expected");
+                return null;
+            }
         }
         if (expect(tok!"]") is null) return null;
         return node;
@@ -4810,13 +4809,13 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!StructInitializer;
         expect(tok!"{");
-		if (currentIs(tok!"}"))
-			advance();
-		else
-		{
-			node.structMemberInitializers = parseStructMemberInitializers();
-			expect(tok!"}");
-		}
+        if (currentIs(tok!"}"))
+            advance();
+        else
+        {
+            node.structMemberInitializers = parseStructMemberInitializers();
+            expect(tok!"}");
+        }
         return node;
     }
 
@@ -6349,7 +6348,7 @@ protected:
         case tok!"abstract":
         case tok!"pure":
         case tok!"nothrow":
-			return true;
+            return true;
         mixin(BASIC_TYPE_CASES);
             return !peekIs(tok!".");
         case tok!"case":
