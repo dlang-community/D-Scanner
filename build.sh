@@ -12,7 +12,7 @@ dmd\
 	analysis/*.d\
 	-version=DIP61\
 	-ofdscanner\
-	-m64 -g\
+	-g\
 	-O -release
 
 #gdc\

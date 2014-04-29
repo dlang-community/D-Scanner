@@ -479,7 +479,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const ForStatement forStatement)
 	{
 		output.writeln("<forStatement>");
-		if (forStatement.declarationOrStatement !is null)
+		if (forStatement.initialization !is null)
 		{
 			output.writeln("<initialization>");
 			visit(forStatement.initialization);
@@ -497,7 +497,8 @@ class XMLPrinter : ASTVisitor
 			visit(forStatement.increment);
 			output.writeln("</increment>");
 		}
-		visit(forStatement.declarationOrStatement);
+		if (forStatement.declarationOrStatement !is null)
+			visit(forStatement.declarationOrStatement);
 		output.writeln("</forStatement>");
 	}
 
@@ -780,7 +781,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</key>");
 		output.writeln("<value>");
 		visit(keyValuePair.value);
-		output.writeln("<value>");
+		output.writeln("</value>");
 		output.writeln("</keyValuePair>");
 	}
 
