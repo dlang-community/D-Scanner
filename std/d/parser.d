@@ -3398,7 +3398,7 @@ invariant() foo();
      * Parses a LinkageAttribute
      *
      * $(GRAMMAR $(RULEDEF linkageAttribute):
-     *     $(LITERAL 'extern') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL '++')? $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'extern') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) ($(LITERAL '++') ($(LITERAL ',') $(RULE identifierChain))?)? $(LITERAL '$(RPAREN)')
      *     ;)
      */
     LinkageAttribute parseLinkageAttribute()
@@ -3414,6 +3414,11 @@ invariant() foo();
         {
             advance();
             node.hasPlusPlus = true;
+			version(DIP61) if (currentIs(tok!","))
+			{
+				advance();
+				node.identifierChain = parseIdentifierChain();
+			}
         }
         expect(tok!")");
         return node;

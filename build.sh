@@ -10,6 +10,7 @@ dmd\
 	std/*.d\
 	std/d/*.d\
 	analysis/*.d\
+	-version=DIP61\
 	-ofdscanner\
 	-m64 -g\
 	-O -release
