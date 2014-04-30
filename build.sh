@@ -24,8 +24,8 @@ dmd\
 #	astprinter.d\
 #	formatter.d\
 #	outliner.d\
-#	stdx/*.d\
-#	stdx/d/*.d\
+#	std/*.d\
+#	std/d/*.d\
 #	analysis/*.d\
 #	-O3 -frelease -fno-bounds-check\
 #	-odscanner\
@@ -39,8 +39,8 @@ dmd\
 #	astprinter.d\
 #	formatter.d\
 #	outliner.d\
-#	stdx/*.d\
-#	stdx/d/*.d\
+#	std/*.d\
+#	std/d/*.d\
 #	analysis/*.d\
 #	-O3 -release\
 #	-oq -of=dscanner\
