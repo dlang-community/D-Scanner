@@ -198,6 +198,6 @@ but not yet implemented.
 
 # Useful code
 The source code for DScanner has a complete lexer, parser, and abstact syntax
-tree library for D code under the stdx/d/ directory. It is intended that these
+tree library for D code under the std/d/ directory. It is intended that these
 modules eventually end up in Phobos, so feel free to use them for your own D
 tools.
