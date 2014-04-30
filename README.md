@@ -19,7 +19,7 @@ The following examples assume that we are analyzing a simple file called hellowo
 ### Token Count
 The "--tokenCount" or "-t" option prints the number of tokens in the given file
 
-	$ dscanner --tokencount helloworld.d
+	$ dscanner --tokenCount helloworld.d
 	20
 
 ### Import Listing
