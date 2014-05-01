@@ -1239,7 +1239,9 @@ public:
     }
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ FunctionBody functionBody;
-    /** */ size_t location;
+    /** */ size_t line;
+    /** */ size_t column;
+    /** */ size_t index;
     /** */ string comment;
     mixin OpEquals;
 }
@@ -1780,6 +1782,8 @@ public:
     }
     /** */ BlockStatement blockStatement;
     /** */ string comment;
+    size_t line;
+    size_t index;
     mixin OpEquals;
 }
 
@@ -1873,12 +1877,12 @@ final class LinkageAttribute : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-		version (DIP61) mixin (visitIfNotNull!(identifier, identifierChain));
+        version (DIP61) mixin (visitIfNotNull!(identifier, identifierChain));
         else mixin (visitIfNotNull!(identifier));
     }
     /** */ Token identifier;
     /** */ bool hasPlusPlus;
-	version (DIP61) /** */ IdentifierChain identifierChain;
+    version (DIP61) /** */ IdentifierChain identifierChain;
     mixin OpEquals;
 }
 
