@@ -1990,7 +1990,6 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
             while(moreTokens() && currentIsMemberFunctionAttribute())
                 memberFunctionAttributes ~= parseMemberFunctionAttribute();
             node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
-
             node.functionBody = parseFunctionBody();
         }
         return node;
@@ -2285,7 +2284,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         {
             if (!canBeRange)
             {
-                error(`Cannot have more than one foreach varible for a foreach range statement`);
+                error(`Cannot have more than one foreach variable for a foreach range statement`);
                 return null;
             }
             advance();
