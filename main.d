@@ -101,6 +101,7 @@ int main(string[] args)
 		config.whitespaceBehavior = WhitespaceBehavior.include;
 		config.stringBehavior = StringBehavior.source;
 		config.commentBehavior = CommentBehavior.include;
+		config.specialTokenBehavior = SpecialTokenBehavior.include;
 		auto tokens = byToken(bytes, config, cache);
 		if (highlight)
 		{

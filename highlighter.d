@@ -49,6 +49,8 @@ html  { background-color: #fdf6e3; color: #002b36; }
 			writeSpan("num", t.text);
 		else if (isOperator(t.type))
 			writeSpan("op", str(t.type));
+		else if (t.type == tok!"specialTokenSequence" || t.type == tok!"scriptLine")
+			writeSpan("cons", t.text.replace("<", "&lt;"));
 		else
 		{
 			version(Windows)

@@ -41,7 +41,7 @@ private enum dynamicTokens = [
 	"whitespace", "doubleLiteral", "floatLiteral", "idoubleLiteral",
 	"ifloatLiteral", "intLiteral", "longLiteral", "realLiteral",
 	"irealLiteral", "uintLiteral", "ulongLiteral", "characterLiteral",
-	"dstringLiteral", "stringLiteral", "wstringLiteral", "scriptLine"
+	"dstringLiteral", "stringLiteral", "wstringLiteral"
 ];
 
 private enum pseudoTokenHandlers = [
