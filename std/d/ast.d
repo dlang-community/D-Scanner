@@ -1956,8 +1956,9 @@ final class Module : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(moduleDeclaration, declarations));
+        mixin (visitIfNotNull!(scriptLine, moduleDeclaration, declarations));
     }
+	/** */ Token scriptLine;
     /** */ ModuleDeclaration moduleDeclaration;
     /** */ Declaration[] declarations;
     mixin OpEquals;

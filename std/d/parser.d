@@ -3561,7 +3561,7 @@ invariant() foo();
         mixin(traceEnterAndExit!(__FUNCTION__));
         Module m = allocate!Module;
         if (currentIs(tok!"scriptLine"))
-            advance();
+            m.scriptLine = advance();
         if (currentIs(tok!"module"))
             m.moduleDeclaration = parseModuleDeclaration();
         while (moreTokens())
