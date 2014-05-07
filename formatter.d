@@ -489,6 +489,7 @@ class Formatter(Sink)
 		foreach (attribute; parameter.parameterAttributes)
 		{
 			sink.put(str(attribute));
+			sink.put(" ");
 		}
 		if (parameter.type !is null)
 			format(parameter.type);
