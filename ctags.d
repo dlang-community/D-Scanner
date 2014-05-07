@@ -90,6 +90,26 @@ class CTagsPrinter : ASTVisitor
 		context = c;
 	}
 
+	override void visit(const Constructor dec)
+	{
+		tagLines ~= "this\t%s\t%d;\"\tf\tarity:%d%s\n".format(fileName,
+			dec.line, dec.parameters.parameters.length, context);
+		auto c = context;
+		context = "\tfunction: this";
+		dec.accept(this);
+		context = c;
+	}
+
+	override void visit(const Destructor dec)
+	{
+		tagLines ~= "~this\t%s\t%d;\"\tf%s\n".format(fileName, dec.line,
+			context);
+		auto c = context;
+		context = "\tfunction: this";
+		dec.accept(this);
+		context = c;
+	}
+
 	override void visit(const EnumDeclaration dec)
 	{
 		if (dec.name == tok!"")
@@ -134,6 +154,11 @@ class CTagsPrinter : ASTVisitor
 				d.name.line, context);
 		}
 		dec.accept(this);
+	}
+
+	override void visit(const Invariant dec)
+	{
+		tagLines ~= "invariant\t%s\t%d;\"\tv%s\n".format(fileName, dec.line, context);
 	}
 
 	alias visit = ASTVisitor.visit;

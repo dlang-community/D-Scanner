@@ -41,7 +41,7 @@ private enum dynamicTokens = [
 	"whitespace", "doubleLiteral", "floatLiteral", "idoubleLiteral",
 	"ifloatLiteral", "intLiteral", "longLiteral", "realLiteral",
 	"irealLiteral", "uintLiteral", "ulongLiteral", "characterLiteral",
-	"dstringLiteral", "stringLiteral", "wstringLiteral", "scriptLine"
+	"dstringLiteral", "stringLiteral", "wstringLiteral"
 ];
 
 private enum pseudoTokenHandlers = [
@@ -119,6 +119,18 @@ public enum WhitespaceBehavior : ubyte
 	/// Whitespace is treated as a token
 	include
 }
+
+/**
+ * Configure special token handling behavior
+ */
+public enum SpecialTokenBehavior : ubyte
+{
+	/// Special tokens are skipped
+	skip,
+	/// Special tokens are treated as a token
+	include
+}
+
 /**
  * Configure comment handling behavior
  */
@@ -136,6 +148,7 @@ public struct LexerConfig
 	StringBehavior stringBehavior;
 	WhitespaceBehavior whitespaceBehavior;
 	CommentBehavior commentBehavior;
+	SpecialTokenBehavior specialTokenBehavior;
 }
 
 public bool isBasicType(IdType type) nothrow pure @safe
@@ -434,6 +447,7 @@ public struct DLexer
 					}
 					do _popFront(); while (front == tok!"comment");
 					if (front == tok!"whitespace") goto case tok!"whitespace";
+					if (front == tok!"specialTokenSequence") goto case tok!"specialTokenSequence";
 				}
 				break;
 			case tok!"whitespace":
@@ -441,6 +455,15 @@ public struct DLexer
 				{
 					do _popFront(); while (front == tok!"whitespace");
 					if (front == tok!"comment") goto case tok!"comment";
+					if (front == tok!"specialTokenSequence") goto case tok!"specialTokenSequence";
+				}
+				break;
+			case tok!"specialTokenSequence":
+				if (config.specialTokenBehavior == SpecialTokenBehavior.skip)
+				{
+					do _popFront(); while (front == tok!"specialTokenSequence");
+					if (front == tok!"comment") goto case tok!"comment";
+					if (front == tok!"whitespace") goto case tok!"whitespace";
 				}
 				break;
 			default:

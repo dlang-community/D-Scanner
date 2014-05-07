@@ -1239,7 +1239,9 @@ public:
     }
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ FunctionBody functionBody;
-    /** */ size_t location;
+    /** */ size_t line;
+    /** */ size_t column;
+    /** */ size_t index;
     /** */ string comment;
     mixin OpEquals;
 }
@@ -1780,6 +1782,8 @@ public:
     }
     /** */ BlockStatement blockStatement;
     /** */ string comment;
+    size_t line;
+    size_t index;
     mixin OpEquals;
 }
 
@@ -1952,8 +1956,9 @@ final class Module : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(moduleDeclaration, declarations));
+        mixin (visitIfNotNull!(scriptLine, moduleDeclaration, declarations));
     }
+	/** */ Token scriptLine;
     /** */ ModuleDeclaration moduleDeclaration;
     /** */ Declaration[] declarations;
     mixin OpEquals;

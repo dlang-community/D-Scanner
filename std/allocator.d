@@ -2860,7 +2860,7 @@ private struct BasicRegion(uint minAlign = platformAlignment)
         static if (minAlign > 1)
         {
             auto newStore = cast(void*) roundUpToMultipleOf(
-                cast(ulong) store.ptr,
+                cast(size_t) store.ptr,
                 alignment);
             assert(newStore <= store.ptr + store.length);
             _current = newStore;
@@ -2904,7 +2904,7 @@ private struct BasicRegion(uint minAlign = platformAlignment)
         // Just bump the pointer to the next good allocation
         auto save = _current;
         _current = cast(void*) roundUpToMultipleOf(
-            cast(ulong) _current, a);
+            cast(size_t) _current, a);
         if (auto b = allocate(bytes)) return b;
         // Failed, rollback
         _current = save;
@@ -3064,7 +3064,7 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
     {
         assert(!_crt);
         _crt = cast(void*) roundUpToMultipleOf(
-            cast(ulong) _store.ptr, alignment);
+            cast(size_t) _store.ptr, alignment);
         _end = _store.ptr + _store.length;
     }
 
@@ -3109,7 +3109,7 @@ struct InSituRegion(size_t size, size_t minAlign = platformAlignment)
         // Just bump the pointer to the next good allocation
         auto save = _crt;
         _crt = cast(void*) roundUpToMultipleOf(
-            cast(ulong) _crt, a);
+            cast(size_t) _crt, a);
         if (auto b = allocate(bytes)) return b;
         // Failed, rollback
         _crt = save;

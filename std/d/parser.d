@@ -1976,6 +1976,9 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         node.comment = comment;
         comment = null;
         if (expect(tok!"~") is null) return null;
+        node.index = current.index;
+        node.line = current.line;
+        node.column = current.column;
         if (expect(tok!"this") is null) return null;
         if (expect(tok!"(") is null) return null;
         if (expect(tok!")") is null) return null;
@@ -2281,7 +2284,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         {
             if (!canBeRange)
             {
-                error(`Cannot have more than one foreach varible for a foreach range statement`);
+                error(`Cannot have more than one foreach variable for a foreach range statement`);
                 return null;
             }
             advance();
@@ -3184,6 +3187,8 @@ interface "Four"
     Invariant parseInvariant()
     {
         auto node = allocate!Invariant;
+        node.index = current.index;
+        node.line = current.line;
         if (expect(tok!"invariant") is null) return null;
         if (currentIs(tok!"("))
         {
@@ -3556,7 +3561,7 @@ invariant() foo();
         mixin(traceEnterAndExit!(__FUNCTION__));
         Module m = allocate!Module;
         if (currentIs(tok!"scriptLine"))
-            advance();
+            m.scriptLine = advance();
         if (currentIs(tok!"module"))
             m.moduleDeclaration = parseModuleDeclaration();
         while (moreTokens())
