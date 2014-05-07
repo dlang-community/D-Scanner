@@ -780,8 +780,6 @@ public:
 
     @disable this();
 
-    bool special;
-
     /**
      * Params: bucketCount = the initial number of buckets.
      */
