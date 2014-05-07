@@ -773,15 +773,14 @@ struct LexerRange
     size_t line;
 }
 
-/**
- * FREAKIN' MAAAGIC
- */
 shared struct StringCache
 {
     import core.sync.mutex;
 public:
 
     @disable this();
+
+    bool special;
 
     /**
      * Params: bucketCount = the initial number of buckets.
@@ -790,6 +789,20 @@ public:
     {
         buckets = cast(shared) new Node*[bucketCount];
         allocating = false;
+    }
+
+    ~this()
+    {
+        import core.memory;
+        shared(Block)* current = rootBlock;
+        while (current !is null)
+        {
+            shared(Block)* prev = current;
+            current = current.next;
+            free(cast(void*) prev.bytes.ptr);
+        }
+        rootBlock = null;
+        buckets = [];
     }
 
     /**
@@ -862,7 +875,6 @@ private:
         if (bytes is null || bytes.length == 0)
             return "";
         import core.atomic;
-        import core.memory;
         shared ubyte[] mem;
         shared(Node*)* oldBucketRoot = &buckets[hash % buckets.length];
         while (true)
@@ -936,7 +948,7 @@ private:
         import core.atomic;
         import core.memory;
         if (numBytes > (blockSize / 4))
-            return cast(shared) (cast(ubyte*) GC.malloc(numBytes, GC.BlkAttr.NO_SCAN))[0 .. numBytes];
+            return cast(shared) (cast(ubyte*) malloc(numBytes))[0 .. numBytes];
         shared(Block)* r = rootBlock;
         while (true)
         {
@@ -957,7 +969,7 @@ private:
             if (cas(&allocating, false, true))
             {
                 shared(Block)* b = new shared Block(
-                    cast(shared) (cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN))[0 .. blockSize],
+                    cast(shared) (cast(ubyte*) malloc(blockSize))[0 .. blockSize],
                     numBytes,
                     r);
                 atomicStore(rootBlock, b);
@@ -1056,3 +1068,6 @@ private:
     shared(Node)*[] buckets;
     shared(Block)* rootBlock;
 }
+
+private extern(C) void* malloc(size_t) nothrow pure;
+private extern(C) void free(void*) nothrow pure;
