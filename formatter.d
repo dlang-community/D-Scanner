@@ -682,16 +682,11 @@ class Formatter(Sink)
 
 	void format(const Type type)
 	{
-        bool first = true;
         foreach (constructor; type.typeConstructors)
         {
-            if (first)
-                sink.put(" ");
-            first = false;
             sink.put(str(constructor));
+			sink.put(" ");
         }
-        if (type.typeConstructors.length > 0)
-            sink.put(" ");
 		format(type.type2);
         foreach (suffix; type.typeSuffixes)
         {
