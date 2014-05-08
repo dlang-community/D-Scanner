@@ -6,12 +6,13 @@
 module analysis.objectconst;
 
 import std.regex;
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 import analysis.base;
 
 /**
- * Checks for use of the deprecated "delete" keyword
+ * Checks that opEquals, opCmp, toHash, and toString are either const,
+ * immutable, or inout.
  */
 class ObjectConstCheck : BaseAnalyzer
 {
@@ -35,7 +36,7 @@ class ObjectConstCheck : BaseAnalyzer
 			&& !hasConst(d.functionDeclaration.memberFunctionAttributes)))
 		{
 			addErrorMessage(d.functionDeclaration.name.line,
-				d.functionDeclaration.name.column, "opCmp, ToHash, opEquals,"
+				d.functionDeclaration.name.column, "opCmp, toHash, opEquals,"
 					~ " and toString should be declared const");
 		}
 		d.accept(this);
@@ -51,7 +52,9 @@ class ObjectConstCheck : BaseAnalyzer
 	private static bool hasConst(const MemberFunctionAttribute[] attributes)
 	{
 		import std.algorithm;
-		return attributes.any!(a => a.tokenType == tok!"const");
+		return attributes.any!(a => a.tokenType == tok!"const"
+			|| a.tokenType == tok!"immutable"
+			|| a.tokenType == tok!"inout");
 	}
 
 	private static bool isInteresting(string name)

@@ -5,7 +5,6 @@
 
 module analysis.linespan;
 
-
 /**
  * Used for determining which lines to include as context in the generated HTML
  * report.

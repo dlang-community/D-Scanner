@@ -5,16 +5,21 @@
 
 module imports;
 
-import stdx.d.ast;
+import std.d.ast;
 import std.stdio;
+import std.container;
 
 class ImportPrinter : ASTVisitor
 {
+	this()
+	{
+		imports = new RedBlackTree!string;
+	}
+
 	override void visit(const SingleImport singleImport)
 	{
 		ignore = false;
 		singleImport.accept(this);
-		writeln();
 		ignore = true;
 	}
 
@@ -22,14 +27,18 @@ class ImportPrinter : ASTVisitor
 	{
 		if (ignore) return;
 		bool first = true;
+		string s;
 		foreach (ident; identifierChain.identifiers)
 		{
 			if (!first)
-				write(".");
-			write(ident.text);
+				s ~= ".";
+			s ~= ident.text;
 			first = false;
 		}
+		imports.insert(s);
 	}
+
+	RedBlackTree!string imports;
 
 	alias visit = ASTVisitor.visit;
 

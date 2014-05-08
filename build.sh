@@ -7,12 +7,13 @@ dmd\
 	astprinter.d\
 	formatter.d\
 	outliner.d\
-	stdx/*.d\
-	stdx/d/*.d\
+	std/*.d\
+	std/d/*.d\
 	analysis/*.d\
+	-version=DIP61\
 	-ofdscanner\
-	-m64 -g\
-	-O -release -noboundscheck -inline
+	-g\
+	-O -release
 
 #gdc\
 #	main.d\
@@ -23,8 +24,8 @@ dmd\
 #	astprinter.d\
 #	formatter.d\
 #	outliner.d\
-#	stdx/*.d\
-#	stdx/d/*.d\
+#	std/*.d\
+#	std/d/*.d\
 #	analysis/*.d\
 #	-O3 -frelease -fno-bounds-check\
 #	-odscanner\
@@ -38,8 +39,8 @@ dmd\
 #	astprinter.d\
 #	formatter.d\
 #	outliner.d\
-#	stdx/*.d\
-#	stdx/d/*.d\
+#	std/*.d\
+#	std/d/*.d\
 #	analysis/*.d\
 #	-O3 -release\
 #	-oq -of=dscanner\

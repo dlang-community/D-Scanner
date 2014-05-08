@@ -19,7 +19,7 @@ The following examples assume that we are analyzing a simple file called hellowo
 ### Token Count
 The "--tokenCount" or "-t" option prints the number of tokens in the given file
 
-	$ dscanner --tokencount helloworld.d
+	$ dscanner --tokenCount helloworld.d
 	20
 
 ### Import Listing
@@ -52,13 +52,15 @@ given source files.
 * Left side of a *foreach* or *foreach\_reverse* range expression is larger than the right.
 * Left side of a slice expression is larger than the right
 * Variable, struct, class, union, module, package, and interface names that do not comply with Phobos style guidelines
+* Struct constructors that have a single parameter that has a default argument.
+* Assign expressions where the left side of the '=' operator is the same as the right
+* 'if' statements where the 'else' block is the same as the 'if' block.
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".
 * Unused variables.
 * Unused imports.
 * Unused parameters (check is skipped if function is marked "override")
-* Struct constructors that have a single parameter that has a default argument.
 * Variables that are never modified and not declared immutable.
 * Public declarations not documented
 * Declaring opEquals without toHash
@@ -196,6 +198,6 @@ but not yet implemented.
 
 # Useful code
 The source code for DScanner has a complete lexer, parser, and abstact syntax
-tree library for D code under the stdx/d/ directory. It is intended that these
+tree library for D code under the std/d/ directory. It is intended that these
 modules eventually end up in Phobos, so feel free to use them for your own D
 tools.

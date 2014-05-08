@@ -5,9 +5,9 @@
 
 module ctags;
 
-import stdx.d.parser;
-import stdx.d.lexer;
-import stdx.d.ast;
+import std.d.parser;
+import std.d.lexer;
+import std.d.ast;
 import std.algorithm;
 import std.range;
 import std.stdio;
@@ -71,7 +71,9 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const TemplateDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.text, fileName, dec.name.line, context);
+		auto name = dec.eponymousTemplateDeclaration is null ? dec.name
+			: dec.eponymousTemplateDeclaration.name;
+		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(name.text, fileName, name.line, context);
 		auto c = context;
 		context = "\ttemplate:" ~ dec.name.text;
 		dec.accept(this);
@@ -84,6 +86,26 @@ class CTagsPrinter : ASTVisitor
 			dec.name.line, dec.parameters.parameters.length, context);
 		auto c = context;
 		context = "\tfunction:" ~ dec.name.text;
+		dec.accept(this);
+		context = c;
+	}
+
+	override void visit(const Constructor dec)
+	{
+		tagLines ~= "this\t%s\t%d;\"\tf\tarity:%d%s\n".format(fileName,
+			dec.line, dec.parameters.parameters.length, context);
+		auto c = context;
+		context = "\tfunction: this";
+		dec.accept(this);
+		context = c;
+	}
+
+	override void visit(const Destructor dec)
+	{
+		tagLines ~= "~this\t%s\t%d;\"\tf%s\n".format(fileName, dec.line,
+			context);
+		auto c = context;
+		context = "\tfunction: this";
 		dec.accept(this);
 		context = c;
 	}
@@ -132,6 +154,11 @@ class CTagsPrinter : ASTVisitor
 				d.name.line, context);
 		}
 		dec.accept(this);
+	}
+
+	override void visit(const Invariant dec)
+	{
+		tagLines ~= "invariant\t%s\t%d;\"\tv%s\n".format(fileName, dec.line, context);
 	}
 
 	alias visit = ASTVisitor.visit;

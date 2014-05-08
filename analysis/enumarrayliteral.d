@@ -5,8 +5,8 @@
 
 module analysis.enumarrayliteral;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 import analysis.base;
 
 void doNothing(string, size_t, size_t, string, bool) {}

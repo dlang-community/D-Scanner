@@ -2,17 +2,17 @@
 
 /**
  * MACROS:
- * GRAMMAR = <pre>$0</pre>
+ * GRAMMAR = <pre class="grammar">$0</pre>
  * RULEDEF = $(B $(DDOC_ANCHOR $0) $0)
  * RULE = $(LINK2 #$0, $0)
  * LITERAL = $(D_STRING $(I $0))
  */
 
-module stdx.d.parser;
+module std.d.parser;
 
-import stdx.d.lexer;
-import stdx.d.ast;
-import stdx.allocator;
+import std.d.lexer;
+import std.d.ast;
+import std.allocator;
 import std.conv;
 import std.algorithm;
 import std.array;
@@ -23,113 +23,7 @@ import std.string : format;
 // Caution: generates 180 megabytes of logging for std.datetime
 //version = std_parser_verbose;
 
-/**
- * The parse allocator is designed so that very large number of node instances
- * allocated by the parser can be deallocated all at once. This saves time by
- * preventing the GC from having to scan the nodes.
- */
-class ParseAllocator : CAllocator
-{
-public:
-
-    this(string name = "none")
-    {
-        this.name = name;
-    }
-
-    string name;
-
-    override void[] allocate(size_t size)
-    in
-    {
-        assert (size > 0);
-        assert (size < blockSize);
-    }
-    out (result)
-    {
-        assert (result.length == size);
-    }
-    body
-    {
-        enum size_t mask = ~ (cast(size_t) 7);
-        enum s = ((Node.sizeof - 1) & mask) + 8;
-        Node* current = root;
-        while (true)
-        {
-            while (current !is null)
-            {
-                immutable size_t blockLength = current.block.length;
-                immutable size_t oldUsed = current.used;
-                immutable size_t newUsed = oldUsed + size;
-                if (newUsed > blockLength)
-                    current = current.next;
-                else
-                {
-                    current.used = ((newUsed  - 1) & mask) + 8;
-//                    assert (current.used >= oldUsed + size);
-//                    assert (current.block.ptr + blockSize > current.block.ptr + newUsed);
-//                    assert (newUsed > oldUsed);
-//                    writefln("Allocating 0x%012x - 0x%012x",
-//                        cast(size_t) current.block.ptr + oldUsed,
-//                        cast(size_t) current.block.ptr + newUsed);
-                    current.block[oldUsed .. newUsed] = 0;
-                    return current.block[oldUsed .. newUsed];
-                }
-            }
-            import core.memory;
-//            stderr.writeln("Allocating new block while processing ", name);
-            ubyte* newBlock = cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN);
-//            assert (newBlock !is null);
-//            stderr.writefln("Memory spans from 0x%012x to 0x%012x",
-//                cast(size_t) newBlock, cast(size_t) newBlock + blockSize);
-            root = new Node (root, s, newBlock[0 .. blockSize]);
-//            assert (root.block.length == blockSize);
-            current = root;
-        }
-        assert (false);
-    }
-
-    /**
-     * Deallocates all memory held by this allocator. All node instances created
-     * by a parser using this allocator instance are invalid after calling this
-     * function.
-     */
-    override bool deallocateAll()
-    {
-        deallocateRecursive(root);
-        root = null;
-        return true;
-    }
-
-    override bool expand(ref void[], size_t) { return false; }
-    override bool reallocate(ref void[], size_t) { return false; }
-    override bool deallocate(void[]) { return false; }
-
-private:
-
-    void deallocateRecursive(Node* node)
-    {
-        import core.memory;
-//        import std.c.stdlib;
-//        node.block[] = 0;
-//        free(node.block.ptr);
-        GC.free(node.block.ptr);
-        if (node.next !is null)
-            deallocateRecursive(node.next);
-        node.next = null;
-    }
-
-    Node* root;
-
-    enum blockSize = 1024 * 1024 * 4;
-
-    struct Node
-    {
-        Node* next;
-        size_t used;
-        ubyte[] block;
-    }
-}
+alias ParseAllocator = CAllocatorImpl!(Mallocator);
 
 /**
  * Params:
@@ -219,7 +113,7 @@ class Parser
                 node.linkageAttribute = parseLinkageAttribute();
             }
             warn("Prefer the new \"'alias' identifier '=' type ';'\" syntax"
-				~ " to the  old \"'alias' type identifier ';'\" syntax");
+                ~ " to the  old \"'alias' type identifier ';'\" syntax");
             if ((node.type = parseType()) is null) return null;
             auto ident = expect(tok!"identifier");
             if (ident is null)
@@ -431,7 +325,7 @@ alias core.sys.posix.stdio.fileno fileno;
      * Parses an ArrayLiteral
      *
      * $(GRAMMAR $(RULEDEF arrayLiteral):
-     *     $(LITERAL '[') ($(RULE assignExpression) ($(LITERAL ',') $(RULE assignExpression))*)? $(LITERAL ']')
+     *     $(LITERAL '[') $(RULE argumentList)? $(LITERAL ']')
      *     ;)
      */
     ArrayLiteral parseArrayLiteral()
@@ -780,6 +674,8 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!AssignExpression;
+        node.line = current().line;
+        node.column = current().column;
         node.ternaryExpression = parseTernaryExpression();
         if (currentIsOneOf(tok!"=", tok!">>>=",
             tok!">>=", tok!"<<=",
@@ -1574,6 +1470,8 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         auto t = expect(tok!"this");
         if (t is null) return null;
         node.location = t.index;
+        node.line = t.line;
+        node.column = t.column;
         auto p = peekPastParens();
         bool isTemplate = false;
         if (p !is null && p.type == tok!"(")
@@ -2068,7 +1966,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
      * Parses a Destructor
      *
      * $(GRAMMAR $(RULEDEF destructor):
-     *     $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') ($(RULE functionBody) | $(LITERAL ';'))
+     *     $(LITERAL '~') $(LITERAL 'this') $(LITERAL '$(LPAREN)') $(LITERAL '$(RPAREN)') $(RULE memberFunctionAttribute)* ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
     Destructor parseDestructor()
@@ -2078,13 +1976,22 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         node.comment = comment;
         comment = null;
         if (expect(tok!"~") is null) return null;
+        node.index = current.index;
+        node.line = current.line;
+        node.column = current.column;
         if (expect(tok!"this") is null) return null;
         if (expect(tok!"(") is null) return null;
         if (expect(tok!")") is null) return null;
         if (currentIs(tok!";"))
             advance();
         else
+        {
+            MemberFunctionAttribute[] memberFunctionAttributes;
+            while(moreTokens() && currentIsMemberFunctionAttribute())
+                memberFunctionAttributes ~= parseMemberFunctionAttribute();
+            node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
             node.functionBody = parseFunctionBody();
+        }
         return node;
     }
 
@@ -2377,7 +2284,7 @@ class ClassFour(A, B) if (someTest()) : Super {}}c;
         {
             if (!canBeRange)
             {
-                error(`Cannot have more than one foreach varible for a foreach range statement`);
+                error(`Cannot have more than one foreach variable for a foreach range statement`);
                 return null;
             }
             advance();
@@ -2878,6 +2785,8 @@ body {} // six
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!IfStatement;
+        node.line = current().line;
+        node.column = current().column;
         if (expect(tok!"if") is null) return null;
         node.startIndex = current().index;
         if (expect(tok!"(") is null) return null;
@@ -3278,6 +3187,8 @@ interface "Four"
     Invariant parseInvariant()
     {
         auto node = allocate!Invariant;
+        node.index = current.index;
+        node.line = current.line;
         if (expect(tok!"invariant") is null) return null;
         if (currentIs(tok!"("))
         {
@@ -3491,7 +3402,7 @@ invariant() foo();
      * Parses a LinkageAttribute
      *
      * $(GRAMMAR $(RULEDEF linkageAttribute):
-     *     $(LITERAL 'extern') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) $(LITERAL '++')? $(LITERAL '$(RPAREN)')
+     *     $(LITERAL 'extern') $(LITERAL '$(LPAREN)') $(LITERAL Identifier) ($(LITERAL '++') ($(LITERAL ',') $(RULE identifierChain))?)? $(LITERAL '$(RPAREN)')
      *     ;)
      */
     LinkageAttribute parseLinkageAttribute()
@@ -3507,6 +3418,11 @@ invariant() foo();
         {
             advance();
             node.hasPlusPlus = true;
+            version(DIP61) if (currentIs(tok!","))
+            {
+                advance();
+                node.identifierChain = parseIdentifierChain();
+            }
         }
         expect(tok!")");
         return node;
@@ -3645,7 +3561,7 @@ invariant() foo();
         mixin(traceEnterAndExit!(__FUNCTION__));
         Module m = allocate!Module;
         if (currentIs(tok!"scriptLine"))
-            advance();
+            m.scriptLine = advance();
         if (currentIs(tok!"module"))
             m.moduleDeclaration = parseModuleDeclaration();
         while (moreTokens())
@@ -3879,6 +3795,7 @@ invariant() foo();
      *       $(RULE assignExpression)
      *     | $(RULE arrayInitializer)
      *     | $(RULE structInitializer)
+     *     | $(RULE functionBody)
      *     ;)
      */
     NonVoidInitializer parseNonVoidInitializer()
@@ -3890,6 +3807,8 @@ invariant() foo();
             auto b = peekPastBraces();
             if (b !is null && (b.type == tok!"("))
                 node.assignExpression = parseAssignExpression();
+            else if (hasMagicDelimiter!(tok!"{", tok!";")())
+                node.functionBody = parseFunctionBody();
             else
                 node.structInitializer = parseStructInitializer();
         }
@@ -3907,8 +3826,15 @@ invariant() foo();
             else
                 node.assignExpression = parseAssignExpression();
         }
+        else if (currentIsOneOf(tok!"in", tok!"out", tok!"body"))
+            node.functionBody = parseFunctionBody();
         else
             node.assignExpression = parseAssignExpression();
+        if (node.assignExpression is null && node.arrayInitializer is null
+        && node.structInitializer is null && node.functionBody is null)
+        {
+            return null;
+        }
         return node;
     }
 
@@ -4508,10 +4434,14 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!ReturnStatement;
-        if (expect(tok!"return") is null) return null;
+        auto start = expect(tok!"return");
+        if (start is null) return null;
+        node.startLocation = start.index;
         if (!currentIs(tok!";"))
             node.expression = parseExpression();
-        if (expect(tok!";") is null) return null;
+        auto semicolon = expect(tok!";");
+        if (semicolon is null) return null;
+        node.endLocation = semicolon.index;
         return node;
     }
 
@@ -4619,8 +4549,18 @@ q{(int a, ...)
         if (!currentIs(tok!"]"))
         {
             node.lower = parseAssignExpression();
+            if (node.lower is null)
+            {
+                error("assignExpression expected");
+                return null;
+            }
             expect(tok!"..");
             node.upper = parseAssignExpression();
+            if (node.upper is null)
+            {
+                error("assignExpression expected");
+                return null;
+            }
         }
         if (expect(tok!"]") is null) return null;
         return node;
@@ -4874,8 +4814,13 @@ q{(int a, ...)
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!StructInitializer;
         expect(tok!"{");
-        node.structMemberInitializers = parseStructMemberInitializers();
-        expect(tok!"}");
+        if (currentIs(tok!"}"))
+            advance();
+        else
+        {
+            node.structMemberInitializers = parseStructMemberInitializers();
+            expect(tok!"}");
+        }
         return node;
     }
 
@@ -6069,6 +6014,7 @@ q{doStuff(5)}c;
      *
      * $(GRAMMAR $(RULEDEF variableDeclaration):
      *       $(RULE _type) $(RULE declarator) ($(LITERAL ',') $(RULE declarator))* $(LITERAL ';')
+     *     | $(RULE _type) $(RULE declarator) $(LITERAL '=') $(RULE functionBody)
      *     | $(RULE autoDeclaration)
      *     ;)
      */
@@ -6096,8 +6042,18 @@ q{doStuff(5)}c;
                 break;
         }
         node.declarators = ownArray(declarators);
-        expect(tok!";");
-        return node;
+//        if (node.declarators.length == 1
+//            && node.declarators[0].initializer !is null
+//            && node.declarators[0].initializer.nonVoidInitializer !is null
+//            && node.declarators[0].initializer.nonVoidInitializer.functionBody !is null)
+//        {
+//            return node;
+//        }
+//        else
+        {
+            expect(tok!";");
+            return node;
+        }
     }
 
     /**
@@ -6248,7 +6204,7 @@ q{doStuff(5)}c;
         mixin(traceEnterAndExit!(__FUNCTION__));
         if (startsWith(tok!"[", tok!"]"))
             return true;
-        return hasMagicDelimiter!(tok!"..")();
+        return hasMagicDelimiter!(tok!"[", tok!"..")();
     }
 
     void setTokens(const(Token)[] tokens)
@@ -6271,6 +6227,7 @@ protected:
         if (allocator is null)
             return from;
         T[] to = cast(T[]) allocator.allocate(T.sizeof * from.length);
+        assert (to.length == from.length, format("from.length = %d, to.length = %d", from.length, to.length));
         to[] = from[];
         return to;
     }
@@ -6282,6 +6239,7 @@ protected:
             return new T(args);
         enum numBytes = __traits(classInstanceSize, T);
         void[] mem = allocator.allocate(numBytes);
+        assert (mem.length == numBytes, format("%d", mem.length));
         T t = emplace!T(mem, args);
         assert (cast(void*) t == mem.ptr, "%x, %x".format(cast(void*) t, mem.ptr));
         return t;
@@ -6306,22 +6264,25 @@ protected:
 
     bool isAssociativeArrayLiteral()
     {
-        return hasMagicDelimiter!(tok!":")();
+        auto b = setBookmark();
+        scope(exit) goToBookmark(b);
+        advance();
+        return !currentIs(tok!"]") && parseExpression() !is null && currentIs(tok!":");
     }
 
-    bool hasMagicDelimiter(alias T)()
+    bool hasMagicDelimiter(alias L, alias T)()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto i = index;
         scope(exit) index = i;
-        assert(currentIs(tok!"["));
+        assert(currentIs(L));
         advance();
         while (moreTokens()) switch (current.type)
         {
         case tok!"{": skipBraces(); break;
         case tok!"(": skipParens(); break;
         case tok!"[": skipBrackets(); break;
-        case tok!"]": return false;
+        case tok!"]": case tok!"}": return false;
         case T: return true;
         default: advance(); break;
         }
@@ -6392,8 +6353,9 @@ protected:
         case tok!"abstract":
         case tok!"pure":
         case tok!"nothrow":
-        mixin(BASIC_TYPE_CASES);
             return true;
+        mixin(BASIC_TYPE_CASES);
+            return !peekIs(tok!".");
         case tok!"case":
         case tok!"default":
         case tok!"return":
@@ -6478,6 +6440,14 @@ protected:
                     return false;
                 return true;
             }
+            return true;
+        case tok!"pragma":
+            auto b = setBookmark();
+            scope(exit) goToBookmark(b);
+            advance();
+            auto past = peekPastParens();
+            if (past is null || *past == tok!";")
+                return false;
             return true;
         case tok!"deprecated":
         case tok!"private":

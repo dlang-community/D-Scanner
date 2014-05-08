@@ -13,9 +13,9 @@ import std.getopt;
 import std.path;
 import std.stdio;
 import std.range;
-import stdx.lexer;
-import stdx.d.lexer;
-import stdx.d.parser;
+import std.lexer;
+import std.d.lexer;
+import std.d.parser;
 
 import highlighter;
 import stats;
@@ -101,6 +101,7 @@ int main(string[] args)
 		config.whitespaceBehavior = WhitespaceBehavior.include;
 		config.stringBehavior = StringBehavior.source;
 		config.commentBehavior = CommentBehavior.include;
+		config.specialTokenBehavior = SpecialTokenBehavior.include;
 		auto tokens = byToken(bytes, config, cache);
 		if (highlight)
 		{
@@ -169,11 +170,14 @@ int main(string[] args)
 		else if (imports || ast || outline)
 		{
 			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1]);
+			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1],
+				null, &doNothing);
 			if (imports)
 			{
 				auto visitor = new ImportPrinter;
 				visitor.visit(mod);
+				foreach (imp; visitor.imports[])
+					writeln(imp);
 			}
 			else if (ast)
 			{
@@ -291,3 +295,5 @@ options:
         directories and its sub-directories.`,
         programName);
 }
+
+void doNothing(string, size_t, size_t, string, bool) {}

@@ -1,12 +1,12 @@
-module stdx.d.lexer;
+module std.d.lexer;
 
 import std.typecons;
 import std.typetuple;
 import std.array;
 import std.algorithm;
 import std.range;
-import stdx.lexer;
-public import stdx.lexer : StringCache;
+import std.lexer;
+public import std.lexer : StringCache;
 
 private enum operators = [
 	",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=",
@@ -41,7 +41,7 @@ private enum dynamicTokens = [
 	"whitespace", "doubleLiteral", "floatLiteral", "idoubleLiteral",
 	"ifloatLiteral", "intLiteral", "longLiteral", "realLiteral",
 	"irealLiteral", "uintLiteral", "ulongLiteral", "characterLiteral",
-	"dstringLiteral", "stringLiteral", "wstringLiteral", "scriptLine"
+	"dstringLiteral", "stringLiteral", "wstringLiteral"
 ];
 
 private enum pseudoTokenHandlers = [
@@ -91,7 +91,7 @@ private enum extraFields = q{
 		return 0;
 	}
 };
-public alias Token = stdx.lexer.TokenStructure!(IdType, extraFields);
+public alias Token = std.lexer.TokenStructure!(IdType, extraFields);
 
 /**
  * Configure string lexing behavior
@@ -119,6 +119,18 @@ public enum WhitespaceBehavior : ubyte
 	/// Whitespace is treated as a token
 	include
 }
+
+/**
+ * Configure special token handling behavior
+ */
+public enum SpecialTokenBehavior : ubyte
+{
+	/// Special tokens are skipped
+	skip,
+	/// Special tokens are treated as a token
+	include
+}
+
 /**
  * Configure comment handling behavior
  */
@@ -136,6 +148,7 @@ public struct LexerConfig
 	StringBehavior stringBehavior;
 	WhitespaceBehavior whitespaceBehavior;
 	CommentBehavior commentBehavior;
+	SpecialTokenBehavior specialTokenBehavior;
 }
 
 public bool isBasicType(IdType type) nothrow pure @safe
@@ -412,8 +425,8 @@ public struct DLexer
 
 	private static bool isDocComment(string comment) pure nothrow @safe
 	{
-		return comment.length >= 3 && (comment[2] == '/'
-			|| comment[2] == '*' || comment[2] == '+');
+		return comment.length >= 3 && (comment[0 .. 3] == "///"
+			|| comment[0 .. 3] == "/++" || comment[0 .. 3] == "/**");
 	}
 
 	public void popFront() pure
@@ -434,6 +447,7 @@ public struct DLexer
 					}
 					do _popFront(); while (front == tok!"comment");
 					if (front == tok!"whitespace") goto case tok!"whitespace";
+					if (front == tok!"specialTokenSequence") goto case tok!"specialTokenSequence";
 				}
 				break;
 			case tok!"whitespace":
@@ -441,6 +455,15 @@ public struct DLexer
 				{
 					do _popFront(); while (front == tok!"whitespace");
 					if (front == tok!"comment") goto case tok!"comment";
+					if (front == tok!"specialTokenSequence") goto case tok!"specialTokenSequence";
+				}
+				break;
+			case tok!"specialTokenSequence":
+				if (config.specialTokenBehavior == SpecialTokenBehavior.skip)
+				{
+					do _popFront(); while (front == tok!"specialTokenSequence");
+					if (front == tok!"comment") goto case tok!"comment";
+					if (front == tok!"whitespace") goto case tok!"whitespace";
 				}
 				break;
 			default:
@@ -557,7 +580,7 @@ public struct DLexer
 	Token lexNumber() pure nothrow
 	{
 		mixin (tokenStart);
-		if (range.canPeek(1) && range.front == '0')
+		if (range.front == '0' && range.canPeek(1))
 		{
 			auto ahead = range.peek(1)[1];
 			switch (ahead)
@@ -742,13 +765,18 @@ public struct DLexer
 					// "double identifier".
 					if (range.canPeek(1))
 					{
-						switch (range.peekAt(1))
+						auto ch = range.peekAt(1);
+						if (ch <= 0x2f
+							|| (ch >= '0' && ch <= '9')
+							|| (ch >= ':' && ch <= '@')
+							|| (ch >= '[' && ch <= '^')
+							|| (ch >= '{' && ch <= '~')
+							|| ch == '`' || ch == '_')
 						{
-						case '0': .. case '9':
 							goto doubleLiteral;
-						default:
-							break decimalLoop;
 						}
+						else
+							break decimalLoop;
 					}
 					else
 					{

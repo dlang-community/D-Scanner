@@ -5,8 +5,8 @@
 
 module analysis.fish;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 import analysis.base;
 
 /**
@@ -24,6 +24,7 @@ class FloatOperatorCheck : BaseAnalyzer
 	override void visit(const RelExpression r)
 	{
 		if (r.operator == tok!"<>"
+			|| r.operator == tok!"<>="
 			|| r.operator == tok!"!<>"
 			|| r.operator == tok!"!>"
 			|| r.operator == tok!"!<"

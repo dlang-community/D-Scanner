@@ -1,7 +1,7 @@
 module formatter;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 
 /**
  * The only brace styles worth using.
@@ -489,6 +489,7 @@ class Formatter(Sink)
 		foreach (attribute; parameter.parameterAttributes)
 		{
 			sink.put(str(attribute));
+			sink.put(" ");
 		}
 		if (parameter.type !is null)
 			format(parameter.type);
@@ -682,16 +683,11 @@ class Formatter(Sink)
 
 	void format(const Type type)
 	{
-        bool first = true;
         foreach (constructor; type.typeConstructors)
         {
-            if (first)
-                sink.put(" ");
-            first = false;
             sink.put(str(constructor));
+			sink.put(" ");
         }
-        if (type.typeConstructors.length > 0)
-            sink.put(" ");
 		format(type.type2);
         foreach (suffix; type.typeSuffixes)
         {

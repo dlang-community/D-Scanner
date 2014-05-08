@@ -33,7 +33,7 @@
  * )
  * Examples:
  * $(UL
- * $(LI A _lexer for D is available $(LINK2 https://github.com/Hackerpilot/Dscanner/blob/master/stdx/d/lexer.d, here).)
+ * $(LI A _lexer for D is available $(LINK2 https://github.com/Hackerpilot/Dscanner/blob/master/std/d/lexer.d, here).)
  * $(LI A _lexer for Lua is available $(LINK2 https://github.com/Hackerpilot/lexer-demo/blob/master/lualexer.d, here).)
  * $(LI A _lexer for JSON is available $(LINK2 https://github.com/Hackerpilot/lexer-demo/blob/master/jsonlexer.d, here).)
  * )
@@ -112,7 +112,7 @@
  * Source: $(PHOBOSSRC std/_lexer.d)
  */
 
-module stdx.lexer;
+module std.lexer;
 
 /**
  * Template for determining the type used for a token type. Selects the smallest
@@ -248,6 +248,11 @@ template TokenId(IdType, alias staticTokens, alias dynamicTokens,
 struct TokenStructure(IdType, string extraFields = "")
 {
 public:
+
+    bool opEquals(ref const typeof(this) other) const pure nothrow @safe
+    {
+        return this.type == other.type && this.text == other.text;
+    }
 
     /**
      * Returs: true if the token has the given type, false otherwise.
@@ -420,6 +425,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 
     private static string generateCaseStatements()
     {
+        import std.algorithm;
         import std.conv;
         import std.string;
         import std.range;
@@ -443,6 +449,7 @@ mixin template Lexer(Token, alias defaultTokenFunction,
 
     private static string printCase(string[] tokens, string[] pseudoTokens)
     {
+        import std.algorithm;
         string[] t = tokens;
         string[] sortedTokens = stupidToArray(sort!"a.length > b.length"(t));
         import std.conv;
@@ -727,7 +734,8 @@ struct LexerRange
     }
 
     /**
-     * Implements the algorithm _popFrontN more efficiently.
+     * Implements the algorithm _popFrontN more efficiently. This function does
+     * not detect or handle newlines.
      */
     void popFrontN(size_t n) pure nothrow @safe
     {
@@ -765,9 +773,6 @@ struct LexerRange
     size_t line;
 }
 
-/**
- * FREAKIN' MAAAGIC
- */
 shared struct StringCache
 {
     import core.sync.mutex;
@@ -782,6 +787,20 @@ public:
     {
         buckets = cast(shared) new Node*[bucketCount];
         allocating = false;
+    }
+
+    ~this()
+    {
+        import core.memory;
+        shared(Block)* current = rootBlock;
+        while (current !is null)
+        {
+            shared(Block)* prev = current;
+            current = current.next;
+            free(cast(void*) prev.bytes.ptr);
+        }
+        rootBlock = null;
+        buckets = [];
     }
 
     /**
@@ -854,7 +873,6 @@ private:
         if (bytes is null || bytes.length == 0)
             return "";
         import core.atomic;
-        import core.memory;
         shared ubyte[] mem;
         shared(Node*)* oldBucketRoot = &buckets[hash % buckets.length];
         while (true)
@@ -928,7 +946,7 @@ private:
         import core.atomic;
         import core.memory;
         if (numBytes > (blockSize / 4))
-            return cast(shared) (cast(ubyte*) GC.malloc(numBytes, GC.BlkAttr.NO_SCAN))[0 .. numBytes];
+            return cast(shared) (cast(ubyte*) malloc(numBytes))[0 .. numBytes];
         shared(Block)* r = rootBlock;
         while (true)
         {
@@ -949,7 +967,7 @@ private:
             if (cas(&allocating, false, true))
             {
                 shared(Block)* b = new shared Block(
-                    cast(shared) (cast(ubyte*) GC.malloc(blockSize, GC.BlkAttr.NO_SCAN))[0 .. blockSize],
+                    cast(shared) (cast(ubyte*) malloc(blockSize))[0 .. blockSize],
                     numBytes,
                     r);
                 atomicStore(rootBlock, b);
@@ -1048,3 +1066,6 @@ private:
     shared(Node)*[] buckets;
     shared(Block)* rootBlock;
 }
+
+private extern(C) void* malloc(size_t) nothrow pure;
+private extern(C) void free(void*) nothrow pure;

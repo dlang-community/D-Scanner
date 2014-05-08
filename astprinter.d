@@ -3,8 +3,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-import stdx.d.lexer;
-import stdx.d.ast;
+import std.d.lexer;
+import std.d.ast;
 import std.stdio;
 import std.string;
 import std.array;
@@ -133,7 +133,7 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<assignExpression>");
 		else
 			output.writeln("<assignExpression operator=\"",
-				str(assignExpression.operator), "\">");
+				xmlEscape(str(assignExpression.operator)), "\">");
 		assignExpression.accept(this);
 		output.writeln("</assignExpression>");
 	}
@@ -479,7 +479,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const ForStatement forStatement)
 	{
 		output.writeln("<forStatement>");
-		if (forStatement.declarationOrStatement !is null)
+		if (forStatement.initialization !is null)
 		{
 			output.writeln("<initialization>");
 			visit(forStatement.initialization);
@@ -497,7 +497,8 @@ class XMLPrinter : ASTVisitor
 			visit(forStatement.increment);
 			output.writeln("</increment>");
 		}
-		visit(forStatement.declarationOrStatement);
+		if (forStatement.declarationOrStatement !is null)
+			visit(forStatement.declarationOrStatement);
 		output.writeln("</forStatement>");
 	}
 
@@ -592,7 +593,8 @@ class XMLPrinter : ASTVisitor
 		{
 			output.writeln("<gotoStatement>");
 			output.writeln("<case>");
-			visit(gotoStatement.expression);
+			if (gotoStatement.expression)
+				visit(gotoStatement.expression);
 			output.writeln("</case>");
 			output.writeln("</gotoStatement>");
 		}
@@ -665,10 +667,10 @@ class XMLPrinter : ASTVisitor
 	override void visit(const ImportBind importBind)
 	{
 		if (importBind.right.type == tok!"")
-			output.writeln("<importBind symbol=\"", importBind.left.text, "\">");
+			output.writeln("<importBind symbol=\"", importBind.left.text, "\"/>");
 		else
 			output.writeln("<importBind symbol=\"", importBind.right.text,
-				"\" rename=\"", importBind.left.text, "\">");
+				"\" rename=\"", importBind.left.text, "\"/>");
 	}
 
 	override void visit(const ImportBindings importBindings)
@@ -779,7 +781,7 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</key>");
 		output.writeln("<value>");
 		visit(keyValuePair.value);
-		output.writeln("<value>");
+		output.writeln("</value>");
 		output.writeln("</keyValuePair>");
 	}
 
@@ -1312,8 +1314,9 @@ class XMLPrinter : ASTVisitor
 		case tok!"stringLiteral": tagName = "stringLiteral"; break;
 		case tok!"dstringLiteral": tagName = "dstringLiteral"; break;
 		case tok!"wstringLiteral": tagName = "wstringLiteral"; break;
+		case tok!"scriptLine": tagName = "scriptLine"; break;
 		case tok!"$": output.writeln("<dollar/>"); return;
-		default: output.writeln("<", str(token.type), "/>"); return;
+		default: tagName = "token"; break;
 		}
 		output.writeln("<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
 	}

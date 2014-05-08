@@ -5,8 +5,8 @@
 
 module analysis.pokemon;
 
-import stdx.d.ast;
-import stdx.d.lexer;
+import std.d.ast;
+import std.d.lexer;
 import analysis.base;
 
 /**
