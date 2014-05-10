@@ -399,7 +399,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmAndExp parseAsmAndExp()
     {
-        auto node = allocate!AsmAndExp;
+//        auto node = allocate!AsmAndExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -413,7 +413,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmBrExp parseAsmBrExp()
     {
-        auto node = allocate!AsmBrExp;
+//        auto node = allocate!AsmBrExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -426,7 +426,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmEqualExp parseAsmEqualExp()
     {
-        auto node = allocate!AsmEqualExp;
+//        auto node = allocate!AsmEqualExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -439,7 +439,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmExp parseAsmExp()
     {
-        auto node = allocate!AsmExp;
+//        auto node = allocate!AsmExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -457,7 +457,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmInstruction parseAsmInstruction()
     {
-        auto node = allocate!AsmInstruction;
+//        auto node = allocate!AsmInstruction;
         assert (false, "asm"); // TODO asm
     }
 
@@ -470,7 +470,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmLogAndExp parseAsmLogAndExp()
     {
-        auto node = allocate!AsmLogAndExp;
+//        auto node = allocate!AsmLogAndExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -483,7 +483,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmLogOrExp parseAsmLogOrExp()
     {
-        auto node = allocate!AsmLogOrExp;
+//        auto node = allocate!AsmLogOrExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -496,7 +496,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmMulExp parseAsmMulExp()
     {
-        auto node = allocate!AsmMulExp;
+//        auto node = allocate!AsmMulExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -509,7 +509,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmOrExp parseAsmOrExp()
     {
-        auto node = allocate!AsmOrExp;
+//        auto node = allocate!AsmOrExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -526,7 +526,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmPrimaryExp parseAsmPrimaryExp()
     {
-        auto node = allocate!AsmPrimaryExp;
+//        auto node = allocate!AsmPrimaryExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -539,7 +539,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmRelExp parseAsmRelExp()
     {
-        auto node = allocate!AsmRelExp;
+//        auto node = allocate!AsmRelExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -552,7 +552,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmShiftExp parseAsmShiftExp()
     {
-        auto node = allocate!AsmShiftExp;
+//        auto node = allocate!AsmShiftExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -588,7 +588,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmTypePrefix parseAsmTypePrefix()
     {
-        auto node = allocate!AsmTypePrefix;
+//        auto node = allocate!AsmTypePrefix;
         assert (false, "asm"); // TODO asm
     }
 
@@ -607,7 +607,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmUnaExp parseAsmUnaExp()
     {
-        auto node = allocate!AsmUnaExp;
+//        auto node = allocate!AsmUnaExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -620,7 +620,7 @@ alias core.sys.posix.stdio.fileno fileno;
      */
     AsmXorExp parseAsmXorExp()
     {
-        auto node = allocate!AsmXorExp;
+//        auto node = allocate!AsmXorExp;
         assert (false, "asm"); // TODO asm
     }
 
@@ -3847,7 +3847,7 @@ invariant() foo();
      */
     Operands parseOperands()
     {
-        auto node = allocate!Operands;
+//        auto node = allocate!Operands;
         assert (false, "asm"); // TODO asm
     }
 
@@ -5969,13 +5969,11 @@ q{doStuff(5)}c;
         auto node = allocate!UnionDeclaration;
         // grab line number even if it's anonymous
         auto l = expect(tok!"union").line;
-        bool templated = false;
         if (currentIs(tok!"identifier"))
         {
             node.name = advance();
             if (currentIs(tok!"("))
             {
-                templated = true;
                 node.templateParameters = parseTemplateParameters();
                 if (currentIs(tok!"if"))
                     node.constraint = parseConstraint();
@@ -6763,8 +6761,8 @@ protected:
         index = i;
     }
 
-    version (unittest) static void doNothingErrorFunction(string fileName,
-        size_t line, size_t column, string message, bool isError) {}
+    version (unittest) static void doNothingErrorFunction(string,
+        size_t, size_t, string, bool) {}
 
     version (unittest) static Parser getParserForUnittest(string sourceCode,
         string testName)
@@ -6843,7 +6841,7 @@ protected:
     }
     else
     {
-        void trace(lazy string message) {}
+        void trace(lazy string) {}
     }
 
     enum string BASIC_TYPE_CASES = q{

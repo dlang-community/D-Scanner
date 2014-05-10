@@ -31,7 +31,6 @@ int main(string[] args)
 	bool highlight;
 	bool ctags;
 	bool recursive;
-	bool format;
 	bool help;
 	bool tokenCount;
 	bool syntaxCheck;

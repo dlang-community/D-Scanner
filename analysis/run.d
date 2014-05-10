@@ -21,6 +21,7 @@ import analysis.objectconst;
 import analysis.range;
 import analysis.constructors;
 import analysis.ifelsesame;
+import analysis.unused;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -73,6 +74,7 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 		checks ~= new BackwardsRangeCheck(fileName);
 		checks ~= new IfElseSameCheck(fileName);
 		checks ~= new ConstructorCheck(fileName);
+		checks ~= new UnusedVariableCheck(fileName);
 
 		foreach (check; checks)
 		{
@@ -84,7 +86,7 @@ void analyze(File output, string[] fileNames, bool staticAnalyze = true)
 			foreach (message; check.messages)
 				set.insert(message);
 		foreach (message; set[])
-			writefln("%s(%d:%d)[warn]: %s", message.fileName, message.line,
+			output.writefln("%s(%d:%d)[warn]: %s", message.fileName, message.line,
 				message.column, message.message);
 		p.deallocateAll();
 	}
