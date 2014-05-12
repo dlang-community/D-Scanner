@@ -34,6 +34,6 @@ class NumberStyleCheck : BaseAnalyzer
 		}
 	}
 
-	auto badBinaryRegex = ctRegex!(`0b[01]{9,}`);
-	auto badDecimalRegex = ctRegex!(`\d{5,}`);
+	auto badBinaryRegex = ctRegex!(`^0b[01]{9,}`);
+	auto badDecimalRegex = ctRegex!(`^\d{5,}`);
 }

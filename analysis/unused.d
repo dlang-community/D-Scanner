@@ -39,45 +39,36 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const FunctionDeclaration functionDec)
 	{
-		if (functionDec.functionBody is null)
+		pushScope();
+		if (isOverride)
+			functionDec.functionBody.accept(this);
+		else if (functionDec.functionBody !is null)
 		{
-			functionDec.accept(this);
+			functionDec.parameters.accept(this);
+			functionDec.functionBody.accept(this);
 		}
-		else if (!isOverride)
+		popScope();
+	}
+
+	mixin template PartsUseVariables(NodeType)
+	{
+		override void visit(const NodeType node)
 		{
-			pushScope();
-			functionDec.accept(this);
-			popScope();
+			interestDepth++;
+			node.accept(this);
+			interestDepth--;
 		}
 	}
 
-	override void visit(const AssertExpression assertExpression)
-	{
-		interestDepth++;
-		assertExpression.accept(this);
-		interestDepth--;
-	}
-
-	override void visit(const FunctionCallExpression functionCallExpression)
-	{
-		interestDepth++;
-		functionCallExpression.accept(this);
-		interestDepth--;
-	}
-
-	override void visit(const NewExpression newExpression)
-	{
-		interestDepth++;
-		newExpression.accept(this);
-		interestDepth--;
-	}
-
-	override void visit(const TemplateArgumentList argumentList)
-	{
-		interestDepth++;
-		argumentList.accept(this);
-		interestDepth--;
-	}
+	mixin PartsUseVariables!AssertExpression;
+	mixin PartsUseVariables!FunctionCallExpression;
+	mixin PartsUseVariables!NewExpression;
+	mixin PartsUseVariables!TemplateArgumentList;
+	mixin PartsUseVariables!MixinExpression;
+	mixin PartsUseVariables!ArgumentList;
+	mixin PartsUseVariables!Initializer;
+	mixin PartsUseVariables!SliceExpression;
+	mixin PartsUseVariables!StaticIfCondition;
 
 	override void visit(const SwitchStatement switchStatement)
 	{
@@ -138,8 +129,6 @@ class UnusedVariableCheck : BaseAnalyzer
 			ifStatement.elseStatement.accept(this);
 	}
 
-	override void visit(const TypeofExpression typeofExpression) {}
-
 	override void visit(const ForeachStatement foreachStatement)
 	{
 		if (foreachStatement.low !is null)
@@ -157,20 +146,6 @@ class UnusedVariableCheck : BaseAnalyzer
 		foreachStatement.accept(this);
 	}
 
-	override void visit(const ArgumentList argumentList)
-	{
-		interestDepth++;
-		argumentList.accept(this);
-		interestDepth--;
-	}
-
-	override void visit(const Initializer initializer)
-	{
-		interestDepth++;
-		initializer.accept(this);
-		interestDepth--;
-	}
-
 	override void visit(const AssignExpression assignExp)
 	{
 		assignExp.ternaryExpression.accept(this);
@@ -184,7 +159,6 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const TemplateDeclaration templateDeclaration)
 	{
-		bool addScope = templateDeclaration.declarations.length > 0;
 		auto inAgg = inAggregateScope;
 		inAggregateScope = true;
 		templateDeclaration.accept(this);
@@ -243,18 +217,19 @@ class UnusedVariableCheck : BaseAnalyzer
 		variableDeclaration.accept(this);
 	}
 
-	override void visit(const SliceExpression sliceExpression)
-	{
-		interestDepth++;
-		sliceExpression.accept(this);
-		interestDepth--;
-	}
-
 	override void visit(const AutoDeclaration autoDeclaration)
 	{
 		foreach (t; autoDeclaration.identifiers)
 			this.variableDeclared(t.text, t.line, t.column, false, false);
 		autoDeclaration.accept(this);
+	}
+
+	override void visit(const WithStatement withStatetement)
+	{
+		interestDepth++;
+		withStatetement.expression.accept(this);
+		interestDepth--;
+		withStatetement.statementNoCaseNoDefault.accept(this);
 	}
 
 	override void visit(const Parameter parameter)
@@ -268,6 +243,12 @@ class UnusedVariableCheck : BaseAnalyzer
 			variableDeclared(parameter.name.text, parameter.name.line,
 				parameter.name.column, true, canFind(parameter.parameterAttributes,
 				cast(IdType) tok!"ref"));
+			if (parameter.default_ !is null)
+			{
+				interestDepth++;
+				parameter.default_.accept(this);
+				interestDepth--;
+			}
 		}
 	}
 
