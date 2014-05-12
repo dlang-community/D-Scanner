@@ -15,7 +15,7 @@ struct Message
 
 enum comparitor = q{ a.line < b.line || a.line < b.line };
 
-alias MessageSet = RedBlackTree!(Message, comparitor);
+alias MessageSet = RedBlackTree!(Message, comparitor, true);
 
 abstract class BaseAnalyzer : ASTVisitor
 {

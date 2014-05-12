@@ -20,7 +20,13 @@ class UnusedVariableCheck : BaseAnalyzer
 	this(string fileName)
 	{
 		super(fileName);
+	}
+
+	override void visit(const Module mod)
+	{
 		pushScope();
+		mod.accept(this);
+		popScope();
 	}
 
 	override void visit(const Declaration declaration)
@@ -40,8 +46,6 @@ class UnusedVariableCheck : BaseAnalyzer
 		else if (!isOverride)
 		{
 			pushScope();
-			foreach (parameter; functionDec.parameters.parameters)
-				visit(parameter);
 			functionDec.accept(this);
 			popScope();
 		}
@@ -58,6 +62,20 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		interestDepth++;
 		functionCallExpression.accept(this);
+		interestDepth--;
+	}
+
+	override void visit(const NewExpression newExpression)
+	{
+		interestDepth++;
+		newExpression.accept(this);
+		interestDepth--;
+	}
+
+	override void visit(const TemplateArgumentList argumentList)
+	{
+		interestDepth++;
+		argumentList.accept(this);
 		interestDepth--;
 	}
 
@@ -164,6 +182,28 @@ class UnusedVariableCheck : BaseAnalyzer
 		}
 	}
 
+	override void visit(const TemplateDeclaration templateDeclaration)
+	{
+		bool addScope = templateDeclaration.declarations.length > 0;
+		auto inAgg = inAggregateScope;
+		inAggregateScope = true;
+		templateDeclaration.accept(this);
+		inAggregateScope = inAgg;
+	}
+
+	override void visit(const IdentifierOrTemplateChain chain)
+	{
+		if (interestDepth > 0 && chain.identifiersOrTemplateInstances[0].identifier != tok!"")
+			variableUsed(chain.identifiersOrTemplateInstances[0].identifier.text);
+		chain.accept(this);
+	}
+
+	override void visit(const TemplateSingleArgument single)
+	{
+		if (single.token != tok!"")
+			variableUsed(single.token.text);
+	}
+
 	override void visit(const PrimaryExpression primary)
 	{
 		if (interestDepth > 0 && primary.identifierOrTemplateInstance !is null
@@ -188,10 +228,12 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		bool sb = inAggregateScope;
 		inAggregateScope = false;
-		pushScope();
+		if (blockStatementIntroducesScope)
+			pushScope();
 		blockStatement.accept(this);
-		popScope();
-		inAggregateScope = true;
+		if (blockStatementIntroducesScope)
+			popScope();
+		inAggregateScope = sb;
 	}
 
 	override void visit(const VariableDeclaration variableDeclaration)
@@ -199,6 +241,13 @@ class UnusedVariableCheck : BaseAnalyzer
 		foreach (d; variableDeclaration.declarators)
 			this.variableDeclared(d.name.text, d.name.line, d.name.column, false, false);
 		variableDeclaration.accept(this);
+	}
+
+	override void visit(const SliceExpression sliceExpression)
+	{
+		interestDepth++;
+		sliceExpression.accept(this);
+		interestDepth--;
 	}
 
 	override void visit(const AutoDeclaration autoDeclaration)
@@ -212,10 +261,14 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		import std.algorithm;
 		import std.array;
+//		import std.stdio;
 		if (parameter.name != tok!"")
+		{
+//			stderr.writeln("Adding parameter ", parameter.name.text);
 			variableDeclared(parameter.name.text, parameter.name.line,
 				parameter.name.column, true, canFind(parameter.parameterAttributes,
 				cast(IdType) tok!"ref"));
+		}
 	}
 
 	override void visit(const StructBody structBody)
@@ -227,11 +280,21 @@ class UnusedVariableCheck : BaseAnalyzer
 		inAggregateScope = sb;
 	}
 
+	override void visit(const ConditionalStatement conditionalStatement)
+	{
+		bool cs = blockStatementIntroducesScope;
+		blockStatementIntroducesScope = false;
+		conditionalStatement.accept(this);
+		blockStatementIntroducesScope = cs;
+	}
+
 	void variableDeclared(string name, size_t line, size_t column,
 		bool isParameter, bool isRef)
 	{
+//		import std.stdio;
 		if (inAggregateScope)
 			return;
+//		stderr.writeln("Adding ", name, " ", isParameter, " ", isRef);
 		tree[$ - 1].insert(new UnUsed(name, line, column, isParameter, isRef));
 	}
 
@@ -280,4 +343,6 @@ class UnusedVariableCheck : BaseAnalyzer
 	bool isOverride;
 
 	bool inAggregateScope;
+
+	bool blockStatementIntroducesScope = true;
 }
