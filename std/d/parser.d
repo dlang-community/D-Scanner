@@ -3564,12 +3564,14 @@ invariant() foo();
             m.scriptLine = advance();
         if (currentIs(tok!"module"))
             m.moduleDeclaration = parseModuleDeclaration();
+		Declaration[] declarations;
         while (moreTokens())
         {
             auto declaration = parseDeclaration();
             if (declaration !is null)
-                m.declarations ~= declaration;
+                declarations ~= declaration;
         }
+		m.declarations = ownArray(declarations);
         return m;
     }
 
