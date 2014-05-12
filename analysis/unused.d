@@ -40,11 +40,10 @@ class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const FunctionDeclaration functionDec)
 	{
 		pushScope();
-		if (isOverride)
-			functionDec.functionBody.accept(this);
-		else if (functionDec.functionBody !is null)
+		if (functionDec.functionBody !is null)
 		{
-			functionDec.parameters.accept(this);
+			if (!isOverride)
+				functionDec.parameters.accept(this);
 			functionDec.functionBody.accept(this);
 		}
 		popScope();
