@@ -2487,13 +2487,18 @@ body {} // six
         case tok!"pure":
         case tok!"nothrow":
             node.type = parseType();
+            node.arguments = parseArguments();
             break;
         default:
-            node.unaryExpression = unary is null ? parseUnaryExpression() : unary;
+            if (unary !is null)
+                node.unaryExpression = unary;
+            else
+                node.unaryExpression = parseUnaryExpression();
             if (currentIs(tok!"!"))
                 node.templateArguments = parseTemplateArguments();
-    }
-        node.arguments = parseArguments();
+            if (unary !is null)
+                node.arguments = parseArguments();
+        }
         return node.arguments is null ? null : node;
     }
 
