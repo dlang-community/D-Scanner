@@ -18,7 +18,7 @@ class StyleChecker : BaseAnalyzer
 {
 	enum varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
 	enum aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
-	enum moduleNameRegex = `^\p{Ll}+$`;
+	enum moduleNameRegex = `^[\p{Ll}_\d]+$`;
 
 	this(string fileName)
 	{
