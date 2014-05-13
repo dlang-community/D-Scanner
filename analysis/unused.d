@@ -239,9 +239,11 @@ class UnusedVariableCheck : BaseAnalyzer
 		if (parameter.name != tok!"")
 		{
 //			stderr.writeln("Adding parameter ", parameter.name.text);
+			bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
+				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"in")
+				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"out");
 			variableDeclared(parameter.name.text, parameter.name.line,
-				parameter.name.column, true, canFind(parameter.parameterAttributes,
-				cast(IdType) tok!"ref"));
+				parameter.name.column, true, isRef);
 			if (parameter.default_ !is null)
 			{
 				interestDepth++;
