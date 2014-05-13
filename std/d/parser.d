@@ -1205,7 +1205,10 @@ incorrect;
      * Parses a ClassDeclaration
      *
      * $(GRAMMAR $(RULEDEF classDeclaration):
-     *     $(LITERAL 'class') $(LITERAL Identifier) ($(LITERAL ';') | ($(RULE templateParameters) $(RULE constraint)?)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody))
+     *       $(LITERAL 'class') $(LITERAL Identifier) ($(LITERAL ':') $(RULE baseClassList))? $(LITERAL ';')
+     *     | $(LITERAL 'class') $(LITERAL Identifier) ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     | $(LITERAL 'class') $(LITERAL Identifier) $(RULE templateParameters) $(RULE constraint)? ($(LITERAL ':') $(RULE baseClassList))? $(RULE structBody)
+     *     | $(LITERAL 'class') $(LITERAL Identifier) $(RULE templateParameters) ($(LITERAL ':') $(RULE baseClassList))? $(RULE constraint)? $(RULE structBody)
      *     ;)
      */
     ClassDeclaration parseClassDeclaration()
@@ -1223,19 +1226,27 @@ incorrect;
             advance();
             return node;
         }
-        if (currentIs(tok!"("))
+        templateStuff: if (currentIs(tok!"("))
         {
             node.templateParameters = parseTemplateParameters();
-            if (currentIs(tok!"if"))
-            {
+            constraint: if (currentIs(tok!"if"))
                 node.constraint = parseConstraint();
+            if (node.baseClassList !is null)
+                goto structBody;
+            if (currentIs(tok!":"))
+            {
+                advance();
+                node.baseClassList = parseBaseClassList();
             }
+            if (currentIs(tok!"if"))
+                goto constraint;
         }
         if (currentIs(tok!":"))
         {
             advance();
             node.baseClassList = parseBaseClassList();
         }
+    structBody:
         node.structBody = parseStructBody();
         return node;
     }
@@ -1243,10 +1254,12 @@ incorrect;
     unittest
     {
         string sourceCode =
-q{class ClassOne {}
+q{class ClassZero;
+class ClassOne {}
 class ClassTwo : Super {}
 class ClassThree(A, B) : Super {}
-class ClassFour(A, B) if (someTest()) : Super {}}c;
+class ClassFour(A, B) if (someTest()) : Super {}
+class ClassFive(A, B) : Super if (someTest()) {}}c;
 
         Parser p = getParserForUnittest(sourceCode, "parseClassDeclaration");
 
