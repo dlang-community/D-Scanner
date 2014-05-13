@@ -68,6 +68,7 @@ class UnusedVariableCheck : BaseAnalyzer
 	mixin PartsUseVariables!Initializer;
 	mixin PartsUseVariables!SliceExpression;
 	mixin PartsUseVariables!StaticIfCondition;
+	mixin PartsUseVariables!ThrowStatement;
 
 	override void visit(const SwitchStatement switchStatement)
 	{
