@@ -335,7 +335,7 @@ public:
  *         $(LINK2 #.defaultTokenFunction defaultTokenFunction) template
  *         parameter).
  *     $(LI A function that is able to determine if an identifier/keyword has
- *         come to an end. This function must retorn $(D_KEYWORD bool) and take
+ *         come to an end. This function must return $(D_KEYWORD bool) and take
  *         a single $(D_KEYWORD size_t) argument representing the number of
  *         bytes to skip over before looking for a separating character.)
  *     $(LI Any functions referred to in the tokenHandlers template paramater.
