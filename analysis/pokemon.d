@@ -15,7 +15,7 @@ import analysis.base;
  * ---
  * try {
  *    choose(pikachu);
- * } catch (Exception e) {
+ * } catch (Throwable e) {
  *    ...
  * }
  * ---
@@ -42,13 +42,12 @@ class PokemonExceptionCheck : BaseAnalyzer
 			c.accept(this);
 			return;
 		}
-		if (identOrTemplate.identifier.text == "Exception"
-			|| identOrTemplate.identifier.text == "Throwable"
+		if (identOrTemplate.identifier.text == "Throwable"
 			|| identOrTemplate.identifier.text == "Error")
 		{
 			immutable column = identOrTemplate.identifier.column;
 			immutable line = identOrTemplate.identifier.line;
-			addErrorMessage(line, column, "Avoid catching Exception, Error, and Throwable");
+			addErrorMessage(line, column, "Catching Error or Throwable is a really bad idea.");
 		}
 		c.accept(this);
 	}
