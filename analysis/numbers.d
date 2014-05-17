@@ -5,10 +5,12 @@
 
 module analysis.numbers;
 
+import std.stdio;
 import std.regex;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import analysis.helpers;
 
 /**
  * Checks for long and hard-to-read number literals
@@ -36,4 +38,23 @@ class NumberStyleCheck : BaseAnalyzer
 
 	auto badBinaryRegex = ctRegex!(`^0b[01]{9,}`);
 	auto badDecimalRegex = ctRegex!(`^\d{5,}`);
+}
+
+unittest
+{
+	assertAnalyzerWarnings(q{
+		void testNumbers()
+		{
+			int a;
+			a = 1; // ok
+			a = 10; // ok
+			a = 100; // ok
+			a = 1000; // FIXME: boom
+			a = 10000; // [warn]: Use underscores to improve number constant readability
+			a = 100000; // [warn]: Use underscores to improve number constant readability
+			a = 1000000; // [warn]: Use underscores to improve number constant readability
+		}
+	}c, analysis.run.AnalyzerCheck.number_style_check);
+
+	stderr.writeln("Unittest for NumberStyleCheck passed.");
 }

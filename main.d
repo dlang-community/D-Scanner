@@ -27,6 +27,18 @@ import analysis.run;
 
 int main(string[] args)
 {
+	version (unittest)
+	{
+		return 0;
+	}
+	else
+	{
+		return run(args);
+	}
+}
+
+int run(string[] args)
+{
 	bool sloc;
 	bool highlight;
 	bool ctags;
@@ -124,7 +136,7 @@ int main(string[] args)
 	}
 	else if (styleCheck)
 	{
-		stdout.analyze(expandArgs(args, recursive));
+		stdout.analyze(expandArgs(args, recursive), AnalyzerCheck.all);
 	}
 	else if (syntaxCheck)
 	{

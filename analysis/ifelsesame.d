@@ -5,9 +5,13 @@
 
 module analysis.ifelsesame;
 
+import std.stdio;
+
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import analysis.helpers;
+
 
 /**
  * Checks for if statements whose "then" block is the same as the "else" block
@@ -40,4 +44,32 @@ class IfElseSameCheck : BaseAnalyzer
 		}
 		assignExpression.accept(this);
 	}
+}
+
+unittest
+{
+	assertAnalyzerWarnings(q{
+		void testSizeT()
+		{
+			string person = "unknown";
+			if(person == "unknown")// [warn]: "Else" branch is identical to "Then" branch.
+			{
+				person = "bobrick"; // same
+			}
+			else
+			{
+				person = "bobrick"; // same
+			}
+
+			if(person == "unknown") // ok
+			{
+				person = "ricky"; // not same
+			}
+			else
+			{
+				person = "bobby"; // not same
+			}
+		}
+	}c, analysis.run.AnalyzerCheck.if_else_same_check);
+	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }
