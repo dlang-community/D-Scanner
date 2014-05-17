@@ -71,7 +71,7 @@ class ObjectConstCheck : BaseAnalyzer
 
 unittest
 {
-	shouldWarn(q{
+	assertAnalyzerWarnings(q{
 		void testConsts()
 		{
 			// Will be ok because all are declared const/immutable

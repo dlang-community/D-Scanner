@@ -48,7 +48,7 @@ class IfElseSameCheck : BaseAnalyzer
 
 unittest
 {
-	shouldWarn(q{
+	assertAnalyzerWarnings(q{
 		void testSizeT()
 		{
 			string person = "unknown";

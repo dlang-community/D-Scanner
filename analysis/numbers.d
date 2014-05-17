@@ -42,7 +42,7 @@ class NumberStyleCheck : BaseAnalyzer
 
 unittest
 {
-	shouldWarn(q{
+	assertAnalyzerWarnings(q{
 		void testNumbers()
 		{
 			int a;

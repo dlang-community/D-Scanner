@@ -3056,8 +3056,7 @@ unittest
 }
 
 // FIXME: Disabling this test because it is machine dependent
-/*
-unittest
+version (none) unittest
 {
     InSituRegion!(4096) r1;
     auto a = r1.allocate(2001);
@@ -3069,7 +3068,7 @@ unittest
     a = r2.allocate(2001);
     assert(a.length == 2001);
 }
-*/
+
 /**
 _Options for $(D AllocatorWithStats) defined below. Each enables during
 compilation one specific counter, statistic, or other piece of information.

@@ -123,7 +123,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 
 unittest
 {
-	shouldWarn(q{
+	assertAnalyzerWarnings(q{
 		void testRange()
 		{
 			int[] data = [1, 2, 3, 4, 5];

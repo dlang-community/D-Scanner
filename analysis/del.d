@@ -32,7 +32,7 @@ class DeleteCheck : BaseAnalyzer
 
 unittest
 {
-	shouldWarn(q{
+	assertAnalyzerWarnings(q{
 		void testDelete()
 		{
 			int[int] data = [1 : 2];

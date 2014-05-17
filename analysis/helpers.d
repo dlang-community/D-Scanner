@@ -7,17 +7,18 @@ module analysis.helpers;
 
 import std.string;
 import std.traits;
-
 import std.d.ast;
 
 
 S between(S)(S value, S before, S after) 
-if (isSomeString!S) {
+	if (isSomeString!S)
+{
 	return value.after(before).before(after);
 }
 
-S before(S)(S value, S separator) 
-if (isSomeString!S) {
+S before(S)(S value, S separator)
+	if (isSomeString!S)
+{
 	auto i = indexOf(value, separator);
 
 	if (i == -1)
@@ -26,11 +27,12 @@ if (isSomeString!S) {
 	return value[0 .. i];
 }
 
-S after(S)(S value, S separator) 
-if(isSomeString!S) {
+S after(S)(S value, S separator)
+	if (isSomeString!S)
+{
 	auto i = indexOf(value, separator);
 
-	if( i == -1)
+	if (i == -1)
 		return "";
 
 	size_t start = i + separator.length;
@@ -38,19 +40,12 @@ if(isSomeString!S) {
 	return value[start .. $];
 }
 
-S afterLast(S)(S value, S separator) 
-if (isSomeString!S) {
-	size_t i = rindex(value, separator);
-
-	if (i == value.length)
-		return "";
-
-	size_t start = i + separator.length;
-
-	return value[start .. $];
-}
-
-void shouldWarn(string code, analysis.run.AnalyzerCheck analyzers, string file=__FILE__, size_t line=__LINE__)
+/**
+ * This assert function will analyze the passed in code, get the warnings, 
+ * and make sure they match the warnings in the comments. Warnings are
+ * marked like so: // [warn]: Failed to do somethings.
+ */
+void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, string file=__FILE__, size_t line=__LINE__)
 {
 	import analysis.run;
 
@@ -64,7 +59,6 @@ void shouldWarn(string code, analysis.run.AnalyzerCheck analyzers, string file=_
 	{
 		size_t warnLine = line - 1 + std.conv.to!size_t(rawWarnings[i].between("test(", ":"));
 		warnings[warnLine] = rawWarnings[i].after(")");
-//		stderr.writefln("!!! warnings[%d] = \"%s\"", warnLine, warnings[warnLine]);
 	}
 
 	// Get all the messages from the comments in the code
@@ -85,14 +79,12 @@ void shouldWarn(string code, analysis.run.AnalyzerCheck analyzers, string file=_
 		size_t lineNo = i + line;
 
 		// Get the message
-//		stderr.writefln("!!! message[%d] = \"%s\"", lineNo, commentPart);
 		messages[lineNo] = commentPart;
 	}
 
 	// Throw an assert error if any messages are not listed in the warnings
 	foreach (lineNo, message; messages)
 	{
-//		stderr.writefln("!!!!!! messages[%d] : %s", lineNo, messages[lineNo]);
 		// No warning
 		if (lineNo !in warnings)
 		{
@@ -102,8 +94,8 @@ void shouldWarn(string code, analysis.run.AnalyzerCheck analyzers, string file=_
 				codeLines[lineNo - line]
 			);
 			throw new core.exception.AssertError(errors, file, lineNo);
-		// Different warning
 		}
+		// Different warning
 		else if (warnings[lineNo] != messages[lineNo])
 		{
 			string errors = "Expected warning:\n%s\nBut was:\n%s\nFrom source code at (%s:?):\n%s".format(
@@ -120,7 +112,6 @@ void shouldWarn(string code, analysis.run.AnalyzerCheck analyzers, string file=_
 	string[] unexpectedWarnings;
 	foreach (lineNo, warning; warnings)
 	{
-//		stderr.writefln("!!!!!! warnings[%d] : %s", lineNo, warning);
 		// Unexpected warning
 		if (lineNo !in messages)
 		{
