@@ -5,10 +5,12 @@
 
 module analysis.objectconst;
 
+import std.stdio;
 import std.regex;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import analysis.helpers;
 
 /**
  * Checks that opEquals, opCmp, toHash, and toString are either const,
@@ -66,3 +68,62 @@ class ObjectConstCheck : BaseAnalyzer
 	private bool looking = false;
 
 }
+
+unittest
+{
+	shouldWarn(q{
+		void testConsts()
+		{
+			// Will be ok because all are declared const/immutable
+			class Cat
+			{
+				const bool opEquals(Object a, Object b) // ok
+				{
+					return true;
+				}
+
+				const int opCmp(Object o) // ok
+				{
+					return 1;
+				}
+
+				const hash_t toHash() // ok
+				{
+					return 0;
+				}
+
+				const string toString() // ok
+				{
+					return "Cat";
+				}
+			}
+
+			// Will warn, because none are const
+			class Dog
+			{
+				bool opEquals(Object a, Object b) // [warn]: opCmp, toHash, opEquals, and toString should be declared const
+				{
+					return true;
+				}
+
+				int opCmp(Object o) // [warn]: opCmp, toHash, opEquals, and toString should be declared const
+				{
+					return 1;
+				}
+
+				hash_t toHash() // [warn]: opCmp, toHash, opEquals, and toString should be declared const
+				{
+					return 0;
+				}
+
+				string toString()// [warn]: opCmp, toHash, opEquals, and toString should be declared const
+				{
+					return "Dog";
+				}
+			}
+		}
+	}c, analysis.run.AnalyzerCheck.object_const_check);
+
+	stderr.writeln("Unittest for ObjectConstCheck passed.");
+}
+

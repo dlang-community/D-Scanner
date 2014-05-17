@@ -5,9 +5,12 @@
 
 module analysis.pokemon;
 
+import std.stdio;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import analysis.helpers;
+
 
 /**
  * Checks for Pokémon exception handling, i.e. "gotta' catch 'em all".
@@ -51,4 +54,35 @@ class PokemonExceptionCheck : BaseAnalyzer
 		}
 		c.accept(this);
 	}
+}
+
+unittest
+{
+	shouldWarn(q{
+		void testCatch()
+		{
+			try
+			{
+				// ...
+			}
+			catch(AssertError err) //ok
+			{
+
+			}
+			catch(Exception err) // ok
+			{
+
+			}
+			catch(Error err) // [warn]: Catching Error or Throwable is a really bad idea.
+			{
+
+			}
+			catch(Throwable err) // [warn]: Catching Error or Throwable is a really bad idea.
+			{
+
+			}
+		}
+	}c, analysis.run.AnalyzerCheck.exception_check);
+
+	stderr.writeln("Unittest for PokemonExceptionCheck passed.");
 }

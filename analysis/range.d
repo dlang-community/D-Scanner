@@ -5,9 +5,11 @@
 
 module analysis.range;
 
+import std.stdio;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import analysis.helpers;
 
 /**
  * Checks for .. expressions where the left side is larger than the right. This
@@ -118,3 +120,22 @@ class BackwardsRangeCheck : BaseAnalyzer
 		sliceExpression.accept(this);
 	}
 }
+
+unittest
+{
+	shouldWarn(q{
+		void testRange()
+		{
+			int[] data = [1, 2, 3, 4, 5];
+
+			data = data[1 .. 3]; // ok
+			data = data[3 .. 1]; // [warn]: 3 is larger than 1. This slice is likely incorrect.
+
+			foreach(n; 1 .. 3) { } // ok
+			foreach(n; 3 .. 1) { } // [warn]: 3 is larger than 1. Did you mean to use 'foreach_reverse( ... ; 1 .. 3)'?
+		}
+	}c, analysis.run.AnalyzerCheck.backwards_range_check);
+
+	stderr.writeln("Unittest for BackwardsRangeCheck passed.");
+}
+
