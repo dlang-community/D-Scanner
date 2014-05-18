@@ -35,6 +35,7 @@ class UnusedVariableCheck : BaseAnalyzer
 			isOverride = isOverride || (attribute.storageClass !is null &&
 				attribute.storageClass.token == tok!"override");
 		declaration.accept(this);
+		isOverride = false;
 	}
 
 	override void visit(const FunctionDeclaration functionDec)
@@ -42,9 +43,12 @@ class UnusedVariableCheck : BaseAnalyzer
 		pushScope();
 		if (functionDec.functionBody !is null)
 		{
+			bool ias = inAggregateScope;
+			inAggregateScope = false;
 			if (!isOverride)
 				functionDec.parameters.accept(this);
 			functionDec.functionBody.accept(this);
+			inAggregateScope = ias;
 		}
 		popScope();
 	}
