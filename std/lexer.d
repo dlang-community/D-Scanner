@@ -798,6 +798,16 @@ public:
             free(cast(void*) prev.bytes.ptr);
             free(cast(void*) prev);
         }
+        foreach(nodePointer; buckets)
+        {
+            Node* currentNode = nodePointer;
+            while (currentNode !is null)
+            {
+                Node* prev = currentNode;
+                currentNode = currentNode.next;
+                free(prev);
+            }
+        }
         rootBlock = null;
         buckets = null;
     }
