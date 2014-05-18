@@ -19,7 +19,7 @@ public:
 	{
 		foreach (span; spans)
 		{
-			if (span.low <= line && span.high >= line)
+			if (line >= span.low && line <= span.high)
 				return true;
 		}
 		return false;
@@ -61,23 +61,21 @@ private:
 	enum context = 3;
 }
 
-// FIXME: This test is broken, and none of the code in this module is 
-// used anywhere. Is it okay to remove?
-version (none) unittest
+unittest
 {
 	import std.stdio;
 	LineSpans l;
-	l.addLine(4);
-	foreach (i; 2 .. 7)
+	l.addLine(5);
+	foreach (i; 2 .. 9)
 		assert (l.containsLine(i));
 	assert (!l.containsLine(1));
-	assert (!l.containsLine(7));
+	assert (!l.containsLine(9));
 	l.addLine(5);
 	assert (l.containsLine(7));
 	l.addLine(40);
 	l.addLine(35);
 	foreach (i; 33 .. 43)
 		assert (l.containsLine(i));
-	stderr.writeln("Unit tests for LineSpans passed");
+	stderr.writeln("Unittest for LineSpans passed");
 }
 

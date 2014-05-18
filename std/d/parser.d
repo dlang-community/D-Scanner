@@ -1251,8 +1251,7 @@ incorrect;
         return node;
     }
 
-// FIXME: This test is broken on 32bit x86 Atom under Linux
-version (none) unittest
+    unittest
     {
         string sourceCode =
 q{class ClassZero;
@@ -1263,6 +1262,10 @@ class ClassFour(A, B) if (someTest()) : Super {}
 class ClassFive(A, B) : Super if (someTest()) {}}c;
 
         Parser p = getParserForUnittest(sourceCode, "parseClassDeclaration");
+
+        auto classZero = p.parseClassDeclaration();
+        assert (classZero.name.text == "ClassZero");
+        assert (classZero.structBody is null);
 
         auto classOne = p.parseClassDeclaration();
         assert (classOne.name.text == "ClassOne"); // FIXME classOne.name.text is "ClassZero" on my machine TM
@@ -1288,14 +1291,14 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         assert (classThree.structBody.declarations.length == 0,
             to!string(classThree.structBody.declarations.length));
 
-        //auto classFour = p.parseClassDeclaration();
-        //assert (classFour.name == "ClassFour", classFour.name.text);
-        //assert (classFour.templateParameters !is null);
-        //assert (classFour.baseClassList !is null);
-        //assert (classFour.constraint !is null);
-        //assert (classFour.baseClassList.items.length == 1);
-        //assert (classFour.structBody.declarationOrInvariants.length == 0,
-        //    to!string(classFour.structBody.declarationOrInvariants.length));
+        auto classFour = p.parseClassDeclaration();
+        assert (classFour.name.text == "ClassFour", classFour.name.text);
+        assert (classFour.templateParameters !is null);
+        assert (classFour.baseClassList !is null);
+        assert (classFour.constraint !is null);
+        assert (classFour.baseClassList.items.length == 1);
+        assert (classFour.structBody.declarations.length == 0,
+            to!string(classFour.structBody.declarations.length));
 
         stderr.writeln("Unittest for parseClassDeclaration() passed.");
     }

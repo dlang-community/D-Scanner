@@ -18,5 +18,5 @@ dmd\
 	-oftest\
 	-g -unittest
 
-	./test
+./test
 
