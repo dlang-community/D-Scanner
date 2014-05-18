@@ -785,7 +785,7 @@ public:
      */
     this(size_t bucketCount)
     {
-        buckets = (cast(Node**) calloc((void*).sizeof * bucketCount))[0 .. bucketCount];
+        buckets = (cast(Node**) calloc((Node*).sizeof, bucketCount))[0 .. bucketCount];
     }
 
     ~this()
@@ -809,21 +809,12 @@ public:
             }
         }
         rootBlock = null;
+		free(buckets.ptr);
         buckets = null;
     }
 
     /**
      * Caches a string.
-     * Params: str = the string to intern
-     * Returns: A key that can be used to retrieve the cached string
-     * Examples:
-     * ---
-     * StringCache cache;
-     * ubyte[] bytes = ['a', 'b', 'c'];
-     * size_t first = cache.cache(bytes);
-     * size_t second = cache.cache(bytes);
-     * assert (first == second);
-     * ---
      */
     string intern(const(ubyte)[] str) pure nothrow @safe
     {
@@ -1063,6 +1054,6 @@ private:
     Block* rootBlock;
 }
 
-private extern(C) void* calloc(size_t) nothrow pure;
+private extern(C) void* calloc(size_t, size_t) nothrow pure;
 private extern(C) void* malloc(size_t) nothrow pure;
 private extern(C) void free(void*) nothrow pure;
