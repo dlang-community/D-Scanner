@@ -102,7 +102,7 @@ int run(string[] args)
 		return 1;
 	}
 
-	shared(StringCache)* cache = new shared StringCache(StringCache.defaultBucketCount);
+	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
 
 	if (tokenDump || highlight)
 	{

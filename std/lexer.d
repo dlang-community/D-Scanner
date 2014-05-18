@@ -773,34 +773,33 @@ struct LexerRange
     size_t line;
 }
 
-shared struct StringCache
+struct StringCache
 {
-    import core.sync.mutex;
 public:
 
     @disable this();
 
     /**
-     * Params: bucketCount = the initial number of buckets.
+     * Params: bucketCount = the initial number of buckets. Must be a
+     * power of two
      */
     this(size_t bucketCount)
     {
-        buckets = cast(shared) new Node*[bucketCount];
-        allocating = false;
+        buckets = (cast(Node**) calloc((void*).sizeof * bucketCount))[0 .. bucketCount];
     }
 
     ~this()
     {
-        import core.memory;
-        shared(Block)* current = rootBlock;
+        Block* current = rootBlock;
         while (current !is null)
         {
-            shared(Block)* prev = current;
+            Block* prev = current;
             current = current.next;
             free(cast(void*) prev.bytes.ptr);
+            free(cast(void*) prev);
         }
         rootBlock = null;
-        buckets = [];
+        buckets = null;
     }
 
     /**
@@ -845,6 +844,13 @@ public:
     body
     {
         return _intern(str, hash);
+//		string s = _intern(str, hash);
+//		size_t* ptr = s in debugMap;
+//		if (ptr is null)
+//			debugMap[s] = cast(size_t) s.ptr;
+//		else
+//			assert (*ptr == cast(size_t) s.ptr);
+//        return s;
     }
 
     /**
@@ -864,7 +870,10 @@ public:
      */
     static enum defaultBucketCount = 2048;
 
-    size_t allocated;
+    size_t allocated() pure nothrow @safe @property
+    {
+        return _allocated;
+    }
 
 private:
 
@@ -872,44 +881,30 @@ private:
     {
         if (bytes is null || bytes.length == 0)
             return "";
-        import core.atomic;
-        shared ubyte[] mem;
-        shared(Node*)* oldBucketRoot = &buckets[hash % buckets.length];
-        while (true)
-        {
-            bool found;
-            shared(Node)* s = find(bytes, hash, found);
-            shared(Node)* n = s is null ? null : s.next;
-            if (found)
-                return cast(string) s.str;
-            if (mem.length == 0)
-            {
-                atomicOp!"+="(allocated, bytes.length);
-                mem = allocate(bytes.length);
-                mem[] = bytes[];
-            }
-            shared(Node)* node = new shared Node(mem, hash, null);
-            if (s is null && cas(oldBucketRoot, *oldBucketRoot, node))
-                break;
-            node.next = s.next;
-            if (cas(&s.next, n, node))
-                break;
-        }
+        immutable size_t index = hash & (buckets.length - 1);
+        Node* s = find(bytes, hash);
+        if (s !is null)
+            return cast(string) s.str;
+        _allocated += bytes.length;
+        ubyte[] mem = allocate(bytes.length);
+        mem[] = bytes[];
+        Node* node = cast(Node*) malloc(Node.sizeof);
+        node.str = mem;
+        node.hash = hash;
+        node.next = buckets[index];
+        buckets[index] = node;
         return cast(string) mem;
     }
 
-    shared(Node)* find(const(ubyte)[] bytes, uint hash, ref bool found) pure nothrow @trusted
+    Node* find(const(ubyte)[] bytes, uint hash) pure nothrow @trusted
     {
         import std.algorithm;
-        immutable size_t index = hash % buckets.length;
-        shared(Node)* node = buckets[index];
+        immutable size_t index = hash & (buckets.length - 1);
+        Node* node = buckets[index];
         while (node !is null)
         {
-            if (node.hash >= hash && bytes.equal(cast(ubyte[]) node.str))
-            {
-                found = true;
+            if (node.hash == hash && bytes.equal(cast(ubyte[]) node.str))
                 return node;
-            }
             node = node.next;
         }
         return node;
@@ -932,7 +927,7 @@ private:
         return hash;
     }
 
-    shared(ubyte[]) allocate(immutable size_t numBytes) pure nothrow @trusted
+    ubyte[] allocate(size_t numBytes) pure nothrow @trusted
     in
     {
         assert (numBytes != 0);
@@ -943,54 +938,44 @@ private:
     }
     body
     {
-        import core.atomic;
-        import core.memory;
         if (numBytes > (blockSize / 4))
-            return cast(shared) (cast(ubyte*) malloc(numBytes))[0 .. numBytes];
-        shared(Block)* r = rootBlock;
-        while (true)
+            return (cast(ubyte*) malloc(numBytes))[0 .. numBytes];
+        Block* r = rootBlock;
+        size_t i = 0;
+        while  (i <= 3 && r !is null)
         {
-            while (r !is null)
+
+            immutable size_t available = r.bytes.length;
+            immutable size_t oldUsed = r.used;
+            immutable size_t newUsed = oldUsed + numBytes;
+            if (newUsed <= available)
             {
-                while (true)
-                {
-                    immutable size_t available = r.bytes.length;
-                    immutable size_t oldUsed = atomicLoad(r.used);
-                    immutable size_t newUsed = oldUsed + numBytes;
-                    if (newUsed > available)
-                        break;
-                    if (cas(&r.used, oldUsed, newUsed))
-                        return r.bytes[oldUsed .. newUsed];
-                }
-                r = r.next;
+                r.used = newUsed;
+                return r.bytes[oldUsed .. newUsed];
             }
-            if (cas(&allocating, false, true))
-            {
-                shared(Block)* b = new shared Block(
-                    cast(shared) (cast(ubyte*) malloc(blockSize))[0 .. blockSize],
-                    numBytes,
-                    r);
-                atomicStore(rootBlock, b);
-                atomicStore(allocating, false);
-                r = rootBlock;
-                return b.bytes[0 .. numBytes];
-            }
+            i++;
+            r = r.next;
         }
-        assert (0);
+        Block* b = cast(Block*) malloc(Block.sizeof);
+        b.bytes = (cast(ubyte*) malloc(blockSize))[0 .. blockSize];
+        b.used = numBytes;
+        b.next = rootBlock;
+        rootBlock = b;
+        return b.bytes[0 .. numBytes];
     }
 
-    static shared struct Node
+    static struct Node
     {
         ubyte[] str;
         uint hash;
-        shared(Node)* next;
+        Node* next;
     }
 
-    static shared struct Block
+    static struct Block
     {
         ubyte[] bytes;
         size_t used;
-        shared(Block)* next;
+        Block* next;
     }
 
     static enum blockSize = 1024 * 16;
@@ -1062,10 +1047,12 @@ private:
         0x3C034CBA, 0xACDA62FC, 0x11923B8B, 0x45EF170A,
     ];
 
-    shared bool allocating;
-    shared(Node)*[] buckets;
-    shared(Block)* rootBlock;
+//	deprecated size_t[string] debugMap;
+    size_t _allocated;
+    Node*[] buckets;
+    Block* rootBlock;
 }
 
+private extern(C) void* calloc(size_t) nothrow pure;
 private extern(C) void* malloc(size_t) nothrow pure;
 private extern(C) void free(void*) nothrow pure;
