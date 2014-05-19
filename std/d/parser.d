@@ -1910,10 +1910,19 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         auto id = expect(tok!"identifier");
         if (id is null) return null;
         node.name = *id;
-        if (currentIsOneOf(tok!"[", tok!"*"))
+        if (currentIs(tok!"[")) // dmd doesn't accept pointer after identifier
         {
-            error("C-style variable declarations are not supported.");
-            return null;
+            warn("C-style array declaration.");
+            TypeSuffix[] typeSuffixes;
+            while (moreTokens() && currentIs(tok!"["))
+            {
+                auto suffix = parseTypeSuffix();
+                if (suffix !is null)
+                    typeSuffixes ~= suffix;
+                else
+                    return null;
+            }
+            node.cstyle = ownArray(typeSuffixes);
         }
         if (currentIs(tok!"="))
         {
@@ -3932,7 +3941,7 @@ invariant() foo();
      * Parses a Parameter
      *
      * $(GRAMMAR $(RULEDEF parameter):
-     *     $(RULE parameterAttribute)* $(RULE type) ($(LITERAL Identifier)? $(LITERAL '...') | ($(LITERAL Identifier)? ($(LITERAL '=') $(RULE assignExpression))?))?
+     *     $(RULE parameterAttribute)* $(RULE type) (($(LITERAL Identifier) $(RULE typeSuffix)*)? $(LITERAL '...') | ($(LITERAL Identifier)? ($(LITERAL '=') $(RULE assignExpression))?))?
      *     ;)
      */
     Parameter parseParameter()
@@ -3963,6 +3972,19 @@ invariant() foo();
             {
                 advance();
                 node.default_ = parseAssignExpression();
+            }
+            else if (currentIs(tok!"["))
+            {
+                TypeSuffix[] typeSuffixes;
+                while(moreTokens() && currentIs(tok!"["))
+                {
+                    auto suffix = parseTypeSuffix();
+                    if (suffix !is null)
+                        typeSuffixes ~= suffix;
+                    else
+                        return null;
+                }
+                node.cstyle = ownArray(typeSuffixes);
             }
         }
         else if (currentIs(tok!"..."))
