@@ -417,7 +417,9 @@ public struct DLexer
 
 	this(ubyte[] range, const LexerConfig config, StringCache* cache)
 	{
-		this.range = LexerRange(range);
+		auto r = (range.length >= 3 && range[0] == 0xef && range[1] == 0xbb && range[2] == 0xbf)
+			? range[3 .. $] : range;
+		this.range = LexerRange(r);
 		this.config = config;
 		this.cache = cache;
 		popFront();
