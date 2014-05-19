@@ -578,7 +578,9 @@ class XMLPrinter : ASTVisitor
 	override void visit(const FunctionLiteralExpression functionLiteralExpression)
 	{
 		output.writeln("<functionLiteralExpression type=\"",
-			str(functionLiteralExpression.functionOrDelegate), "\">");
+			functionLiteralExpression.functionOrDelegate != tok!""
+				? str(functionLiteralExpression.functionOrDelegate)
+				: "auto", "\">");
 		functionLiteralExpression.accept(this);
 		output.writeln("</functionLiteralExpression>");
 	}

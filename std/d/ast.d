@@ -311,10 +311,12 @@ template visitIfNotNull(fields ...)
     }
 }
 
-mixin template OpEquals()
+mixin template OpEquals(bool print = false)
 {
     override bool opEquals(Object other) const
     {
+        static if (print)
+            pragma(msg, generateOpEquals!(typeof(this)));
         mixin (generateOpEquals!(typeof(this)));
     }
 }
@@ -334,7 +336,7 @@ template generateOpEquals(T)
             {
                 enum opEqualsPart = "\nif (obj." ~ p[0] ~ ".length != this." ~ p[0] ~ ".length) return false;\n"
                     ~ "foreach (i; 0 .. this." ~ p[0] ~ ".length)\n"
-                    ~ "\tif (this." ~ p[0] ~ "[i] != obj." ~ p[0] ~ "[i]) return false;";
+                    ~ "\tif (this." ~ p[0] ~ "[i] != obj." ~ p[0] ~ "[i]) return false;" ~ opEqualsPart!(p[1 .. $]);
             }
             else
                 enum opEqualsPart = "\nif (obj." ~ p[0] ~ " != this." ~ p[0] ~ ") return false;" ~ opEqualsPart!(p[1 .. $]);
