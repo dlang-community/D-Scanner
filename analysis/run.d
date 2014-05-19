@@ -61,7 +61,8 @@ void analyze(File output, string[] fileNames, AnalyzerCheck analyzers, bool stat
 		f.rawRead(code);
 
 		string[] results = analyze(fileName, code, analyzers, staticAnalyze);
-		output.writeln(results.join("\n"));
+		if (results.length > 0)
+			output.writeln(results.join("\n"));
 	}
 }
 
