@@ -36,6 +36,7 @@ enum AnalyzerCheck : int
 	if_else_same_check = 0x100,
 	constructor_check = 0x200,
 	unused_variable_check = 0x400,
+	nan_init_check = 0x800,
 	all = 0x7FF
 }
 
@@ -104,6 +105,7 @@ string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool st
 	if (analyzers & AnalyzerCheck.if_else_same_check) checks ~= new IfElseSameCheck(fileName);
 	if (analyzers & AnalyzerCheck.constructor_check) checks ~= new ConstructorCheck(fileName);
 	if (analyzers & AnalyzerCheck.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
+	if (analyzers & AnalyzerCheck.nan_init_check) checks ~= new NanInitCheck(fileName);
 
 	foreach (check; checks)
 	{
