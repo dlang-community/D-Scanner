@@ -57,6 +57,7 @@ given source files.
 * 'if' statements where the 'else' block is the same as the 'if' block.
 * Unused variables.
 * Unused parameters (check is skipped if function is marked "override")
+* Duplicate attributes
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".
