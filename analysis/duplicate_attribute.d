@@ -12,11 +12,10 @@ import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
 
-// FIXME: Make it work with @safe, @trusted, @system
 // FIXME: Make it work with pure, nothrow
 
 /**
- * Checks for duplicate attributes such as @property
+ * Checks for duplicate attributes such as @property, @safe, @trusted, @system
  */
 class DuplicateAttributeCheck : BaseAnalyzer
 {
@@ -36,6 +35,9 @@ class DuplicateAttributeCheck : BaseAnalyzer
 	void checkAttributes(const Declaration node)
 	{
 		bool hasProperty = false;
+		bool hasSafe = false;
+		bool hasTrusted = false;
+		bool hasSystem = false;
 
 		// Check the attributes
 		foreach (attribute; node.attributes)
@@ -47,9 +49,12 @@ class DuplicateAttributeCheck : BaseAnalyzer
 				|| attribute.storageClass.atAttribute.identifier is Token.init)
 				continue;
 
-			// Is a property
+			// Check for the attributes
 			auto iden = attribute.storageClass.atAttribute.identifier;
-			checkProperty(iden, hasProperty);
+			checkDuplicateAttribute(iden, "property", hasProperty);
+			checkDuplicateAttribute(iden, "safe", hasSafe);
+			checkDuplicateAttribute(iden, "trusted", hasTrusted);
+			checkDuplicateAttribute(iden, "system", hasSystem);
 		}
 
 		// Just return if missing function nodes
@@ -66,56 +71,64 @@ class DuplicateAttributeCheck : BaseAnalyzer
 				|| memberFunctionAttribute.atAttribute.identifier is Token.init)
 				continue;
 
-			// Is a property
+			// Check for the attributes
 			auto iden = memberFunctionAttribute.atAttribute.identifier;
-			checkProperty(iden, hasProperty);
+			checkDuplicateAttribute(iden, "property", hasProperty);
+			checkDuplicateAttribute(iden, "safe", hasSafe);
+			checkDuplicateAttribute(iden, "trusted", hasTrusted);
+			checkDuplicateAttribute(iden, "system", hasSystem);
 		}
 	}
 
-	void checkProperty(const Token iden, ref bool hasProperty)
+	void checkDuplicateAttribute(const Token token, const string attributeName, ref bool hasAttribute)
 	{
-		// Just return if not a property
-		if (!isProperty(iden))
+		// Just return if not an attribute
+		if (token.type != tok!"identifier"
+			|| token.text != attributeName)
 			return;
 
-		// Already has a property
-		if (hasProperty)
+		// Already has that attribute
+		if (hasAttribute)
 		{
-			string message = "The attribute '%s' is duplicated.".format(iden.text);
-			addErrorMessage(iden.line, iden.column, message);
+			string message = "The attribute '%s' is duplicated.".format(token.text);
+			addErrorMessage(token.line, token.column, message);
 		}
 
-		// Mark it as a property
-		hasProperty = true;
+		// Mark it as having that attribute
+		hasAttribute = true;
 	}
-}
-
-bool isProperty(const Token token) pure
-{
-	return token.type == tok!"identifier" && token.text == "property";
 }
 
 unittest
 {
 	assertAnalyzerWarnings(q{
-		class CAllocator
+		class ExampleAttributes
 		{
-			@property bool xxx() // ok
+			@property @safe bool xxx() // ok
 			{
 				return false;
 			}
 
+			// Duplicate before
 			@property @property bool aaa() // [warn]: The attribute 'property' is duplicated.
 			{
 				return false;
 			}
 
-			bool bbb() @property @property // [warn]: The attribute 'property' is duplicated.
+			// Duplicate after
+			bool bbb() @safe @safe // [warn]: The attribute 'safe' is duplicated.
 			{
 				return false;
 			}
 
-			@property bool ccc() @property // [warn]: The attribute 'property' is duplicated.
+			// Duplicate before and after
+			@system bool ccc() @system // [warn]: The attribute 'system' is duplicated.
+			{
+				return false;
+			}
+
+			// Duplicate before and after
+			@trusted bool ddd() @trusted // [warn]: The attribute 'trusted' is duplicated.
 			{
 				return false;
 			}
