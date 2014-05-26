@@ -469,6 +469,8 @@ public:
     }
     mixin OpEquals;
     /** */ AssignExpression[] items;
+    /** */ size_t startLocation;
+    /** */ size_t endLocation;
 }
 
 ///
@@ -745,6 +747,8 @@ public:
     /** */ FunctionCallExpression functionCallExpression;
     /** */ ArgumentList argumentList;
     /** */ Token identifier;
+    /** */ size_t startLocation;
+    /** */ size_t endLocation;
     mixin OpEquals;
 }
 
@@ -1978,6 +1982,8 @@ public:
         mixin (visitIfNotNull!(moduleName));
     }
     /** */ IdentifierChain moduleName;
+    /** */ size_t startLocation;
+    /** */ size_t endLocation;
     mixin OpEquals;
 }
 

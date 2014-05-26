@@ -273,7 +273,11 @@ alias core.sys.posix.stdio.fileno fileno;
     ArgumentList parseArgumentList()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)(true);
+        size_t startLocation = current().index;
+        auto ret= parseCommaSeparatedRule!(ArgumentList, AssignExpression)(true);
+        ret.startLocation = startLocation;
+        ret.endLocation = current().index;
+        return ret;
     }
 
     /**
@@ -717,7 +721,9 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!AtAttribute;
-        if (expect(tok!"@") is null) return null;
+        auto start = expect(tok!"@");
+        if (start is null) return null;
+        node.startLocation = start.index;
         switch (current.type)
         {
         case tok!"identifier":
@@ -735,6 +741,7 @@ alias core.sys.posix.stdio.fileno fileno;
             error(`"(", or identifier expected`);
             return null;
         }
+        node.endLocation = current().index;
         return node;
     }
 
@@ -3601,9 +3608,11 @@ invariant() foo();
     ModuleDeclaration parseModuleDeclaration()
     {
         auto node = allocate!ModuleDeclaration;
-        expect(tok!"module");
+        auto start = expect(tok!"module");
         node.moduleName = parseIdentifierChain();
-        expect(tok!";");
+        auto end = expect(tok!";");
+        node.startLocation = start.index;
+        node.endLocation = end.index;
         return node;
     }
 
