@@ -6051,6 +6051,7 @@ q{doStuff(5)}c;
         }
 
         node.type = type is null ? parseType() : type;
+        node.comment = comment;
 
         Declarator[] declarators;
         while(true)
@@ -6073,7 +6074,7 @@ q{doStuff(5)}c;
 //        }
 //        else
         {
-            expect(tok!";");
+            if (expect(tok!";") is null) return null;
             return node;
         }
     }

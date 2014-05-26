@@ -787,6 +787,7 @@ public:
     }
     /** */ Token[] identifiers;
     /** */ Initializer[] initializers;
+    /** */ string comment;
     mixin OpEquals;
 }
 
