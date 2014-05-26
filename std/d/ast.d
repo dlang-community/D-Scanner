@@ -1531,6 +1531,7 @@ public:
     /** */ FunctionBody functionBody;
     /** */ MemberFunctionAttribute[] memberFunctionAttributes;
     /** */ string comment;
+    /** */ Attribute[] attributes;
     mixin OpEquals;
 }
 

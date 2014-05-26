@@ -1790,7 +1790,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
                 if (peekIs(tok!"="))
                     node.variableDeclaration = parseVariableDeclaration(null, true);
                 else if (peekIs(tok!"("))
-                    node.functionDeclaration = parseFunctionDeclaration(null, true);
+                    node.functionDeclaration = parseFunctionDeclaration(null, true, node.attributes);
                 else
                     goto type;
             }
@@ -1811,7 +1811,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
                 return null;
             }
             if (peekIs(tok!"("))
-                node.functionDeclaration = parseFunctionDeclaration(type);
+                node.functionDeclaration = parseFunctionDeclaration(type, false, node.attributes);
             else
                 node.variableDeclaration = parseVariableDeclaration(type);
             break;
@@ -2540,13 +2540,15 @@ body {} // six
      *       ($(RULE storageClass) | $(RULE _type)) $(LITERAL Identifier) $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
-    FunctionDeclaration parseFunctionDeclaration(Type type = null, bool isAuto = false)
+    FunctionDeclaration parseFunctionDeclaration(Type type = null, bool isAuto = false, Attribute[] attributes = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!FunctionDeclaration;
         node.comment = comment;
         comment = null;
         MemberFunctionAttribute[] memberFunctionAttributes;
+
+        node.attributes = attributes;
 
         if (isAuto)
             goto functionName;
