@@ -56,6 +56,14 @@ class BackwardsRangeCheck : BaseAnalyzer
 		foreachStatement.accept(this);
 	}
 
+	override void visit(const AddExpression add)
+	{
+		auto s = state;
+		state = State.ignore;
+		add.accept(this);
+		state = s;
+	}
+
 	override void visit(const UnaryExpression unary)
 	{
 		if (state != State.ignore && unary.primaryExpression is null)
