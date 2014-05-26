@@ -24,21 +24,21 @@ import analysis.constructors;
 import analysis.unused;
 import analysis.duplicate_attribute;
 
-enum AnalyzerCheck : int
+enum AnalyzerCheck : uint
 {
-	style_check = 0x1,
-	enum_array_literal_check = 0x2,
-	exception_check = 0x4,
-	delete_check = 0x8,
-	float_operator_check = 0x10,
-	number_style_check = 0x20,
-	object_const_check = 0x40,
-	backwards_range_check = 0x80,
-	if_else_same_check = 0x100,
-	constructor_check = 0x200,
-	unused_variable_check = 0x400,
-	duplicate_attribute = 0x800,
-	all = 0xFFF
+	style_check =              0b00000000_00000001,
+	enum_array_literal_check = 0b00000000_00000010,
+	exception_check =          0b00000000_00000100,
+	delete_check =             0b00000000_00001000,
+	float_operator_check =     0b00000000_00010000,
+	number_style_check =       0b00000000_00100000,
+	object_const_check =       0b00000000_01000000,
+	backwards_range_check =    0b00000000_10000000,
+	if_else_same_check =       0b00000001_00000000,
+	constructor_check =        0b00000010_00000000,
+	unused_variable_check =    0b00000100_00000000,
+	duplicate_attribute =      0b00001000_00000000,
+	all =                      0b11111111_11111111
 }
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
