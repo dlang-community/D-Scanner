@@ -1318,7 +1318,7 @@ class XMLPrinter : ASTVisitor
 		case tok!"wstringLiteral": tagName = "wstringLiteral"; break;
 		case tok!"scriptLine": tagName = "scriptLine"; break;
 		case tok!"$": output.writeln("<dollar/>"); return;
-		default: tagName = "token"; break;
+		default: output.writeln("<", str(token.type), "/>"); return;
 		}
 		output.writeln("<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
 	}
