@@ -386,10 +386,10 @@ final class AliasDeclaration : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(linkageAttribute, type, name, initializers));
+        mixin (visitIfNotNull!(storageClasses, type, name, initializers));
     }
     mixin OpEquals;
-    /** */ LinkageAttribute linkageAttribute;
+    /** */ StorageClass[] storageClasses;
     /** */ Type type;
     /** */ Token name;
     /** */ AliasInitializer[] initializers;
@@ -402,10 +402,12 @@ final class AliasInitializer : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(name, type));
+        mixin (visitIfNotNull!(name, templateParameters, storageClasses, type));
     }
     mixin OpEquals;
     /** */ Token name;
+    /** */ StorageClass[] storageClasses;
+    /** */ TemplateParameters templateParameters;
     /** */ Type type;
 }
 
@@ -752,11 +754,8 @@ final class Attribute : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(linkageAttribute, alignAttribute,
-            pragmaExpression, storageClass));
+        mixin (visitIfNotNull!(pragmaExpression, storageClass));
     }
-    /** */ LinkageAttribute linkageAttribute;
-    /** */ AlignAttribute alignAttribute;
     /** */ PragmaExpression pragmaExpression;
     /** */ StorageClass storageClass;
     /** */ IdType attribute;
@@ -1325,6 +1324,7 @@ public:
     /** */ Token name;
     /** */ TemplateParameters templateParameters;
     /** */ AssignExpression assignExpression;
+    /** */ Type type;
     mixin OpEquals;
 }
 
@@ -2254,11 +2254,11 @@ final class PrimaryExpression : ExpressionNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(basicType, primary, typeofExpression,
-            typeidExpression, arrayLiteral, assocArrayLiteral, expression,
-            dot, identifierOrTemplateInstance, isExpression, lambdaExpression,
-            functionLiteralExpression, traitsExpression, mixinExpression,
-            importExpression, vector));
+        mixin (visitIfNotNull!(basicType, typeConstructor, type, primary,
+            typeofExpression, typeidExpression, arrayLiteral, assocArrayLiteral,
+            expression, dot, identifierOrTemplateInstance, isExpression,
+            lambdaExpression, functionLiteralExpression,
+            mixinExpression, importExpression, vector));
     }
     /** */ Token dot;
     /** */ Token primary;
@@ -2276,6 +2276,9 @@ public:
     /** */ MixinExpression mixinExpression;
     /** */ ImportExpression importExpression;
     /** */ Vector vector;
+    /** */ Type type;
+    /** */ Token typeConstructor;
+    /** */ Arguments arguments;
     mixin OpEquals;
 }
 
@@ -2484,8 +2487,11 @@ final class StorageClass : ASTNode
 public:
     override void accept(ASTVisitor visitor) const
     {
-        mixin (visitIfNotNull!(token, deprecated_, atAttribute));
+        mixin (visitIfNotNull!(token, alignAttribute, linkageAttribute,
+            atAttribute, deprecated_));
     }
+    /** */ AlignAttribute alignAttribute;
+    /** */ LinkageAttribute linkageAttribute;
     /** */ AtAttribute atAttribute;
     /** */ Deprecated deprecated_;
     /** */ Token token;
