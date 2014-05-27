@@ -4712,6 +4712,7 @@ q{(int a, ...)
      *     | $(LITERAL 'enum')
      *     | $(LITERAL 'extern')
      *     | $(LITERAL 'final')
+     *     | $(LITERAL 'virtual')
      *     | $(LITERAL 'nothrow')
      *     | $(LITERAL 'override')
      *     | $(LITERAL 'pure')
@@ -4743,6 +4744,7 @@ q{(int a, ...)
         case tok!"enum":
         case tok!"extern":
         case tok!"final":
+        case tok!"virtual":
         case tok!"nothrow":
         case tok!"override":
         case tok!"pure":
@@ -6376,6 +6378,7 @@ protected:
         case tok!"abstract":
         case tok!"pure":
         case tok!"nothrow":
+        case tok!"virtual":
             return true;
         mixin(BASIC_TYPE_CASES);
             return !peekIs(tok!".");
@@ -6479,6 +6482,7 @@ protected:
         case tok!"public":
         case tok!"export":
         case tok!"final":
+        case tok!"virtual":
         case tok!"synchronized":
         case tok!"override":
         case tok!"abstract":
