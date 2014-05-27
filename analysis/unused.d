@@ -53,6 +53,8 @@ class UnusedVariableCheck : BaseAnalyzer
 		popScope();
 	}
 
+	override void visit(const Type type) {}
+
 	mixin template PartsUseVariables(NodeType)
 	{
 		override void visit(const NodeType node)
