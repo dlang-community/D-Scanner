@@ -3405,7 +3405,10 @@ invariant() foo();
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!LastCatch;
-        if (expect(tok!"catch") is null) return null;
+        auto t = expect(tok!"catch");
+        if (t is null) return null;
+        node.line = t.line;
+        node.column = t.column;
         if ((node.statementNoCaseNoDefault = parseStatementNoCaseNoDefault()) is null)
             return null;
         return node;

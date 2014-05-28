@@ -25,11 +25,19 @@ import analysis.helpers;
  */
 class PokemonExceptionCheck : BaseAnalyzer
 {
+	enum message = "Catching Error or Throwable is almost always a bad idea";
+
 	alias visit = BaseAnalyzer.visit;
 
 	this(string fileName)
 	{
 		super(fileName);
+	}
+
+	override void visit(const LastCatch lc)
+	{
+		addErrorMessage(lc.line, lc.column, message);
+		lc.accept(this);
 	}
 
 	override void visit(const Catch c)
@@ -50,7 +58,7 @@ class PokemonExceptionCheck : BaseAnalyzer
 		{
 			immutable column = identOrTemplate.identifier.column;
 			immutable line = identOrTemplate.identifier.line;
-			addErrorMessage(line, column, "Catching Error or Throwable is a really bad idea.");
+			addErrorMessage(line, column, message);
 		}
 		c.accept(this);
 	}
@@ -73,13 +81,16 @@ unittest
 			{
 
 			}
-			catch(Error err) // [warn]: Catching Error or Throwable is a really bad idea.
+			catch(Error err) // [warn]: Catching Error or Throwable is almost always a bad idea
 			{
 
 			}
-			catch(Throwable err) // [warn]: Catching Error or Throwable is a really bad idea.
+			catch(Throwable err) // [warn]: Catching Error or Throwable is almost always a bad idea
 			{
 
+			}
+			catch // [warn]: Catching Error or Throwable is almost always a bad idea
+			{
 			}
 		}
 	}c, analysis.run.AnalyzerCheck.exception_check);

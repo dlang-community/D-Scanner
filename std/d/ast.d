@@ -1871,6 +1871,8 @@ public:
         mixin (visitIfNotNull!(statementNoCaseNoDefault));
     }
     /** */ StatementNoCaseNoDefault statementNoCaseNoDefault;
+    size_t line;
+    size_t column;
     mixin OpEquals;
 }
 
