@@ -7,6 +7,8 @@ module analysis.helpers;
 
 import std.string;
 import std.traits;
+import std.stdio;
+
 import std.d.ast;
 import analysis.run;
 
@@ -58,7 +60,15 @@ void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, s
 	string[size_t] warnings;
 	for (size_t i=0; i<rawWarnings.length; ++i)
 	{
-		size_t warnLine = line - 1 + std.conv.to!size_t(rawWarnings[i].between("test(", ":"));
+		// Skip the warning if it is on line zero
+		size_t rawLine = std.conv.to!size_t(rawWarnings[i].between("test(", ":"));
+		if (rawLine == 0)
+		{
+			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s", rawWarnings[i]);
+			continue;
+		}
+
+		size_t warnLine = line - 1 + rawLine;
 		warnings[warnLine] = rawWarnings[i].after(")");
 	}
 
