@@ -2147,3 +2147,4 @@ immutable HtmlEntity[] characterEntities = [
         HtmlEntity("zwj", "\u200D"),
         HtmlEntity("zwnj", "\u200C")
 ];
+

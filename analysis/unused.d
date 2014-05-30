@@ -335,3 +335,4 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	bool blockStatementIntroducesScope = true;
 }
+

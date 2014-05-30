@@ -59,3 +59,4 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 		autoDec.accept(this);
 	}
 }
+

@@ -173,9 +173,9 @@ unittest
     enum tok(string token) = TokenId!(IdType, ["foo"], ["bar"], ["doo"], token);
     alias str = tokenStringRepresentation!(IdType, ["foo"], ["bar"], ["doo"]);
 
-    static assert(str(tok!"foo") == "foo");
-    static assert(str(tok!"bar") == "bar");
-    static assert(str(tok!"doo") == "doo");
+    static assert (str(tok!"foo") == "foo");
+    static assert (str(tok!"bar") == "bar");
+    static assert (str(tok!"doo") == "doo");
 }
 
 /**
@@ -772,3 +772,4 @@ struct LexerRange
      */
     size_t line;
 }
+

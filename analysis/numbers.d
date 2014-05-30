@@ -58,3 +58,4 @@ unittest
 
 	stderr.writeln("Unittest for NumberStyleCheck passed.");
 }
+

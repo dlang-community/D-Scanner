@@ -1259,7 +1259,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         assert (classZero.structBody is null);
 
         auto classOne = p.parseClassDeclaration();
-        assert (classOne.name.text == "ClassOne"); // FIXME classOne.name.text is "ClassZero" on my machine TM
+        assert (classOne.name.text == "ClassOne");
         assert (classOne.structBody.declarations.length == 0);
         assert (classOne.baseClassList is null);
         assert (classOne.constraint is null);
@@ -1412,7 +1412,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         trueDeclarations ~= dec;
         node.trueDeclarations = ownArray(trueDeclarations);
 
-        if(currentIs(tok!"else"))
+        if (currentIs(tok!"else"))
             advance();
         else
             return node;
@@ -1491,7 +1491,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         if (node.parameters is null) return null;
 
         MemberFunctionAttribute[] memberFunctionAttributes;
-        while(moreTokens() && currentIsMemberFunctionAttribute())
+        while (moreTokens() && currentIsMemberFunctionAttribute())
             memberFunctionAttributes ~= parseMemberFunctionAttribute();
         node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
 
@@ -1995,7 +1995,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         else
         {
             MemberFunctionAttribute[] memberFunctionAttributes;
-            while(moreTokens() && currentIsMemberFunctionAttribute())
+            while (moreTokens() && currentIsMemberFunctionAttribute())
                 memberFunctionAttributes ~= parseMemberFunctionAttribute();
             node.memberFunctionAttributes = ownArray(memberFunctionAttributes);
             node.functionBody = parseFunctionBody();
@@ -2544,7 +2544,7 @@ body {} // six
         if (isAuto)
             goto functionName;
 
-        while(moreTokens() && currentIsMemberFunctionAttribute())
+        while (moreTokens() && currentIsMemberFunctionAttribute())
             memberFunctionAttributes ~= parseMemberFunctionAttribute();
 
         node.returnType = type is null ? parseType() : type;
@@ -2571,7 +2571,7 @@ body {} // six
         node.parameters = parseParameters();
         if (node.parameters is null) return null;
 
-        while(moreTokens() && currentIsMemberFunctionAttribute())
+        while (moreTokens() && currentIsMemberFunctionAttribute())
             memberFunctionAttributes ~= parseMemberFunctionAttribute();
 
         if (isTemplate && currentIs(tok!"if"))
@@ -3434,7 +3434,7 @@ invariant() foo();
         {
             advance();
             node.hasPlusPlus = true;
-            version(DIP61) if (currentIs(tok!","))
+            version (DIP61) if (currentIs(tok!","))
             {
                 advance();
                 node.identifierChain = parseIdentifierChain();
@@ -5226,7 +5226,7 @@ q{(int a, ...)
             node.templateAliasParameter = parseTemplateAliasParameter();
             break;
         case tok!"identifier":
-            if(peekIs(tok!"..."))
+            if (peekIs(tok!"..."))
                 node.templateTupleParameter = parseTemplateTupleParameter();
             else if (peekIsOneOf(tok!":", tok!"=", tok!",", tok!")"))
                 node.templateTypeParameter = parseTemplateTypeParameter();
@@ -5536,7 +5536,7 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!Type;
-        switch(current.type)
+        switch (current.type)
         {
         case tok!"const":
         case tok!"immutable":
@@ -5753,7 +5753,7 @@ q{(int a, ...)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!TypeSuffix;
-        switch(current.type)
+        switch (current.type)
         {
         case tok!"*":
             node.star = true;
@@ -6100,7 +6100,7 @@ q{doStuff(5)}c;
         node.comment = comment;
 
         Declarator[] declarators;
-        while(true)
+        while (true)
         {
             auto declarator = parseDeclarator();
             if (declarator is null) return null;
@@ -6344,7 +6344,7 @@ protected:
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto i = index;
         scope(exit) index = i;
-        assert(currentIs(L));
+        assert (currentIs(L));
         advance();
         while (moreTokens()) switch (current.type)
         {
@@ -6685,7 +6685,7 @@ protected:
 
     void skip(alias O, alias C)()
     {
-        assert(currentIs(O), current().text);
+        assert (currentIs(O), current().text);
         advance();
         int depth = 1;
         while (moreTokens())
@@ -7018,3 +7018,4 @@ protected:
     int _traceDepth;
     string comment;
 }
+

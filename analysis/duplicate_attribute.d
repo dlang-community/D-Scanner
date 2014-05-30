@@ -14,7 +14,7 @@ import analysis.helpers;
 
 
 /**
- * Checks for duplicate attributes such as @property, @safe, 
+ * Checks for duplicate attributes such as @property, @safe,
  * @trusted, @system, pure, and nothrow
  */
 class DuplicateAttributeCheck : BaseAnalyzer

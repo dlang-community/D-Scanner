@@ -73,19 +73,19 @@ unittest
 			{
 				// ...
 			}
-			catch(AssertError err) //ok
+			catch (AssertError err) //ok
 			{
 
 			}
-			catch(Exception err) // ok
+			catch (Exception err) // ok
 			{
 
 			}
-			catch(Error err) // [warn]: Catching Error or Throwable is almost always a bad idea
+			catch (Error err) // [warn]: Catching Error or Throwable is almost always a bad idea
 			{
 
 			}
-			catch(Throwable err) // [warn]: Catching Error or Throwable is almost always a bad idea
+			catch (Throwable err) // [warn]: Catching Error or Throwable is almost always a bad idea
 			{
 
 			}
@@ -97,3 +97,4 @@ unittest
 
 	stderr.writeln("Unittest for PokemonExceptionCheck passed.");
 }
+

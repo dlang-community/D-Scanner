@@ -53,7 +53,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 			writeSpan("cons", t.text.replace("<", "&lt;"));
 		else
 		{
-			version(Windows)
+			version (Windows)
 			{
 				// Stupid Windows automatically does a LF → CRLF, so
 				// CRLF → CRCRLF, which is obviously wrong.
@@ -70,8 +70,9 @@ html  { background-color: #fdf6e3; color: #002b36; }
 
 void writeSpan(string cssClass, string value)
 {
-	version(Windows)
+	version (Windows)
 		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;").replace("\r", ""), `</span>`);
 	else
 		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
 }
+

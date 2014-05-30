@@ -11,7 +11,7 @@ import std.d.lexer;
 
 pure nothrow bool isLineOfCode(IdType t)
 {
-	switch(t)
+	switch (t)
 	{
 	case tok!";":
 	case tok!"while":
@@ -52,3 +52,4 @@ ulong printLineCount(Tokens)(File output, string fileName, ref Tokens tokens)
 	output.writefln("%s:\t%d", fileName, count);
 	return count;
 }
+

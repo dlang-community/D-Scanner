@@ -168,3 +168,4 @@ class CTagsPrinter : ASTVisitor
 	int suppressDepth;
 	string context;
 }
+

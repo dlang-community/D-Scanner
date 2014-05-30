@@ -116,7 +116,7 @@ unittest
 					return 0;
 				}
 
-				string toString()// [warn]: opCmp, toHash, opEquals, and toString should be declared const
+				string toString() // [warn]: opCmp, toHash, opEquals, and toString should be declared const
 				{
 					return "Dog";
 				}
