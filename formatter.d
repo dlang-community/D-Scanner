@@ -343,7 +343,7 @@ class Formatter(Sink)
 	void format(const IdentifierChain identifierChain)
 	{
 		bool first = true;
-		foreach(ident; identifierChain.identifiers)
+		foreach (ident; identifierChain.identifiers)
 		{
 			if (!first)
 				sink.put(".");
@@ -358,7 +358,7 @@ class Formatter(Sink)
 	void format(const IdentifierOrTemplateChain identifierOrTemplateChain)
 	{
 		bool first = true;
-		foreach(ident; identifierOrTemplateChain.identifiersOrTemplateInstances)
+		foreach (ident; identifierOrTemplateChain.identifiersOrTemplateInstances)
 		{
 			if (!first)
 				sink.put(".");
@@ -832,3 +832,4 @@ private:
 	IndentStyle style;
 	Sink sink;
 }
+

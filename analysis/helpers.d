@@ -44,7 +44,7 @@ S after(S)(S value, S separator)
 }
 
 /**
- * This assert function will analyze the passed in code, get the warnings, 
+ * This assert function will analyze the passed in code, get the warnings,
  * and make sure they match the warnings in the comments. Warnings are
  * marked like so: // [warn]: Failed to do somethings.
  */
@@ -100,8 +100,8 @@ void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, s
 		if (lineNo !in warnings)
 		{
 			string errors = "Expected warning:\n%s\nFrom source code at (%s:?):\n%s".format(
-				messages[lineNo], 
-				lineNo, 
+				messages[lineNo],
+				lineNo,
 				codeLines[lineNo - line]
 			);
 			throw new core.exception.AssertError(errors, file, lineNo);
@@ -110,9 +110,9 @@ void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, s
 		else if (warnings[lineNo] != messages[lineNo])
 		{
 			string errors = "Expected warning:\n%s\nBut was:\n%s\nFrom source code at (%s:?):\n%s".format(
-				messages[lineNo], 
-				warnings[lineNo], 
-				lineNo, 
+				messages[lineNo],
+				warnings[lineNo],
+				lineNo,
 				codeLines[lineNo - line]
 			);
 			throw new core.exception.AssertError(errors, file, lineNo);
@@ -127,8 +127,8 @@ void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, s
 		if (lineNo !in messages)
 		{
 			unexpectedWarnings ~= "%s\nFrom source code at (%s:?):\n%s".format(
-				warning, 
-				lineNo, 
+				warning,
+				lineNo,
 				codeLines[lineNo - line]
 			);
 		}
@@ -139,5 +139,4 @@ void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, s
 		throw new core.exception.AssertError(message, file, line);
 	}
 }
-
 

@@ -1519,3 +1519,4 @@ class XMLPrinter : ASTVisitor
 
 	File output;
 }
+

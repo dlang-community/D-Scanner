@@ -4614,3 +4614,4 @@ version(none) struct TemplateAllocator
     }
     static shared TemplateAllocator it;
 }
+

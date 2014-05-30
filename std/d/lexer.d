@@ -1199,9 +1199,9 @@ public struct DLexer
 	Token lexTokenString() pure
 	{
 		mixin (tokenStart);
-		assert(range.front == 'q');
+		assert (range.front == 'q');
 		range.popFront();
-		assert(range.front == '{');
+		assert (range.front == '{');
 		range.popFront();
 		auto app = appender!string();
 		app.put("q{");
@@ -1679,7 +1679,7 @@ public:
             free(cast(void*) prev.bytes.ptr);
             free(cast(void*) prev);
         }
-        foreach(nodePointer; buckets)
+        foreach (nodePointer; buckets)
         {
             Node* currentNode = nodePointer;
             while (currentNode !is null)
@@ -1956,15 +1956,16 @@ unittest
 	// valid
 	enum hex = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','A','B','C','D','E','F'];
 	auto source = "";
-	foreach(h1; hex)
-		foreach(h2; hex)
+	foreach (h1; hex)
+		foreach (h2; hex)
 			source ~= "'\\x" ~ h1 ~ h2 ~ "'";
-	assert(toks(source).filter!(t => t.type != tok!"characterLiteral").empty);
+	assert (toks(source).filter!(t => t.type != tok!"characterLiteral").empty);
 
 	// invalid
-	assert(toks(`'\x'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
-	assert(toks(`'\x_'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
-	assert(toks(`'\xA'`).messages[0] == DLexer.Message(1,5,"Error: 2 hex digits expected.",true));
-	assert(toks(`'\xAY'`).messages[0] == DLexer.Message(1,5,"Error: 2 hex digits expected.",true));
-	assert(toks(`'\xXX'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
+	assert (toks(`'\x'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
+	assert (toks(`'\x_'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
+	assert (toks(`'\xA'`).messages[0] == DLexer.Message(1,5,"Error: 2 hex digits expected.",true));
+	assert (toks(`'\xAY'`).messages[0] == DLexer.Message(1,5,"Error: 2 hex digits expected.",true));
+	assert (toks(`'\xXX'`).messages[0] == DLexer.Message(1,4,"Error: 2 hex digits expected.",true));
 }
+

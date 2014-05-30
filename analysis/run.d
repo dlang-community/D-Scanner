@@ -114,7 +114,7 @@ string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool st
 	}
 
 	MessageSet set = new MessageSet;
-	foreach(check; checks)
+	foreach (check; checks)
 		foreach (message; check.messages)
 			set.insert(message);
 
