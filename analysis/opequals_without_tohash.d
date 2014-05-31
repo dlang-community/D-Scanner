@@ -12,8 +12,8 @@ import analysis.base;
 import analysis.helpers;
 
 /**
- * Checks for when a class/struct has an opEquals method without a toHash 
- * method.
+ * Checks for when a class/struct has the method opEquals without toHash, or
+ * toHash without opEquals.
  */
 class OpEqualsWithoutToHashCheck : BaseAnalyzer
 {
@@ -66,7 +66,13 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 		// Warn if has opEquals, but not toHash
 		if (hasOpEquals && !hasToHash)
 		{
-			string message = "Should override toHash if it has opEquals";
+			string message = "Has method opEquals, but not toHash";
+			addErrorMessage(name.line, name.column, message);
+		}
+		// Warn if has toHash, but not opEquals
+		else if (!hasOpEquals && hasToHash)
+		{
+			string message = "Has method toHash, but not opEquals";
 			addErrorMessage(name.line, name.column, message);
 		}
 	}
@@ -89,8 +95,8 @@ unittest
 			}
 		}
 
-		// Fail on struct
-		struct Tarantula // [warn]: Should override toHash if it has opEquals
+		// Fail on class opEquals
+		class Rabbit // [warn]: Has method opEquals, but not toHash
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -98,8 +104,17 @@ unittest
 			}
 		}
 
-		// Fail on class
-		class Kangaroo // [warn]: Should override toHash if it has opEquals
+		// Fail on class toHash
+		class Kangaroo // [warn]: Has method toHash, but not opEquals
+		{
+			override const hash_t toHash()
+			{
+				return 0;
+			}
+		}
+
+		// Fail on struct opEquals
+		struct Tarantula // [warn]: Has method opEquals, but not toHash
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -107,12 +122,12 @@ unittest
 			}
 		}
 
-		// Fail on class with inheritance
-		class ChaosMonkey : Chimp // [warn]: Should override toHash if it has opEquals
+		// Fail on struct toHash
+		struct Puma // [warn]: Has method toHash, but not opEquals
 		{
-			override const bool opEquals(Object a, Object b)
+			const nothrow @safe hash_t toHash()
 			{
-				return true;
+				return 0;
 			}
 		}
 	}c, analysis.run.AnalyzerCheck.opequals_tohash_check);
