@@ -58,13 +58,13 @@ given source files.
 * Unused variables.
 * Unused parameters (check is skipped if function is marked "override")
 * Duplicate attributes
+* Declaring opEquals without toHash
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".
 * Unused imports.
 * Variables that are never modified and not declared immutable.
 * Public declarations not documented
-* Declaring opEquals without toHash
 * Assignment in conditionals
 
 ### Line of Code Count

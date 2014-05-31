@@ -23,6 +23,7 @@ import analysis.ifelsesame;
 import analysis.constructors;
 import analysis.unused;
 import analysis.duplicate_attribute;
+import analysis.opequals_without_tohash;
 
 enum AnalyzerCheck : uint
 {
@@ -38,6 +39,7 @@ enum AnalyzerCheck : uint
 	constructor_check =        0b00000010_00000000,
 	unused_variable_check =    0b00000100_00000000,
 	duplicate_attribute =      0b00001000_00000000,
+	opequals_tohash_check   =  0b00010000_00000000,
 	all =                      0b11111111_11111111
 }
 
@@ -107,6 +109,7 @@ string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool st
 	if (analyzers & AnalyzerCheck.constructor_check) checks ~= new ConstructorCheck(fileName);
 	if (analyzers & AnalyzerCheck.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
 	if (analyzers & AnalyzerCheck.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName);
+	if (analyzers & AnalyzerCheck.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
 
 	foreach (check; checks)
 	{
