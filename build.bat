@@ -1,1 +1,17 @@
-dmd main.d stats.d imports.d highlighter.d ctags.d astprinter.d formatter.d outliner.d std/allocator.d std/lexer.d std/d/ast.d std/d/parser.d std/d/lexer.d analysis/base.d analysis/del.d analysis/enumarrayliteral.d analysis/constructors.d analysis/ifelsesame.d analysis/fish.d analysis/numbers.d analysis/objectconst.d  analysis/package.d analysis/pokemon.d analysis/range.d analysis/duplicate_attribute.d analysis/unused.d analysis/helpers.d analysis/run.d analysis/opequals_without_tohash.d analysis/style.d -ofdscanner.exe -version=DIP61 -O -release -inline
+@echo off
+setlocal enabledelayedexpansion
+
+set DFLAGS=-version=DIP61 -O -release -inline
+set CORE=
+set STD=
+set STDD=
+set ANALYSIS=
+
+for %%x in (*.d) do set CORE=!CORE! %%x
+for %%x in (std/*.d) do set STD=!STD! std/%%x
+for %%x in (std/d/*.d) do set STDD=!STDD! std/d/%%x
+for %%x in (analysis/*.d) do set ANALYSIS=!ANALYSIS! analysis/%%x
+
+@echo on
+dmd %CORE% %STD% %STDD% %ANALYSIS% %DFLAGS% -ofdscanner.exe
+
