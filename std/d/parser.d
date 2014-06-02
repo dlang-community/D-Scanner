@@ -273,7 +273,11 @@ alias core.sys.posix.stdio.fileno fileno;
     ArgumentList parseArgumentList()
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
-        return parseCommaSeparatedRule!(ArgumentList, AssignExpression)(true);
+        size_t startLocation = current().index;
+        auto ret= parseCommaSeparatedRule!(ArgumentList, AssignExpression)(true);
+        ret.startLocation = startLocation;
+        ret.endLocation = current().index;
+        return ret;
     }
 
     /**
@@ -717,7 +721,9 @@ alias core.sys.posix.stdio.fileno fileno;
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!AtAttribute;
-        if (expect(tok!"@") is null) return null;
+        auto start = expect(tok!"@");
+        if (start is null) return null;
+        node.startLocation = start.index;
         switch (current.type)
         {
         case tok!"identifier":
@@ -735,6 +741,7 @@ alias core.sys.posix.stdio.fileno fileno;
             error(`"(", or identifier expected`);
             return null;
         }
+        node.endLocation = current().index;
         return node;
     }
 
@@ -1783,7 +1790,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
                 if (peekIs(tok!"="))
                     node.variableDeclaration = parseVariableDeclaration(null, true);
                 else if (peekIs(tok!"("))
-                    node.functionDeclaration = parseFunctionDeclaration(null, true);
+                    node.functionDeclaration = parseFunctionDeclaration(null, true, node.attributes);
                 else
                     goto type;
             }
@@ -1804,7 +1811,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
                 return null;
             }
             if (peekIs(tok!"("))
-                node.functionDeclaration = parseFunctionDeclaration(type);
+                node.functionDeclaration = parseFunctionDeclaration(type, false, node.attributes);
             else
                 node.variableDeclaration = parseVariableDeclaration(type);
             break;
@@ -2533,13 +2540,15 @@ body {} // six
      *       ($(RULE storageClass) | $(RULE _type)) $(LITERAL Identifier) $(RULE templateParameters) $(RULE parameters) $(RULE memberFunctionAttribute)* $(RULE constraint)? ($(RULE functionBody) | $(LITERAL ';'))
      *     ;)
      */
-    FunctionDeclaration parseFunctionDeclaration(Type type = null, bool isAuto = false)
+    FunctionDeclaration parseFunctionDeclaration(Type type = null, bool isAuto = false, Attribute[] attributes = null)
     {
         mixin(traceEnterAndExit!(__FUNCTION__));
         auto node = allocate!FunctionDeclaration;
         node.comment = comment;
         comment = null;
         MemberFunctionAttribute[] memberFunctionAttributes;
+
+        node.attributes = attributes;
 
         if (isAuto)
             goto functionName;
@@ -3601,9 +3610,11 @@ invariant() foo();
     ModuleDeclaration parseModuleDeclaration()
     {
         auto node = allocate!ModuleDeclaration;
-        expect(tok!"module");
+        auto start = expect(tok!"module");
         node.moduleName = parseIdentifierChain();
-        expect(tok!";");
+        auto end = expect(tok!";");
+        node.startLocation = start.index;
+        node.endLocation = end.index;
         return node;
     }
 
