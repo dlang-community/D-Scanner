@@ -435,7 +435,7 @@ public struct DLexer
 	public void popFront() pure
 	{
 		_popFront();
-		string comment = null;
+		string comment;
 		switch (front.type)
 		{
 			case tok!"comment":
@@ -538,6 +538,72 @@ public struct DLexer
 	Token lexWhitespace() pure nothrow
 	{
 		mixin (tokenStart);
+		static if (__VERSION__ > 2065) version (D_InlineAsm_X86_64) while (index + 16 <= range.bytes.length)
+		{
+			ulong startAddr = (cast(ulong) range.bytes.ptr) + index;
+			enum space = (cast(ulong) ' ') * 0x0101010101010101L;
+			enum tab = (cast(ulong) '\t') * 0x0101010101010101L;
+			enum cr = (cast(ulong) '\r') * 0x0101010101010101L;
+			enum lf = (cast(ulong) '\n') * 0x0101010101010101L;
+			ulong charsSkipped;
+			ulong lineIncrement;
+			asm
+			{
+				mov R10, space;
+				mov R11, tab;
+				mov R12, cr;
+				mov R13, lf;
+				mov R8, startAddr;
+				movdqu XMM0, [R8];
+
+				mov R9, line;
+
+				// space pattern
+				movq XMM1, R10;
+				shufpd XMM1, XMM1, 0;
+				pcmpeqb XMM1, XMM0;
+
+				// tab pattern
+				movq XMM2, R11;
+				shufpd XMM2, XMM2, 0;
+				pcmpeqb XMM2, XMM0;
+
+				// CR pattern
+				movq XMM3, R12;
+				shufpd XMM3, XMM3, 0;
+				pcmpeqb XMM3, XMM0;
+
+				// LF pattern
+				movq XMM4, R13;
+				shufpd XMM4, XMM4, 0;
+				pcmpeqb XMM4, XMM0;
+
+				// Bit mask-of newlines to r10
+				pmovmskb R10, XMM4;
+
+				// and the masks together
+				por XMM1, XMM2;
+				por XMM1, XMM3;
+				por XMM1, XMM4;
+				pmovmskb RAX, XMM1;
+				not RAX;
+				bsf RCX, RAX;
+				mov charsSkipped, RCX;
+
+				mov RBX, 1;
+				inc CL;
+				shl RBX, CL;
+				sub RBX, 1;
+				and R10, RBX;
+				popcnt R10, R10;
+				mov lineIncrement, R10;
+			}
+			range.incrementLine(lineIncrement);
+			range.popFrontN(charsSkipped);
+			if (charsSkipped < 16)
+				goto end;
+			index += 16;
+		}
 		loop: do
 		{
 			switch (range.front)
@@ -575,6 +641,7 @@ public struct DLexer
 				break loop;
 			}
 		} while (!range.empty);
+	end:
 		string text = config.whitespaceBehavior == WhitespaceBehavior.skip
 			? null : cache.intern(range.slice(mark));
 		return Token(tok!"whitespace", text, line, column, index);
@@ -920,8 +987,89 @@ public struct DLexer
 	{
 		mixin (tokenStart);
 		IdType type = tok!"comment";
-		range.popFront();
-		range.popFront();
+		range.popFrontN(2);
+		static if (__VERSION__ > 2065) version (D_InlineAsm_X86_64) while (range.index + 16 <= range.bytes.length)
+		{
+			ulong startAddress = cast(ulong) range.bytes.ptr + range.index;
+			enum slash = (cast(ulong) '/') * 0x0101010101010101L;
+			enum star = (cast(ulong) '*') * 0x0101010101010101L;
+			enum lf = (cast(ulong) '\n') * 0x0101010101010101L;
+			ulong charsSkipped;
+			ulong newlineCount;
+			bool done;
+			asm
+			{
+				mov RAX, startAddress;
+				movdqu XMM0, [RAX];
+
+				mov R10, lf;
+				movq XMM2, R10;
+				shufpd XMM2, XMM2, 0;
+				pcmpeqb XMM2, XMM0;
+				pmovmskb R15, XMM2;
+
+				mov R10, star;
+				movq XMM3, R10;
+				shufpd XMM3, XMM3, 0;
+				pcmpeqb XMM3, XMM0;
+				pmovmskb R8, XMM3;
+
+				mov R10, slash;
+				movq XMM4, R10;
+				shufpd XMM4, XMM4, 0;
+				pcmpeqb XMM4, XMM0;
+				pmovmskb R9, XMM4;
+			loop:
+				cmp R8, 0;
+				je notFound;
+				cmp R9, 0;
+				je notFound;
+				bsf RAX, R8; // stIndex
+				bsf RBX, R9; // slIndex
+				mov RDX, RAX;
+				inc RDX;
+				cmp RDX, RBX;
+				je found;
+				cmp RAX, RBX;
+				jae maskSlash;
+			maskStar:
+				mov RCX, RAX;
+				mov R10, 1;
+				shl R10, CL;
+				xor R8, R10;
+				jmp loop;
+			maskSlash:
+				mov RCX, RBX;
+				mov R10, 1;
+				shl R10, CL;
+				xor R9, R10;
+				jmp loop;
+			notFound:
+				mov R14, 16;
+				mov charsSkipped, R14;
+				popcnt R14, R15;
+				mov newlineCount, R14;
+				jmp asmEnd;
+			found:
+				inc RBX;
+				mov charsSkipped, RBX;
+				mov RAX, 1;
+				mov done, AL;
+				mov RCX, RBX;
+				mov RBX, 1;
+				shl RBX, CL;
+				dec RBX;
+				and R15, RBX;
+				popcnt R14, R15;
+				mov newlineCount, R14;
+			asmEnd:
+				nop;
+			}
+			range.popFrontN(charsSkipped);
+			range.incrementLine(newlineCount);
+			if (done)
+				goto end;
+		}
 		while (!range.empty)
 		{
 			if (range.front == '*')
@@ -936,6 +1084,7 @@ public struct DLexer
 			else
 				popFrontWhitespaceAware();
 		}
+	end:
 		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
@@ -944,14 +1093,59 @@ public struct DLexer
 	{
 		mixin (tokenStart);
 		IdType type = tok!"comment";
-		range.popFront();
-		range.popFront();
+		range.popFrontN(2);
+		static if (__VERSION__ > 2065) version (D_InlineAsm_X86_64) while (range.index + 16 <= range.bytes.length)
+		{
+			ulong startAddress = cast(ulong) range.bytes.ptr + range.index;
+			enum cr = (cast(ulong) '\r') * 0x0101010101010101L;
+			enum lf = (cast(ulong) '\n') * 0x0101010101010101L;
+			ulong charsSkipped;
+			asm
+			{
+				mov RAX, startAddress;
+				movdqu XMM0, [RAX];
+
+				mov R10, cr;
+				movq XMM1, R10;
+				shufpd XMM1, XMM1, 0;
+				pcmpeqb XMM1, XMM0;
+
+				mov R10, lf;
+				movq XMM2, R10;
+				shufpd XMM2, XMM2, 0;
+				pcmpeqb XMM2, XMM0;
+
+				por XMM1, XMM2;
+				pmovmskb RBX, XMM1;
+				bsf RCX, RBX;
+				mov RDX, 16;
+				cmp RBX, 0;
+				cmove RCX, RDX;
+				mov charsSkipped, RCX;
+
+			}
+			if (charsSkipped < 16)
+			{
+				index += charsSkipped;
+				column += charsSkipped;
+				range.popFrontN(charsSkipped);
+				goto end;
+			}
+			else
+			{
+				assert (charsSkipped == 16);
+				index += 16;
+				column += 16;
+				range.popFrontN(16);
+			}
+		}
 		while (!range.empty)
 		{
 			if (range.front == '\r' || range.front == '\n')
 				break;
 			range.popFront();
 		}
+	end:
 		return Token(type, cache.intern(range.slice(mark)), line, column,
 			index);
 	}
@@ -1750,7 +1944,7 @@ public:
     /**
      * The default bucket count for the string cache.
      */
-    static enum defaultBucketCount = 2048;
+    static enum defaultBucketCount = 4096;
 
     size_t allocated() pure nothrow @safe @property
     {
