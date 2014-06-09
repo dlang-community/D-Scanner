@@ -1,4 +1,4 @@
-dmd\
+/home/brian/src/dmd/src/dmd\
 	main.d\
 	stats.d\
 	imports.d\
@@ -13,7 +13,7 @@ dmd\
 	-version=DIP61\
 	-ofdscanner\
 	-g\
-	-O -release
+	-O -release -inline
 
 #gdc\
 #	main.d\
