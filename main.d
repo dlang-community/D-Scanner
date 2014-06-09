@@ -150,9 +150,9 @@ int run(string[] args)
 			if (usingStdin)
 			{
 				LexerConfig config;
-				config.whitespaceBehavior = WhitespaceBehavior.include;
+				config.whitespaceBehavior = WhitespaceBehavior.skip;
 				config.stringBehavior = StringBehavior.source;
-				config.commentBehavior = CommentBehavior.include;
+				config.commentBehavior = CommentBehavior.attach;
 				auto tokens = byToken(readStdin(), config, cache);
 				if (tokenCount)
 					printTokenCount(stdout, "stdin", tokens);
@@ -168,7 +168,7 @@ int run(string[] args)
 					LexerConfig config;
 					config.whitespaceBehavior = WhitespaceBehavior.skip;
 					config.stringBehavior = StringBehavior.source;
-					config.commentBehavior = CommentBehavior.include;
+					config.commentBehavior = CommentBehavior.attach;
 					auto tokens = byToken(readFile(f), config, cache);
 					if (tokenCount)
 						count += printTokenCount(stdout, f, tokens);
