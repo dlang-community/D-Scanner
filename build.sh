@@ -1,4 +1,4 @@
-/home/brian/src/dmd/src/dmd\
+dmd\
 	main.d\
 	stats.d\
 	imports.d\
