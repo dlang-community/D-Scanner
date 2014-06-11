@@ -538,7 +538,7 @@ public struct DLexer
 	Token lexWhitespace() pure nothrow
 	{
 		mixin (tokenStart);
-		static if (__VERSION__ > 2065) version (D_InlineAsm_X86_64) while (index + 16 <= range.bytes.length)
+		version (none) while (index + 16 <= range.bytes.length)
 		{
 			ulong startAddr = (cast(ulong) range.bytes.ptr) + index;
 			enum space = (cast(ulong) ' ') * 0x0101010101010101L;
@@ -988,7 +988,7 @@ public struct DLexer
 		mixin (tokenStart);
 		IdType type = tok!"comment";
 		range.popFrontN(2);
-		static if (__VERSION__ > 2065) version (D_InlineAsm_X86_64) while (range.index + 16 <= range.bytes.length)
+		version (none) while (range.index + 16 <= range.bytes.length)
 		{
 			ulong startAddress = cast(ulong) range.bytes.ptr + range.index;
 			enum slash = (cast(ulong) '/') * 0x0101010101010101L;
@@ -1094,7 +1094,7 @@ public struct DLexer
 		mixin (tokenStart);
 		IdType type = tok!"comment";
 		range.popFrontN(2);
-		static if (__VERSION__ > 2065) version (D_InlineAsm_X86_64) while (range.index + 16 <= range.bytes.length)
+		version (none) while (range.index + 16 <= range.bytes.length)
 		{
 			ulong startAddress = cast(ulong) range.bytes.ptr + range.index;
 			enum cr = (cast(ulong) '\r') * 0x0101010101010101L;
