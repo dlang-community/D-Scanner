@@ -1182,6 +1182,8 @@ public:
     }
     /** */ Token name;
     /** */ Initializer initializer;
+    /** */ TypeSuffix[] cstyle;
+
     mixin OpEquals;
 }
 
@@ -2164,6 +2166,8 @@ public:
     /** */ Token name;
     /** */ bool vararg;
     /** */ AssignExpression default_;
+    /** */ TypeSuffix[] cstyle;
+
     mixin OpEquals;
 }
 
