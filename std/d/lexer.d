@@ -1778,9 +1778,32 @@ body
 	{
 	case "///":
 		size_t i = 3;
-		while (comment[i] == ' ' || comment[i] == '\t')
-			i++;
-		outputRange.put(comment[i .. $]);
+		if (i < comment.length)
+		{
+		again:
+			while (i < comment.length && comment[i] == ' ' || comment[i] == '\t')
+				i++;
+			size_t j = i + 1;
+			while (j < comment.length)
+			{
+				if (comment[j] == '\r')
+					j++;
+				if (j >= comment.length)
+					break;
+				if (comment[j] == '\n')
+				{
+					outputRange.put(comment[i .. j]);
+					j++;
+					while (j < comment.length && comment[j] == '/')
+						j++;
+					outputRange.put(' ');
+					i = j;
+					goto again;
+				}
+				j++;
+			}
+			outputRange.put(comment[i .. j]);
+		}
 		break;
 	case "/++":
 	case "/**":

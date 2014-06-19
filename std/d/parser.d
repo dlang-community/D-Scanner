@@ -2560,7 +2560,18 @@ body {} // six
         node.attributes = attributes;
 
         if (isAuto)
+        {
+            foreach (a; node.attributes)
+            {
+                if (a.storageClass is null)
+                    continue;
+                if (a.storageClass.token == tok!"auto")
+                    node.hasAuto = true;
+                if (a.storageClass.token == tok!"ref")
+                    node.hasRef = true;
+            }
             goto functionName;
+        }
 
         while (moreTokens() && currentIsMemberFunctionAttribute())
             memberFunctionAttributes ~= parseMemberFunctionAttribute();
@@ -3621,6 +3632,8 @@ invariant() foo();
         auto node = allocate!ModuleDeclaration;
         auto start = expect(tok!"module");
         node.moduleName = parseIdentifierChain();
+        node.comment = start.comment;
+        comment = null;
         auto end = expect(tok!";");
         node.startLocation = start.index;
         node.endLocation = end.index;

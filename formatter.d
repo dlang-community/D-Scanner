@@ -107,9 +107,9 @@ class Formatter(Sink)
             }
             else
             {
-                if (linkageAttribute)
+                foreach (storageClass; storageClasses)
                 {
-                    format(linkageAttribute);
+                    format(storageClass);
                     space();
                 }
 
@@ -451,10 +451,8 @@ class Formatter(Sink)
 
         with(att)
         {
-            if (linkageAttribute) format(linkageAttribute);
-            if (alignAttribute) format(alignAttribute);
-            if (pragmaExpression) format(pragmaExpression);
             if (storageClass) format(storageClass);
+            if (pragmaExpression) format(pragmaExpression);
             if (attribute) put(tokenRep(attribute));
         }
     }
@@ -550,7 +548,7 @@ class Formatter(Sink)
     void format(const BaseClassList baseClassList)
     {
         debug(verbose) writeln("BaseClassList");
-
+		put(" : ");
         foreach(count, item; baseClassList.items)
         {
             format(item);
@@ -2328,8 +2326,8 @@ class Formatter(Sink)
         PragmaExpression pragmaExpression;
         **/
 
-        putAttrs(attrs);        
-        format(pragmaDeclaration.pragmaExpression);        
+        putAttrs(attrs);
+        format(pragmaDeclaration.pragmaExpression);
         put(";");
     }
 
@@ -2342,7 +2340,7 @@ class Formatter(Sink)
         ArgumentList argumentList;
         **/
 
-        put("pragma(");        
+        put("pragma(");
         format(pragmaExpression.identifier);
         if (pragmaExpression.argumentList)
         {
@@ -3595,6 +3593,8 @@ class Formatter(Sink)
         mixin(binary("xorExpression", "^"));
     }
 
+	Sink sink;
+
 private:
 
     import std.uni : isWhite;
@@ -3644,24 +3644,12 @@ private:
         lastThing = currentThing;
         currentThing = thing;
 
-        dchar last() {
-            auto r = sink.data;
-            while(!r.empty && r.back.isWhite) r.popBack();
-            return r.empty ? ' ' : r.back;
-        }
-
         with(What) {
-
-            if (last() == '{')
-            {
-                onNewline();
-                return;
-            }
 
             if (lastThing == importDecl && thing != importDecl)
                 lineGap(1);
 
-            if (lastThing == loop && last() == '}')
+            if (lastThing == loop)
                 lineGap(1);
 
             switch(thing)
@@ -3675,10 +3663,10 @@ private:
                     lineGap(1);
                     break;
                 case conditionalDecl:
-                    if (last() == ';' || last() == '}') lineGap(1);
+                    lineGap(1);
                     break;
                 case variableDecl:
-                    if (last() == '}') lineGap(1);
+                    lineGap(1);
                     onNewline();
                     break;
                 case importDecl:
@@ -3700,16 +3688,6 @@ private:
 
     void lineGap(int gap)
     {
-        int count;
-        auto r = sink.data;
-        while(!r.empty && r.back.isWhite)
-        {
-            if (r.back == '\n') count++;
-            r.popBack();
-        }
-        if (r.empty) return;
-        int need = gap - count + 1;
-        while(need--) newline();
     }
 
     void newline()
@@ -3728,20 +3706,11 @@ private:
 
     void onNewline()
     {
-        auto r = sink.data;
-        while(!r.empty && r.back.isWhite())
-        {
-            if (r.back == '\n') return;
-            r.popBack();
-        }
-        if (r.empty) return;
-        newline();
     }
 
     void space()
     {
-        if (!sink.data.empty && !sink.data.back.isWhite() && sink.data.back != '(')
-            put(" ");
+		put(" ");
     }
 
     static string binary(string symbol, string operator = null, bool nospace = false)
@@ -3879,7 +3848,7 @@ private:
     uint indentWidth;
     uint indentLevel;
     IndentStyle style;
-    Sink sink;
+
 
     What lastThing, currentThing;
     uint lineLength;

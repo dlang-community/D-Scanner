@@ -1987,6 +1987,7 @@ public:
     /** */ IdentifierChain moduleName;
     /** */ size_t startLocation;
     /** */ size_t endLocation;
+	/** */ string comment;
     mixin OpEquals;
 }
 
