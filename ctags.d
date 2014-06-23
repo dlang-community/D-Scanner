@@ -156,6 +156,16 @@ class CTagsPrinter : ASTVisitor
 		dec.accept(this);
 	}
 
+	override void visit(const AutoDeclaration dec)
+	{
+		foreach (i; dec.identifiers)
+		{
+			tagLines ~= "%s\t%s\t%d;\"\tv%s\n".format(i.text, fileName,
+				i.line, context);
+		}
+		dec.accept(this);
+	}
+
 	override void visit(const Invariant dec)
 	{
 		tagLines ~= "invariant\t%s\t%d;\"\tv%s\n".format(fileName, dec.line, context);
