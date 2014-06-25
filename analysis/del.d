@@ -12,7 +12,7 @@ import analysis.base;
 import analysis.helpers;
 
 /**
- * Checks for use of the deprecated "delete" keyword
+ * Checks for use of the deprecated 'delete' keyword
  */
 class DeleteCheck : BaseAnalyzer
 {
@@ -25,7 +25,7 @@ class DeleteCheck : BaseAnalyzer
 
 	override void visit(const DeleteExpression d)
 	{
-		addErrorMessage(d.line, d.column, "Avoid using the delete keyword");
+		addErrorMessage(d.line, d.column, "Avoid using the 'delete' keyword.");
 		d.accept(this);
 	}
 }
@@ -36,10 +36,10 @@ unittest
 		void testDelete()
 		{
 			int[int] data = [1 : 2];
-			delete data[1]; // [warn]: Avoid using the delete keyword
+			delete data[1]; // [warn]: Avoid using the 'delete' keyword.
 
 			auto a = new Class();
-			delete a; // [warn]: Avoid using the delete keyword
+			delete a; // [warn]: Avoid using the 'delete' keyword.
 		}
 	}c, analysis.run.AnalyzerCheck.delete_check);
 

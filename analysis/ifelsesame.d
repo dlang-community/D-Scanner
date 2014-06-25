@@ -29,7 +29,7 @@ class IfElseSameCheck : BaseAnalyzer
 	{
 		if (ifStatement.thenStatement == ifStatement.elseStatement)
 			addErrorMessage(ifStatement.line, ifStatement.column,
-				"\"Else\" branch is identical to \"Then\" branch.");
+				"'Else' branch is identical to 'Then' branch.");
 		ifStatement.accept(this);
 	}
 
@@ -40,7 +40,7 @@ class IfElseSameCheck : BaseAnalyzer
 			&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{
 			addErrorMessage(assignExpression.line, assignExpression.column,
-				"Left side of assignment operatior is identical to the right side");
+				"Left side of assignment operatior is identical to the right side.");
 		}
 		assignExpression.accept(this);
 	}
@@ -52,7 +52,7 @@ unittest
 		void testSizeT()
 		{
 			string person = "unknown";
-			if (person == "unknown") // [warn]: "Else" branch is identical to "Then" branch.
+			if (person == "unknown") // [warn]: 'Else' branch is identical to 'Then' branch.
 				person = "bobrick"; // same
 			else
 				person = "bobrick"; // same

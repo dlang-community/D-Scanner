@@ -66,13 +66,13 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 		// Warn if has opEquals, but not toHash
 		if (hasOpEquals && !hasToHash)
 		{
-			string message = "Has method opEquals, but not toHash";
+			string message = "Has method 'opEquals', but not 'toHash'.";
 			addErrorMessage(name.line, name.column, message);
 		}
 		// Warn if has toHash, but not opEquals
 		else if (!hasOpEquals && hasToHash)
 		{
-			string message = "Has method toHash, but not opEquals";
+			string message = "Has method 'toHash', but not 'opEquals'.";
 			addErrorMessage(name.line, name.column, message);
 		}
 	}
@@ -96,7 +96,7 @@ unittest
 		}
 
 		// Fail on class opEquals
-		class Rabbit // [warn]: Has method opEquals, but not toHash
+		class Rabbit // [warn]: Has method 'opEquals', but not 'toHash'.
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -105,7 +105,7 @@ unittest
 		}
 
 		// Fail on class toHash
-		class Kangaroo // [warn]: Has method toHash, but not opEquals
+		class Kangaroo // [warn]: Has method 'toHash', but not 'opEquals'.
 		{
 			override const hash_t toHash()
 			{
@@ -114,7 +114,7 @@ unittest
 		}
 
 		// Fail on struct opEquals
-		struct Tarantula // [warn]: Has method opEquals, but not toHash
+		struct Tarantula // [warn]: Has method 'opEquals', but not 'toHash'.
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -123,7 +123,7 @@ unittest
 		}
 
 		// Fail on struct toHash
-		struct Puma // [warn]: Has method toHash, but not opEquals
+		struct Puma // [warn]: Has method 'toHash', but not 'opEquals'.
 		{
 			const nothrow @safe hash_t toHash()
 			{
