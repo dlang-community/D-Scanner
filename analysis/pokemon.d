@@ -25,7 +25,7 @@ import analysis.helpers;
  */
 class PokemonExceptionCheck : BaseAnalyzer
 {
-	enum message = "Catching Error or Throwable is almost always a bad idea";
+	enum message = "Catching Error or Throwable is almost always a bad idea.";
 
 	alias visit = BaseAnalyzer.visit;
 
@@ -81,15 +81,15 @@ unittest
 			{
 
 			}
-			catch (Error err) // [warn]: Catching Error or Throwable is almost always a bad idea
+			catch (Error err) // [warn]: Catching Error or Throwable is almost always a bad idea.
 			{
 
 			}
-			catch (Throwable err) // [warn]: Catching Error or Throwable is almost always a bad idea
+			catch (Throwable err) // [warn]: Catching Error or Throwable is almost always a bad idea.
 			{
 
 			}
-			catch // [warn]: Catching Error or Throwable is almost always a bad idea
+			catch // [warn]: Catching Error or Throwable is almost always a bad idea.
 			{
 			}
 		}

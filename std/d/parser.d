@@ -133,7 +133,7 @@ alias core.sys.posix.stdio.fileno fileno;
         assert (d !is null);
         assert (p.errorCount == 0);
 
-        stderr.writeln("Unittest for parseAliasDeclaration() passed.");
+        stderr.writeln("Unittest for parseAliasDeclaration passed.");
     }
 
     /**
@@ -168,7 +168,7 @@ alias core.sys.posix.stdio.fileno fileno;
         auto initializer = p.parseAliasInitializer();
         assert (initializer !is null);
         assert (p.errorCount == 0);
-        stderr.writeln("Unittest for parseAliasInitializer() passed.");
+        stderr.writeln("Unittest for parseAliasInitializer passed.");
     }
 
     /**
@@ -197,7 +197,7 @@ alias core.sys.posix.stdio.fileno fileno;
         auto aliasThis = p.parseAliasThisDeclaration();
         assert (aliasThis !is null);
         assert (p.errorCount == 0);
-        stderr.writeln("Unittest for parseAliasThisDeclaration() passed.");
+        stderr.writeln("Unittest for parseAliasThisDeclaration passed.");
     }
 
     /**
@@ -231,7 +231,7 @@ alias core.sys.posix.stdio.fileno fileno;
         attribute = p.parseAlignAttribute();
         assert (attribute !is null);
         assert (p.errorCount == 0);
-        stderr.writeln("Unittest for parseAlignAttribute() passed.");
+        stderr.writeln("Unittest for parseAlignAttribute passed.");
     }
 
     /**
@@ -1146,7 +1146,7 @@ incorrect;
         assert (nine is null);
         assert (p.errorCount > 0);
 
-        stderr.writeln("Unittest for parseCastQualifier() passed.");
+        stderr.writeln("Unittest for parseCastQualifier passed.");
     }
 
     /**
@@ -1298,7 +1298,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         assert (classFour.structBody.declarations.length == 0,
             to!string(classFour.structBody.declarations.length));
 
-        stderr.writeln("Unittest for parseClassDeclaration() passed.");
+        stderr.writeln("Unittest for parseClassDeclaration passed.");
     }
 
     /**
@@ -2027,7 +2027,7 @@ class ClassFive(A, B) : Super if (someTest()) {}}c;
         assert (d !is null);
         assert (d.functionBody !is null);
         assert (p.errorCount == 0);
-        stderr.writeln("Unittest for parseDestructor() passed.");
+        stderr.writeln("Unittest for parseDestructor passed.");
     }
 
     /**
@@ -2486,7 +2486,7 @@ body {} // six
         assert (functionBodySix.outStatement is null);
         assert (functionBodySix.bodyStatement !is null);
 
-        stderr.writeln("Unittest for parseFunctionBody() passed.");
+        stderr.writeln("Unittest for parseFunctionBody passed.");
     }
 
     /**
@@ -3025,7 +3025,7 @@ import core.stdc.stdio, std.string : KeepTerminator;
         assert (seven.importBindings !is null);
         assert (p.errorCount == 0);
 
-        stderr.writeln("Unittest for parseImportDeclaration() passed.");
+        stderr.writeln("Unittest for parseImportDeclaration passed.");
     }
 
     /**
@@ -3216,7 +3216,7 @@ interface "Four"
         assert (four is null);
         assert (p.errorCount > 0);
 
-        stderr.writeln("Unittest for parseInterfaceDeclaration() passed.");
+        stderr.writeln("Unittest for parseInterfaceDeclaration passed.");
     }
 
     /**
@@ -4134,7 +4134,7 @@ q{(int a, ...)
         assert (!params3.parameters[0].vararg);
         assert (params3.parameters[0].type !is null);
 
-        stderr.writeln("Unittest for parseParameters() passed.");
+        stderr.writeln("Unittest for parseParameters passed.");
     }
 
     /**
@@ -6067,7 +6067,7 @@ q{doStuff(5)}c;
         auto unary = p.parseUnaryExpression();
         assert (unary !is null);
         assert (unary.functionCallExpression !is null);
-        stderr.writeln("Unittest for parseUnaryExpression() passed.");
+        stderr.writeln("Unittest for parseUnaryExpression passed.");
     }
 
     /**

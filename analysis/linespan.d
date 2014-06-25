@@ -76,6 +76,6 @@ unittest
 	l.addLine(35);
 	foreach (i; 33 .. 43)
 		assert (l.containsLine(i));
-	stderr.writeln("Unittest for LineSpans passed");
+	stderr.writeln("Unittest for LineSpans passed.");
 }
 

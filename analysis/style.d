@@ -36,7 +36,7 @@ class StyleChecker : BaseAnalyzer
 		{
 			if (part.text.matchFirst(moduleNameRegex).length == 0)
 				addErrorMessage(part.line, part.column, "Module/package name '"
-					~ part.text ~ "' does not match style guidelines");
+					~ part.text ~ "' does not match style guidelines.");
 		}
 	}
 
@@ -53,8 +53,8 @@ class StyleChecker : BaseAnalyzer
 	void checkLowercaseName(string type, ref const Token name)
 	{
 		if (name.text.matchFirst(varFunNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, type ~ " name "
-				~ name.text ~ " does not match style guidelines");
+			addErrorMessage(name.line, name.column, type ~ " name '"
+				~ name.text ~ "' does not match style guidelines.");
 	}
 
 	override void visit(const ClassDeclaration dec)
@@ -87,24 +87,24 @@ class StyleChecker : BaseAnalyzer
 	{
 		if (name.text.matchFirst(aggregateNameRegex).length == 0)
 			addErrorMessage(name.line, name.column, aggregateType
-				~ " name '" ~ name.text ~ "' does not match style guidelines");
+				~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
 }
 
 unittest
 {
 	assertAnalyzerWarnings(q{
-		module AMODULE; // [warn]: Module/package name 'AMODULE' does not match style guidelines
+		module AMODULE; // [warn]: Module/package name 'AMODULE' does not match style guidelines.
 
 		bool A_VARIABLE; // FIXME:
 		bool a_variable; // ok
 		bool aVariable; // ok
 
 		void A_FUNCTION() {} // FIXME:
-		class cat {} // [warn]: Class name 'cat' does not match style guidelines
-		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines
-		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines
-		enum racoon {} // [warn]: Enum name 'racoon' does not match style guidelines
+		class cat {} // [warn]: Class name 'cat' does not match style guidelines.
+		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines.
+		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
+		enum racoon {} // [warn]: Enum name 'racoon' does not match style guidelines.
 	}c, analysis.run.AnalyzerCheck.style_check);
 
 	stderr.writeln("Unittest for StyleChecker passed.");
