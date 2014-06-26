@@ -102,18 +102,15 @@ int run(string[] args)
 		return 1;
 	}
 
-	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
+	StringCache cache = StringCache(StringCache.defaultBucketCount);
 
 	if (tokenDump || highlight)
 	{
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
 		LexerConfig config;
-		config.whitespaceBehavior = WhitespaceBehavior.include;
 		config.stringBehavior = StringBehavior.source;
-		config.commentBehavior = CommentBehavior.include;
-		config.specialTokenBehavior = SpecialTokenBehavior.include;
-		auto tokens = byToken(bytes, config, cache);
+		auto tokens = byToken(bytes, config, &cache);
 		if (highlight)
 		{
 			highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
@@ -121,11 +118,11 @@ int run(string[] args)
 		}
 		else if (tokenDump)
 		{
-			writeln("text                    blank\tindex\tline\tcolumn\ttype");
+			writeln("text                    blank\tindex\tline\tcolumn\ttype\tcomment");
 			foreach (token; tokens)
 			{
-				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d", token.text is null ? str(token.type) : token.text,
-					token.text !is null, token.index, token.line, token.column, token.type);
+				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null ? str(token.type) : token.text,
+					token.text !is null, token.index, token.line, token.column, token.type, token.comment);
 			}
 			return 0;
 		}
@@ -150,10 +147,8 @@ int run(string[] args)
 			if (usingStdin)
 			{
 				LexerConfig config;
-				config.whitespaceBehavior = WhitespaceBehavior.skip;
 				config.stringBehavior = StringBehavior.source;
-				config.commentBehavior = CommentBehavior.attach;
-				auto tokens = byToken(readStdin(), config, cache);
+				auto tokens = byToken(readStdin(), config, &cache);
 				if (tokenCount)
 					printTokenCount(stdout, "stdin", tokens);
 				else
@@ -166,10 +161,8 @@ int run(string[] args)
 				{
 
 					LexerConfig config;
-					config.whitespaceBehavior = WhitespaceBehavior.skip;
 					config.stringBehavior = StringBehavior.source;
-					config.commentBehavior = CommentBehavior.attach;
-					auto tokens = byToken(readFile(f), config, cache);
+					auto tokens = byToken(readFile(f), config, &cache);
 					if (tokenCount)
 						count += printTokenCount(stdout, f, tokens);
 					else
@@ -180,9 +173,20 @@ int run(string[] args)
 		}
 		else if (imports || ast || outline)
 		{
-			auto tokens = byToken(usingStdin ? readStdin() : readFile(args[1]));
-			auto mod = parseModule(tokens.array(), usingStdin ? "stdin" : args[1],
-				null, &doNothing);
+			string fileName = usingStdin ? "stdin" : args[1];
+			LexerConfig config;
+			config.fileName = fileName;
+			config.stringBehavior = StringBehavior.source;
+			auto tokens = getTokensForParser(
+				usingStdin ? readStdin() : readFile(args[1]),
+				config, &cache);
+//			writeln("text                    blank\tindex\tline\tcolumn\ttype\tcomment");
+//			foreach (token; tokens)
+//			{
+//				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null ? str(token.type) : token.text,
+//					token.text !is null, token.index, token.line, token.column, token.type, token.comment);
+//			}
+			auto mod = parseModule(tokens, fileName, null, &doNothing);
 			if (imports)
 			{
 				auto visitor = new ImportPrinter;

@@ -5,11 +5,11 @@
 
 import std.d.lexer;
 import std.d.ast;
+import std.d.formatter;
 import std.stdio;
 import std.string;
 import std.array;
 import std.conv;
-import formatter;
 
 class Outliner : ASTVisitor
 {

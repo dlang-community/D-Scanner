@@ -27,6 +27,7 @@ import analysis.opequals_without_tohash;
 
 enum AnalyzerCheck : uint
 {
+	none =                     0b00000000_00000000,
 	style_check =              0b00000000_00000001,
 	enum_array_literal_check = 0b00000000_00000010,
 	exception_check =          0b00000000_00000100,
@@ -76,12 +77,11 @@ string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool st
 	import std.parallelism;
 
 	auto lexer = byToken(code);
-	auto app = appender!(typeof(lexer.front)[])();
-	while (!lexer.empty)
-	{
-		app.put(lexer.front);
-		lexer.popFront();
-	}
+	LexerConfig config;
+	config.fileName = fileName;
+	config.stringBehavior = StringBehavior.source;
+	StringCache cache = StringCache(StringCache.defaultBucketCount);
+	const(Token)[] tokens = getTokensForParser(code, config, &cache);
 
 	foreach (message; lexer.messages)
 	{
@@ -90,7 +90,7 @@ string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool st
 	}
 
 	ParseAllocator p = new ParseAllocator;
-	Module m = parseModule(app.data, fileName, p, &messageFunction);
+	Module m = parseModule(tokens, fileName, p, &messageFunction);
 
 	if (!staticAnalyze)
 		return null;

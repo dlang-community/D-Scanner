@@ -10,6 +10,8 @@ import std.d.lexer;
 import analysis.base;
 import std.container;
 
+import std.stdio;
+
 /**
  * Checks for unused variables.
  */
@@ -53,7 +55,7 @@ class UnusedVariableCheck : BaseAnalyzer
 		popScope();
 	}
 
-	override void visit(const Type type) {}
+//	override void visit(const Type type) {}
 
 	mixin template PartsUseVariables(NodeType)
 	{
@@ -242,7 +244,6 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		import std.algorithm;
 		import std.array;
-//		import std.stdio;
 		if (parameter.name != tok!"")
 		{
 //			stderr.writeln("Adding parameter ", parameter.name.text);
@@ -280,7 +281,6 @@ class UnusedVariableCheck : BaseAnalyzer
 	void variableDeclared(string name, size_t line, size_t column,
 		bool isParameter, bool isRef)
 	{
-//		import std.stdio;
 		if (inAggregateScope)
 			return;
 //		stderr.writeln("Adding ", name, " ", isParameter, " ", isRef);
@@ -289,6 +289,7 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	void variableUsed(string name)
 	{
+//		writeln("Marking ", name, " used");
 		size_t treeIndex = tree.length - 1;
 		auto uu = UnUsed(name);
 		while (true)

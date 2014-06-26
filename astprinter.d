@@ -5,10 +5,10 @@
 
 import std.d.lexer;
 import std.d.ast;
+import std.d.formatter;
 import std.stdio;
 import std.string;
 import std.array;
-import formatter;
 
 template tagAndAccept(string tagName)
 {
@@ -372,6 +372,7 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<declarator line=\"", declarator.name.line, "\">");
 		output.writeln("<name>", declarator.name.text, "</name>");
+		writeDdoc(declarator.comment);
 		declarator.accept(this);
 		output.writeln("</declarator>");
 	}

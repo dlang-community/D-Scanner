@@ -20,13 +20,13 @@ void printCtags(File output, string[] fileNames)
 {
 	string[] tags;
 	LexerConfig config;
-	StringCache* cache = new StringCache(StringCache.defaultBucketCount);
+	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
-		auto tokens = byToken(bytes, config, cache);
+		auto tokens = getTokensForParser(bytes, config, &cache);
 		Module m = parseModule(tokens.array, fileName, null, &doNothing);
 		auto printer = new CTagsPrinter;
 		printer.fileName = fileName;
