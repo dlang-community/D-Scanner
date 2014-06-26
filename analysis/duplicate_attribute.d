@@ -90,7 +90,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		// Already has that attribute
 		if (hasAttribute)
 		{
-			string message = "The attribute '%s' is duplicated.".format(attributeName);
+			string message = "Attribute '%s' is duplicated.".format(attributeName);
 			addErrorMessage(line, column, message);
 		}
 
@@ -169,25 +169,25 @@ unittest
 			}
 
 			// Duplicate before
-			@property @property bool aaa() // [warn]: The attribute 'property' is duplicated.
+			@property @property bool aaa() // [warn]: Attribute 'property' is duplicated.
 			{
 				return false;
 			}
 
 			// Duplicate after
-			bool bbb() @safe @safe // [warn]: The attribute 'safe' is duplicated.
+			bool bbb() @safe @safe // [warn]: Attribute 'safe' is duplicated.
 			{
 				return false;
 			}
 
 			// Duplicate before and after
-			@system bool ccc() @system // [warn]: The attribute 'system' is duplicated.
+			@system bool ccc() @system // [warn]: Attribute 'system' is duplicated.
 			{
 				return false;
 			}
 
 			// Duplicate before and after
-			@trusted bool ddd() @trusted // [warn]: The attribute 'trusted' is duplicated.
+			@trusted bool ddd() @trusted // [warn]: Attribute 'trusted' is duplicated.
 			{
 				return false;
 			}
@@ -200,24 +200,24 @@ unittest
 				return false;
 			}
 
-			pure pure bool bbb() // [warn]: The attribute 'pure' is duplicated.
+			pure pure bool bbb() // [warn]: Attribute 'pure' is duplicated.
 			{
 				return false;
 			}
 
 			// FIXME: There is no way to get the line/column number of the attribute like this
-			bool ccc() pure pure // FIXME: [warn]: The attribute 'pure' is duplicated.
+			bool ccc() pure pure // FIXME: [warn]: Attribute 'pure' is duplicated.
 			{
 				return false;
 			}
 
-			nothrow nothrow bool ddd() // [warn]: The attribute 'nothrow' is duplicated.
+			nothrow nothrow bool ddd() // [warn]: Attribute 'nothrow' is duplicated.
 			{
 				return false;
 			}
 
 			// FIXME: There is no way to get the line/column number of the attribute like this
-			bool eee() nothrow nothrow // FIXME: [warn]: The attribute 'nothrow' is duplicated.
+			bool eee() nothrow nothrow // FIXME: [warn]: Attribute 'nothrow' is duplicated.
 			{
 				return false;
 			}

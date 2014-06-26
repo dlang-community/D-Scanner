@@ -32,7 +32,7 @@ class NumberStyleCheck : BaseAnalyzer
 				|| !t.text.matchFirst(badDecimalRegex).empty))
 		{
 			addErrorMessage(t.line, t.column,
-				"Use underscores to improve number constant readability");
+				"Use underscores to improve number constant readability.");
 		}
 	}
 
@@ -50,9 +50,9 @@ unittest
 			a = 10; // ok
 			a = 100; // ok
 			a = 1000; // FIXME: boom
-			a = 10000; // [warn]: Use underscores to improve number constant readability
-			a = 100000; // [warn]: Use underscores to improve number constant readability
-			a = 1000000; // [warn]: Use underscores to improve number constant readability
+			a = 10000; // [warn]: Use underscores to improve number constant readability.
+			a = 100000; // [warn]: Use underscores to improve number constant readability.
+			a = 1000000; // [warn]: Use underscores to improve number constant readability.
 		}
 	}c, analysis.run.AnalyzerCheck.number_style_check);
 

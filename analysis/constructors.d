@@ -30,7 +30,7 @@ class ConstructorCheck : BaseAnalyzer
 			addErrorMessage(classDeclaration.name.line,
 				classDeclaration.name.column, "This class has a zero-argument"
 				~ " constructor as well as a constructor with one default"
-				~ " argument. This can be confusing");
+				~ " argument. This can be confusing.");
 		}
 		hasDefaultArgConstructor = oldHasDefault;
 		hasNoArgConstructor = oldHasNoArg;
@@ -91,7 +91,7 @@ private:
 unittest
 {
 	assertAnalyzerWarnings(q{
-		class Cat // [warn]: This class has a zero-argument constructor as well as a constructor with one default argument. This can be confusing
+		class Cat // [warn]: This class has a zero-argument constructor as well as a constructor with one default argument. This can be confusing.
 		{
 			this() {}
 			this(string name = "kittie") {}
