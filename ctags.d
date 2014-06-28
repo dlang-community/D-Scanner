@@ -24,6 +24,7 @@ void printCtags(File output, string[] fileNames)
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
+		if (f.size == 0) continue;
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
