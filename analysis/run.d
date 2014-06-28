@@ -62,6 +62,7 @@ void analyze(File output, string[] fileNames, AnalyzerCheck analyzers, bool stat
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
+		if (f.size == 0) continue;
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
 

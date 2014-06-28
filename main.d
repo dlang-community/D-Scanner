@@ -255,6 +255,7 @@ ubyte[] readFile(string fileName)
 		return [];
 	}
 	File f = File(fileName);
+	if (f.size == 0) return [];
 	ubyte[] sourceCode = uninitializedArray!(ubyte[])(to!size_t(f.size));
 	f.rawRead(sourceCode);
 	return sourceCode;
