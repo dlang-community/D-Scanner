@@ -1,6 +1,6 @@
 .PHONY: all test
 
-DMD = /home/brian/src/dmd/src/dmd
+DMD = dmd
 GDC = gdc
 LDC = ldc
 SRC = main.d\
