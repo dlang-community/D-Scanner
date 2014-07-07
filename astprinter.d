@@ -133,7 +133,7 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<assignExpression>");
 		else
 			output.writeln("<assignExpression operator=\"",
-				xmlEscape(str(assignExpression.operator)), "\">");
+				xmlAttributeEscape(str(assignExpression.operator)), "\">");
 		assignExpression.accept(this);
 		output.writeln("</assignExpression>");
 	}
@@ -995,7 +995,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const RelExpression relExpression)
 	{
 		output.writeln("<relExpression operator=\"",
-			xmlEscape(str(relExpression.operator)), "\">");
+			xmlAttributeEscape(str(relExpression.operator)), "\">");
 		output.writeln("<left>");
 		relExpression.left.accept(this);
 		output.writeln("</left>");
@@ -1035,7 +1035,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const ShiftExpression shiftExpression)
 	{
 		output.writeln("<shiftExpression operator=\"",
-			xmlEscape(str(shiftExpression.operator)), "\">");
+			xmlAttributeEscape(str(shiftExpression.operator)), "\">");
 		output.writeln("<left>");
 		shiftExpression.left.accept(this);
 		output.writeln("</left>");
@@ -1340,7 +1340,7 @@ class XMLPrinter : ASTVisitor
 		auto app = appender!string();
 		auto formatter = new Formatter!(typeof(app))(app);
 		formatter.format(type);
-		output.writeln("<type pretty=\"", app.data, "\">");
+		output.writeln("<type pretty=\"", xmlAttributeEscape(app.data), "\">");
 		type.accept(this);
 		output.writeln("</type>");
 	}
@@ -1511,6 +1511,12 @@ class XMLPrinter : ASTVisitor
 	private static string xmlEscape(string s)
 	{
 		return s.translate(['<' : "&lt;", '>' : "&gt;", '&' : "&amp;"]);
+	}
+
+	private static string xmlAttributeEscape(string s)
+	{
+		return s.translate(['<' : "&lt;", '>' : "&gt;", '&' : "&amp;",
+			'\"' : "&quot;", '\'' : "&apos;"]);
 	}
 
     private void writeDdoc(string comment)
