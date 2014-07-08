@@ -110,6 +110,7 @@ int run(string[] args)
 	if (defaultConfig)
 	{
 		string s = getConfigurationLocation();
+		mkdirRecurse(findSplitBefore(s, "dscanner.ini")[0]);
 		StaticAnalysisConfig saConfig = defaultStaticAnalysisConfig();
 		writeln("Writing default config file to ", s);
 		writeINIFile(saConfig, s);
