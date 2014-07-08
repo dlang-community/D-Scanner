@@ -42,6 +42,9 @@ class NumberStyleCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.number_style_check = true;
 	assertAnalyzerWarnings(q{
 		void testNumbers()
 		{
@@ -54,7 +57,7 @@ unittest
 			a = 100000; // [warn]: Use underscores to improve number constant readability.
 			a = 1000000; // [warn]: Use underscores to improve number constant readability.
 		}
-	}c, analysis.run.AnalyzerCheck.number_style_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for NumberStyleCheck passed.");
 }

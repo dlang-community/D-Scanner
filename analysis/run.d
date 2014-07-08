@@ -10,6 +10,7 @@ import std.d.lexer;
 import std.d.parser;
 import std.d.ast;
 
+import analysis.config;
 import analysis.base;
 import analysis.style;
 import analysis.enumarrayliteral;
@@ -25,25 +26,6 @@ import analysis.unused;
 import analysis.duplicate_attribute;
 import analysis.opequals_without_tohash;
 
-enum AnalyzerCheck : uint
-{
-	none =                     0b00000000_00000000,
-	style_check =              0b00000000_00000001,
-	enum_array_literal_check = 0b00000000_00000010,
-	exception_check =          0b00000000_00000100,
-	delete_check =             0b00000000_00001000,
-	float_operator_check =     0b00000000_00010000,
-	number_style_check =       0b00000000_00100000,
-	object_const_check =       0b00000000_01000000,
-	backwards_range_check =    0b00000000_10000000,
-	if_else_same_check =       0b00000001_00000000,
-	constructor_check =        0b00000010_00000000,
-	unused_variable_check =    0b00000100_00000000,
-	duplicate_attribute =      0b00001000_00000000,
-	opequals_tohash_check   =  0b00010000_00000000,
-	all =                      0b11111111_11111111
-}
-
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
 {
@@ -53,11 +35,12 @@ void messageFunction(string fileName, size_t line, size_t column, string message
 
 void syntaxCheck(File output, string[] fileNames)
 {
-	analyze(output, fileNames, AnalyzerCheck.all, false);
+	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
+	analyze(output, fileNames, config, false);
 }
 
 // For multiple files
-void analyze(File output, string[] fileNames, AnalyzerCheck analyzers, bool staticAnalyze = true)
+void analyze(File output, string[] fileNames, StaticAnalysisConfig config, bool staticAnalyze = true)
 {
 	foreach (fileName; fileNames)
 	{
@@ -66,14 +49,14 @@ void analyze(File output, string[] fileNames, AnalyzerCheck analyzers, bool stat
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
 
-		string[] results = analyze(fileName, code, analyzers, staticAnalyze);
+		string[] results = analyze(fileName, code, config, staticAnalyze);
 		if (results.length > 0)
 			output.writeln(results.join("\n"));
 	}
 }
 
 // For a string
-string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool staticAnalyze = true)
+string[] analyze(string fileName, ubyte[] code, StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
 {
 	import std.parallelism;
 
@@ -98,19 +81,19 @@ string[] analyze(string fileName, ubyte[] code, AnalyzerCheck analyzers, bool st
 
 	BaseAnalyzer[] checks;
 
-	if (analyzers & AnalyzerCheck.style_check) checks ~= new StyleChecker(fileName);
-	if (analyzers & AnalyzerCheck.enum_array_literal_check) checks ~= new EnumArrayLiteralCheck(fileName);
-	if (analyzers & AnalyzerCheck.exception_check) checks ~= new PokemonExceptionCheck(fileName);
-	if (analyzers & AnalyzerCheck.delete_check) checks ~= new DeleteCheck(fileName);
-	if (analyzers & AnalyzerCheck.float_operator_check) checks ~= new FloatOperatorCheck(fileName);
-	if (analyzers & AnalyzerCheck.number_style_check) checks ~= new NumberStyleCheck(fileName);
-	if (analyzers & AnalyzerCheck.object_const_check) checks ~= new ObjectConstCheck(fileName);
-	if (analyzers & AnalyzerCheck.backwards_range_check) checks ~= new BackwardsRangeCheck(fileName);
-	if (analyzers & AnalyzerCheck.if_else_same_check) checks ~= new IfElseSameCheck(fileName);
-	if (analyzers & AnalyzerCheck.constructor_check) checks ~= new ConstructorCheck(fileName);
-	if (analyzers & AnalyzerCheck.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
-	if (analyzers & AnalyzerCheck.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName);
-	if (analyzers & AnalyzerCheck.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
+	if (analysisConfig.style_check) checks ~= new StyleChecker(fileName);
+	if (analysisConfig.enum_array_literal_check) checks ~= new EnumArrayLiteralCheck(fileName);
+	if (analysisConfig.exception_check) checks ~= new PokemonExceptionCheck(fileName);
+	if (analysisConfig.delete_check) checks ~= new DeleteCheck(fileName);
+	if (analysisConfig.float_operator_check) checks ~= new FloatOperatorCheck(fileName);
+	if (analysisConfig.number_style_check) checks ~= new NumberStyleCheck(fileName);
+	if (analysisConfig.object_const_check) checks ~= new ObjectConstCheck(fileName);
+	if (analysisConfig.backwards_range_check) checks ~= new BackwardsRangeCheck(fileName);
+	if (analysisConfig.if_else_same_check) checks ~= new IfElseSameCheck(fileName);
+	if (analysisConfig.constructor_check) checks ~= new ConstructorCheck(fileName);
+	if (analysisConfig.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
+	if (analysisConfig.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName);
+	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
 
 	foreach (check; checks)
 	{

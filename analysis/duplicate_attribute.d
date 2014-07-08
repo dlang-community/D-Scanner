@@ -160,6 +160,9 @@ class DuplicateAttributeCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.duplicate_attribute = true;
 	assertAnalyzerWarnings(q{
 		class ExampleAttributes
 		{
@@ -222,7 +225,7 @@ unittest
 				return false;
 			}
 		}
-	}c, analysis.run.AnalyzerCheck.duplicate_attribute);
+	}c, sac);
 
 	stderr.writeln("Unittest for DuplicateAttributeCheck passed.");
 }

@@ -48,6 +48,9 @@ class IfElseSameCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.if_else_same_check = true;
 	assertAnalyzerWarnings(q{
 		void testSizeT()
 		{
@@ -62,7 +65,7 @@ unittest
 			else
 				person = "bobby"; // not same
 		}
-	}c, analysis.run.AnalyzerCheck.if_else_same_check);
+	}c, sac);
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }
 

@@ -93,6 +93,10 @@ class StyleChecker : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.style_check = true;
+
 	assertAnalyzerWarnings(q{
 		module AMODULE; // [warn]: Module/package name 'AMODULE' does not match style guidelines.
 
@@ -105,7 +109,7 @@ unittest
 		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines.
 		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
 		enum racoon {} // [warn]: Enum name 'racoon' does not match style guidelines.
-	}c, analysis.run.AnalyzerCheck.style_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");
 }

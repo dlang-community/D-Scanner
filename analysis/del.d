@@ -1,4 +1,4 @@
-//          Copyright Brian Schott (Sir Alaran) 2014.
+//          Copyright Brian Schott (Hackerpilot) 2014.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -32,6 +32,9 @@ class DeleteCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.delete_check = true;
 	assertAnalyzerWarnings(q{
 		void testDelete()
 		{
@@ -41,7 +44,7 @@ unittest
 			auto a = new Class();
 			delete a; // [warn]: Avoid using the 'delete' keyword.
 		}
-	}c, analysis.run.AnalyzerCheck.delete_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for DeleteCheck passed.");
 }

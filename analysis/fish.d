@@ -42,6 +42,9 @@ class FloatOperatorCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.float_operator_check = true;
 	assertAnalyzerWarnings(q{
 		void testFish()
 		{
@@ -56,7 +59,7 @@ unittest
 			a = z !< z; // [warn]: Avoid using the deprecated floating-point operators.
 			a = z !<= z; // [warn]: Avoid using the deprecated floating-point operators.
 		}
-	}c, analysis.run.AnalyzerCheck.float_operator_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for FloatOperatorCheck passed.");
 }

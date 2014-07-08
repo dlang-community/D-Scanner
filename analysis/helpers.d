@@ -10,10 +10,11 @@ import std.traits;
 import std.stdio;
 
 import std.d.ast;
+import analysis.config;
 import analysis.run;
 
 
-S between(S)(S value, S before, S after) 
+S between(S)(S value, S before, S after)
 	if (isSomeString!S)
 {
 	return value.after(before).before(after);
@@ -48,12 +49,12 @@ S after(S)(S value, S separator)
  * and make sure they match the warnings in the comments. Warnings are
  * marked like so: // [warn]: Failed to do somethings.
  */
-void assertAnalyzerWarnings(string code, analysis.run.AnalyzerCheck analyzers, string file=__FILE__, size_t line=__LINE__)
+void assertAnalyzerWarnings(string code, StaticAnalysisConfig config, string file=__FILE__, size_t line=__LINE__)
 {
 	import analysis.run;
 
 	// Run the code and get any warnings
-	string[] rawWarnings = analyze("test", cast(ubyte[]) code, analyzers);
+	string[] rawWarnings = analyze("test", cast(ubyte[]) code, config);
 	string[] codeLines = code.split("\n");
 
 	// Get the warnings ordered by line

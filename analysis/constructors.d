@@ -90,6 +90,9 @@ private:
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.constructor_check = true;
 	assertAnalyzerWarnings(q{
 		class Cat // [warn]: This class has a zero-argument constructor as well as a constructor with one default argument. This can be confusing.
 		{
@@ -102,7 +105,7 @@ unittest
 			this() {}
 			this(string name = "doggie") {} // [warn]: This struct constructor can never be called with its default argument.
 		}
-	}c, analysis.run.AnalyzerCheck.constructor_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for ConstructorCheck passed.");
 }

@@ -9,12 +9,11 @@ dmd\
 	highlighter.d\
 	ctags.d\
 	astprinter.d\
-	formatter.d\
 	outliner.d\
-	std/*.d\
-	std/d/*.d\
+	libdparse/src/std/*.d\
+	libdparse/src/std/d/*.d\
+	inifiled/source/*.d\
 	analysis/*.d\
-	-version=DIP61\
 	-oftest\
 	-g -unittest
 

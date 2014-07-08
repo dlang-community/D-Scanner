@@ -12,9 +12,10 @@ SRC = main.d\
 	outliner.d\
 	libdparse/src/std/*.d\
 	libdparse/src/std/d/*.d\
-	analysis/*.d
+	analysis/*.d\
+	inifiled/source/*.d
 INCLUDE_PATHS = -Ilibdparse/src
-VERSIONS = -version=DIP61
+VERSIONS =
 
 all: dmdbuild
 

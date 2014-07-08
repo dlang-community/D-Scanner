@@ -24,6 +24,9 @@ import astprinter;
 import imports;
 import outliner;
 import analysis.run;
+import analysis.config;
+
+import inifiled;
 
 int main(string[] args)
 {
@@ -52,6 +55,7 @@ int run(string[] args)
 	bool outline;
 	bool tokenDump;
 	bool styleCheck;
+	bool defaultConfig;
 
 	try
 	{
@@ -60,7 +64,7 @@ int run(string[] args)
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck", &styleCheck,
-			"muffinButton", &muffin);
+			"defaultConfig", &defaultConfig, "muffinButton", &muffin);
 	}
 	catch (ConvException e)
 	{
@@ -90,7 +94,7 @@ int run(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports, outline, tokenDump, styleCheck]);
+		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -103,8 +107,14 @@ int run(string[] args)
 	}
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
-
-	if (tokenDump || highlight)
+	if (defaultConfig)
+	{
+		string s = getConfigurationLocation();
+		StaticAnalysisConfig saConfig = defaultStaticAnalysisConfig();
+		writeln("Writing default config file to ", s);
+		writeINIFile(saConfig, s);
+	}
+	else if (tokenDump || highlight)
 	{
 		bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
@@ -133,7 +143,11 @@ int run(string[] args)
 	}
 	else if (styleCheck)
 	{
-		stdout.analyze(expandArgs(args, recursive), AnalyzerCheck.all);
+		StaticAnalysisConfig config = defaultStaticAnalysisConfig();
+		string s = getConfigurationLocation();
+		if (s.exists())
+			readINIFile(config, s);
+		stdout.analyze(expandArgs(args, recursive), config);
 	}
 	else if (syntaxCheck)
 	{
@@ -171,7 +185,25 @@ int run(string[] args)
 				writefln("total:\t%d", count);
 			}
 		}
-		else if (imports || ast || outline)
+		else if (imports)
+		{
+			string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
+			LexerConfig config;
+			config.stringBehavior = StringBehavior.source;
+			auto visitor = new ImportPrinter;
+			foreach (name; fileNames)
+			{
+				config.fileName = name;
+				auto tokens = getTokensForParser(
+					usingStdin ? readStdin() : readFile(name),
+					config, &cache);
+				auto mod = parseModule(tokens, name, null, &doNothing);
+				visitor.visit(mod);
+			}
+			foreach (imp; visitor.imports[])
+				writeln(imp);
+		}
+		else if (ast || outline)
 		{
 			string fileName = usingStdin ? "stdin" : args[1];
 			LexerConfig config;
@@ -187,14 +219,8 @@ int run(string[] args)
 //					token.text !is null, token.index, token.line, token.column, token.type, token.comment);
 //			}
 			auto mod = parseModule(tokens, fileName, null, &doNothing);
-			if (imports)
-			{
-				auto visitor = new ImportPrinter;
-				visitor.visit(mod);
-				foreach (imp; visitor.imports[])
-					writeln(imp);
-			}
-			else if (ast)
+
+			if (ast)
 			{
 				auto printer = new XMLPrinter;
 				printer.output = stdout;
@@ -294,7 +320,7 @@ options:
 
     --styleCheck [sourceFiles]
         Lexes and parses sourceFiles, printing the line and column number of any
-        style guideline violations to stdout.
+        static analysis check failures stdout.
 
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
@@ -308,8 +334,45 @@ options:
     --recursive | -R | -r
         When used with --ctags, --tokenCount, or --sloc, dscanner will produce
         ctags output for all .d and .di files contained within the given
-        directories and its sub-directories.`,
+        directories and its sub-directories.
+
+    --defaultConfig
+        Generates a default configuration file for the static analysis checks`,
         programName);
 }
 
 void doNothing(string, size_t, size_t, string, bool) {}
+
+enum CONFIG_FILE_NAME = "dscanner.ini";
+version(linux) version = useXDG;
+version(BSD) version = useXDG;
+version(FreeBSD) version = useXDG;
+version(OSX) version = useXDG;
+
+/**
+ * Locates the configuration file
+ */
+string getConfigurationLocation()
+{
+	version (useXDG)
+	{
+		import std.process;
+		string configDir = environment.get("XDG_CONFIG_HOME", null);
+		if (configDir is null)
+		{
+			configDir = environment.get("HOME", null);
+			if (configDir is null)
+				throw new Exception("Both $XDG_CONFIG_HOME and $HOME are unset");
+			configDir = buildPath(configDir, ".config", "dscanner", CONFIG_FILE_NAME);
+		}
+		else
+		{
+			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
+		}
+		return configDir;
+	}
+	else version(Windows)
+	{
+		return CONFIG_FILE_NAME;
+	}
+}

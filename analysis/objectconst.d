@@ -71,6 +71,9 @@ class ObjectConstCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.object_const_check = true;
 	assertAnalyzerWarnings(q{
 		void testConsts()
 		{
@@ -122,7 +125,7 @@ unittest
 				}
 			}
 		}
-	}c, analysis.run.AnalyzerCheck.object_const_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for ObjectConstCheck passed.");
 }

@@ -80,6 +80,9 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.opequals_tohash_check = true;
 	assertAnalyzerWarnings(q{
 		// Success because it has opEquals and toHash
 		class Chimp
@@ -130,7 +133,7 @@ unittest
 				return 0;
 			}
 		}
-	}c, analysis.run.AnalyzerCheck.opequals_tohash_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for OpEqualsWithoutToHashCheck passed.");
 }

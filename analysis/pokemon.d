@@ -66,6 +66,9 @@ class PokemonExceptionCheck : BaseAnalyzer
 
 unittest
 {
+	import analysis.config;
+	StaticAnalysisConfig sac;
+	sac.exception_check = true;
 	assertAnalyzerWarnings(q{
 		void testCatch()
 		{
@@ -93,7 +96,7 @@ unittest
 			{
 			}
 		}
-	}c, analysis.run.AnalyzerCheck.exception_check);
+	}c, sac);
 
 	stderr.writeln("Unittest for PokemonExceptionCheck passed.");
 }
