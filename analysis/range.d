@@ -74,18 +74,23 @@ class BackwardsRangeCheck : BaseAnalyzer
 
 	override void visit(const PrimaryExpression primary)
 	{
+		import std.conv;
+
 		if (state == State.ignore || !isNumberLiteral(primary.primary.type))
 			return;
 		if (state == State.left)
 		{
 			line = primary.primary.line;
 			this.column = primary.primary.column;
-			left = parseNumber(primary.primary.text);
+
+			try left = parseNumber(primary.primary.text);
+			catch (ConvException e) return;
 			hasLeft = true;
 		}
 		else
 		{
-			right = parseNumber(primary.primary.text);
+			try right = parseNumber(primary.primary.text);
+			catch (ConvException e) return;
 			hasRight = true;
 		}
 	}
