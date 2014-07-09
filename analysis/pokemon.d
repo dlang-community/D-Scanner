@@ -40,17 +40,35 @@ class PokemonExceptionCheck : BaseAnalyzer
 		lc.accept(this);
 	}
 
+	bool ignoreType = true;
+
 	override void visit(const Catch c)
 	{
-		if (c.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length != 1)
+		ignoreType = false;
+		c.type.accept(this);
+		ignoreType = true;
+
+		c.accept(this);
+	}
+
+
+	override void visit(const Type2 type2)
+	{
+		if (ignoreType) return;
+
+		if (type2.type !is null)
 		{
-			c.accept(this);
+			type2.type.accept(this);
 			return;
 		}
-		auto identOrTemplate = c.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+
+		if (type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length != 1)
+		{
+			return;
+		}
+		auto identOrTemplate = type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
 		if (identOrTemplate.templateInstance !is null)
 		{
-			c.accept(this);
 			return;
 		}
 		if (identOrTemplate.identifier.text == "Throwable"
@@ -60,7 +78,6 @@ class PokemonExceptionCheck : BaseAnalyzer
 			immutable line = identOrTemplate.identifier.line;
 			addErrorMessage(line, column, message);
 		}
-		c.accept(this);
 	}
 }
 
@@ -84,6 +101,10 @@ unittest
 			{
 
 			}
+			catch (shared(Exception) err) // ok
+			{
+
+			}
 			catch (Error err) // [warn]: Catching Error or Throwable is almost always a bad idea.
 			{
 
@@ -92,8 +113,13 @@ unittest
 			{
 
 			}
+			catch (shared(Error) err) // [warn]: Catching Error or Throwable is almost always a bad idea.
+			{
+
+			}
 			catch // [warn]: Catching Error or Throwable is almost always a bad idea.
 			{
+
 			}
 		}
 	}c, sac);
