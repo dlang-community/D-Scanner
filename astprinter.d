@@ -1422,14 +1422,15 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<unaryExpression>");
 		if (unaryExpression.prefix != tok!"")
 		{
-			output.writeln("<prefix>", xmlEscape(unaryExpression.prefix.text),
+			output.writeln("<prefix>", xmlEscape(str(unaryExpression.prefix.type)),
 				"</prefix>");
 			unaryExpression.unaryExpression.accept(this);
 		}
 		if (unaryExpression.suffix != tok!"")
 		{
+			assert(unaryExpression.suffix.text == "");
 			unaryExpression.unaryExpression.accept(this);
-			output.writeln("<suffix>", unaryExpression.suffix.text,
+			output.writeln("<suffix>", str(unaryExpression.suffix.type),
 				"</suffix>");
 		}
 		else
