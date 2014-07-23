@@ -56,4 +56,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks that opEquals and toHash are both defined or neither are defined")
 	bool opequals_tohash_check;
+
+	@INI("Checks for subtraction from .length properties")
+	bool length_subtraction_check;
 }

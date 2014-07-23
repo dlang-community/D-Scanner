@@ -25,6 +25,7 @@ import analysis.constructors;
 import analysis.unused;
 import analysis.duplicate_attribute;
 import analysis.opequals_without_tohash;
+import analysis.length_subtraction;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -94,6 +95,7 @@ string[] analyze(string fileName, ubyte[] code, StaticAnalysisConfig analysisCon
 	if (analysisConfig.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
 	if (analysisConfig.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName);
 	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
+	if (analysisConfig.length_subtraction_check) checks ~= new LengthSubtractionCheck(fileName);
 
 	foreach (check; checks)
 	{

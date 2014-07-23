@@ -61,12 +61,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<andAndExpression>");
 		output.writeln("<left>");
-		andAndExpression.left.accept(this);
+		visit(andAndExpression.left);
 		output.writeln("</left>");
 		if (andAndExpression.right !is null)
 		{
 			output.writeln("<right>");
-			andAndExpression.right.accept(this);
+			visit(andAndExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</andAndExpression>");
@@ -76,12 +76,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<andExpression>");
 		output.writeln("<left>");
-		andExpression.left.accept(this);
+		visit(andExpression.left);
 		output.writeln("</left>");
 		if (andExpression.right !is null)
 		{
 			output.writeln("<right>");
-			andExpression.right.accept(this);
+			visit(andExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</andExpression>");
@@ -441,10 +441,10 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<equalExpression operator=\"", str(equalExpression.operator), "\">");
 		output.writeln("<left>");
-		equalExpression.left.accept(this);
+		visit(equalExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		equalExpression.right.accept(this);
+		visit(equalExpression.right);
 		output.writeln("</right>");
 		output.writeln("</equalExpression>");
 	}
@@ -956,12 +956,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<powExpression>");
 		output.writeln("<left>");
-		powExpression.left.accept(this);
+		visit(powExpression.left);
 		output.writeln("</left>");
 		if (powExpression.right !is null)
 		{
 			output.writeln("<right>");
-			powExpression.right.accept(this);
+			visit(powExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</powExpression>");
@@ -997,10 +997,10 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<relExpression operator=\"",
 			xmlAttributeEscape(str(relExpression.operator)), "\">");
 		output.writeln("<left>");
-		relExpression.left.accept(this);
+		visit(relExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		relExpression.right.accept(this);
+		visit(relExpression.right);
 		output.writeln("</right>");
 		output.writeln("</relExpression>");
 	}
@@ -1037,10 +1037,10 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<shiftExpression operator=\"",
 			xmlAttributeEscape(str(shiftExpression.operator)), "\">");
 		output.writeln("<left>");
-		shiftExpression.left.accept(this);
+		visit(shiftExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		shiftExpression.right.accept(this);
+		visit(shiftExpression.right);
 		output.writeln("</right>");
 		output.writeln("</shiftExpression>");
 	}
@@ -1496,12 +1496,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<xorExpression>");
 		output.writeln("<left>");
-		xorExpression.left.accept(this);
+		visit(xorExpression.left);
 		output.writeln("</left>");
 		if (xorExpression.right !is null)
 		{
 			output.writeln("<right>");
-			xorExpression.right.accept(this);
+			visit(xorExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</xorExpression>");
