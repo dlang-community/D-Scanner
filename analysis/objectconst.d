@@ -39,7 +39,7 @@ class ObjectConstCheck : BaseAnalyzer
 		{
 			addErrorMessage(d.functionDeclaration.name.line,
 				d.functionDeclaration.name.column, "Methods 'opCmp', 'toHash',"
-				~ " 'opEquals', and 'toString' should be declared const.");
+				~ " 'opEquals', and 'toString' are non-const.");
 		}
 		d.accept(this);
 	}
