@@ -59,4 +59,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for subtraction from .length properties")
 	bool length_subtraction_check;
+
+	@INI("Checks for methods or properties whose names conflict with built-in properties")
+	bool builtin_property_names_check;
 }

@@ -307,7 +307,7 @@ class UnusedVariableCheck : BaseAnalyzer
 			if (!uu.isRef)
 				addErrorMessage(uu.line, uu.column,
 					(uu.isParameter ? "Parameter " : "Variable ")
-					~ uu.name ~ " is never used");
+					~ uu.name ~ " is never used.");
 		}
 		tree = tree[0 .. $ - 1];
 	}
