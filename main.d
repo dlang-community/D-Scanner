@@ -59,11 +59,11 @@ int run(string[] args)
 
 	try
 	{
-		getopt(args, "sloc|l", &sloc, "highlight", &highlight,
-			"ctags|c", &ctags, "recursive|r|R", &recursive, "help|h", &help,
-			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
+		getopt(args, std.getopt.config.caseSensitive, "sloc|l", &sloc,
+			"highlight", &highlight, "ctags|c", &ctags, "recursive|r|R", &recursive,
+			"help|h", &help, "tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
-			"tokenDump", &tokenDump, "styleCheck", &styleCheck,
+			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "muffinButton", &muffin);
 	}
 	catch (ConvException e)
@@ -319,7 +319,7 @@ options:
         syntax errors to stdout. One error or warning is printed per line.
         If no files are specified, input is read from stdin.
 
-    --styleCheck [sourceFiles]
+    --styleCheck | -S [sourceFiles]
         Lexes and parses sourceFiles, printing the line and column number of any
         static analysis check failures stdout.
 

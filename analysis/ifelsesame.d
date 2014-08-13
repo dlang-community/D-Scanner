@@ -14,7 +14,12 @@ import analysis.helpers;
 
 
 /**
- * Checks for if statements whose "then" block is the same as the "else" block
+ * Checks for duplicated code in conditional and logical expressions.
+ * $(UL
+ * $(LI If statements whose "then" block is the same as the "else" block)
+ * $(LI || and && expressions where the left and right are the same)
+ * $(LI == expressions where the left and right are the same)
+ * )
  */
 class IfElseSameCheck : BaseAnalyzer
 {
@@ -43,6 +48,28 @@ class IfElseSameCheck : BaseAnalyzer
 				"Left side of assignment operatior is identical to the right side.");
 		}
 		assignExpression.accept(this);
+	}
+
+	override void visit(const AndAndExpression andAndExpression)
+	{
+		if (andAndExpression.left !is null && andAndExpression.right !is null
+			&& andAndExpression.left == andAndExpression.right)
+		{
+			addErrorMessage(andAndExpression.line, andAndExpression.column,
+				"Left side of logical and is identical to right side.");
+		}
+		andAndExpression.accept(this);
+	}
+
+	override void visit(const OrOrExpression orOrExpression)
+	{
+		if (orOrExpression.left !is null && orOrExpression.right !is null
+			&& orOrExpression.left == orOrExpression.right)
+		{
+			addErrorMessage(orOrExpression.line, orOrExpression.column,
+				"Left side of logical or is identical to right side.");
+		}
+		orOrExpression.accept(this);
 	}
 }
 

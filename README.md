@@ -30,13 +30,13 @@ source file.
 	std.stdio
 
 ### Syntax Check
-The "--syntaxCheck" option prints a listing of any errors or warnings found
+The "--syntaxCheck" or "-s" option prints a listing of any errors or warnings found
 while lexing or parsing the given source file. It does not do any semantic
 analysis and it does not compile the code.
 
 ### Style Check
-The "--styleCheck" option runs some basic static analysis checks against the
-given source files.
+The "--styleCheck" or "-S" option runs some basic static analysis checks against
+the given source files.
 
 #### Implemented checks
 * Old alias syntax (i.e "alias a b;" should be replaced with "alias b = a;").
@@ -55,6 +55,7 @@ given source files.
 * Struct constructors that have a single parameter that has a default argument.
 * Assign expressions where the left side of the '=' operator is the same as the right
 * 'if' statements where the 'else' block is the same as the 'if' block.
+* ||, &&, and == expressions where the left and right sides of the operator are identical
 * Unused variables.
 * Unused parameters (check is skipped if function is marked "override")
 * Duplicate attributes
