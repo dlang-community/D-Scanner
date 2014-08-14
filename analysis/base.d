@@ -13,7 +13,7 @@ struct Message
 	string message;
 }
 
-enum comparitor = q{ a.line < b.line || a.line < b.line };
+enum comparitor = q{ a.line < b.line || (a.line == b.line && a.column < b.column) };
 
 alias MessageSet = RedBlackTree!(Message, comparitor, true);
 
