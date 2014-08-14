@@ -251,7 +251,7 @@ string[] expandArgs(string[] args)
 		args ~= ".";
 	foreach (arg; args[1 ..$])
 	{
-		if (isFile(arg) && (arg.endsWith(`.d`) || arg.endsWith(`.di`)))
+		if (isFile(arg))
 			rVal ~= arg;
 		else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
 		{
