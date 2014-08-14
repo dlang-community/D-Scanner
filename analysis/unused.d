@@ -186,6 +186,15 @@ class UnusedVariableCheck : BaseAnalyzer
 			variableUsed(single.token.text);
 	}
 
+	override void visit(const UnaryExpression unary)
+	{
+		if (unary.prefix == tok!"*")
+			interestDepth++;
+		unary.accept(this);
+		if (unary.prefix == tok!"*")
+			interestDepth--;
+	}
+
 	override void visit(const PrimaryExpression primary)
 	{
 		if (interestDepth > 0 && primary.identifierOrTemplateInstance !is null
