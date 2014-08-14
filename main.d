@@ -23,6 +23,7 @@ import ctags;
 import astprinter;
 import imports;
 import outliner;
+import symbol_finder;
 import analysis.run;
 import analysis.config;
 
@@ -45,7 +46,6 @@ int run(string[] args)
 	bool sloc;
 	bool highlight;
 	bool ctags;
-	bool recursive;
 	bool help;
 	bool tokenCount;
 	bool syntaxCheck;
@@ -56,15 +56,17 @@ int run(string[] args)
 	bool tokenDump;
 	bool styleCheck;
 	bool defaultConfig;
+	string symbolName;
 
 	try
 	{
 		getopt(args, std.getopt.config.caseSensitive, "sloc|l", &sloc,
-			"highlight", &highlight, "ctags|c", &ctags, "recursive|r|R", &recursive,
-			"help|h", &help, "tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
+			"highlight", &highlight, "ctags|c", &ctags, "help|h", &help,
+			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
-			"defaultConfig", &defaultConfig, "muffinButton", &muffin);
+			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
+			"muffinButton", &muffin);
 	}
 	catch (ConvException e)
 	{
@@ -94,7 +96,8 @@ int run(string[] args)
 	}
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig]);
+		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
+		symbolName !is null]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -138,9 +141,13 @@ int run(string[] args)
 			return 0;
 		}
 	}
+	else if (symbolName !is null)
+	{
+		stdout.findDeclarationOf(symbolName, expandArgs(args));
+	}
 	else if (ctags)
 	{
-		stdout.printCtags(expandArgs(args, recursive));
+		stdout.printCtags(expandArgs(args));
 	}
 	else if (styleCheck)
 	{
@@ -148,11 +155,11 @@ int run(string[] args)
 		string s = getConfigurationLocation();
 		if (s.exists())
 			readINIFile(config, s);
-		stdout.analyze(expandArgs(args, recursive), config);
+		stdout.analyze(expandArgs(args), config);
 	}
 	else if (syntaxCheck)
 	{
-		stdout.syntaxCheck(expandArgs(args, recursive));
+		stdout.syntaxCheck(expandArgs(args));
 	}
 	else
 	{
@@ -172,7 +179,7 @@ int run(string[] args)
 			else
 			{
 				ulong count;
-				foreach (f; expandArgs(args, recursive))
+				foreach (f; expandArgs(args))
 				{
 
 					LexerConfig config;
@@ -237,27 +244,24 @@ int run(string[] args)
 	return 0;
 }
 
-string[] expandArgs(string[] args, bool recursive)
+string[] expandArgs(string[] args)
 {
-	if (recursive)
+	string[] rVal;
+	if (args.length == 1)
+		args ~= ".";
+	foreach (arg; args[1 ..$])
 	{
-		string[] rVal;
-		foreach (arg; args[1 ..$])
+		if (isFile(arg) && (arg.endsWith(`.d`) || arg.endsWith(`.di`)))
+			rVal ~= arg;
+		else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
 		{
-			if (isFile(arg) && arg.endsWith(`.d`) || arg.endsWith(`.di`))
-				rVal ~= arg;
-			else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
-			{
-				if (isFile(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
-					rVal ~= item;
-				else
-					continue;
-			}
+			if (isFile(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
+				rVal ~= item;
+			else
+				continue;
 		}
-		return rVal;
 	}
-	else
-		return args[1 .. $];
+	return rVal;
 }
 
 ubyte[] readStdin()
@@ -332,10 +336,10 @@ options:
         Generates an XML representation of the source files abstract syntax
         tree. If no files are specified, input is read from stdin.
 
-    --recursive | -R | -r
-        When used with --ctags, --tokenCount, or --sloc, dscanner will produce
-        ctags output for all .d and .di files contained within the given
-        directories and its sub-directories.
+    --declaration | -d symbolName [sourceFiles sourceDirectories]
+        Find the location where symbolName is declared. This should be more
+        accurate than "grep". Searches the given files and directories, or the
+		current working directory if none are specified.
 
     --defaultConfig
         Generates a default configuration file for the static analysis checks`,

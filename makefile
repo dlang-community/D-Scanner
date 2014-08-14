@@ -10,6 +10,7 @@ SRC = main.d\
 	ctags.d\
 	astprinter.d\
 	outliner.d\
+	symbol_finder.d\
 	libdparse/src/std/*.d\
 	libdparse/src/std/d/*.d\
 	analysis/*.d\

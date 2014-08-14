@@ -68,6 +68,15 @@ the given source files.
 * Public declarations not documented
 * Assignment in conditionals
 
+### Find Declaration
+Ack, grep, and The Silver Searcher are useful for finding usages of symbols, but
+their signal to noise ratio is not very good when searching for a symbol's
+declaration. The "--declaration" or "-d" options allow you to search for a
+symbols declaration. For example:
+
+	$ dscanner -d TokenStructure
+	./libdparse/src/std/lexer.d(248:8)
+
 ### Line of Code Count
 The "--sloc" or "-l" option prints the number of lines of code in the file.
 Instead of simply printing the number of line breaks, this counts the number of
