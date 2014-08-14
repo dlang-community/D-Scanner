@@ -57,6 +57,7 @@ int run(string[] args)
 	bool styleCheck;
 	bool defaultConfig;
 	string symbolName;
+	string configLocation;
 
 	try
 	{
@@ -66,7 +67,7 @@ int run(string[] args)
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
-			"muffinButton", &muffin);
+			"config", &configLocation, "muffinButton", &muffin);
 	}
 	catch (ConvException e)
 	{
@@ -152,7 +153,7 @@ int run(string[] args)
 	else if (styleCheck)
 	{
 		StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-		string s = getConfigurationLocation();
+		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
 			readINIFile(config, s);
 		stdout.analyze(expandArgs(args), config);
@@ -339,7 +340,11 @@ options:
     --declaration | -d symbolName [sourceFiles sourceDirectories]
         Find the location where symbolName is declared. This should be more
         accurate than "grep". Searches the given files and directories, or the
-		current working directory if none are specified.
+        current working directory if none are specified.
+
+    --config configFile
+        Use the given configuration file instead of the default located in
+        $HOME/.config/dscanner/dscanner.ini
 
     --defaultConfig
         Generates a default configuration file for the static analysis checks`,
