@@ -17,8 +17,12 @@ SRC = main.d\
 	inifiled/source/*.d
 INCLUDE_PATHS = -Ilibdparse/src
 VERSIONS =
+DEBUG_VERSIONS = -version=std_parser_verbose
 
 all: dmdbuild
+
+debug:
+	${DMD} -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild:
 	${DMD} -O -release -inline -ofdscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}

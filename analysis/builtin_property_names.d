@@ -90,13 +90,13 @@ unittest
 {
 	import analysis.config;
 	StaticAnalysisConfig sac;
-	sac.builtin_property_name_check = true;
+	sac.builtin_property_names_check = true;
 	assertAnalyzerWarnings(q{
 class SomeClass
 {
-	void init(); //
-	int init;
-	auto init = 10;
+	void init(); // [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
+	int init; // [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
+	auto init = 10; // [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
 }
 	}c, sac);
 

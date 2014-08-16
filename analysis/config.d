@@ -62,4 +62,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for methods or properties whose names conflict with built-in properties")
 	bool builtin_property_names_check;
+
+	@INI("Checks for confusing code in inline asm statements")
+	bool asm_style_check;
 }

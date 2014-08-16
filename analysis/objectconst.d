@@ -104,22 +104,22 @@ unittest
 			// Will warn, because none are const
 			class Dog
 			{
-				bool opEquals(Object a, Object b) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' should be declared const.
+				bool opEquals(Object a, Object b) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
 				{
 					return true;
 				}
 
-				int opCmp(Object o) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' should be declared const.
+				int opCmp(Object o) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
 				{
 					return 1;
 				}
 
-				hash_t toHash() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' should be declared const.
+				hash_t toHash() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
 				{
 					return 0;
 				}
 
-				string toString() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' should be declared const.
+				string toString() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
 				{
 					return "Dog";
 				}

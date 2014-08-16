@@ -287,6 +287,14 @@ class UnusedVariableCheck : BaseAnalyzer
 		blockStatementIntroducesScope = cs;
 	}
 
+	override void visit(const AsmPrimaryExp primary)
+	{
+		if (primary.token != tok!"")
+			variableUsed(primary.token.text);
+		if (primary.identifierChain !is null)
+			variableUsed(primary.identifierChain.identifiers[0].text);
+	}
+
 	void variableDeclared(string name, size_t line, size_t column,
 		bool isParameter, bool isRef)
 	{
@@ -313,7 +321,7 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		foreach (uu; tree[$ - 1])
 		{
-			if (!uu.isRef)
+			if (!uu.isRef && tree.length > 1)
 				addErrorMessage(uu.line, uu.column,
 					(uu.isParameter ? "Parameter " : "Variable ")
 					~ uu.name ~ " is never used.");

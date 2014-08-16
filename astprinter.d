@@ -42,16 +42,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</aliasDeclaration>");
 	}
 
-	override void visit(const AliasInitializer aliasInitializer)
-	{
-		mixin (tagAndAccept!"aliasInitializer");
-	}
-
-	override void visit(const AliasThisDeclaration aliasThisDeclaration)
-	{
-		mixin (tagAndAccept!"aliasThisDeclaration");
-	}
-
 	override void visit(const AlignAttribute alignAttribute)
 	{
 		output.writeln("<alignAttribute align=\"", alignAttribute.intLiteral.text, "\">");
@@ -87,29 +77,28 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</andExpression>");
 	}
 
-	override void visit(const ArgumentList argumentList)
+	override void visit(const AsmInstruction asmInstruction)
 	{
-		mixin (tagAndAccept!"argumentList");
-	}
-
-	override void visit(const Arguments arguments)
-	{
-		mixin (tagAndAccept!"arguments");
-	}
-
-	override void visit(const ArrayInitializer arrayInitializer)
-	{
-		mixin (tagAndAccept!"arrayInitializer");
-	}
-
-	override void visit(const ArrayLiteral arrayLiteral)
-	{
-		mixin (tagAndAccept!"arrayLiteral");
-	}
-
-	override void visit(const ArrayMemberInitialization arrayMemberInitialization)
-	{
-		mixin (tagAndAccept!"arrayMemberInitialization");
+		output.writeln("<asmInstruction>");
+		if (asmInstruction.hasAlign)
+		{
+			output.writeln("<align>");
+			visit(asmInstruction.identifierOrIntegerOrOpcode);
+			output.writeln("</align>");
+		}
+		if (asmInstruction.asmInstruction !is null)
+		{
+			output.writeln("<label label=\"", asmInstruction.identifierOrIntegerOrOpcode.text, "\"/>");
+			asmInstruction.asmInstruction.accept(this);
+		}
+		else if (asmInstruction.identifierOrIntegerOrOpcode != tok!"")
+			visit(asmInstruction.identifierOrIntegerOrOpcode);
+		if (asmInstruction.operands !is null)
+		{
+			stderr.writeln("operands is not null");
+			visit(asmInstruction.operands);
+		}
+		output.writeln("</asmInstruction>");
 	}
 
 	override void visit(const AssertExpression assertExpression)
@@ -138,11 +127,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</assignExpression>");
 	}
 
-	override void visit(const AssocArrayLiteral assocArrayLiteral)
-	{
-		mixin (tagAndAccept!"assocArrayLiteral");
-	}
-
 	override void visit(const AtAttribute atAttribute)
 	{
 		output.writeln("<atAttribute>");
@@ -163,12 +147,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</attribute>");
 	}
 
-	override void visit(const AttributeDeclaration attributeDeclaration)
-	{
-		assert (attributeDeclaration !is null);
-		mixin (tagAndAccept!"attributeDeclaration");
-	}
-
 	override void visit(const AutoDeclaration autoDec)
 	{
 		output.writeln("<autoDeclaration>");
@@ -183,36 +161,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</autoDeclaration>");
 	}
 
-	override void visit(const BlockStatement blockStatement)
-	{
-		output.writeln("<blockStatement>");
-		blockStatement.accept(this);
-		output.writeln("</blockStatement>");
-	}
-
-	override void visit(const BodyStatement bodyStatement)
-	{
-		output.writeln("<bodyStatement>");
-		bodyStatement.accept(this);
-		output.writeln("</bodyStatement>");
-	}
-
 	override void visit(const BreakStatement breakStatement)
 	{
 		if (breakStatement.label.type == tok!"")
 			output.writeln("<breakStatement/>");
 		else
 			output.writeln("<breakStatement label=\"", breakStatement.label.text, "\"/>");
-	}
-
-	override void visit(const BaseClass baseClass)
-	{
-		mixin (tagAndAccept!"baseClass");
-	}
-
-	override void visit(const BaseClassList baseClassList)
-	{
-		mixin (tagAndAccept!"baseClassList");
 	}
 
 	override void visit(const CaseRangeStatement caseRangeStatement)
@@ -235,26 +189,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</caseRangeStatement>");
 	}
 
-	override void visit(const CaseStatement caseStatement)
-	{
-		mixin (tagAndAccept!"caseStatement");
-	}
-
-	override void visit(const CastExpression castExpression)
-	{
-		mixin (tagAndAccept!"castExpression");
-	}
-
-	override void visit(const CastQualifier castQualifier)
-	{
-		mixin (tagAndAccept!"castQualifier");
-	}
-
-	override void visit(const Catches catches)
-	{
-		mixin (tagAndAccept!"catches");
-	}
-
 	override void visit(const Catch catch_)
 	{
 		output.writeln("<catch>");
@@ -269,16 +203,6 @@ class XMLPrinter : ASTVisitor
 		writeDdoc(classDec.comment);
 		classDec.accept(this);
 		output.writeln("</classDeclaration>");
-	}
-
-	override void visit(const CmpExpression cmpExpression)
-	{
-		mixin (tagAndAccept!"cmpExpression");
-	}
-
-	override void visit(const CompileCondition compileCondition)
-	{
-		mixin (tagAndAccept!"compileCondition");
 	}
 
 	override void visit(const ConditionalDeclaration conditionalDeclaration)
@@ -314,18 +238,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</conditionalStatement>");
 	}
 
-	override void visit(const Constraint constraint)
-	{
-		output.writeln("<constraint>");
-		constraint.accept(this);
-		output.writeln("</constraint>");
-	}
-
-	override void visit(const Constructor constructor)
-	{
-		mixin (tagAndAccept!"constructor");
-	}
-
 	override void visit(const ContinueStatement continueStatement)
 	{
 		if (continueStatement.label.type == tok!"")
@@ -353,21 +265,6 @@ class XMLPrinter : ASTVisitor
 				debugSpecification.identifierOrInteger.text, "\"/>");
 	}
 
-	override void visit(const Declaration declaration)
-	{
-		mixin (tagAndAccept!"declaration");
-	}
-
-	override void visit(const DeclarationsAndStatements declarationsAndStatements)
-	{
-		mixin (tagAndAccept!"declarationsAndStatements");
-	}
-
-	override void visit(const DeclarationOrStatement declarationOrStatement)
-	{
-		mixin (tagAndAccept!"declarationOrStatement");
-	}
-
 	override void visit(const Declarator declarator)
 	{
 		output.writeln("<declarator line=\"", declarator.name.line, "\">");
@@ -375,21 +272,6 @@ class XMLPrinter : ASTVisitor
 		writeDdoc(declarator.comment);
 		declarator.accept(this);
 		output.writeln("</declarator>");
-	}
-
-	override void visit(const DefaultStatement defaultStatement)
-	{
-		mixin (tagAndAccept!"defaultStatement");
-	}
-
-	override void visit(const DeleteExpression deleteExpression)
-	{
-		mixin (tagAndAccept!"deleteExpression");
-	}
-
-	override void visit(const DeleteStatement deleteStatement)
-	{
-		mixin (tagAndAccept!"deleteStatement");
 	}
 
 	override void visit(const Deprecated deprecated_)
@@ -402,21 +284,6 @@ class XMLPrinter : ASTVisitor
 		}
 		else
 			output.writeln("<deprecated/>");
-	}
-
-	override void visit(const Destructor destructor)
-	{
-		mixin (tagAndAccept!"destructor");
-	}
-
-	override void visit(const DoStatement doStatement)
-	{
-		mixin (tagAndAccept!"doStatement");
-	}
-
-	override void visit(const EnumBody enumBody)
-	{
-		mixin (tagAndAccept!"enumBody");
 	}
 
 	override void visit(const EnumDeclaration enumDec)
@@ -447,27 +314,6 @@ class XMLPrinter : ASTVisitor
 		visit(equalExpression.right);
 		output.writeln("</right>");
 		output.writeln("</equalExpression>");
-	}
-
-	override void visit(const Expression expression)
-	{
-		output.writeln("<expression>");
-		expression.accept(this);
-		output.writeln("</expression>");
-	}
-
-	override void visit(const ExpressionStatement expressionStatement)
-	{
-		output.writeln("<expressionStatement>");
-		expressionStatement.accept(this);
-		output.writeln("</expressionStatement>");
-	}
-
-	override void visit(const FinalSwitchStatement finalSwitchStatement)
-	{
-		output.writeln("<finalSwitchStatement>");
-		finalSwitchStatement.accept(this);
-		output.writeln("</finalSwitchStatement>");
 	}
 
 	override void visit(const Finally finally_)
@@ -538,31 +384,6 @@ class XMLPrinter : ASTVisitor
 
 	}
 
-	override void visit(const ForeachTypeList foreachTypeList)
-	{
-		mixin (tagAndAccept!"foreachTypeList");
-	}
-
-	override void visit(const FunctionAttribute functionAttribute)
-	{
-		mixin (tagAndAccept!"functionAttribute");
-	}
-
-	override void visit(const FunctionBody functionBody)
-	{
-		mixin (tagAndAccept!"functionBody");
-	}
-
-	override void visit(const FunctionCallExpression functionCallExpression)
-	{
-		mixin (tagAndAccept!"functionCallExpression");
-	}
-
-	override void visit(const FunctionCallStatement functionCallStatement)
-	{
-		mixin (tagAndAccept!"functionCallStatement");
-	}
-
 	override void visit(const FunctionDeclaration functionDec)
 	{
 		output.writeln("<functionDeclaration line=\"", functionDec.name.line, "\">");
@@ -601,26 +422,6 @@ class XMLPrinter : ASTVisitor
 			output.writeln("</case>");
 			output.writeln("</gotoStatement>");
 		}
-	}
-
-	override void visit(const IdentifierChain identifierChain)
-	{
-		mixin (tagAndAccept!"identifierChain");
-	}
-
-	override void visit(const IdentifierList identifierList)
-	{
-		mixin (tagAndAccept!"identifierList");
-	}
-
-	override void visit(const IdentifierOrTemplateChain identifierOrTemplateChain)
-	{
-		mixin (tagAndAccept!"identifierOrTemplateChain");
-	}
-
-	override void visit(const IdentifierOrTemplateInstance identifierOrTemplateInstance)
-	{
-		mixin (tagAndAccept!"identifierOrTemplateInstance");
 	}
 
 	override void visit(const IdentityExpression identityExpression)
@@ -676,26 +477,6 @@ class XMLPrinter : ASTVisitor
 				"\" rename=\"", importBind.left.text, "\"/>");
 	}
 
-	override void visit(const ImportBindings importBindings)
-	{
-		mixin (tagAndAccept!"importBindings");
-	}
-
-	override void visit(const ImportDeclaration importDeclaration)
-	{
-		mixin (tagAndAccept!"importDeclaration");
-	}
-
-	override void visit(const ImportExpression importExpression)
-	{
-		mixin (tagAndAccept!"importExpression");
-	}
-
-	override void visit(const IndexExpression indexExpression)
-	{
-		mixin (tagAndAccept!"indexExpression");
-	}
-
 	override void visit(const InExpression inExpression)
 	{
 		if (inExpression.negated)
@@ -709,11 +490,6 @@ class XMLPrinter : ASTVisitor
 		visit(inExpression.right);
 		output.writeln("</right>");
 		output.writeln("</inExpression>");
-	}
-
-	override void visit(const InStatement inStatement)
-	{
-		mixin (tagAndAccept!"inStatement");
 	}
 
 	override void visit(const Initialize initialize)
@@ -788,11 +564,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</keyValuePair>");
 	}
 
-	override void visit(const KeyValuePairs keyValuePairs)
-	{
-		mixin (tagAndAccept!"keyValuePairs");
-	}
-
 	override void visit (const LabeledStatement labeledStatement)
 	{
 		output.writeln("<labeledStatement label=\"",
@@ -810,11 +581,6 @@ class XMLPrinter : ASTVisitor
 			output.writeln("<delegate/>");
 		lambdaExpression.accept(this);
 		output.writeln("</lambdaExpression>");
-	}
-
-	override void visit(const LastCatch lastCatch)
-	{
-		mixin (tagAndAccept!"lastCatch");
 	}
 
 	override void visit(const LinkageAttribute linkageAttribute)
@@ -836,37 +602,12 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</memberFunctionAttribute>");
 	}
 
-	override void visit(const MixinDeclaration mixinDeclaration)
-	{
-		mixin (tagAndAccept!"mixinDeclaration");
-	}
-
-	override void visit(const MixinExpression mixinExpression)
-	{
-		mixin (tagAndAccept!"mixinExpression");
-	}
-
-	override void visit(const MixinTemplateDeclaration mixinTemplateDeclaration)
-	{
-		mixin (tagAndAccept!"mixinTemplateDeclaration");
-	}
-
-	override void visit(const MixinTemplateName mixinTemplateName)
-	{
-		mixin (tagAndAccept!"mixinTemplateName");
-	}
-
 	override void visit(const Module module_)
 	{
 		output.writeln("<?xml version=\"1.0\"?>");
 		output.writeln("<module>");
 		module_.accept(this);
 		output.writeln("</module>");
-	}
-
-	override void visit(const ModuleDeclaration moduleDeclaration)
-	{
-		mixin (tagAndAccept!"moduleDeclaration");
 	}
 
 	override void visit(const MulExpression mulExpression)
@@ -884,41 +625,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</mulExpression>");
 	}
 
-	override void visit(const NewAnonClassExpression newAnonClassExpression)
-	{
-		mixin (tagAndAccept!"newAnonClassExpression");
-	}
-
-	override void visit(const NewExpression newExpression)
-	{
-		mixin (tagAndAccept!"newExpression");
-	}
-
-	override void visit(const StatementNoCaseNoDefault statementNoCaseNoDefault)
-	{
-		mixin (tagAndAccept!"statementNoCaseNoDefault");
-	}
-
-	override void visit(const NonVoidInitializer nonVoidInitializer)
-	{
-		mixin (tagAndAccept!"nonVoidInitializer");
-	}
-
-	override void visit(const OrExpression orExpression)
-	{
-		mixin (tagAndAccept!"orExpression");
-	}
-
-	override void visit(const OrOrExpression orOrExpression)
-	{
-		mixin (tagAndAccept!"orOrExpression");
-	}
-
-	override void visit(const OutStatement outStatement)
-	{
-		mixin (tagAndAccept!"outStatement");
-	}
-
 	override void visit(const Parameter param)
 	{
 		output.writeln("<parameter>");
@@ -932,16 +638,6 @@ class XMLPrinter : ASTVisitor
 		if (param.vararg)
 			output.writeln("<vararg/>");
 		output.writeln("</parameter>");
-	}
-
-	override void visit(const Parameters parameters)
-	{
-		mixin (tagAndAccept!"parameters");
-	}
-
-	override void visit(const Postblit postblit)
-	{
-		mixin (tagAndAccept!"postblit");
 	}
 
 	override void visit(const PostIncDecExpression postIncDecExpression)
@@ -967,16 +663,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</powExpression>");
 	}
 
-	override void visit(const PragmaDeclaration pragmaDeclaration)
-	{
-		mixin (tagAndAccept!"pragmaDeclaration");
-	}
-
-	override void visit(const PragmaExpression pragmaExpression)
-	{
-		mixin (tagAndAccept!"pragmaExpression");
-	}
-
 	override void visit(const PreIncDecExpression preIncDecExpression)
 	{
 		output.writeln("<preIncDecExpression operator=\"",
@@ -984,13 +670,6 @@ class XMLPrinter : ASTVisitor
 		preIncDecExpression.accept(this);
 		output.writeln("</preIncDecExpression>");
 	}
-
-	override void visit(const PrimaryExpression primaryExpression)
-	{
-		mixin (tagAndAccept!"primaryExpression");
-	}
-
-	// TODO: Register
 
 	override void visit(const RelExpression relExpression)
 	{
@@ -1015,21 +694,6 @@ class XMLPrinter : ASTVisitor
 			returnStatement.accept(this);
 			output.writeln("</returnStatement>");
 		}
-	}
-
-	override void visit(const ScopeGuardStatement scopeGuardStatement)
-	{
-		mixin (tagAndAccept!"scopeGuardStatement");
-	}
-
-	override void visit(const SharedStaticConstructor sharedStaticConstructor)
-	{
-		mixin (tagAndAccept!"sharedStaticConstructor");
-	}
-
-	override void visit(const SharedStaticDestructor sharedStaticDestructor)
-	{
-		mixin (tagAndAccept!"sharedStaticDestructor");
 	}
 
 	override void visit(const ShiftExpression shiftExpression)
@@ -1074,46 +738,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</sliceExpression>");
 	}
 
-	override void visit(const Statement statement)
-	{
-		mixin (tagAndAccept!"statement");
-	}
-
-	override void visit(const StaticAssertDeclaration staticAssertDeclaration)
-	{
-		mixin (tagAndAccept!"staticAssertDeclaration");
-	}
-
-	override void visit(const StaticAssertStatement staticAssertStatement)
-	{
-		mixin (tagAndAccept!"staticAssertStatement");
-	}
-
-	override void visit(const StaticConstructor staticConstructor)
-	{
-		mixin (tagAndAccept!"staticConstructor");
-	}
-
-	override void visit(const StaticDestructor staticDestructor)
-	{
-		mixin (tagAndAccept!"staticDestructor");
-	}
-
-	override void visit(const StaticIfCondition staticIfCondition)
-	{
-		mixin (tagAndAccept!"staticIfCondition");
-	}
-
-	override void visit(const StorageClass storageClass)
-	{
-		mixin (tagAndAccept!"storageClass");
-	}
-
-	override void visit(const StructBody structBody)
-	{
-		mixin (tagAndAccept!"structBody");
-	}
-
 	override void visit(const StructDeclaration structDec)
 	{
 		output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
@@ -1121,36 +745,6 @@ class XMLPrinter : ASTVisitor
 		writeDdoc(structDec.comment);
 		structDec.accept(this);
 		output.writeln("</structDeclaration>");
-	}
-
-	override void visit(const StructInitializer structInitializer)
-	{
-		mixin (tagAndAccept!"structInitializer");
-	}
-
-	override void visit(const StructMemberInitializer structMemberInitializer)
-	{
-		mixin (tagAndAccept!"structMemberInitializer");
-	}
-
-	override void visit(const StructMemberInitializers structMemberInitializers)
-	{
-		mixin (tagAndAccept!"structMemberInitializers");
-	}
-
-	override void visit(const SwitchStatement switchStatement)
-	{
-		mixin (tagAndAccept!"switchStatement");
-	}
-
-	override void visit(const Symbol symbol)
-	{
-		mixin (tagAndAccept!"symbol");
-	}
-
-	override void visit(const SynchronizedStatement synchronizedStatement)
-	{
-		mixin (tagAndAccept!"synchronizedStatement");
 	}
 
 	override void visit(const TemplateAliasParameter templateAliasParameter)
@@ -1188,26 +782,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</templateAliasParameter>");
 	}
 
-	override void visit(const TemplateArgument templateArgument)
-	{
-		mixin (tagAndAccept!"templateArgument");
-	}
-
-	override void visit(const TemplateArgumentList templateArgumentList)
-	{
-		mixin (tagAndAccept!"templateArgumentList");
-	}
-
-	override void visit(const TemplateArguments templateArguments)
-	{
-		mixin (tagAndAccept!"templateArguments");
-	}
-
-	override void visit (const EponymousTemplateDeclaration eponymousTemplateDeclaration)
-	{
-		mixin (tagAndAccept!"eponymousTemplateDeclaration");
-	}
-
 	override void visit(const TemplateDeclaration templateDeclaration)
 	{
 		if (templateDeclaration.eponymousTemplateDeclaration !is null)
@@ -1229,71 +803,6 @@ class XMLPrinter : ASTVisitor
 			if (dec !is null) visit(dec);
 		}
 		output.writeln("</templateDeclaration>");
-	}
-
-	override void visit(const TemplateInstance templateInstance)
-	{
-		mixin (tagAndAccept!"templateInstance");
-	}
-
-	override void visit(const TemplateMixinExpression templateMixinExpression)
-	{
-		mixin (tagAndAccept!"templateMixinExpression");
-	}
-
-	override void visit(const TemplateParameter templateParameter)
-	{
-		mixin (tagAndAccept!"templateParameter");
-	}
-
-	override void visit(const TemplateParameterList templateParameterList)
-	{
-		mixin (tagAndAccept!"templateParameterList");
-	}
-
-	override void visit(const TemplateParameters templateParameters)
-	{
-		mixin (tagAndAccept!"templateParameters");
-	}
-
-	override void visit(const TemplateSingleArgument templateSingleArgument)
-	{
-		mixin (tagAndAccept!"templateSingleArgument");
-	}
-
-	override void visit(const TemplateThisParameter templateThisParameter)
-	{
-		mixin (tagAndAccept!"templateThisParameter");
-	}
-
-	override void visit(const TemplateTupleParameter templateTupleParameter)
-	{
-		mixin (tagAndAccept!"templateTupleParameter");
-	}
-
-	override void visit(const TemplateTypeParameter templateTypeParameter)
-	{
-		mixin (tagAndAccept!"templateTypeParameter");
-	}
-
-	override void visit(const TemplateValueParameter templateValueParameter)
-	{
-		mixin (tagAndAccept!"templateValueParameter");
-	}
-
-	override void visit(const TemplateValueParameterDefault templateValueParameterDefault)
-	{
-		mixin (tagAndAccept!"templateValueParameterDefault");
-	}
-
-	override void visit(const TernaryExpression ternaryExpression)
-	{
-		mixin (tagAndAccept!"ternaryExpression");
-	}
-
-	override void visit(const ThrowStatement throwStatement)
-	{
-		mixin (tagAndAccept!"throwStatement");
 	}
 
 	override void visit(const Token token)
@@ -1325,16 +834,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
 	}
 
-	override void visit(const TraitsExpression traitsExpression)
-	{
-		mixin (tagAndAccept!"traitsExpression");
-	}
-
-	override void visit(const TryStatement tryStatement)
-	{
-		mixin (tagAndAccept!"tryStatement");
-	}
-
 	override void visit(const Type type)
 	{
 		auto app = appender!string();
@@ -1355,11 +854,6 @@ class XMLPrinter : ASTVisitor
 			type2.accept(this);
 			output.writeln("</type2>");
 		}
-	}
-
-	override void visit(const TypeSpecialization typeSpecialization)
-	{
-		mixin (tagAndAccept!"typeSpecialization");
 	}
 
 	override void visit(const TypeSuffix typeSuffix)
@@ -1405,16 +899,6 @@ class XMLPrinter : ASTVisitor
 				if (attr !is null) visit(attr);
 			}
 		}
-	}
-
-	override void visit(const TypeidExpression typeidExpression)
-	{
-		mixin (tagAndAccept!"typeidExpression");
-	}
-
-	override void visit(const TypeofExpression typeofExpression)
-	{
-		mixin (tagAndAccept!"typeofExpression");
 	}
 
 	override void visit(const UnaryExpression unaryExpression)
@@ -1467,31 +951,6 @@ class XMLPrinter : ASTVisitor
         output.writeln("</variableDeclaration>");
 	}
 
-	override void visit(const Vector vector)
-	{
-		mixin (tagAndAccept!"vector");
-	}
-
-	override void visit(const VersionCondition versionCondition)
-	{
-		mixin (tagAndAccept!"versionCondition");
-	}
-
-	override void visit(const VersionSpecification versionSpecification)
-	{
-		mixin (tagAndAccept!"versionSpecification");
-	}
-
-	override void visit(const WhileStatement whileStatement)
-	{
-		mixin (tagAndAccept!"whileStatement");
-	}
-
-	override void visit(const WithStatement withStatement)
-	{
-		mixin (tagAndAccept!"withStatement");
-	}
-
 	override void visit(const XorExpression xorExpression)
 	{
 		output.writeln("<xorExpression>");
@@ -1506,6 +965,125 @@ class XMLPrinter : ASTVisitor
 		}
 		output.writeln("</xorExpression>");
 	}
+
+	override void visit(const AliasInitializer aliasInitializer) { mixin (tagAndAccept!"aliasInitializer"); }
+	override void visit(const AliasThisDeclaration aliasThisDeclaration) { mixin (tagAndAccept!"aliasThisDeclaration"); }
+	override void visit(const ArgumentList argumentList) { mixin (tagAndAccept!"argumentList"); }
+	override void visit(const Arguments arguments) { mixin (tagAndAccept!"arguments"); }
+	override void visit(const ArrayInitializer arrayInitializer) { mixin (tagAndAccept!"arrayInitializer"); }
+	override void visit(const ArrayLiteral arrayLiteral) { mixin (tagAndAccept!"arrayLiteral"); }
+	override void visit(const ArrayMemberInitialization arrayMemberInitialization) { mixin (tagAndAccept!"arrayMemberInitialization"); }
+	override void visit(const AsmAddExp asmAddExp) { mixin (tagAndAccept!"asmAddExp"); }
+	override void visit(const AsmAndExp asmAndExp) { mixin (tagAndAccept!"asmAndExp"); }
+	override void visit(const AsmBrExp asmBrExp) { mixin (tagAndAccept!"asmBrExp"); }
+	override void visit(const AsmEqualExp asmEqualExp) { mixin (tagAndAccept!"asmEqualExp"); }
+	override void visit(const AsmExp asmExp) { mixin (tagAndAccept!"asmExp"); }
+	override void visit(const AsmLogAndExp asmLogAndExp) { mixin (tagAndAccept!"asmLogAndExp"); }
+	override void visit(const AsmLogOrExp asmLogOrExp) { mixin (tagAndAccept!"asmLogOrExp"); }
+	override void visit(const AsmMulExp asmMulExp) { mixin (tagAndAccept!"asmMulExp"); }
+	override void visit(const AsmOrExp asmOrExp) { mixin (tagAndAccept!"asmOrExp"); }
+	override void visit(const AsmPrimaryExp asmPrimaryExp) { mixin (tagAndAccept!"asmPrimaryExp"); }
+	override void visit(const AsmRelExp asmRelExp) { mixin (tagAndAccept!"asmRelExp"); }
+	override void visit(const AsmShiftExp asmShiftExp) { mixin (tagAndAccept!"asmShiftExp"); }
+	override void visit(const AsmStatement asmStatement) { mixin (tagAndAccept!"asmStatement"); }
+	override void visit(const AsmTypePrefix asmTypePrefix) { mixin (tagAndAccept!"asmTypePrefix"); }
+	override void visit(const AsmUnaExp asmUnaExp) { mixin (tagAndAccept!"asmUnaExp"); }
+	override void visit(const AsmXorExp asmXorExp) { mixin (tagAndAccept!"asmXorExp"); }
+	override void visit(const AssocArrayLiteral assocArrayLiteral) { mixin (tagAndAccept!"assocArrayLiteral"); }
+	override void visit(const AttributeDeclaration attributeDeclaration) { mixin (tagAndAccept!"attributeDeclaration"); }
+	override void visit(const BaseClass baseClass) { mixin (tagAndAccept!"baseClass"); }
+	override void visit(const BaseClassList baseClassList) { mixin (tagAndAccept!"baseClassList"); }
+	override void visit(const BlockStatement blockStatement) { mixin (tagAndAccept!"blockStatement"); }
+	override void visit(const BodyStatement bodyStatement) { mixin (tagAndAccept!"bodyStatement"); }
+	override void visit(const CaseStatement caseStatement) { mixin (tagAndAccept!"caseStatement"); }
+	override void visit(const CastExpression castExpression) { mixin (tagAndAccept!"castExpression"); }
+	override void visit(const CastQualifier castQualifier) { mixin (tagAndAccept!"castQualifier"); }
+	override void visit(const Catches catches) { mixin (tagAndAccept!"catches"); }
+	override void visit(const CmpExpression cmpExpression) { mixin (tagAndAccept!"cmpExpression"); }
+	override void visit(const CompileCondition compileCondition) { mixin (tagAndAccept!"compileCondition"); }
+	override void visit(const Constraint constraint) { mixin (tagAndAccept!"constraint"); }
+	override void visit(const Constructor constructor) { mixin (tagAndAccept!"constructor"); }
+	override void visit(const Declaration declaration) { mixin (tagAndAccept!"declaration"); }
+	override void visit(const DeclarationOrStatement declarationOrStatement) { mixin (tagAndAccept!"declarationOrStatement"); }
+	override void visit(const DeclarationsAndStatements declarationsAndStatements) { mixin (tagAndAccept!"declarationsAndStatements"); }
+	override void visit(const DefaultStatement defaultStatement) { mixin (tagAndAccept!"defaultStatement"); }
+	override void visit(const DeleteExpression deleteExpression) { mixin (tagAndAccept!"deleteExpression"); }
+	override void visit(const DeleteStatement deleteStatement) { mixin (tagAndAccept!"deleteStatement"); }
+	override void visit(const Destructor destructor) { mixin (tagAndAccept!"destructor"); }
+	override void visit(const DoStatement doStatement) { mixin (tagAndAccept!"doStatement"); }
+	override void visit(const EnumBody enumBody) { mixin (tagAndAccept!"enumBody"); }
+	override void visit(const EponymousTemplateDeclaration eponymousTemplateDeclaration) { mixin (tagAndAccept!"eponymousTemplateDeclaration"); }
+	override void visit(const Expression expression) { mixin (tagAndAccept!"expression"); }
+	override void visit(const ExpressionStatement expressionStatement) { mixin (tagAndAccept!"expressionStatement"); }
+	override void visit(const FinalSwitchStatement finalSwitchStatement) { mixin (tagAndAccept!"finalSwitchStatement"); }
+	override void visit(const ForeachTypeList foreachTypeList) { mixin (tagAndAccept!"foreachTypeList"); }
+	override void visit(const FunctionAttribute functionAttribute) { mixin (tagAndAccept!"functionAttribute"); }
+	override void visit(const FunctionBody functionBody) { mixin (tagAndAccept!"functionBody"); }
+	override void visit(const FunctionCallExpression functionCallExpression) { mixin (tagAndAccept!"functionCallExpression"); }
+	override void visit(const FunctionCallStatement functionCallStatement) { mixin (tagAndAccept!"functionCallStatement"); }
+	override void visit(const IdentifierChain identifierChain) { mixin (tagAndAccept!"identifierChain"); }
+	override void visit(const IdentifierList identifierList) { mixin (tagAndAccept!"identifierList"); }
+	override void visit(const IdentifierOrTemplateChain identifierOrTemplateChain) { mixin (tagAndAccept!"identifierOrTemplateChain"); }
+	override void visit(const IdentifierOrTemplateInstance identifierOrTemplateInstance) { mixin (tagAndAccept!"identifierOrTemplateInstance"); }
+	override void visit(const ImportBindings importBindings) { mixin (tagAndAccept!"importBindings"); }
+	override void visit(const ImportDeclaration importDeclaration) { mixin (tagAndAccept!"importDeclaration"); }
+	override void visit(const ImportExpression importExpression) { mixin (tagAndAccept!"importExpression"); }
+	override void visit(const IndexExpression indexExpression) { mixin (tagAndAccept!"indexExpression"); }
+	override void visit(const InStatement inStatement) { mixin (tagAndAccept!"inStatement"); }
+	override void visit(const KeyValuePairs keyValuePairs) { mixin (tagAndAccept!"keyValuePairs"); }
+	override void visit(const MixinExpression mixinExpression) { mixin (tagAndAccept!"mixinExpression"); }
+	override void visit(const MixinTemplateDeclaration mixinTemplateDeclaration) { mixin (tagAndAccept!"mixinTemplateDeclaration"); }
+	override void visit(const MixinTemplateName mixinTemplateName) { mixin (tagAndAccept!"mixinTemplateName"); } override void visit(const ModuleDeclaration moduleDeclaration) { mixin (tagAndAccept!"moduleDeclaration"); }  override void visit(const LastCatch lastCatch) { mixin (tagAndAccept!"lastCatch"); }
+	override void visit(const NewExpression newExpression) { mixin (tagAndAccept!"newExpression"); }
+	override void visit(const NonVoidInitializer nonVoidInitializer) { mixin (tagAndAccept!"nonVoidInitializer"); }
+	override void visit(const Operands operands) { mixin (tagAndAccept!"operands"); }
+	override void visit(const OrExpression orExpression) { mixin (tagAndAccept!"orExpression"); }
+	override void visit(const OrOrExpression orOrExpression) { mixin (tagAndAccept!"orOrExpression"); }
+	override void visit(const OutStatement outStatement) { mixin (tagAndAccept!"outStatement"); } override void visit(const MixinDeclaration mixinDeclaration) { mixin (tagAndAccept!"mixinDeclaration"); }
+	override void visit(const Parameters parameters) { mixin (tagAndAccept!"parameters"); }
+	override void visit(const Postblit postblit) { mixin (tagAndAccept!"postblit"); } override void visit(const NewAnonClassExpression newAnonClassExpression) { mixin (tagAndAccept!"newAnonClassExpression"); }
+	override void visit(const PragmaDeclaration pragmaDeclaration) { mixin (tagAndAccept!"pragmaDeclaration"); }
+	override void visit(const PragmaExpression pragmaExpression) { mixin (tagAndAccept!"pragmaExpression"); }
+	override void visit(const PrimaryExpression primaryExpression) { mixin (tagAndAccept!"primaryExpression"); }
+	override void visit(const ScopeGuardStatement scopeGuardStatement) { mixin (tagAndAccept!"scopeGuardStatement"); }
+	override void visit(const SharedStaticConstructor sharedStaticConstructor) { mixin (tagAndAccept!"sharedStaticConstructor"); }
+	override void visit(const SharedStaticDestructor sharedStaticDestructor) { mixin (tagAndAccept!"sharedStaticDestructor"); }
+	override void visit(const StatementNoCaseNoDefault statementNoCaseNoDefault) { mixin (tagAndAccept!"statementNoCaseNoDefault"); }
+	override void visit(const StaticAssertDeclaration staticAssertDeclaration) { mixin (tagAndAccept!"staticAssertDeclaration"); }
+	override void visit(const StaticAssertStatement staticAssertStatement) { mixin (tagAndAccept!"staticAssertStatement"); }
+	override void visit(const StaticConstructor staticConstructor) { mixin (tagAndAccept!"staticConstructor"); }
+	override void visit(const StaticDestructor staticDestructor) { mixin (tagAndAccept!"staticDestructor"); }
+	override void visit(const StaticIfCondition staticIfCondition) { mixin (tagAndAccept!"staticIfCondition"); }
+	override void visit(const StorageClass storageClass) { mixin (tagAndAccept!"storageClass"); }
+	override void visit(const StructBody structBody) { mixin (tagAndAccept!"structBody"); }
+	override void visit(const StructInitializer structInitializer) { mixin (tagAndAccept!"structInitializer"); }
+	override void visit(const StructMemberInitializers structMemberInitializers) { mixin (tagAndAccept!"structMemberInitializers"); }
+	override void visit(const StructMemberInitializer structMemberInitializer) { mixin (tagAndAccept!"structMemberInitializer"); }
+	override void visit(const SwitchStatement switchStatement) { mixin (tagAndAccept!"switchStatement"); }
+	override void visit(const Symbol symbol) { mixin (tagAndAccept!"symbol"); }
+	override void visit(const SynchronizedStatement synchronizedStatement) { mixin (tagAndAccept!"synchronizedStatement"); } override void visit(const Statement statement) { mixin (tagAndAccept!"statement"); }
+	override void visit(const TemplateArgumentList templateArgumentList) { mixin (tagAndAccept!"templateArgumentList"); }
+	override void visit(const TemplateArguments templateArguments) { mixin (tagAndAccept!"templateArguments"); }
+	override void visit(const TemplateArgument templateArgument) { mixin (tagAndAccept!"templateArgument"); }
+	override void visit(const TemplateMixinExpression templateMixinExpression) { mixin (tagAndAccept!"templateMixinExpression"); }
+	override void visit(const TemplateParameterList templateParameterList) { mixin (tagAndAccept!"templateParameterList"); }
+	override void visit(const TemplateParameters templateParameters) { mixin (tagAndAccept!"templateParameters"); }
+	override void visit(const TemplateParameter templateParameter) { mixin (tagAndAccept!"templateParameter"); }
+	override void visit(const TemplateSingleArgument templateSingleArgument) { mixin (tagAndAccept!"templateSingleArgument"); }
+	override void visit(const TemplateThisParameter templateThisParameter) { mixin (tagAndAccept!"templateThisParameter"); }
+	override void visit(const TemplateTupleParameter templateTupleParameter) { mixin (tagAndAccept!"templateTupleParameter"); }
+	override void visit(const TemplateTypeParameter templateTypeParameter) { mixin (tagAndAccept!"templateTypeParameter"); }
+	override void visit(const TemplateValueParameterDefault templateValueParameterDefault) { mixin (tagAndAccept!"templateValueParameterDefault"); }
+	override void visit(const TemplateValueParameter templateValueParameter) { mixin (tagAndAccept!"templateValueParameter"); }
+	override void visit(const TernaryExpression ternaryExpression) { mixin (tagAndAccept!"ternaryExpression"); }
+	override void visit(const ThrowStatement throwStatement) { mixin (tagAndAccept!"throwStatement"); }
+	override void visit(const TryStatement tryStatement) { mixin (tagAndAccept!"tryStatement"); } override void visit(const TemplateInstance templateInstance) { mixin (tagAndAccept!"templateInstance"); }
+	override void visit(const TypeofExpression typeofExpression) { mixin (tagAndAccept!"typeofExpression"); } override void visit(const TypeSpecialization typeSpecialization) { mixin (tagAndAccept!"typeSpecialization"); } override void visit(const TraitsExpression traitsExpression) { mixin (tagAndAccept!"traitsExpression"); }
+	override void visit(const Vector vector) { mixin (tagAndAccept!"vector"); }
+	override void visit(const VersionCondition versionCondition) { mixin (tagAndAccept!"versionCondition"); }
+	override void visit(const VersionSpecification versionSpecification) { mixin (tagAndAccept!"versionSpecification"); }
+	override void visit(const WhileStatement whileStatement) { mixin (tagAndAccept!"whileStatement"); }
+	override void visit(const WithStatement withStatement) { mixin (tagAndAccept!"withStatement"); } override void visit(const TypeidExpression typeidExpression) { mixin (tagAndAccept!"typeidExpression"); }
 
 	alias visit = ASTVisitor.visit;
 

@@ -60,7 +60,7 @@ unittest
 {
 	import analysis.config;
 	StaticAnalysisConfig sac;
-	sac.if_else_same_check = true;
+	sac.length_subtraction_check = true;
 	assertAnalyzerWarnings(q{
 		void testSizeT()
 		{

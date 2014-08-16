@@ -27,6 +27,7 @@ import analysis.duplicate_attribute;
 import analysis.opequals_without_tohash;
 import analysis.length_subtraction;
 import analysis.builtin_property_names;
+import analysis.asm_style;
 
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
@@ -58,7 +59,7 @@ void analyze(File output, string[] fileNames, StaticAnalysisConfig config, bool 
 }
 
 // For a string
-string[] analyze(string fileName, ubyte[] code, StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
+string[] analyze(string fileName, ubyte[] code, const StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
 {
 	import std.parallelism;
 
@@ -98,6 +99,7 @@ string[] analyze(string fileName, ubyte[] code, StaticAnalysisConfig analysisCon
 	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
 	if (analysisConfig.length_subtraction_check) checks ~= new LengthSubtractionCheck(fileName);
 	if (analysisConfig.builtin_property_names_check) checks ~= new BuiltinPropertyNameCheck(fileName);
+	if (analysisConfig.asm_style_check) checks ~= new AsmStyleCheck(fileName);
 
 	foreach (check; checks)
 	{

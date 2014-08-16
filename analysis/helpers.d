@@ -49,7 +49,7 @@ S after(S)(S value, S separator)
  * and make sure they match the warnings in the comments. Warnings are
  * marked like so: // [warn]: Failed to do somethings.
  */
-void assertAnalyzerWarnings(string code, StaticAnalysisConfig config, string file=__FILE__, size_t line=__LINE__)
+void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, string file=__FILE__, size_t line=__LINE__)
 {
 	import analysis.run;
 
