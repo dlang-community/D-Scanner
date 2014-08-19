@@ -36,7 +36,7 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(const AliasDeclaration aliasDeclaration)
 	{
-		output.writeln("<aliasDeclaration line=\"", aliasDeclaration.name.line, "\">");
+		output.writeln("<aliasDeclaration>");
 		writeDdoc(aliasDeclaration.comment);
 		aliasDeclaration.accept(this);
 		output.writeln("</aliasDeclaration>");
@@ -1020,7 +1020,6 @@ class XMLPrinter : ASTVisitor
 	override void visit(const FunctionAttribute functionAttribute) { mixin (tagAndAccept!"functionAttribute"); }
 	override void visit(const FunctionBody functionBody) { mixin (tagAndAccept!"functionBody"); }
 	override void visit(const FunctionCallExpression functionCallExpression) { mixin (tagAndAccept!"functionCallExpression"); }
-	override void visit(const FunctionCallStatement functionCallStatement) { mixin (tagAndAccept!"functionCallStatement"); }
 	override void visit(const IdentifierChain identifierChain) { mixin (tagAndAccept!"identifierChain"); }
 	override void visit(const IdentifierList identifierList) { mixin (tagAndAccept!"identifierList"); }
 	override void visit(const IdentifierOrTemplateChain identifierOrTemplateChain) { mixin (tagAndAccept!"identifierOrTemplateChain"); }
