@@ -28,7 +28,7 @@ class AsmStyleCheck : BaseAnalyzer
 	{
 		if (brExp.asmBrExp !is null)
 		{
-			addErrorMessage(brExp.line, brExp.column,
+			addErrorMessage(brExp.line, brExp.column, "dscanner.confusing.brexp",
 				"This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.");
 		}
 		brExp.accept(this);
