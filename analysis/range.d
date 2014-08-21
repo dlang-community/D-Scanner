@@ -26,6 +26,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 	size_t column;
 	size_t line;
 	enum State { ignore, left, right }
+	enum string KEY = "dscanner.bugs.backwards_slices";
 	State state = State.ignore;
 
 	this(string fileName)
@@ -48,7 +49,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 				string message = format(
 					"%d is larger than %d. Did you mean to use 'foreach_reverse( ... ; %d .. %d)'?",
 					left, right, right, left);
-				addErrorMessage(line, this.column, message);
+				addErrorMessage(line, this.column, KEY, message);
 			}
 			hasLeft = false;
 			hasRight = false;
@@ -125,7 +126,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 				string message = format(
 					"%d is larger than %d. This slice is likely incorrect.",
 					left, right);
-				addErrorMessage(line, this.column, message);
+				addErrorMessage(line, this.column, KEY, message);
 			}
 			hasLeft = false;
 			hasRight = false;

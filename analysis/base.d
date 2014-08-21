@@ -7,9 +7,15 @@ import std.array;
 
 struct Message
 {
+	/// Name of the file where the warning was triggered
 	string fileName;
+	/// Line number where the warning was triggered
 	size_t line;
+	/// Column number where the warning was triggered (in bytes)
 	size_t column;
+	/// Name of the warning
+	string key;
+	/// Warning message
 	string message;
 }
 
@@ -47,9 +53,9 @@ protected:
 
 	import core.vararg;
 
-	void addErrorMessage(size_t line, size_t column, string message)
+	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-		_messages.insert(Message(fileName, line, column, message));
+		_messages.insert(Message(fileName, line, column, key, message));
 	}
 
 	/**

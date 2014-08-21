@@ -28,9 +28,9 @@ class ConstructorCheck : BaseAnalyzer
 		if (hasNoArgConstructor && hasDefaultArgConstructor)
 		{
 			addErrorMessage(classDeclaration.name.line,
-				classDeclaration.name.column, "This class has a zero-argument"
-				~ " constructor as well as a constructor with one default"
-				~ " argument. This can be confusing.");
+				classDeclaration.name.column, "dscanner.confusing.constructor_args",
+				"This class has a zero-argument constructor as well as a"
+				~ " constructor with one default argument. This can be confusing.");
 		}
 		hasDefaultArgConstructor = oldHasDefault;
 		hasNoArgConstructor = oldHasNoArg;
@@ -54,6 +54,7 @@ class ConstructorCheck : BaseAnalyzer
 				&& constructor.parameters.parameters[0].default_ !is null)
 			{
 				addErrorMessage(constructor.line, constructor.column,
+					"dscanner.confusing.struct_constructor_default_args",
 					"This struct constructor can never be called with its "
 					~ "default argument.");
 			}

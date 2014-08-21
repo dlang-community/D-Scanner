@@ -49,6 +49,7 @@ class LengthSubtractionCheck : BaseAnalyzer
 			}
 			const(Token) token = l.identifierOrTemplateInstance.identifier;
 			addErrorMessage(token.line, token.column,
+				"dscanner.suspicious.length_subtraction",
 				"Avoid subtracting from '.length' as it may be unsigned.");
 		}
 	end:

@@ -31,7 +31,7 @@ class NumberStyleCheck : BaseAnalyzer
 			&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex).empty)
 				|| !t.text.matchFirst(badDecimalRegex).empty))
 		{
-			addErrorMessage(t.line, t.column,
+			addErrorMessage(t.line, t.column, "dscanner.style.number_literals",
 				"Use underscores to improve number constant readability.");
 		}
 	}

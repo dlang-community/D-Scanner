@@ -18,6 +18,8 @@ class FloatOperatorCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	enum string KEY = "dscanner.deprecated.floating_point_operators";
+
 	this(string fileName)
 	{
 		super(fileName);
@@ -34,7 +36,8 @@ class FloatOperatorCheck : BaseAnalyzer
 			|| r.operator == tok!"!>="
 			|| r.operator == tok!"!<=")
 		{
-			addErrorMessage(r.line, r.column, "Avoid using the deprecated floating-point operators.");
+			addErrorMessage(r.line, r.column, KEY,
+				"Avoid using the deprecated floating-point operators.");
 		}
 		r.accept(this);
 	}

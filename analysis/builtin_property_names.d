@@ -29,6 +29,8 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	enum string KEY = "dscanner.confusing.builtin_property_names";
+
 	this(string fileName)
 	{
 		super(fileName);
@@ -38,7 +40,7 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 	{
 		if (depth > 0 && isBuiltinProperty(fd.name.text))
 		{
-			addErrorMessage(fd.name.line, fd.name.column, generateErrorMessage(fd.name.text));
+			addErrorMessage(fd.name.line, fd.name.column, KEY, generateErrorMessage(fd.name.text));
 		}
 		fd.accept(this);
 	}
@@ -48,14 +50,14 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 		if (depth > 0) foreach (i; ad.identifiers)
 		{
 			if (isBuiltinProperty(i.text))
-				addErrorMessage(i.line, i.column, generateErrorMessage(i.text));
+				addErrorMessage(i.line, i.column, KEY, generateErrorMessage(i.text));
 		}
 	}
 
 	override void visit(const Declarator d)
 	{
 		if (depth > 0 && isBuiltinProperty(d.name.text))
-			addErrorMessage(d.name.line, d.name.column, generateErrorMessage(d.name.text));
+			addErrorMessage(d.name.line, d.name.column, KEY, generateErrorMessage(d.name.text));
 	}
 
 	override void visit(const StructBody sb)

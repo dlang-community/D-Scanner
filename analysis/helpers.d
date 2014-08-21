@@ -12,6 +12,7 @@ import std.stdio;
 import std.d.ast;
 import analysis.config;
 import analysis.run;
+import analysis.base;
 
 
 S between(S)(S value, S before, S after)
@@ -54,23 +55,23 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 	import analysis.run;
 
 	// Run the code and get any warnings
-	string[] rawWarnings = analyze("test", cast(ubyte[]) code, config);
+	MessageSet rawWarnings = analyze("test", cast(ubyte[]) code, config);
 	string[] codeLines = code.split("\n");
 
 	// Get the warnings ordered by line
 	string[size_t] warnings;
-	for (size_t i=0; i<rawWarnings.length; ++i)
+	foreach (rawWarning; rawWarnings[])
 	{
 		// Skip the warning if it is on line zero
-		size_t rawLine = std.conv.to!size_t(rawWarnings[i].between("test(", ":"));
+		size_t rawLine = rawWarning.line;
 		if (rawLine == 0)
 		{
-			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s", rawWarnings[i]);
+			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s", rawWarning.message);
 			continue;
 		}
 
 		size_t warnLine = line - 1 + rawLine;
-		warnings[warnLine] = rawWarnings[i].after(")");
+		warnings[warnLine] = format("[warn]: %s", rawWarning.message);
 	}
 
 	// Get all the messages from the comments in the code

@@ -29,6 +29,8 @@ import analysis.length_subtraction;
 import analysis.builtin_property_names;
 import analysis.asm_style;
 
+bool first = true;
+
 void messageFunction(string fileName, size_t line, size_t column, string message,
 	bool isError)
 {
@@ -36,15 +38,45 @@ void messageFunction(string fileName, size_t line, size_t column, string message
 		isError ? "error" : "warn", message);
 }
 
-void syntaxCheck(File output, string[] fileNames)
+void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
+{
+	writeJSON("dscanner.syntax", fileName, line, column, message);
+}
+
+void writeJSON(string key, string fileName, size_t line, size_t column, string message)
+{
+	if (!first)
+		writeln(",");
+	else
+		first = false;
+	writeln("    {");
+	writeln(`      "key": "`, key, `",`);
+	writeln(`      "fileName": "`, fileName, `",`);
+	writeln(`      "line": `, line, `,`);
+	writeln(`      "column": `, column, `,`);
+	writeln(`      "message": "`, message.replace(`"`, `\"`), `"`);
+	write(  "    }");
+}
+
+void syntaxCheck(string[] fileNames)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	analyze(output, fileNames, config, false);
+	analyze(fileNames, config, false);
 }
 
 // For multiple files
-void analyze(File output, string[] fileNames, StaticAnalysisConfig config, bool staticAnalyze = true)
+void analyze(string[] fileNames, StaticAnalysisConfig config,
+	bool staticAnalyze = true, bool report = false)
 {
+	if (report)
+	{
+		writeln("{");
+		writeln(`  "issues": [`);
+
+	}
+
+	first = true;
+
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
@@ -52,14 +84,33 @@ void analyze(File output, string[] fileNames, StaticAnalysisConfig config, bool 
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
 
-		string[] results = analyze(fileName, code, config, staticAnalyze);
-		if (results.length > 0)
-			output.writeln(results.join("\n"));
+		MessageSet results = analyze(fileName, code, config, staticAnalyze, report);
+		if (report)
+		{
+			foreach (result; results[])
+			{
+				writeJSON(result.key, result.fileName, result.line, result.column, result.message);
+			}
+		}
+		else
+		{
+			foreach (result; results[])
+				writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
+					result.column, result.message);
+		}
+	}
+
+	if (report)
+	{
+		writeln();
+		writeln("  ]");
+		writeln("}");
 	}
 }
 
 // For a string
-string[] analyze(string fileName, ubyte[] code, const StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
+MessageSet analyze(string fileName, ubyte[] code, const StaticAnalysisConfig analysisConfig,
+	bool staticAnalyze = true, bool report = false)
 {
 	import std.parallelism;
 
@@ -72,12 +123,16 @@ string[] analyze(string fileName, ubyte[] code, const StaticAnalysisConfig analy
 
 	foreach (message; lexer.messages)
 	{
-		messageFunction(fileName, message.line, message.column, message.message,
-			message.isError);
+		if (report)
+			messageFunctionJSON(fileName, message.line, message.column, message.message,
+				message.isError);
+		else
+			messageFunction(fileName, message.line, message.column, message.message,
+				message.isError);
 	}
 
 	ParseAllocator p = new ParseAllocator;
-	Module m = parseModule(tokens, fileName, p, &messageFunction);
+	Module m = parseModule(tokens, fileName, p, report ? &messageFunctionJSON : &messageFunction);
 
 	if (!staticAnalyze)
 		return null;
@@ -110,12 +165,7 @@ string[] analyze(string fileName, ubyte[] code, const StaticAnalysisConfig analy
 	foreach (check; checks)
 		foreach (message; check.messages)
 			set.insert(message);
-
-	string[] results;
-	foreach (message; set[])
-		results ~= "%s(%d:%d)[warn]: %s".format(message.fileName, message.line,
-			message.column, message.message);
 	p.deallocateAll();
-	return results;
+	return set;
 }
 

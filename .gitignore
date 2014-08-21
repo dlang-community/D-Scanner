@@ -17,3 +17,6 @@
 # D Scanner binaries
 dscanner
 dscanner.o
+
+# Static analysis reports
+dscanner-report.json

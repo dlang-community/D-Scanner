@@ -25,7 +25,8 @@ import analysis.helpers;
  */
 class PokemonExceptionCheck : BaseAnalyzer
 {
-	enum message = "Catching Error or Throwable is almost always a bad idea.";
+	enum MESSAGE = "Catching Error or Throwable is almost always a bad idea.";
+	enum string KEY = "dscanner.suspicious.catch_em_all";
 
 	alias visit = BaseAnalyzer.visit;
 
@@ -36,7 +37,7 @@ class PokemonExceptionCheck : BaseAnalyzer
 
 	override void visit(const LastCatch lc)
 	{
-		addErrorMessage(lc.line, lc.column, message);
+		addErrorMessage(lc.line, lc.column, KEY, MESSAGE);
 		lc.accept(this);
 	}
 
@@ -76,7 +77,7 @@ class PokemonExceptionCheck : BaseAnalyzer
 		{
 			immutable column = identOrTemplate.identifier.column;
 			immutable line = identOrTemplate.identifier.line;
-			addErrorMessage(line, column, message);
+			addErrorMessage(line, column, KEY, MESSAGE);
 		}
 	}
 }

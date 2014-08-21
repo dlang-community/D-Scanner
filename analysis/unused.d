@@ -323,8 +323,10 @@ class UnusedVariableCheck : BaseAnalyzer
 		{
 			if (!uu.isRef && tree.length > 1)
 				addErrorMessage(uu.line, uu.column,
+					uu.isParameter ? "dscanner.suspicious.unused_parameter"
+						: "dscanner.suspicious.unused_variable",
 					(uu.isParameter ? "Parameter " : "Variable ")
-					~ uu.name ~ " is never used.");
+						~ uu.name ~ " is never used.");
 		}
 		tree = tree[0 .. $ - 1];
 	}

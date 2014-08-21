@@ -34,6 +34,7 @@ class IfElseSameCheck : BaseAnalyzer
 	{
 		if (ifStatement.thenStatement == ifStatement.elseStatement)
 			addErrorMessage(ifStatement.line, ifStatement.column,
+				"dscanner.bugs.if_else_same",
 				"'Else' branch is identical to 'Then' branch.");
 		ifStatement.accept(this);
 	}
@@ -45,6 +46,7 @@ class IfElseSameCheck : BaseAnalyzer
 			&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{
 			addErrorMessage(assignExpression.line, assignExpression.column,
+				"dscanner.bugs.self_assignment",
 				"Left side of assignment operatior is identical to the right side.");
 		}
 		assignExpression.accept(this);
@@ -56,6 +58,7 @@ class IfElseSameCheck : BaseAnalyzer
 			&& andAndExpression.left == andAndExpression.right)
 		{
 			addErrorMessage(andAndExpression.line, andAndExpression.column,
+				"dscanner.bugs.logic_operator_operands",
 				"Left side of logical and is identical to right side.");
 		}
 		andAndExpression.accept(this);
@@ -67,6 +70,7 @@ class IfElseSameCheck : BaseAnalyzer
 			&& orOrExpression.left == orOrExpression.right)
 		{
 			addErrorMessage(orOrExpression.line, orOrExpression.column,
+				"dscanner.bugs.logic_operator_operands",
 				"Left side of logical or is identical to right side.");
 		}
 		orOrExpression.accept(this);

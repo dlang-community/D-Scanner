@@ -38,8 +38,8 @@ class ObjectConstCheck : BaseAnalyzer
 			&& !hasConst(d.functionDeclaration.memberFunctionAttributes)))
 		{
 			addErrorMessage(d.functionDeclaration.name.line,
-				d.functionDeclaration.name.column, "Methods 'opCmp', 'toHash',"
-				~ " 'opEquals', and 'toString' are non-const.");
+				d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
+				"Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.");
 		}
 		d.accept(this);
 	}

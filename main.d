@@ -56,6 +56,7 @@ int run(string[] args)
 	bool tokenDump;
 	bool styleCheck;
 	bool defaultConfig;
+	bool report;
 	string symbolName;
 	string configLocation;
 
@@ -67,7 +68,7 @@ int run(string[] args)
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
-			"config", &configLocation, "muffinButton", &muffin);
+			"config", &configLocation, "report", &report,"muffinButton", &muffin);
 	}
 	catch (ConvException e)
 	{
@@ -98,7 +99,7 @@ int run(string[] args)
 
 	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
 		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
-		symbolName !is null]);
+		report, symbolName !is null]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -109,6 +110,9 @@ int run(string[] args)
 		printHelp(args[0]);
 		return 1;
 	}
+
+	// --report implies --styleCheck
+	if (report) styleCheck = true;
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	if (defaultConfig)
@@ -156,11 +160,11 @@ int run(string[] args)
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
 			readINIFile(config, s);
-		stdout.analyze(expandArgs(args), config);
+		analyze(expandArgs(args), config, true, report);
 	}
 	else if (syntaxCheck)
 	{
-		stdout.syntaxCheck(expandArgs(args));
+		.syntaxCheck(expandArgs(args));
 	}
 	else
 	{
@@ -341,6 +345,9 @@ options:
         Find the location where symbolName is declared. This should be more
         accurate than "grep". Searches the given files and directories, or the
         current working directory if none are specified.
+
+    --report [sourceFiles sourceDirectories]
+        Generate a static analysis report in JSON format. Implies --styleCheck.
 
     --config configFile
         Use the given configuration file instead of the default located in

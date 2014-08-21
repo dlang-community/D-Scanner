@@ -91,7 +91,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		if (hasAttribute)
 		{
 			string message = "Attribute '%s' is duplicated.".format(attributeName);
-			addErrorMessage(line, column, message);
+			addErrorMessage(line, column, "dscanner.unnecessary.duplicate_attribute", message);
 		}
 
 		// Mark it as having that attribute

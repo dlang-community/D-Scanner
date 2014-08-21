@@ -20,10 +20,10 @@ class StyleChecker : BaseAnalyzer
 {
 	alias visit = ASTVisitor.visit;
 
-	// FIXME: All variable and function names seem to never match this
-	enum varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
-	enum aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
-	enum moduleNameRegex = `^[\p{Ll}_\d]+$`;
+	enum string varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
+	enum string aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
+	enum string moduleNameRegex = `^[\p{Ll}_\d]+$`;
+	enum string KEY = "dscanner.style.phobos_naming_convention";
 
 	this(string fileName)
 	{
@@ -35,7 +35,7 @@ class StyleChecker : BaseAnalyzer
 		foreach (part; dec.moduleName.identifiers)
 		{
 			if (part.text.matchFirst(moduleNameRegex).length == 0)
-				addErrorMessage(part.line, part.column, "Module/package name '"
+				addErrorMessage(part.line, part.column, KEY, "Module/package name '"
 					~ part.text ~ "' does not match style guidelines.");
 		}
 	}
@@ -53,7 +53,7 @@ class StyleChecker : BaseAnalyzer
 	void checkLowercaseName(string type, ref const Token name)
 	{
 		if (name.text.matchFirst(varFunNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, type ~ " name '"
+			addErrorMessage(name.line, name.column, KEY, type ~ " name '"
 				~ name.text ~ "' does not match style guidelines.");
 	}
 
@@ -86,7 +86,7 @@ class StyleChecker : BaseAnalyzer
 	void checkAggregateName(string aggregateType, ref const Token name)
 	{
 		if (name.text.matchFirst(aggregateNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, aggregateType
+			addErrorMessage(name.line, name.column, KEY, aggregateType
 				~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
 }

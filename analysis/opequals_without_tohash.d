@@ -70,21 +70,23 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 		if (hasOpEquals && !hasToHash)
 		{
 			string message = "'" ~ name.text ~ "' has method 'opEquals', but not 'toHash'.";
-			addErrorMessage(name.line, name.column, message);
+			addErrorMessage(name.line, name.column, KEY, message);
 		}
 		// Warn if has toHash, but not opEquals
 		else if (!hasOpEquals && hasToHash)
 		{
 			string message = "'" ~ name.text ~ "' has method 'toHash', but not 'opEquals'.";
-			addErrorMessage(name.line, name.column, message);
+			addErrorMessage(name.line, name.column, KEY, message);
 		}
 
 		if (hasOpCmp && !hasOpEquals)
 		{
-			addErrorMessage(name.line, name.column,
+			addErrorMessage(name.line, name.column, KEY,
 				"'" ~ name.text ~ "' has method 'opCmp', but not 'opEquals'.");
 		}
 	}
+
+	enum string KEY = "dscanner.suspicious.incomplete_operator_overloading";
 }
 
 unittest

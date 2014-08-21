@@ -51,9 +51,10 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 				if (initializer.nonVoidInitializer is null) continue;
 				if (initializer.nonVoidInitializer.arrayInitializer is null) continue;
 				addErrorMessage(autoDec.identifiers[i].line,
-					autoDec.identifiers[i].column, "This enum may lead to "
-					~ "unnecessary allocation at run-time. Use 'static immutable "
-					~ autoDec.identifiers[i].text ~ " = [ ...' instead.");
+					autoDec.identifiers[i].column, "dscanner.performance.enum_array_literal",
+					"This enum may lead to unnecessary allocation at run-time."
+					~ " Use 'static immutable " ~ autoDec.identifiers[i].text
+					~ " = [ ...' instead.");
 			}
 		}
 		autoDec.accept(this);
