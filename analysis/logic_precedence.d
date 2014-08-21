@@ -46,13 +46,13 @@ unittest
 {
 	import analysis.config;
 	StaticAnalysisConfig sac;
-	sac.logic_precedence_check = true;
+	sac.logical_precedence_check = true;
 	assertAnalyzerWarnings(q{
 		void testFish()
 		{
-			if (a && b || c) {} // [warn]:
+			if (a && b || c) {} // [warn]: Use parenthesis to clarify this expression.
 			if ((a && b) || c) {} // Good
-			if (b || c && d) {} // [warn]:
+			if (b || c && d) {} // [warn]: Use parenthesis to clarify this expression.
 			if (b || (c && d)) {} // Good
 		}
 	}c, sac);
