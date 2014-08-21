@@ -65,4 +65,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for confusing code in inline asm statements")
 	bool asm_style_check;
+
+	@INI("Checks for confusing logical operator precedence")
+	bool logical_precedence_check;
 }

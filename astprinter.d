@@ -625,6 +625,21 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</mulExpression>");
 	}
 
+	override void visit(const OrOrExpression orOrExpression)
+	{
+		output.writeln("<orOrExpression>");
+		output.writeln("<left>");
+		visit(orOrExpression.left);
+		output.writeln("</left>");
+		if (orOrExpression.right !is null)
+		{
+			output.writeln("<right>");
+			visit(orOrExpression.right);
+			output.writeln("</right>");
+		}
+		output.writeln("</orOrExpression>");
+	}
+
 	override void visit(const Parameter param)
 	{
 		output.writeln("<parameter>");
@@ -1037,7 +1052,6 @@ class XMLPrinter : ASTVisitor
 	override void visit(const NonVoidInitializer nonVoidInitializer) { mixin (tagAndAccept!"nonVoidInitializer"); }
 	override void visit(const Operands operands) { mixin (tagAndAccept!"operands"); }
 	override void visit(const OrExpression orExpression) { mixin (tagAndAccept!"orExpression"); }
-	override void visit(const OrOrExpression orOrExpression) { mixin (tagAndAccept!"orOrExpression"); }
 	override void visit(const OutStatement outStatement) { mixin (tagAndAccept!"outStatement"); } override void visit(const MixinDeclaration mixinDeclaration) { mixin (tagAndAccept!"mixinDeclaration"); }
 	override void visit(const Parameters parameters) { mixin (tagAndAccept!"parameters"); }
 	override void visit(const Postblit postblit) { mixin (tagAndAccept!"postblit"); } override void visit(const NewAnonClassExpression newAnonClassExpression) { mixin (tagAndAccept!"newAnonClassExpression"); }

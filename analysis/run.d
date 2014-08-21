@@ -28,6 +28,7 @@ import analysis.opequals_without_tohash;
 import analysis.length_subtraction;
 import analysis.builtin_property_names;
 import analysis.asm_style;
+import analysis.logic_precedence;
 
 bool first = true;
 
@@ -155,6 +156,7 @@ MessageSet analyze(string fileName, ubyte[] code, const StaticAnalysisConfig ana
 	if (analysisConfig.length_subtraction_check) checks ~= new LengthSubtractionCheck(fileName);
 	if (analysisConfig.builtin_property_names_check) checks ~= new BuiltinPropertyNameCheck(fileName);
 	if (analysisConfig.asm_style_check) checks ~= new AsmStyleCheck(fileName);
+	if (analysisConfig.logical_precedence_check) checks ~= new LogicPrecedenceCheck(fileName);
 
 	foreach (check; checks)
 	{
