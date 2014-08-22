@@ -74,6 +74,7 @@ class UnusedVariableCheck : BaseAnalyzer
 	mixin PartsUseVariables!MixinExpression;
 	mixin PartsUseVariables!ArgumentList;
 	mixin PartsUseVariables!Initializer;
+	mixin PartsUseVariables!IndexExpression;
 	mixin PartsUseVariables!SliceExpression;
 	mixin PartsUseVariables!StaticIfCondition;
 	mixin PartsUseVariables!ThrowStatement;
