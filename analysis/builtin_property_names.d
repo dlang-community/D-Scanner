@@ -45,6 +45,14 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 		fd.accept(this);
 	}
 
+	override void visit(const FunctionBody functionBody)
+	{
+		int d = depth;
+		scope(exit) depth = d;
+		depth = 0;
+		functionBody.accept(this);
+	}
+
 	override void visit(const AutoDeclaration ad)
 	{
 		if (depth > 0) foreach (i; ad.identifiers)
