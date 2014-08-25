@@ -93,7 +93,7 @@ void analyze(string[] fileNames, StaticAnalysisConfig config,
 				writeJSON(result.key, result.fileName, result.line, result.column, result.message);
 			}
 		}
-		else
+		else if (results !is null)
 		{
 			foreach (result; results[])
 				writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,

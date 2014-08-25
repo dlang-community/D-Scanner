@@ -22,23 +22,26 @@ DEBUG_VERSIONS = -version=std_parser_verbose
 all: dmdbuild
 
 debug:
-	${DMD} -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DMD} -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild:
 	mkdir -p bin
-	${DMD} -O -release -inline -ofdscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DMD} -O -release -inline -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	rm -f bin/dscanner.o
 
 gdcbuild:
-	${GDC} -O3 -frelease -odscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${GDC} -O3 -frelease -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 ldcbuild:
-	${LDC} -O5 -release -oq -of=dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${LDC} -O5 -release -oq -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 test:
 	@./test.sh
 
 clean:
+	rm -rf dsc dsc.o
 	rm -rf bin
+	rm -f dscanner-report.json
 
 report: all
 	dscanner --report src > dscanner-report.json

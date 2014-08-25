@@ -3,13 +3,14 @@ rm -f test
 rm -f test.o
 
 dmd\
-	*.d\
+	src/*.d\
 	libdparse/src/std/*.d\
 	libdparse/src/std/d/*.d\
 	inifiled/source/*.d\
-	analysis/*.d\
+	src/analysis/*.d\
 	-oftest\
 	-g -unittest
 
 ./test
 
+rm -f test test.o
