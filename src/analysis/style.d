@@ -85,7 +85,7 @@ class StyleChecker : BaseAnalyzer
 
 	void checkAggregateName(string aggregateType, ref const Token name)
 	{
-		if (name.text.matchFirst(aggregateNameRegex).length == 0)
+		if (name.text.length > 0 && name.text.matchFirst(aggregateNameRegex).length == 0)
 			addErrorMessage(name.line, name.column, KEY, aggregateType
 				~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
