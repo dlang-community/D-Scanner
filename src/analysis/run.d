@@ -35,6 +35,7 @@ import analysis.builtin_property_names;
 import analysis.asm_style;
 import analysis.logic_precedence;
 import analysis.stats_collector;
+import analysis.undocumented;
 
 bool first = true;
 
@@ -179,6 +180,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.builtin_property_names_check) checks ~= new BuiltinPropertyNameCheck(fileName);
 	if (analysisConfig.asm_style_check) checks ~= new AsmStyleCheck(fileName);
 	if (analysisConfig.logical_precedence_check) checks ~= new LogicPrecedenceCheck(fileName);
+	if (analysisConfig.undocumented_declaration_check) checks ~= new UndocumentedDeclarationCheck(fileName);
 
 	foreach (check; checks)
 	{

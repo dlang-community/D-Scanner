@@ -68,4 +68,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for confusing logical operator precedence")
 	bool logical_precedence_check;
+
+	@INI("Checks for undocumented public declarations")
+	bool undocumented_declaration_check;
 }
