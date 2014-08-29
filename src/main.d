@@ -160,7 +160,10 @@ int run(string[] args)
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
 			readINIFile(config, s);
-		analyze(expandArgs(args), config, true, report);
+		if (report)
+			generateReport(expandArgs(args), config);
+		else
+			analyze(expandArgs(args), config, true);
 	}
 	else if (syntaxCheck)
 	{

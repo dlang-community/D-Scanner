@@ -52,7 +52,7 @@ class StyleChecker : BaseAnalyzer
 
 	void checkLowercaseName(string type, ref const Token name)
 	{
-		if (name.text.matchFirst(varFunNameRegex).length == 0)
+		if (name.text.length > 0 && name.text.matchFirst(varFunNameRegex).length == 0)
 			addErrorMessage(name.line, name.column, KEY, type ~ " name '"
 				~ name.text ~ "' does not match style guidelines.");
 	}

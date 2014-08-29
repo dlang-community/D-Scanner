@@ -53,9 +53,15 @@ S after(S)(S value, S separator)
 void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, string file=__FILE__, size_t line=__LINE__)
 {
 	import analysis.run;
+	import std.d.lexer : StringCache;
+	import std.d.parser;
+
+	StringCache cache = StringCache(StringCache.defaultBucketCount);
+	ParseAllocator p = new ParseAllocator;
+	const(Module) m = parseModule(file, cast(ubyte[]) code, p, cache, false);
 
 	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", cast(ubyte[]) code, config);
+	MessageSet rawWarnings = analyze("test", m, config);
 	string[] codeLines = code.split("\n");
 
 	// Get the warnings ordered by line

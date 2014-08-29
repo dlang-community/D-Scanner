@@ -1,3 +1,8 @@
+//          Copyright Brian Schott (Hackerpilot) 2014.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+
 module analysis.run;
 
 import std.stdio;
@@ -29,6 +34,7 @@ import analysis.length_subtraction;
 import analysis.builtin_property_names;
 import analysis.asm_style;
 import analysis.logic_precedence;
+import analysis.stats_collector;
 
 bool first = true;
 
@@ -65,63 +71,74 @@ void syntaxCheck(string[] fileNames)
 	analyze(fileNames, config, false);
 }
 
-// For multiple files
-void analyze(string[] fileNames, StaticAnalysisConfig config,
-	bool staticAnalyze = true, bool report = false)
+void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 {
-	if (report)
-	{
-		writeln("{");
-		writeln(`  "issues": [`);
-
-	}
-
+	writeln("{");
+	writeln(`  "issues": [`);
 	first = true;
-
+	StatsCollector stats = new StatsCollector("");
+	ulong lineOfCodeCount;
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
 		if (f.size == 0) continue;
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
-
-		MessageSet results = analyze(fileName, code, config, staticAnalyze, report);
-		if (report)
+		ParseAllocator p = new ParseAllocator;
+		StringCache cache = StringCache(StringCache.defaultBucketCount);
+		const Module m = parseModule(fileName, code, p, cache, true, &lineOfCodeCount);
+		stats.visit(m);
+		MessageSet results = analyze(fileName, m, config, true);
+		foreach (result; results[])
 		{
-			foreach (result; results[])
-			{
-				writeJSON(result.key, result.fileName, result.line, result.column, result.message);
-			}
-		}
-		else if (results !is null)
-		{
-			foreach (result; results[])
-				writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
-					result.column, result.message);
+			writeJSON(result.key, result.fileName, result.line, result.column, result.message);
 		}
 	}
+	writeln();
+	writeln("  ],");
+	writefln(`  "interfaceCount": %d,`, stats.interfaceCount);
+	writefln(`  "classCount": %d,`, stats.classCount);
+	writefln(`  "functionCount": %d,`, stats.functionCount);
+	writefln(`  "templateCount": %d,`, stats.templateCount);
+	writefln(`  "structCount": %d,`, stats.structCount);
+	writefln(`  "statementCount": %d,`, stats.statementCount);
+	writefln(`  "lineOfCodeCount": %d,`, lineOfCodeCount);
+	writefln(`  "undocumentedPublicSymbols": %d`, stats.undocumentedPublicSymbols);
+	writeln("}");
+}
 
-	if (report)
+// For multiple files
+void analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
+{
+	foreach (fileName; fileNames)
 	{
-		writeln();
-		writeln("  ]");
-		writeln("}");
+		File f = File(fileName);
+		if (f.size == 0) continue;
+		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
+		f.rawRead(code);
+		ParseAllocator p = new ParseAllocator;
+		StringCache cache = StringCache(StringCache.defaultBucketCount);
+		const Module m = parseModule(fileName, code, p, cache, false);
+		MessageSet results = analyze(fileName, m, config, staticAnalyze);
+		if (results is null)
+			continue;
+		foreach (result; results[])
+			writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
+				result.column, result.message);
 	}
 }
 
-// For a string
-MessageSet analyze(string fileName, ubyte[] code, const StaticAnalysisConfig analysisConfig,
-	bool staticAnalyze = true, bool report = false)
+const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
+	ref StringCache cache, bool report, ulong* linesOfCode = null)
 {
-	import std.parallelism;
-
+	import stats : isLineOfCode;
 	auto lexer = byToken(code);
 	LexerConfig config;
 	config.fileName = fileName;
 	config.stringBehavior = StringBehavior.source;
-	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	const(Token)[] tokens = getTokensForParser(code, config, &cache);
-
+	if (linesOfCode !is null)
+		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
 	foreach (message; lexer.messages)
 	{
 		if (report)
@@ -131,9 +148,14 @@ MessageSet analyze(string fileName, ubyte[] code, const StaticAnalysisConfig ana
 			messageFunction(fileName, message.line, message.column, message.message,
 				message.isError);
 	}
+	return std.d.parser.parseModule(tokens, fileName, p,
+		report ? &messageFunctionJSON : &messageFunction);
+}
 
-	ParseAllocator p = new ParseAllocator;
-	Module m = parseModule(tokens, fileName, p, report ? &messageFunctionJSON : &messageFunction);
+MessageSet analyze(string fileName, const Module m,
+	const StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
+{
+	import std.parallelism;
 
 	if (!staticAnalyze)
 		return null;
@@ -167,7 +189,6 @@ MessageSet analyze(string fileName, ubyte[] code, const StaticAnalysisConfig ana
 	foreach (check; checks)
 		foreach (message; check.messages)
 			set.insert(message);
-	p.deallocateAll();
 	return set;
 }
 
