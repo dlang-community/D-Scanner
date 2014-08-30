@@ -120,7 +120,8 @@ private:
 						addMessage(declaration.line, declaration.column, null);
 					}
 				}
-				declaration.accept(this);
+				static if (!is (T == TemplateDeclaration))
+					declaration.accept(this);
 			}
 		}
 	}
