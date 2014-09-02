@@ -20,3 +20,6 @@ dscanner.o
 
 # Static analysis reports
 dscanner-report.json
+
+# Object files
+*.o
