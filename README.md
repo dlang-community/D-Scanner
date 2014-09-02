@@ -2,10 +2,12 @@
 DScanner is a tool for analyzing D source code
 
 ### Building and installing
-To build DScanner, run the build.sh script (or the build.bat file on Windows).
-The build time can be rather long with the -inline flag (over 2 minutes on an
-i7 processor), so you may wish to remove it from the build script. To install,
-simply place the generated binary somewhere on your $PATH.
+To build DScanner, run ```make``` (or the build.bat file on Windows).
+The build time can be rather long with the -inline flag on front-end versions
+older than 2.066, so you may wish to remove it from the build script. The
+makefile has "ldc" and "gdc" targets if you'd prefer to compile with one of these
+compilers instead of DMD. To install, simply place the generated binary (in the
+"bin" folder) somewhere on your $PATH.
 
 # Usage
 The following examples assume that we are analyzing a simple file called helloworld.d
@@ -42,31 +44,40 @@ the given source files.
 * Old alias syntax (i.e "alias a b;" should be replaced with "alias b = a;").
 * Implicit concatenation of string literals.
 * Complex number literals (e.g. "1.23i").
-* Empty declarations (i.e. random ";" characters)
-* enum array literals in struct/class bodies
-* Avoid Pokémon exception handling
+* Empty declarations (i.e. random ";" characters).
+* enum array literals in struct/class bodies.
+* Avoid Pokémon exception handling.
 * opCmp or opEquals, or toHash not declared "const".
 * Format numbers for readability.
 * *delete* keyword is deprecated.
 * "fish operators" (floating point operators) are deprecated.
 * Left side of a *foreach* or *foreach\_reverse* range expression is larger than the right.
-* Left side of a slice expression is larger than the right
-* Variable, struct, class, union, module, package, and interface names that do not comply with Phobos style guidelines
+* Left side of a slice expression is larger than the right.
+* Variable, struct, class, union, module, package, and interface names that do not comply with Phobos style guidelines.
 * Struct constructors that have a single parameter that has a default argument.
-* Assign expressions where the left side of the '=' operator is the same as the right
+* Assign expressions where the left side of the '=' operator is the same as the right.
 * 'if' statements where the 'else' block is the same as the 'if' block.
-* ||, &&, and == expressions where the left and right sides of the operator are identical
+* ||, &&, and == expressions where the left and right sides of the operator are identical.
+* && and || expressions where the order of operations is confusing.
 * Unused variables.
-* Unused parameters (check is skipped if function is marked "override")
-* Duplicate attributes
-* Declaring opEquals without toHash
+* Unused parameters (check is skipped if function is marked "override").
+* Duplicate attributes.
+* Declaring opEquals without toHash.
+* Undocumented public declarations.
+* Subtraction from .length properties. (These may be unsigned and could lead to integer underflow)
+* Class, struct, and union member variables whose names conflict with built-in type properties.
+* Confusing asm syntax.
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".
 * Unused imports.
 * Variables that are never modified and not declared immutable.
-* Public declarations not documented
 * Assignment in conditionals
+
+### Reports
+The "--report" option writes a JSON report on the static analysis checks
+document above to standard output. This file is usually used by the D plugin for
+SonarQube located [here](https://github.com/economicmodeling/sonar-d-plugin).
 
 ### Find Declaration
 Ack, grep, and The Silver Searcher are useful for finding usages of symbols, but
