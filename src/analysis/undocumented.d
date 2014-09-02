@@ -112,8 +112,12 @@ private:
 				{
 					static if (hasMember!(T, "name"))
 					{
-						addMessage(declaration.name.line, declaration.name.column,
-							declaration.name.text);
+						import std.algorithm : canFind;
+						if (!ignoredNames.canFind(declaration.name.text))
+						{
+							addMessage(declaration.name.line, declaration.name.column,
+								declaration.name.text);
+						}
 					}
 					else
 					{
@@ -177,3 +181,10 @@ private:
 	ProtectionInfo[] stack;
 }
 
+// Ignore undocumented symbols with these names
+private immutable string[] ignoredNames = [
+	"opCmp",
+	"opEquals",
+	"toString",
+	"toHash"
+];
