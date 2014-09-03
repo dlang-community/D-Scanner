@@ -67,6 +67,7 @@ the given source files.
 * Subtraction from .length properties. (These may be unsigned and could lead to integer underflow)
 * Class, struct, and union member variables whose names conflict with built-in type properties.
 * Confusing asm syntax.
+* Placement of const, immutable, or inout before a function return type instead of after the parameters.
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".

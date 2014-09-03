@@ -71,4 +71,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for undocumented public declarations")
 	bool undocumented_declaration_check;
+
+	@INI("Checks for poor placement of function attributes")
+	bool function_attribute_check;
 }
