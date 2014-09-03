@@ -12,7 +12,8 @@ import analysis.base;
 import std.stdio;
 
 /**
- * Checks for undocumented public declarations
+ * Checks for undocumented public declarations. Ignores some operator overloads,
+ * main functions, and functions whose name starts with "get" or "set".
  */
 class UndocumentedDeclarationCheck : BaseAnalyzer
 {
@@ -112,8 +113,17 @@ private:
 				{
 					static if (hasMember!(T, "name"))
 					{
-						import std.algorithm : canFind;
-						if (!ignoredNames.canFind(declaration.name.text))
+						static if (is (T == FunctionDeclaration))
+						{
+							import std.algorithm : canFind;
+							if (!(ignoredFunctionNames.canFind(declaration.name.text)
+								|| isGetterOrSetter(declaration.name.text)))
+							{
+								addMessage(declaration.name.line, declaration.name.column,
+									declaration.name.text);
+							}
+						}
+						else
 						{
 							addMessage(declaration.name.line, declaration.name.column,
 								declaration.name.text);
@@ -124,10 +134,19 @@ private:
 						addMessage(declaration.line, declaration.column, null);
 					}
 				}
-				static if (!is (T == TemplateDeclaration))
+				static if (!(is (T == TemplateDeclaration)
+					|| is(T == FunctionDeclaration)))
+				{
 					declaration.accept(this);
+				}
 			}
 		}
+	}
+
+	static bool isGetterOrSetter(string name)
+	{
+		import std.algorithm:startsWith;
+		return name.startsWith("get") || name.startsWith("set");
 	}
 
 	void addMessage(size_t line, size_t column, string name)
@@ -182,9 +201,10 @@ private:
 }
 
 // Ignore undocumented symbols with these names
-private immutable string[] ignoredNames = [
+private immutable string[] ignoredFunctionNames = [
 	"opCmp",
 	"opEquals",
 	"toString",
-	"toHash"
+	"toHash",
+	"main"
 ];
