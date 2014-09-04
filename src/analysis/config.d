@@ -74,4 +74,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for poor placement of function attributes")
 	bool function_attribute_check;
+
+	@INI("Checks for use of the comma operator")
+	bool comma_expression_check;
 }

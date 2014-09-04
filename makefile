@@ -48,5 +48,5 @@ clean:
 	rm -f dscanner-report.json
 
 report: all
-	dscanner --report src > dscanner-report.json
+	dscanner --report src > src/dscanner-report.json
 	sonar-runner
