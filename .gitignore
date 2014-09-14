@@ -23,3 +23,5 @@ dscanner-report.json
 
 # Object files
 *.o
+*.obj
+*.exe
