@@ -59,6 +59,7 @@ int run(string[] args)
 	bool report;
 	string symbolName;
 	string configLocation;
+	bool printVersion;
 
 	try
 	{
@@ -68,7 +69,8 @@ int run(string[] args)
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
-			"config", &configLocation, "report", &report,"muffinButton", &muffin);
+			"config", &configLocation, "report", &report,
+			"version", &printVersion, "muffinButton", &muffin);
 	}
 	catch (ConvException e)
 	{
@@ -94,6 +96,12 @@ int run(string[] args)
 	if (help)
 	{
 		printHelp(args[0]);
+		return 0;
+	}
+
+	if (printVersion)
+	{
+		writeln("v0.1.0");
 		return 0;
 	}
 
@@ -309,6 +317,9 @@ void printHelp(string programName)
 options:
     --help | -h
         Prints this help message
+
+    --version
+        Prints the program version
 
     --sloc | -l [sourceFiles]
         Prints the number of logical lines of code in the given
