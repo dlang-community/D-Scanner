@@ -43,6 +43,13 @@ analysis and it does not compile the code.
 The "--styleCheck" or "-S" option runs some basic static analysis checks against
 the given source files.
 
+#### Configuration
+By default all checks are enabled. Individual checks can be enabled or disabled
+by using a configuration file. Running ```dscanner --defaultConfig``` will
+generate a default configuration file and print the file's location. The
+"--config" option will allow you to specify the path to a configuration file if
+you do not want to use the one created by the "--defaultConfig" option.
+
 #### Implemented checks
 * Old alias syntax (i.e "alias a b;" should be replaced with "alias b = a;").
 * Implicit concatenation of string literals.
