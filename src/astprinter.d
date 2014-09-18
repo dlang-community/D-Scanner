@@ -960,10 +960,10 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(const VariableDeclaration variableDeclaration)
 	{
-		output.writeln("<variableDeclaration>");
-		writeDdoc(variableDeclaration.comment);
-		variableDeclaration.accept(this);
-		output.writeln("</variableDeclaration>");
+        output.writeln("<variableDeclaration>");
+        writeDdoc(variableDeclaration.comment);
+        variableDeclaration.accept(this);
+        output.writeln("</variableDeclaration>");
 	}
 
 	override void visit(const XorExpression xorExpression)
@@ -985,7 +985,9 @@ class XMLPrinter : ASTVisitor
 	override void visit(const AliasThisDeclaration aliasThisDeclaration) { mixin (tagAndAccept!"aliasThisDeclaration"); }
 	override void visit(const ArgumentList argumentList) { mixin (tagAndAccept!"argumentList"); }
 	override void visit(const Arguments arguments) { mixin (tagAndAccept!"arguments"); }
+	override void visit(const ArrayInitializer arrayInitializer) { mixin (tagAndAccept!"arrayInitializer"); }
 	override void visit(const ArrayLiteral arrayLiteral) { mixin (tagAndAccept!"arrayLiteral"); }
+	override void visit(const ArrayMemberInitialization arrayMemberInitialization) { mixin (tagAndAccept!"arrayMemberInitialization"); }
 	override void visit(const AsmAddExp asmAddExp) { mixin (tagAndAccept!"asmAddExp"); }
 	override void visit(const AsmAndExp asmAndExp) { mixin (tagAndAccept!"asmAndExp"); }
 	override void visit(const AsmBrExp asmBrExp) { mixin (tagAndAccept!"asmBrExp"); }

@@ -49,38 +49,15 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 			{
 				if (initializer is null) continue;
 				if (initializer.nonVoidInitializer is null) continue;
-				if (initializer.nonVoidInitializer.assignExpression is null) continue;
-				line = autoDec.identifiers[i].line;
-				column = autoDec.identifiers[i].column;
-				text = autoDec.identifiers[i].text;
-//				visit(initializer.nonVoidInitializer.assignExpression);
+				if (initializer.nonVoidInitializer.arrayInitializer is null) continue;
+				addErrorMessage(autoDec.identifiers[i].line,
+					autoDec.identifiers[i].column, "dscanner.performance.enum_array_literal",
+					"This enum may lead to unnecessary allocation at run-time."
+					~ " Use 'static immutable " ~ autoDec.identifiers[i].text
+					~ " = [ ...' instead.");
 			}
 		}
 		autoDec.accept(this);
 	}
-
-	override void visit(const ArrayLiteral arrayLiteral)
-	{
-		if (!looking)
-			return;
-		addErrorMessage(line, column, "dscanner.performance.enum_array_literal",
-			"This enum may lead to unnecessary allocation at run-time."
-			~ " Use 'static immutable " ~ text ~ " = [ ...' instead.");
-	}
-
-	override void visit(const AssocArrayLiteral assocArrayLiteral)
-	{
-		if (!looking)
-			return;
-		addErrorMessage(line, column, "dscanner.performance.enum_array_literal",
-			"This enum may lead to unnecessary allocation at run-time."
-			~ " Use 'static immutable " ~ text ~ " = [ ...' instead.");
-	}
-
-private:
-
-	string text;
-	size_t line;
-	size_t column;
 }
 
