@@ -77,4 +77,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for use of the comma operator")
 	bool comma_expression_check;
+
+	@INI("Checks for local imports that are too broad")
+	bool local_import_check;
 }

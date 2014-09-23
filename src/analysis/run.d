@@ -38,6 +38,7 @@ import analysis.stats_collector;
 import analysis.undocumented;
 import analysis.comma_expression;
 import analysis.function_attributes;
+import analysis.local_imports;
 
 bool first = true;
 
@@ -185,6 +186,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.undocumented_declaration_check) checks ~= new UndocumentedDeclarationCheck(fileName);
 	if (analysisConfig.function_attribute_check) checks ~= new FunctionAttributeCheck(fileName);
 	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName);
+	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
 
 	foreach (check; checks)
 	{

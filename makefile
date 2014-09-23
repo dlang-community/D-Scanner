@@ -3,14 +3,7 @@
 DMD = dmd
 GDC = gdc
 LDC = ldc2
-SRC = src/main.d\
-	src/stats.d\
-	src/imports.d\
-	src/highlighter.d\
-	src/ctags.d\
-	src/astprinter.d\
-	src/outliner.d\
-	src/symbol_finder.d\
+SRC = src/*.d\
 	src/analysis/*.d\
 	libdparse/src/std/*.d\
 	libdparse/src/std/d/*.d\
