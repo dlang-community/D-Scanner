@@ -68,11 +68,20 @@ class FinderVisitor : ASTVisitor
 
 	override void visit(const AliasDeclaration dec)
 	{
-		if (dec.identifierList is null)
-			return;
-		foreach (ident; dec.identifierList.identifiers)
-			if (ident.text == symbolName)
-				output.writefln("%s(%d:%d)", fileName, ident.line, ident.column);
+		if (dec.identifierList !is null)
+		{
+			foreach (ident; dec.identifierList.identifiers)
+			{
+				if (ident.text == symbolName)
+					output.writefln("%s(%d:%d)", fileName, ident.line, ident.column);
+			}
+		}
+		foreach (initializer; dec.initializers)
+		{
+			if (initializer.name.text == symbolName)
+				output.writefln("%s(%d:%d)", fileName, initializer.name.line,
+					initializer.name.column);
+		}
 	}
 
 	override void visit(const Declarator dec)
@@ -81,7 +90,7 @@ class FinderVisitor : ASTVisitor
 			output.writefln("%s(%d:%d)", fileName, dec.name.line, dec.name.column);
 	}
 
-	override void visit (const AutoDeclaration ad)
+	override void visit(const AutoDeclaration ad)
 	{
 		foreach (id; ad.identifiers)
 		{
