@@ -1047,7 +1047,9 @@ class XMLPrinter : ASTVisitor
 	override void visit(const KeyValuePairs keyValuePairs) { mixin (tagAndAccept!"keyValuePairs"); }
 	override void visit(const MixinExpression mixinExpression) { mixin (tagAndAccept!"mixinExpression"); }
 	override void visit(const MixinTemplateDeclaration mixinTemplateDeclaration) { mixin (tagAndAccept!"mixinTemplateDeclaration"); }
-	override void visit(const MixinTemplateName mixinTemplateName) { mixin (tagAndAccept!"mixinTemplateName"); } override void visit(const ModuleDeclaration moduleDeclaration) { mixin (tagAndAccept!"moduleDeclaration"); }  override void visit(const LastCatch lastCatch) { mixin (tagAndAccept!"lastCatch"); }
+	override void visit(const MixinTemplateName mixinTemplateName) { mixin (tagAndAccept!"mixinTemplateName"); }
+	override void visit(const ModuleDeclaration moduleDeclaration) { mixin (tagAndAccept!"moduleDeclaration"); }
+	override void visit(const LastCatch lastCatch) { mixin (tagAndAccept!"lastCatch"); }
 	override void visit(const NewExpression newExpression) { mixin (tagAndAccept!"newExpression"); }
 	override void visit(const NonVoidInitializer nonVoidInitializer) { mixin (tagAndAccept!"nonVoidInitializer"); }
 	override void visit(const Operands operands) { mixin (tagAndAccept!"operands"); }
