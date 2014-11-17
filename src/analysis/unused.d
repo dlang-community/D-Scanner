@@ -9,8 +9,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import std.container;
-
-import std.stdio;
+import std.regex : Regex, regex, matchAll;
 
 /**
  * Checks for unused variables.
@@ -22,6 +21,7 @@ class UnusedVariableCheck : BaseAnalyzer
 	this(string fileName)
 	{
 		super(fileName);
+		re = regex("[\\p{Alphabetic}_][\\w_]*");
 	}
 
 	override void visit(const Module mod)
@@ -71,7 +71,6 @@ class UnusedVariableCheck : BaseAnalyzer
 	mixin PartsUseVariables!FunctionCallExpression;
 	mixin PartsUseVariables!NewExpression;
 	mixin PartsUseVariables!TemplateArgumentList;
-	mixin PartsUseVariables!MixinExpression;
 	mixin PartsUseVariables!ArgumentList;
 	mixin PartsUseVariables!Initializer;
 	mixin PartsUseVariables!IndexExpression;
@@ -201,12 +200,37 @@ class UnusedVariableCheck : BaseAnalyzer
 			interestDepth--;
 	}
 
+	override void visit(const MixinExpression mix)
+	{
+		interestDepth++;
+		mixinDepth++;
+		mix.accept(this);
+		mixinDepth--;
+		interestDepth--;
+	}
+
 	override void visit(const PrimaryExpression primary)
 	{
-		if (interestDepth > 0 && primary.identifierOrTemplateInstance !is null
-			&& primary.identifierOrTemplateInstance.identifier != tok!"")
+		if (interestDepth > 0)
 		{
-			variableUsed(primary.identifierOrTemplateInstance.identifier.text);
+			if (primary.identifierOrTemplateInstance !is null
+				&& primary.identifierOrTemplateInstance.identifier != tok!"")
+			{
+				variableUsed(primary.identifierOrTemplateInstance.identifier.text);
+			}
+			if (mixinDepth > 0 && primary.primary == tok!"stringLiteral"
+				|| primary.primary == tok!"wstringLiteral"
+				|| primary.primary == tok!"dstringLiteral")
+			{
+				foreach (part; matchAll(primary.primary.text, re))
+				{
+					size_t treeIndex = tree.length - 1;
+					auto uu = UnUsed(part.hit);
+					auto r = tree[treeIndex].equalRange(&uu);
+					if (!r.empty)
+						r.front.uncertain = true;
+				}
+			}
 		}
 		primary.accept(this);
 	}
@@ -328,11 +352,14 @@ class UnusedVariableCheck : BaseAnalyzer
 		foreach (uu; tree[$ - 1])
 		{
 			if (!uu.isRef && tree.length > 1)
+			{
+				string certainty = uu.uncertain ? " might not be used." : " is never used.";
+				string errorMessage = (uu.isParameter ? "Parameter " : "Variable ")
+						~ uu.name ~ certainty;
 				addErrorMessage(uu.line, uu.column,
 					uu.isParameter ? "dscanner.suspicious.unused_parameter"
-						: "dscanner.suspicious.unused_variable",
-					(uu.isParameter ? "Parameter " : "Variable ")
-						~ uu.name ~ " is never used.");
+						: "dscanner.suspicious.unused_variable", errorMessage);
+			}
 		}
 		tree = tree[0 .. $ - 1];
 	}
@@ -349,16 +376,21 @@ class UnusedVariableCheck : BaseAnalyzer
 		size_t column;
 		bool isParameter;
 		bool isRef;
+		bool uncertain;
 	}
 
 	RedBlackTree!(UnUsed*, "a.name < b.name")[] tree;
 
 	uint interestDepth;
 
+	uint mixinDepth;
+
 	bool isOverride;
 
 	bool inAggregateScope;
 
 	bool blockStatementIntroducesScope = true;
+
+	Regex!char re;
 }
 
