@@ -78,6 +78,7 @@ you do not want to use the one created by the "--defaultConfig" option.
 * Class, struct, and union member variables whose names conflict with built-in type properties.
 * Confusing asm syntax.
 * Placement of const, immutable, or inout before a function return type instead of after the parameters.
+* Functions in interface declarations redundantly marked 'abstract'.
 
 #### Wishlish
 * Assigning to foreach variables that are not "ref".

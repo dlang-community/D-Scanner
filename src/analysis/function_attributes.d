@@ -30,6 +30,13 @@ class FunctionAttributeCheck : BaseAnalyzer
 		super(fileName);
 	}
 
+	override void visit(const InterfaceDeclaration dec)
+	{
+		inInterface++;
+		dec.accept(this);
+		inInterface--;
+	}
+
 	override void visit(const Declaration dec)
 	{
 		if (dec.functionDeclaration is null)
@@ -40,6 +47,14 @@ class FunctionAttributeCheck : BaseAnalyzer
 		{
 			if (attr.storageClass is null)
 				continue;
+			if (attr.storageClass.token == tok!"abstract" && inInterface > 0)
+			{
+				addErrorMessage(dec.functionDeclaration.name.line,
+					dec.functionDeclaration.name.column, KEY,
+					"'abstract' attribute on interface function has"
+						~ " no effect.");
+				continue;
+			}
 			if (attr.storageClass.token == tok!"const"
 				|| attr.storageClass.token == tok!"inout"
 				|| attr.storageClass.token == tok!"immutable")
@@ -55,6 +70,8 @@ class FunctionAttributeCheck : BaseAnalyzer
 	end:
 		dec.accept(this);
 	}
+
+	int inInterface;
 
 	private enum KEY = "dscanner.confusing.function_attributes";
 }
