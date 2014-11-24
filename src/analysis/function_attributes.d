@@ -32,9 +32,18 @@ class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const InterfaceDeclaration dec)
 	{
-		inInterface++;
+		auto t = inInterface;
+		inInterface = true;
 		dec.accept(this);
-		inInterface--;
+		inInterface = t;
+	}
+
+	override void visit(const ClassDeclaration dec)
+	{
+		auto t = inInterface;
+		inInterface = false;
+		dec.accept(this);
+		inInterface = t;
 	}
 
 	override void visit(const AttributeDeclaration dec)
@@ -55,7 +64,7 @@ class FunctionAttributeCheck : BaseAnalyzer
 		{
 			if (attr.storageClass is null)
 				continue;
-			if (attr.storageClass.token == tok!"abstract" && inInterface > 0)
+			if (attr.storageClass.token == tok!"abstract" && inInterface)
 			{
 				addErrorMessage(attr.storageClass.token.line,
 					attr.storageClass.token.column, KEY, ABSTRACT_MESSAGE);
@@ -78,7 +87,7 @@ class FunctionAttributeCheck : BaseAnalyzer
 		dec.accept(this);
 	}
 
-	int inInterface;
+	bool inInterface;
 
 	private enum ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
 	private enum KEY = "dscanner.confusing.function_attributes";
