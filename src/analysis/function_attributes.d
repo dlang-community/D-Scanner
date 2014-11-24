@@ -37,10 +37,18 @@ class FunctionAttributeCheck : BaseAnalyzer
 		inInterface--;
 	}
 
+	override void visit(const AttributeDeclaration dec)
+	{
+		if (inInterface > 0 && dec.attribute.storageClass !is null
+			&& dec.attribute.storageClass.token == tok!"abstract")
+		{
+			addErrorMessage(dec.attribute.storageClass.token.line,
+				dec.attribute.storageClass.token.column, KEY, ABSTRACT_MESSAGE);
+		}
+	}
+
 	override void visit(const Declaration dec)
 	{
-		if (dec.functionDeclaration is null)
-			goto end;
 		if (dec.attributes.length == 0)
 			goto end;
 		foreach (attr; dec.attributes)
@@ -49,15 +57,14 @@ class FunctionAttributeCheck : BaseAnalyzer
 				continue;
 			if (attr.storageClass.token == tok!"abstract" && inInterface > 0)
 			{
-				addErrorMessage(dec.functionDeclaration.name.line,
-					dec.functionDeclaration.name.column, KEY,
-					"'abstract' attribute on interface function has"
-						~ " no effect.");
+				addErrorMessage(attr.storageClass.token.line,
+					attr.storageClass.token.column, KEY, ABSTRACT_MESSAGE);
 				continue;
 			}
-			if (attr.storageClass.token == tok!"const"
+			if (dec.functionDeclaration !is null
+				&& (attr.storageClass.token == tok!"const"
 				|| attr.storageClass.token == tok!"inout"
-				|| attr.storageClass.token == tok!"immutable")
+				|| attr.storageClass.token == tok!"immutable"))
 			{
 				import std.string : format;
 				immutable string attrString = str(attr.storageClass.token.type);
@@ -73,5 +80,6 @@ class FunctionAttributeCheck : BaseAnalyzer
 
 	int inInterface;
 
+	private enum ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
 	private enum KEY = "dscanner.confusing.function_attributes";
 }
