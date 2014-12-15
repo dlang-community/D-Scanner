@@ -35,10 +35,9 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 		if (dec.attributeDeclaration)
 		{
 			auto attr = dec.attributeDeclaration.attribute;
-			if (isProtection(attr.attribute))
-				set(attr.attribute);
-			else if (dec.attributeDeclaration.attribute.storageClass !is null
-				&& dec.attributeDeclaration.attribute.storageClass.token == tok!"override")
+			if (isProtection(attr.attribute.type))
+				set(attr.attribute.type);
+			else if (attr.attribute == tok!"override")
 			{
 				setOverride(true);
 			}
@@ -50,16 +49,13 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 			bool ovr = false;
 			foreach (attribute; dec.attributes)
 			{
-				if (isProtection(attribute.attribute))
+				if (isProtection(attribute.attribute.type))
 				{
 					shouldPop = true;
-					push(attribute.attribute);
+					push(attribute.attribute.type);
 				}
-				else if (attribute.storageClass !is null
-					&& attribute.storageClass.token == tok!"override")
-				{
+				else if (attribute.attribute == tok!"override")
 					ovr = true;
-				}
 			}
 			if (ovr)
 				setOverride(true);

@@ -102,27 +102,23 @@ class DuplicateAttributeCheck : BaseAnalyzer
 	{
 		// Get the name from the attribute identifier
 		if (attribute
-			&& attribute.storageClass
-			&& attribute.storageClass.atAttribute
-			&& attribute.storageClass.atAttribute.identifier !is Token.init
-			&& attribute.storageClass.atAttribute.identifier.text
-			&& attribute.storageClass.atAttribute.identifier.text.length)
+			&& attribute.atAttribute
+			&& attribute.atAttribute.identifier !is Token.init
+			&& attribute.atAttribute.identifier.text
+			&& attribute.atAttribute.identifier.text.length)
 		{
-			auto token = attribute.storageClass.atAttribute.identifier;
+			auto token = attribute.atAttribute.identifier;
 			line = token.line;
 			column = token.column;
 			return token.text;
 		}
 
 		// Get the attribute from the storage class token
-		if (attribute
-			&& attribute.storageClass
-			&& attribute.storageClass.token !is Token.init)
+		if (attribute && attribute.attribute.type != tok!"")
 		{
-			auto token = attribute.storageClass.token;
-			line = token.line;
-			column = token.column;
-			return token.type.str;
+			line = attribute.attribute.line;
+			column = attribute.attribute.column;
+			return attribute.attribute.type.str;
 		}
 
 		return null;

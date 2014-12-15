@@ -48,11 +48,10 @@ class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const AttributeDeclaration dec)
 	{
-		if (inInterface > 0 && dec.attribute.storageClass !is null
-			&& dec.attribute.storageClass.token == tok!"abstract")
+		if (inInterface > 0 && dec.attribute.attribute == tok!"abstract")
 		{
-			addErrorMessage(dec.attribute.storageClass.token.line,
-				dec.attribute.storageClass.token.column, KEY, ABSTRACT_MESSAGE);
+			addErrorMessage(dec.attribute.attribute.line,
+				dec.attribute.attribute.column, KEY, ABSTRACT_MESSAGE);
 		}
 	}
 
@@ -62,21 +61,21 @@ class FunctionAttributeCheck : BaseAnalyzer
 			goto end;
 		foreach (attr; dec.attributes)
 		{
-			if (attr.storageClass is null)
+			if (attr.attribute.type == tok!"")
 				continue;
-			if (attr.storageClass.token == tok!"abstract" && inInterface)
+			if (attr.attribute == tok!"abstract" && inInterface)
 			{
-				addErrorMessage(attr.storageClass.token.line,
-					attr.storageClass.token.column, KEY, ABSTRACT_MESSAGE);
+				addErrorMessage(attr.attribute.line,
+					attr.attribute.column, KEY, ABSTRACT_MESSAGE);
 				continue;
 			}
 			if (dec.functionDeclaration !is null
-				&& (attr.storageClass.token == tok!"const"
-				|| attr.storageClass.token == tok!"inout"
-				|| attr.storageClass.token == tok!"immutable"))
+				&& (attr.attribute == tok!"const"
+				|| attr.attribute == tok!"inout"
+				|| attr.attribute == tok!"immutable"))
 			{
 				import std.string : format;
-				immutable string attrString = str(attr.storageClass.token.type);
+				immutable string attrString = str(attr.attribute.type);
 				addErrorMessage(dec.functionDeclaration.name.line,
 					dec.functionDeclaration.name.column, KEY,
 					format("'%s' is not an attribute of the return type."

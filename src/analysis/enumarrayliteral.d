@@ -27,23 +27,9 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 	mixin visitTemplate!UnionDeclaration;
 	mixin visitTemplate!StructDeclaration;
 
-	override void visit(const Declaration dec)
-	{
-		if (inAggregate) foreach (attr; dec.attributes)
-		{
-			if (attr.storageClass !is null &&
-				attr.storageClass.token == tok!"enum")
-			{
-				looking = true;
-			}
-		}
-		dec.accept(this);
-		looking = false;
-	}
-
 	override void visit(const AutoDeclaration autoDec)
 	{
-		if (looking)
+		if (autoDec.storageClass && autoDec.storageClass.token == tok!"enum")
 		{
 			foreach (i, initializer; autoDec.initializers)
 			{

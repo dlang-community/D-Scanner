@@ -46,14 +46,13 @@ class ObjectConstCheck : BaseAnalyzer
 
 	private static bool hasConst(const Attribute[] attributes)
 	{
-		import std.algorithm;
-		return attributes.any!(a => a.attribute == tok!"const"
-			|| (a.storageClass !is null && a.storageClass.token == tok!"const"));
+		import std.algorithm : any;
+		return attributes.any!(a => a.attribute == tok!"const");
 	}
 
 	private static bool hasConst(const MemberFunctionAttribute[] attributes)
 	{
-		import std.algorithm;
+		import std.algorithm : any;
 		return attributes.any!(a => a.tokenType == tok!"const"
 			|| a.tokenType == tok!"immutable"
 			|| a.tokenType == tok!"inout");
@@ -71,7 +70,7 @@ class ObjectConstCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
 	StaticAnalysisConfig sac;
 	sac.object_const_check = true;
 	assertAnalyzerWarnings(q{

@@ -175,7 +175,7 @@ int run(string[] args)
 	}
 	else if (syntaxCheck)
 	{
-		.syntaxCheck(expandArgs(args));
+		return .syntaxCheck(expandArgs(args));
 	}
 	else
 	{

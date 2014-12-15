@@ -69,10 +69,10 @@ void writeJSON(string key, string fileName, size_t line, size_t column, string m
 	write(  "    }");
 }
 
-void syntaxCheck(string[] fileNames)
+bool syntaxCheck(string[] fileNames)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	analyze(fileNames, config, false);
+	return analyze(fileNames, config, false);
 }
 
 void generateReport(string[] fileNames, const StaticAnalysisConfig config)
@@ -112,8 +112,10 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 }
 
 // For multiple files
-void analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
+// Returns: true if there were errors
+bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
 {
+	bool hasErrors = false;
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
@@ -122,7 +124,12 @@ void analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticA
 		f.rawRead(code);
 		ParseAllocator p = new ParseAllocator;
 		StringCache cache = StringCache(StringCache.defaultBucketCount);
-		const Module m = parseModule(fileName, code, p, cache, false);
+		uint errorCount = 0;
+		const Module m = parseModule(fileName, code, p, cache, false, null,
+			&errorCount, null);
+		assert (m);
+		if (errorCount > 0)
+			hasErrors = true;
 		MessageSet results = analyze(fileName, m, config, staticAnalyze);
 		if (results is null)
 			continue;
@@ -130,10 +137,12 @@ void analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticA
 			writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
 				result.column, result.message);
 	}
+	return hasErrors;
 }
 
 const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
-	ref StringCache cache, bool report, ulong* linesOfCode = null)
+	ref StringCache cache, bool report, ulong* linesOfCode = null,
+	uint* errorCount = null, uint* warningCount = null)
 {
 	import stats : isLineOfCode;
 	auto lexer = byToken(code);
@@ -153,7 +162,8 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 				message.isError);
 	}
 	return std.d.parser.parseModule(tokens, fileName, p,
-		report ? &messageFunctionJSON : &messageFunction);
+		report ? &messageFunctionJSON : &messageFunction,
+		errorCount, warningCount);
 }
 
 MessageSet analyze(string fileName, const Module m,

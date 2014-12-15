@@ -34,8 +34,7 @@ class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const Declaration declaration)
 	{
 		if (!isOverride) foreach (attribute; declaration.attributes)
-			isOverride = isOverride || (attribute.storageClass !is null &&
-				attribute.storageClass.token == tok!"override");
+			isOverride = isOverride || (attribute.attribute == tok!"override");
 		declaration.accept(this);
 		isOverride = false;
 	}

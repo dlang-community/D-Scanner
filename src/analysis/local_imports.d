@@ -36,7 +36,7 @@ class LocalImportCheck : BaseAnalyzer
 		}
 		foreach (attr; dec.attributes)
 		{
-			if (attr.storageClass !is null && attr.storageClass.token == tok!"static")
+			if (attr.attribute == tok!"static")
 				isStatic = true;
 		}
 		dec.accept(this);
