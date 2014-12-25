@@ -44,7 +44,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AlignAttribute alignAttribute)
     {
-        output.writeln("<alignAttribute align=\"", alignAttribute.intLiteral.text, "\">");
+        output.writeln("<alignAttribute align=\"", alignAttribute.intLiteral.text, "\"/>");
     }
 
     override void visit(const AndAndExpression andAndExpression)
