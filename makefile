@@ -17,11 +17,11 @@ ldc: ldcbuild
 gdc: gdcbuild
 
 debug:
-	${DMD} -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DMD} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild:
 	mkdir -p bin
-	${DMD} -O -release -inline -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DMD} -w -O -release -inline -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
 	rm -f bin/dscanner.o
 
 gdcbuild:
