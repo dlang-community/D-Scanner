@@ -66,21 +66,22 @@ class UnusedVariableCheck : BaseAnalyzer
 		}
 	}
 
-	mixin PartsUseVariables!AssertExpression;
-	mixin PartsUseVariables!FunctionCallExpression;
-	mixin PartsUseVariables!NewExpression;
-	mixin PartsUseVariables!TemplateArgumentList;
+	mixin PartsUseVariables!AliasInitializer;
 	mixin PartsUseVariables!ArgumentList;
-	mixin PartsUseVariables!Initializer;
+	mixin PartsUseVariables!AssertExpression;
+	mixin PartsUseVariables!ClassDeclaration;
+	mixin PartsUseVariables!FunctionBody;
+	mixin PartsUseVariables!FunctionCallExpression;
+	mixin PartsUseVariables!FunctionDeclaration;
 	mixin PartsUseVariables!IndexExpression;
+	mixin PartsUseVariables!Initializer;
+	mixin PartsUseVariables!InterfaceDeclaration;
+	mixin PartsUseVariables!NewExpression;
 	mixin PartsUseVariables!SliceExpression;
 	mixin PartsUseVariables!StaticIfCondition;
-	mixin PartsUseVariables!ThrowStatement;
-	mixin PartsUseVariables!FunctionDeclaration;
-	mixin PartsUseVariables!FunctionBody;
 	mixin PartsUseVariables!StructDeclaration;
-	mixin PartsUseVariables!ClassDeclaration;
-	mixin PartsUseVariables!InterfaceDeclaration;
+	mixin PartsUseVariables!TemplateArgumentList;
+	mixin PartsUseVariables!ThrowStatement;
 
 	override void visit(const SwitchStatement switchStatement)
 	{
