@@ -62,18 +62,20 @@ class FunctionAttributeCheck : BaseAnalyzer
 			bool foundConst = false;
 			bool foundProperty = false;
 			foreach (attribute; dec.attributes)
-				foundConst = foundConst || attribute.attribute.type == tok!"const";
+				foundConst = foundConst || attribute.attribute.type == tok!"const"
+				|| attribute.attribute.type == tok!"immutable";
 			foreach (attribute; dec.memberFunctionAttributes)
 			{
 				foundProperty = foundProperty || (attribute.atAttribute !is null
 					&& attribute.atAttribute.identifier.text == "property");
-				foundConst = foundConst || (attribute.tokenType == tok!"const");
+				foundConst = foundConst || attribute.tokenType == tok!"const"
+					|| attribute.tokenType == tok!"immutable";
 			}
 			if (foundProperty && !foundConst)
 			{
 				addErrorMessage(dec.name.line, dec.name.column, KEY,
 					"Zero-parameter '@property' function should be"
-					~ " marked 'const'. ");
+					~ " marked 'const'.");
 			}
 		}
 		dec.accept(this);
