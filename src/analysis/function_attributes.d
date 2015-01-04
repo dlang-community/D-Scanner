@@ -48,11 +48,35 @@ class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const AttributeDeclaration dec)
 	{
-		if (inInterface > 0 && dec.attribute.attribute == tok!"abstract")
+		if (inInterface && dec.attribute.attribute == tok!"abstract")
 		{
 			addErrorMessage(dec.attribute.attribute.line,
 				dec.attribute.attribute.column, KEY, ABSTRACT_MESSAGE);
 		}
+	}
+
+	override void visit(const FunctionDeclaration dec)
+	{
+		if (dec.parameters.parameters.length == 0)
+		{
+			bool foundConst = false;
+			bool foundProperty = false;
+			foreach (attribute; dec.attributes)
+				foundConst = foundConst || attribute.attribute.type == tok!"const";
+			foreach (attribute; dec.memberFunctionAttributes)
+			{
+				foundProperty = foundProperty || (attribute.atAttribute !is null
+					&& attribute.atAttribute.identifier.text == "property");
+				foundConst = foundConst || (attribute.tokenType == tok!"const");
+			}
+			if (foundProperty && !foundConst)
+			{
+				addErrorMessage(dec.name.line, dec.name.column, KEY,
+					"Zero-parameter '@property' function should be"
+					~ " marked 'const'. ");
+			}
+		}
+		dec.accept(this);
 	}
 
 	override void visit(const Declaration dec)
