@@ -145,22 +145,12 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 	uint* errorCount = null, uint* warningCount = null)
 {
 	import stats : isLineOfCode;
-	auto lexer = byToken(code);
 	LexerConfig config;
 	config.fileName = fileName;
 	config.stringBehavior = StringBehavior.source;
 	const(Token)[] tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
-	foreach (message; lexer.messages)
-	{
-		if (report)
-			messageFunctionJSON(fileName, message.line, message.column, message.message,
-				message.isError);
-		else
-			messageFunction(fileName, message.line, message.column, message.message,
-				message.isError);
-	}
 	return std.d.parser.parseModule(tokens, fileName, p,
 		report ? &messageFunctionJSON : &messageFunction,
 		errorCount, warningCount);
@@ -169,8 +159,6 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 MessageSet analyze(string fileName, const Module m,
 	const StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
 {
-	import std.parallelism;
-
 	if (!staticAnalyze)
 		return null;
 
