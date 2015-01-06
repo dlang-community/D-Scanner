@@ -42,29 +42,30 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 				setOverride(true);
 			}
 		}
-		else
+
+		bool shouldPop = false;
+		bool prevOverride = getOverride();
+		bool ovr = false;
+		foreach (attribute; dec.attributes)
 		{
-			bool shouldPop = false;
-			bool prevOverride = getOverride();
-			bool ovr = false;
-			foreach (attribute; dec.attributes)
+			shouldPop = dec.attributeDeclaration !is null;
+			if (isProtection(attribute.attribute.type))
 			{
-				if (isProtection(attribute.attribute.type))
-				{
-					shouldPop = true;
+				if (dec.attributeDeclaration)
+					set(attribute.attribute.type);
+				else
 					push(attribute.attribute.type);
-				}
-				else if (attribute.attribute == tok!"override")
-					ovr = true;
 			}
-			if (ovr)
-				setOverride(true);
-			dec.accept(this);
-			if (shouldPop)
-				pop();
-			if (ovr)
-				setOverride(prevOverride);
+			else if (attribute.attribute == tok!"override")
+				ovr = true;
 		}
+		if (ovr)
+			setOverride(true);
+		dec.accept(this);
+		if (shouldPop)
+			pop();
+		if (ovr)
+			setOverride(prevOverride);
 	}
 
 	override void visit(const VariableDeclaration variable)
