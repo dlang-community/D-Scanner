@@ -133,7 +133,7 @@ class XMLPrinter : ASTVisitor
         if (atAttribute.identifier.type == tok!"")
             atAttribute.accept(this);
         else
-            output.write("\n<identifier>", atAttribute.identifier.text, "</identifier>");
+            output.writeln("\n<identifier>", atAttribute.identifier.text, "</identifier>");
         output.writeln("</atAttribute>");
     }
 
@@ -153,7 +153,7 @@ class XMLPrinter : ASTVisitor
         for (size_t i = 0; i < autoDec.identifiers.length; i++)
         {
             output.write("\n<item>");
-            output.write("\n<name line=\"", autoDec.identifiers[i].line, "\">",
+            output.writeln("\n<name line=\"", autoDec.identifiers[i].line, "\">",
                 autoDec.identifiers[i].text, "</name>");
             visit(autoDec.initializers[i]);
             output.writeln("</item>");
@@ -199,7 +199,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const ClassDeclaration classDec)
     {
         output.write("\n<classDeclaration line=\"", classDec.name.line, "\">");
-        output.write("\n<name>", classDec.name.text, "</name>");
+        output.writeln("\n<name>", classDec.name.text, "</name>");
         writeDdoc(classDec.comment);
         classDec.accept(this);
         output.writeln("</classDeclaration>");
@@ -268,7 +268,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const Declarator declarator)
     {
         output.write("\n<declarator line=\"", declarator.name.line, "\">");
-        output.write("\n<name>", declarator.name.text, "</name>");
+        output.writeln("\n<name>", declarator.name.text, "</name>");
         writeDdoc(declarator.comment);
         declarator.accept(this);
         output.writeln("</declarator>");
@@ -277,7 +277,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const Deprecated deprecated_)
     {
         if (deprecated_.stringLiteral.type != tok!"")
-            output.write("\n<deprecated>", deprecated_.stringLiteral.text, "</deprecated>");
+            output.writeln("\n<deprecated>", deprecated_.stringLiteral.text, "</deprecated>");
         else
             output.write("\n<deprecated/>");
     }
@@ -287,7 +287,7 @@ class XMLPrinter : ASTVisitor
         output.write("\n<enumDeclaration line=\"", enumDec.name.line, "\">");
         writeDdoc(enumDec.comment);
         if (enumDec.name.type == tok!"identifier")
-            output.write("\n<name>", enumDec.name.text, "</name>");
+            output.writeln("\n<name>", enumDec.name.text, "</name>");
         enumDec.accept(this);
         output.writeln("</enumDeclaration>");
     }
@@ -371,7 +371,7 @@ class XMLPrinter : ASTVisitor
         output.write("\n<foreachType>");
         foreach (constructor; foreachType.typeConstructors)
         {
-            output.write("\n<typeConstructor>", str(constructor), "</typeConstructor>");
+            output.writeln("\n<typeConstructor>", str(constructor), "</typeConstructor>");
         }
         if (foreachType.type !is null)
             visit(foreachType.type);
@@ -383,7 +383,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const FunctionDeclaration functionDec)
     {
         output.write("\n<functionDeclaration line=\"", functionDec.name.line, "\">");
-        output.write("\n<name>", functionDec.name.text, "</name>");
+        output.writeln("\n<name>", functionDec.name.text, "</name>");
         writeDdoc(functionDec.comment);
         if (functionDec.hasAuto)
             output.write("\n<auto/>");
@@ -515,7 +515,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const InterfaceDeclaration interfaceDec)
     {
         output.write("\n<interfaceDeclaration line=\"", interfaceDec.name.line, "\">");
-        output.write("\n<name>", interfaceDec.name.text, "</name>");
+        output.writeln("\n<name>", interfaceDec.name.text, "</name>");
         writeDdoc(interfaceDec.comment);
         interfaceDec.accept(this);
         output.writeln("</interfaceDeclaration>");
@@ -640,10 +640,10 @@ class XMLPrinter : ASTVisitor
     {
         output.write("\n<parameter>");
         if (param.name.type == tok!"identifier")
-            output.write("\n<name>", param.name.text, "</name>");
+            output.writeln("\n<name>", param.name.text, "</name>");
         foreach (attribute; param.parameterAttributes)
         {
-            output.write("\n<parameterAttribute>", str(attribute), "</parameterAttribute>");
+            output.writeln("\n<parameterAttribute>", str(attribute), "</parameterAttribute>");
         }
         param.accept(this);
         if (param.vararg)
@@ -737,7 +737,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const StructDeclaration structDec)
     {
         output.write("\n<structDeclaration line=\"", structDec.name.line, "\">");
-        output.write("\n<name>", structDec.name.text, "</name>");
+        output.writeln("\n<name>", structDec.name.text, "</name>");
         writeDdoc(structDec.comment);
         structDec.accept(this);
         output.writeln("</structDeclaration>");
@@ -783,7 +783,7 @@ class XMLPrinter : ASTVisitor
         writeDdoc(templateDeclaration.comment);
         output.write("\n<templateDeclaration line=\"",
             templateDeclaration.name.line, "\">");
-        output.write("\n<name>", templateDeclaration.name.text, "</name>");
+        output.writeln("\n<name>", templateDeclaration.name.text, "</name>");
         visit(templateDeclaration.templateParameters);
         if (templateDeclaration.constraint !is null)
             visit(templateDeclaration.constraint);
@@ -820,7 +820,7 @@ class XMLPrinter : ASTVisitor
         case tok!".": output.write("\n<dot/>"); return;
         default: output.write("\n<", str(token.type), "/>"); return;
         }
-        output.write("\n<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
+        output.writeln("\n<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
     }
 
     override void visit(const Type type)
@@ -836,7 +836,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const Type2 type2)
     {
         if (type2.builtinType != tok!"")
-            output.write("\n<type2>", str(type2.builtinType), "</type2>");
+            output.writeln("\n<type2>", str(type2.builtinType), "</type2>");
         else
         {
             output.write("\n<type2>");
@@ -915,7 +915,7 @@ class XMLPrinter : ASTVisitor
     {
         output.write("\n<unionDeclaration line=\"", unionDeclaration.name.line, "\">");
         if (unionDeclaration.name != tok!"")
-            output.write("\n<name>", unionDeclaration.name.text, "</name>");
+            output.writeln("\n<name>", unionDeclaration.name.text, "</name>");
         if (unionDeclaration.templateParameters !is null)
             visit(unionDeclaration.templateParameters);
         if (unionDeclaration.constraint !is null)
@@ -1091,7 +1091,7 @@ class XMLPrinter : ASTVisitor
     private void writeDdoc(string comment)
     {
         if (comment is null) return;
-        output.write("\n<ddoc>", xmlEscape(comment), "</ddoc>");
+        output.writeln("\n<ddoc>", xmlEscape(comment), "</ddoc>");
     }
 
     File output;
