@@ -114,7 +114,8 @@ private:
 						{
 							import std.algorithm : canFind;
 							if (!(ignoredFunctionNames.canFind(declaration.name.text)
-								|| isGetterOrSetter(declaration.name.text)))
+								|| isGetterOrSetter(declaration.name.text)
+								|| isProperty(declaration)))
 							{
 								addMessage(declaration.name.line, declaration.name.column,
 									declaration.name.text);
@@ -144,6 +145,18 @@ private:
 	{
 		import std.algorithm:startsWith;
 		return name.startsWith("get") || name.startsWith("set");
+	}
+
+	static bool isProperty(const FunctionDeclaration dec)
+	{
+		if (dec.memberFunctionAttributes is null)
+			return false;
+		foreach (attr; dec.memberFunctionAttributes)
+		{
+			if (attr.atAttribute && attr.atAttribute.identifier.text == "property")
+				return true;
+		}
+		return false;
 	}
 
 	void addMessage(size_t line, size_t column, string name)
