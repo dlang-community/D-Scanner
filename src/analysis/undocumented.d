@@ -51,10 +51,10 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 			shouldPop = dec.attributeDeclaration !is null;
 			if (isProtection(attribute.attribute.type))
 			{
-				if (dec.attributeDeclaration)
-					set(attribute.attribute.type);
-				else
+				if (shouldPop)
 					push(attribute.attribute.type);
+				else
+					set(attribute.attribute.type);
 			}
 			else if (attribute.attribute == tok!"override")
 				ovr = true;
@@ -177,7 +177,7 @@ private:
 		stack[$ - 1].isOverride = o;
 	}
 
-	bool currentIsInteresting()()
+	bool currentIsInteresting()
 	{
 		return stack[$ - 1].protection == tok!"public" && !(stack[$ - 1].isOverride);
 	}
@@ -198,6 +198,7 @@ private:
 
 	void pop()
 	{
+		assert (stack.length > 1);
 		stack = stack[0 .. $ - 1];
 	}
 
