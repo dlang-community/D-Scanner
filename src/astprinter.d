@@ -12,7 +12,7 @@ import std.array;
 
 template tagAndAccept(string tagName)
 {
-    immutable tagAndAccept = `output.writeln("<` ~ tagName ~ `>");`
+    immutable tagAndAccept = `output.write("\n<` ~ tagName ~ `>");`
         ~ tagName ~ `.accept(this);`
         ~ `output.writeln("</` ~ tagName ~ `>");`;
 }
@@ -21,13 +21,13 @@ class XMLPrinter : ASTVisitor
 {
     override void visit(const AddExpression addExpression)
     {
-        output.writeln("<addExpression operator=\"", str(addExpression.operator) ,"\">");
-        output.writeln("<left>");
+        output.write("\n<addExpression operator=\"", str(addExpression.operator) ,"\">");
+        output.write("\n<left>");
         visit(addExpression.left);
         output.writeln("</left>");
         if (addExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(addExpression.right);
             output.writeln("</right>");
         }
@@ -36,7 +36,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AliasDeclaration aliasDeclaration)
     {
-        output.writeln("<aliasDeclaration>");
+        output.write("\n<aliasDeclaration>");
         writeDdoc(aliasDeclaration.comment);
         aliasDeclaration.accept(this);
         output.writeln("</aliasDeclaration>");
@@ -44,18 +44,18 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AlignAttribute alignAttribute)
     {
-        output.writeln("<alignAttribute align=\"", alignAttribute.intLiteral.text, "\"/>");
+        output.write("\n<alignAttribute align=\"", alignAttribute.intLiteral.text, "\"/>");
     }
 
     override void visit(const AndAndExpression andAndExpression)
     {
-        output.writeln("<andAndExpression>");
-        output.writeln("<left>");
+        output.write("\n<andAndExpression>");
+        output.write("\n<left>");
         visit(andAndExpression.left);
         output.writeln("</left>");
         if (andAndExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(andAndExpression.right);
             output.writeln("</right>");
         }
@@ -64,13 +64,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AndExpression andExpression)
     {
-        output.writeln("<andExpression>");
-        output.writeln("<left>");
+        output.write("\n<andExpression>");
+        output.write("\n<left>");
         visit(andExpression.left);
         output.writeln("</left>");
         if (andExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(andExpression.right);
             output.writeln("</right>");
         }
@@ -79,16 +79,16 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AsmInstruction asmInstruction)
     {
-        output.writeln("<asmInstruction>");
+        output.write("\n<asmInstruction>");
         if (asmInstruction.hasAlign)
         {
-            output.writeln("<align>");
+            output.write("\n<align>");
             visit(asmInstruction.identifierOrIntegerOrOpcode);
             output.writeln("</align>");
         }
         if (asmInstruction.asmInstruction !is null)
         {
-            output.writeln("<label label=\"", asmInstruction.identifierOrIntegerOrOpcode.text, "\"/>");
+            output.write("\n<label label=\"", asmInstruction.identifierOrIntegerOrOpcode.text, "\"/>");
             asmInstruction.asmInstruction.accept(this);
         }
         else if (asmInstruction.identifierOrIntegerOrOpcode != tok!"")
@@ -103,13 +103,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AssertExpression assertExpression)
     {
-        output.writeln("<assertExpression>");
-        output.writeln("<assertion>");
+        output.write("\n<assertExpression>");
+        output.write("\n<assertion>");
         assertExpression.assertion.accept(this);
         output.writeln("</assertion>");
         if (assertExpression.message !is null)
         {
-            output.writeln("<message>");
+            output.write("\n<message>");
             assertExpression.message.accept(this);
             output.writeln("</message>");
         }
@@ -119,9 +119,9 @@ class XMLPrinter : ASTVisitor
     override void visit(const AssignExpression assignExpression)
     {
         if (assignExpression.assignExpression is null)
-            output.writeln("<assignExpression>");
+            output.write("\n<assignExpression>");
         else
-            output.writeln("<assignExpression operator=\"",
+            output.write("\n<assignExpression operator=\"",
                 xmlAttributeEscape(str(assignExpression.operator)), "\">");
         assignExpression.accept(this);
         output.writeln("</assignExpression>");
@@ -129,31 +129,31 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AtAttribute atAttribute)
     {
-        output.writeln("<atAttribute>");
+        output.write("\n<atAttribute>");
         if (atAttribute.identifier.type == tok!"")
             atAttribute.accept(this);
         else
-            output.writeln("<identifier>", atAttribute.identifier.text, "</identifier>");
+            output.writeln("\n<identifier>", atAttribute.identifier.text, "</identifier>");
         output.writeln("</atAttribute>");
     }
 
     override void visit(const Attribute attribute)
     {
-        output.writeln("<attribute>");
+        output.write("\n<attribute>");
         if (attribute.attribute == tok!"")
             attribute.accept(this);
         else
-            output.writeln(str(attribute.attribute.type));
+            output.write(str(attribute.attribute.type));
         output.writeln("</attribute>");
     }
 
     override void visit(const AutoDeclaration autoDec)
     {
-        output.writeln("<autoDeclaration>");
+        output.write("\n<autoDeclaration>");
         for (size_t i = 0; i < autoDec.identifiers.length; i++)
         {
-            output.writeln("<item>");
-            output.writeln("<name line=\"", autoDec.identifiers[i].line, "\">",
+            output.write("\n<item>");
+            output.writeln("\n<name line=\"", autoDec.identifiers[i].line, "\">",
                 autoDec.identifiers[i].text, "</name>");
             visit(autoDec.initializers[i]);
             output.writeln("</item>");
@@ -164,23 +164,23 @@ class XMLPrinter : ASTVisitor
     override void visit(const BreakStatement breakStatement)
     {
         if (breakStatement.label.type == tok!"")
-            output.writeln("<breakStatement/>");
+            output.write("\n<breakStatement/>");
         else
-            output.writeln("<breakStatement label=\"", breakStatement.label.text, "\"/>");
+            output.write("\n<breakStatement label=\"", breakStatement.label.text, "\"/>");
     }
 
     override void visit(const CaseRangeStatement caseRangeStatement)
     {
-        output.writeln("<caseRangeStatement>");
+        output.write("\n<caseRangeStatement>");
         if (caseRangeStatement.low !is null)
         {
-            output.writeln("<low>");
+            output.write("\n<low>");
             visit(caseRangeStatement.low);
             output.writeln("</low>");
         }
         if (caseRangeStatement.high !is null)
         {
-            output.writeln("<high>");
+            output.write("\n<high>");
             visit(caseRangeStatement.high);
             output.writeln("</high>");
         }
@@ -191,15 +191,15 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Catch catch_)
     {
-        output.writeln("<catch>");
+        output.write("\n<catch>");
         catch_.accept(this);
         output.writeln("</catch>");
     }
 
     override void visit(const ClassDeclaration classDec)
     {
-        output.writeln("<classDeclaration line=\"", classDec.name.line, "\">");
-        output.writeln("<name>", classDec.name.text, "</name>");
+        output.write("\n<classDeclaration line=\"", classDec.name.line, "\">");
+        output.writeln("\n<name>", classDec.name.text, "</name>");
         writeDdoc(classDec.comment);
         classDec.accept(this);
         output.writeln("</classDeclaration>");
@@ -207,15 +207,15 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const ConditionalDeclaration conditionalDeclaration)
     {
-        output.writeln("<conditionalDeclaration>");
+        output.write("\n<conditionalDeclaration>");
         visit(conditionalDeclaration.compileCondition);
-        output.writeln("<trueDeclarations>");
+        output.write("\n<trueDeclarations>");
         foreach (dec; conditionalDeclaration.trueDeclarations)
             visit(dec);
         output.writeln("</trueDeclarations>");
         if (conditionalDeclaration.falseDeclaration !is null)
         {
-            output.writeln("<falseDeclaration>");
+            output.write("\n<falseDeclaration>");
             visit(conditionalDeclaration.falseDeclaration);
             output.writeln("</falseDeclaration>");
         }
@@ -224,14 +224,14 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const ConditionalStatement conditionalStatement)
     {
-        output.writeln("<conditionalStatement>");
+        output.write("\n<conditionalStatement>");
         visit(conditionalStatement.compileCondition);
-        output.writeln("<trueStatement>");
+        output.write("\n<trueStatement>");
         visit(conditionalStatement.trueStatement);
         output.writeln("</trueStatement>");
         if (conditionalStatement.falseStatement !is null)
         {
-            output.writeln("<falseStatement>");
+            output.write("\n<falseStatement>");
             visit(conditionalStatement.falseStatement);
             output.writeln("</falseStatement>");
         }
@@ -241,34 +241,34 @@ class XMLPrinter : ASTVisitor
     override void visit(const ContinueStatement continueStatement)
     {
         if (continueStatement.label.type == tok!"")
-            output.writeln("<continueStatement/>");
+            output.write("\n<continueStatement/>");
         else
-            output.writeln("<continueStatement label=\"",
+            output.write("\n<continueStatement label=\"",
                 continueStatement.label.text, "\"/>");
     }
 
     override void visit(const DebugCondition debugCondition)
     {
         if (debugCondition.identifierOrInteger.type == tok!"")
-            output.writeln("<debugCondition/>");
+            output.write("\n<debugCondition/>");
         else
-            output.writeln("<debugCondition condition=\"",
+            output.write("\n<debugCondition condition=\"",
                 debugCondition.identifierOrInteger.text, "\"/>");
     }
 
     override void visit(const DebugSpecification debugSpecification)
     {
         if (debugSpecification.identifierOrInteger.type == tok!"")
-            output.writeln("<debugSpecification/>");
+            output.write("\n<debugSpecification/>");
         else
-            output.writeln("<debugSpecification condition=\"",
+            output.write("\n<debugSpecification condition=\"",
                 debugSpecification.identifierOrInteger.text, "\"/>");
     }
 
     override void visit(const Declarator declarator)
     {
-        output.writeln("<declarator line=\"", declarator.name.line, "\">");
-        output.writeln("<name>", declarator.name.text, "</name>");
+        output.write("\n<declarator line=\"", declarator.name.line, "\">");
+        output.writeln("\n<name>", declarator.name.text, "</name>");
         writeDdoc(declarator.comment);
         declarator.accept(this);
         output.writeln("</declarator>");
@@ -277,24 +277,24 @@ class XMLPrinter : ASTVisitor
     override void visit(const Deprecated deprecated_)
     {
         if (deprecated_.stringLiteral.type != tok!"")
-            output.writeln("<deprecated>", deprecated_.stringLiteral.text, "</deprecated>");
+            output.writeln("\n<deprecated>", deprecated_.stringLiteral.text, "</deprecated>");
         else
-            output.writeln("<deprecated/>");
+            output.write("\n<deprecated/>");
     }
 
     override void visit(const EnumDeclaration enumDec)
     {
-        output.writeln("<enumDeclaration line=\"", enumDec.name.line, "\">");
+        output.write("\n<enumDeclaration line=\"", enumDec.name.line, "\">");
         writeDdoc(enumDec.comment);
         if (enumDec.name.type == tok!"identifier")
-            output.writeln("<name>", enumDec.name.text, "</name>");
+            output.writeln("\n<name>", enumDec.name.text, "</name>");
         enumDec.accept(this);
         output.writeln("</enumDeclaration>");
     }
 
     override void visit(const EnumMember enumMem)
     {
-        output.writeln("<enumMember line=\"", enumMem.name.line, "\">");
+        output.write("\n<enumMember line=\"", enumMem.name.line, "\">");
         writeDdoc(enumMem.comment);
         enumMem.accept(this);
         output.writeln("</enumMember>");
@@ -302,11 +302,11 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const EqualExpression equalExpression)
     {
-        output.writeln("<equalExpression operator=\"", str(equalExpression.operator), "\">");
-        output.writeln("<left>");
+        output.write("\n<equalExpression operator=\"", str(equalExpression.operator), "\">");
+        output.write("\n<left>");
         visit(equalExpression.left);
         output.writeln("</left>");
-        output.writeln("<right>");
+        output.write("\n<right>");
         visit(equalExpression.right);
         output.writeln("</right>");
         output.writeln("</equalExpression>");
@@ -314,29 +314,29 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Finally finally_)
     {
-        output.writeln("<finally>");
+        output.write("\n<finally>");
         finally_.accept(this);
         output.writeln("</finally>");
     }
 
     override void visit(const ForStatement forStatement)
     {
-        output.writeln("<forStatement>");
+        output.write("\n<forStatement>");
         if (forStatement.initialization !is null)
         {
-            output.writeln("<initialization>");
+            output.write("\n<initialization>");
             visit(forStatement.initialization);
             output.writeln("</initialization>");
         }
         if (forStatement.test !is null)
         {
-            output.writeln("<test>");
+            output.write("\n<test>");
             visit(forStatement.test);
             output.writeln("</test>");
         }
         if (forStatement.increment !is null)
         {
-            output.writeln("<increment>");
+            output.write("\n<increment>");
             visit(forStatement.increment);
             output.writeln("</increment>");
         }
@@ -347,18 +347,18 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const ForeachStatement foreachStatement)
     {
-        output.writeln("<foreachStatement type=\"", str(
+        output.write("\n<foreachStatement type=\"", str(
             foreachStatement.type), "\">");
         if (foreachStatement.foreachType !is null)
             visit(foreachStatement.foreachType);
         if (foreachStatement.foreachTypeList !is null)
             visit(foreachStatement.foreachTypeList);
-        output.writeln("<low>");
+        output.write("\n<low>");
         visit(foreachStatement.low);
         output.writeln("</low>");
         if (foreachStatement.high !is null)
         {
-            output.writeln("<high>");
+            output.write("\n<high>");
             visit(foreachStatement.high);
             output.writeln("</high>");
         }
@@ -368,10 +368,10 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const ForeachType foreachType)
     {
-        output.writeln("<foreachType>");
+        output.write("\n<foreachType>");
         foreach (constructor; foreachType.typeConstructors)
         {
-            output.writeln("<typeConstructor>", str(constructor), "</typeConstructor>");
+            output.writeln("\n<typeConstructor>", str(constructor), "</typeConstructor>");
         }
         if (foreachType.type !is null)
             visit(foreachType.type);
@@ -382,20 +382,20 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const FunctionDeclaration functionDec)
     {
-        output.writeln("<functionDeclaration line=\"", functionDec.name.line, "\">");
-        output.writeln("<name>", functionDec.name.text, "</name>");
+        output.write("\n<functionDeclaration line=\"", functionDec.name.line, "\">");
+        output.writeln("\n<name>", functionDec.name.text, "</name>");
         writeDdoc(functionDec.comment);
         if (functionDec.hasAuto)
-            output.writeln("<auto/>");
+            output.write("\n<auto/>");
         if (functionDec.hasRef)
-            output.writeln("<ref/>");
+            output.write("\n<ref/>");
         functionDec.accept(this);
         output.writeln("</functionDeclaration>");
     }
 
     override void visit(const FunctionLiteralExpression functionLiteralExpression)
     {
-        output.writeln("<functionLiteralExpression type=\"",
+        output.write("\n<functionLiteralExpression type=\"",
             functionLiteralExpression.functionOrDelegate != tok!""
                 ? str(functionLiteralExpression.functionOrDelegate)
                 : "auto", "\">");
@@ -406,13 +406,13 @@ class XMLPrinter : ASTVisitor
     override void visit(const GotoStatement gotoStatement)
     {
         if (gotoStatement.label.type == tok!"default")
-            output.writeln("<gotoStatement default=\"true\"/>");
+            output.write("\n<gotoStatement default=\"true\"/>");
         else if (gotoStatement.label.type == tok!"identifier")
-            output.writeln("<gotoStatement label=\"", gotoStatement.label.text, "\"/>");
+            output.write("\n<gotoStatement label=\"", gotoStatement.label.text, "\"/>");
         else
         {
-            output.writeln("<gotoStatement>");
-            output.writeln("<case>");
+            output.write("\n<gotoStatement>");
+            output.write("\n<case>");
             if (gotoStatement.expression)
                 visit(gotoStatement.expression);
             output.writeln("</case>");
@@ -423,13 +423,13 @@ class XMLPrinter : ASTVisitor
     override void visit(const IdentityExpression identityExpression)
     {
         if (identityExpression.negated)
-            output.writeln("<identityExpression operator=\"!is\">");
+            output.write("\n<identityExpression operator=\"!is\">");
         else
-            output.writeln("<identityExpression operator=\"is\">");
-        output.writeln("<left>");
+            output.write("\n<identityExpression operator=\"is\">");
+        output.write("\n<left>");
         visit(identityExpression.left);
         output.writeln("</left>");
-        output.writeln("<right>");
+        output.write("\n<right>");
         visit(identityExpression.right);
         output.writeln("</right>");
         output.writeln("</identityExpression>");
@@ -437,13 +437,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const IfStatement ifStatement)
     {
-        output.writeln("<ifStatement>");
+        output.write("\n<ifStatement>");
 
-        output.writeln("<condition>");
+        output.write("\n<condition>");
         if (ifStatement.identifier.type != tok!"")
         {
             if (ifStatement.type is null)
-                output.writeln("<auto/>");
+                output.write("\n<auto/>");
             else
                 visit(ifStatement.type);
             visit(ifStatement.identifier);
@@ -451,13 +451,13 @@ class XMLPrinter : ASTVisitor
         ifStatement.expression.accept(this);
         output.writeln("</condition>");
 
-        output.writeln("<then>");
+        output.write("\n<then>");
         ifStatement.thenStatement.accept(this);
         output.writeln("</then>");
 
         if (ifStatement.elseStatement !is null)
         {
-            output.writeln("<else>");
+            output.write("\n<else>");
             ifStatement.elseStatement.accept(this);
             output.writeln("</else>");
         }
@@ -467,22 +467,22 @@ class XMLPrinter : ASTVisitor
     override void visit(const ImportBind importBind)
     {
         if (importBind.right.type == tok!"")
-            output.writeln("<importBind symbol=\"", importBind.left.text, "\"/>");
+            output.write("\n<importBind symbol=\"", importBind.left.text, "\"/>");
         else
-            output.writeln("<importBind symbol=\"", importBind.right.text,
+            output.write("\n<importBind symbol=\"", importBind.right.text,
                 "\" rename=\"", importBind.left.text, "\"/>");
     }
 
     override void visit(const InExpression inExpression)
     {
         if (inExpression.negated)
-            output.writeln("<inExpression operator=\"!in\">");
+            output.write("\n<inExpression operator=\"!in\">");
         else
-            output.writeln("<inExpression operator=\"in\">");
-        output.writeln("<left>");
+            output.write("\n<inExpression operator=\"in\">");
+        output.write("\n<left>");
         visit(inExpression.left);
         output.writeln("</left>");
-        output.writeln("<right>");
+        output.write("\n<right>");
         visit(inExpression.right);
         output.writeln("</right>");
         output.writeln("</inExpression>");
@@ -491,10 +491,10 @@ class XMLPrinter : ASTVisitor
     override void visit(const Initialize initialize)
     {
         if (initialize.statementNoCaseNoDefault is null)
-            output.writeln("<initialize/>");
+            output.write("\n<initialize/>");
         else
         {
-            output.writeln("<initialize>");
+            output.write("\n<initialize>");
             visit(initialize.statementNoCaseNoDefault);
             output.writeln("</initialize>");
         }
@@ -503,10 +503,10 @@ class XMLPrinter : ASTVisitor
     override void visit(const Initializer initializer)
     {
         if (initializer.nonVoidInitializer is null)
-            output.writeln("<initializer void=\"true\"/>");
+            output.write("\n<initializer void=\"true\"/>");
         else
         {
-            output.writeln("<initializer>");
+            output.write("\n<initializer>");
             visit(initializer.nonVoidInitializer);
             output.writeln("</initializer>");
         }
@@ -514,8 +514,8 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const InterfaceDeclaration interfaceDec)
     {
-        output.writeln("<interfaceDeclaration line=\"", interfaceDec.name.line, "\">");
-        output.writeln("<name>", interfaceDec.name.text, "</name>");
+        output.write("\n<interfaceDeclaration line=\"", interfaceDec.name.line, "\">");
+        output.writeln("\n<name>", interfaceDec.name.text, "</name>");
         writeDdoc(interfaceDec.comment);
         interfaceDec.accept(this);
         output.writeln("</interfaceDeclaration>");
@@ -523,7 +523,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Invariant invariant_)
     {
-        output.writeln("<invariant>");
+        output.write("\n<invariant>");
         writeDdoc(invariant_.comment);
         invariant_.accept(this);
         output.writeln("</invariant>");
@@ -531,16 +531,16 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const IsExpression isExpression)
     {
-        output.writeln("<isExpression>");
+        output.write("\n<isExpression>");
         visit(isExpression.type);
         if (isExpression.identifier.type != tok!"")
             visit(isExpression.identifier);
         if (isExpression.typeSpecialization !is null)
         {
             if (isExpression.equalsOrColon == tok!":")
-                output.writeln("<colon/>");
+                output.write("\n<colon/>");
             else
-                output.writeln("<equals/>");
+                output.write("\n<equals/>");
             visit(isExpression.typeSpecialization);
             if (isExpression.templateParameterList !is null)
                 visit(isExpression.templateParameterList);
@@ -550,11 +550,11 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const KeyValuePair keyValuePair)
     {
-        output.writeln("<keyValuePair>");
-        output.writeln("<key>");
+        output.write("\n<keyValuePair>");
+        output.write("\n<key>");
         visit(keyValuePair.key);
         output.writeln("</key>");
-        output.writeln("<value>");
+        output.write("\n<value>");
         visit(keyValuePair.value);
         output.writeln("</value>");
         output.writeln("</keyValuePair>");
@@ -562,7 +562,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit (const LabeledStatement labeledStatement)
     {
-        output.writeln("<labeledStatement label=\"",
+        output.write("\n<labeledStatement label=\"",
             labeledStatement.identifier.text ,"\">");
         visit(labeledStatement.declarationOrStatement);
         output.writeln("</labeledStatement>");
@@ -570,11 +570,11 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const LambdaExpression lambdaExpression)
     {
-        output.writeln("<lambdaExpression>");
+        output.write("\n<lambdaExpression>");
         if (lambdaExpression.functionType == tok!"function")
-            output.writeln("<function/>");
+            output.write("\n<function/>");
         if (lambdaExpression.functionType == tok!"delegate")
-            output.writeln("<delegate/>");
+            output.write("\n<delegate/>");
         lambdaExpression.accept(this);
         output.writeln("</lambdaExpression>");
     }
@@ -582,15 +582,15 @@ class XMLPrinter : ASTVisitor
     override void visit(const LinkageAttribute linkageAttribute)
     {
         if (linkageAttribute.hasPlusPlus)
-            output.writeln("<linkageAttribute linkage=\"c++\"/>");
+            output.write("\n<linkageAttribute linkage=\"c++\"/>");
         else
-            output.writeln("<linkageAttribute linkage=\"",
+            output.write("\n<linkageAttribute linkage=\"",
                 linkageAttribute.identifier.text, "\"/>");
     }
 
     override void visit(const MemberFunctionAttribute memberFunctionAttribute)
     {
-        output.writeln("<memberFunctionAttribute>");
+        output.write("\n<memberFunctionAttribute>");
         if (memberFunctionAttribute.atAttribute is null)
             output.writeln(str(memberFunctionAttribute.tokenType));
         else
@@ -600,21 +600,21 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Module module_)
     {
-        output.writeln("<?xml version=\"1.0\"?>");
-        output.writeln("<module>");
+        output.write("<?xml version=\"1.0\"?>");
+        output.write("\n<module>");
         module_.accept(this);
         output.writeln("</module>");
     }
 
     override void visit(const MulExpression mulExpression)
     {
-        output.writeln("<mulExpression operator=\"", str(mulExpression.operator) ,"\">");
-        output.writeln("<left>");
+        output.write("\n<mulExpression operator=\"", str(mulExpression.operator) ,"\">");
+        output.write("\n<left>");
         visit(mulExpression.left);
         output.writeln("</left>");
         if (mulExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(mulExpression.right);
             output.writeln("</right>");
         }
@@ -623,13 +623,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const OrOrExpression orOrExpression)
     {
-        output.writeln("<orOrExpression>");
-        output.writeln("<left>");
+        output.write("\n<orOrExpression>");
+        output.write("\n<left>");
         visit(orOrExpression.left);
         output.writeln("</left>");
         if (orOrExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(orOrExpression.right);
             output.writeln("</right>");
         }
@@ -638,29 +638,29 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Parameter param)
     {
-        output.writeln("<parameter>");
+        output.write("\n<parameter>");
         if (param.name.type == tok!"identifier")
-            output.writeln("<name>", param.name.text, "</name>");
+            output.writeln("\n<name>", param.name.text, "</name>");
         foreach (attribute; param.parameterAttributes)
         {
-            output.writeln("<parameterAttribute>", str(attribute), "</parameterAttribute>");
+            output.writeln("\n<parameterAttribute>", str(attribute), "</parameterAttribute>");
         }
         param.accept(this);
         if (param.vararg)
-            output.writeln("<vararg/>");
+            output.write("\n<vararg/>");
         output.writeln("</parameter>");
     }
 
 
     override void visit(const PowExpression powExpression)
     {
-        output.writeln("<powExpression>");
-        output.writeln("<left>");
+        output.write("\n<powExpression>");
+        output.write("\n<left>");
         visit(powExpression.left);
         output.writeln("</left>");
         if (powExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(powExpression.right);
             output.writeln("</right>");
         }
@@ -669,12 +669,12 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const RelExpression relExpression)
     {
-        output.writeln("<relExpression operator=\"",
+        output.write("\n<relExpression operator=\"",
             xmlAttributeEscape(str(relExpression.operator)), "\">");
-        output.writeln("<left>");
+        output.write("\n<left>");
         visit(relExpression.left);
         output.writeln("</left>");
-        output.writeln("<right>");
+        output.write("\n<right>");
         visit(relExpression.right);
         output.writeln("</right>");
         output.writeln("</relExpression>");
@@ -683,10 +683,10 @@ class XMLPrinter : ASTVisitor
     override void visit(const ReturnStatement returnStatement)
     {
         if (returnStatement.expression is null)
-            output.writeln("<returnStatement/>");
+            output.write("\n<returnStatement/>");
         else
         {
-            output.writeln("<returnStatement>");
+            output.write("\n<returnStatement>");
             returnStatement.accept(this);
             output.writeln("</returnStatement>");
         }
@@ -694,12 +694,12 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const ShiftExpression shiftExpression)
     {
-        output.writeln("<shiftExpression operator=\"",
+        output.write("\n<shiftExpression operator=\"",
             xmlAttributeEscape(str(shiftExpression.operator)), "\">");
-        output.writeln("<left>");
+        output.write("\n<left>");
         visit(shiftExpression.left);
         output.writeln("</left>");
-        output.writeln("<right>");
+        output.write("\n<right>");
         visit(shiftExpression.right);
         output.writeln("</right>");
         output.writeln("</shiftExpression>");
@@ -708,26 +708,26 @@ class XMLPrinter : ASTVisitor
     override void visit(const SingleImport singleImport)
     {
         if (singleImport.rename.type == tok!"")
-            output.writeln("<singleImport>");
+            output.write("\n<singleImport>");
         else
-            output.writeln("<singleImport rename=\"", singleImport.rename.text, "\">");
+            output.write("\n<singleImport rename=\"", singleImport.rename.text, "\">");
         visit(singleImport.identifierChain);
         output.writeln("</singleImport>");
     }
 
     override void visit(const SliceExpression sliceExpression)
     {
-        output.writeln("<sliceExpression>");
+        output.write("\n<sliceExpression>");
         visit(sliceExpression.unaryExpression);
         if (sliceExpression.lower !is null)
         {
-            output.writeln("<low>");
+            output.write("\n<low>");
             visit(sliceExpression.lower);
             output.writeln("</low>");
         }
         if (sliceExpression.upper !is null)
         {
-            output.writeln("<high>");
+            output.write("\n<high>");
             visit(sliceExpression.upper);
             output.writeln("</high>");
         }
@@ -736,8 +736,8 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const StructDeclaration structDec)
     {
-        output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
-        output.writeln("<name>", structDec.name.text, "</name>");
+        output.write("\n<structDeclaration line=\"", structDec.name.line, "\">");
+        output.writeln("\n<name>", structDec.name.text, "</name>");
         writeDdoc(structDec.comment);
         structDec.accept(this);
         output.writeln("</structDeclaration>");
@@ -745,32 +745,32 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const TemplateAliasParameter templateAliasParameter)
     {
-        output.writeln("<templateAliasParameter>");
+        output.write("\n<templateAliasParameter>");
         if (templateAliasParameter.type !is null)
             visit(templateAliasParameter.type);
         visit(templateAliasParameter.identifier);
         if (templateAliasParameter.colonExpression !is null)
         {
-            output.writeln("<specialization>");
+            output.write("\n<specialization>");
             visit(templateAliasParameter.colonExpression);
             output.writeln("</specialization>");
         }
         else if (templateAliasParameter.colonType !is null)
         {
-            output.writeln("<specialization>");
+            output.write("\n<specialization>");
             visit(templateAliasParameter.colonType);
             output.writeln("</specialization>");
         }
 
         if (templateAliasParameter.assignExpression !is null)
         {
-            output.writeln("<default>");
+            output.write("\n<default>");
             visit(templateAliasParameter.assignExpression);
             output.writeln("</default>");
         }
         else if (templateAliasParameter.assignType !is null)
         {
-            output.writeln("<default>");
+            output.write("\n<default>");
             visit(templateAliasParameter.assignType);
             output.writeln("</default>");
         }
@@ -781,9 +781,9 @@ class XMLPrinter : ASTVisitor
     override void visit(const TemplateDeclaration templateDeclaration)
     {
         writeDdoc(templateDeclaration.comment);
-        output.writeln("<templateDeclaration line=\"",
+        output.write("\n<templateDeclaration line=\"",
             templateDeclaration.name.line, "\">");
-        output.writeln("<name>", templateDeclaration.name.text, "</name>");
+        output.writeln("\n<name>", templateDeclaration.name.text, "</name>");
         visit(templateDeclaration.templateParameters);
         if (templateDeclaration.constraint !is null)
             visit(templateDeclaration.constraint);
@@ -816,11 +816,11 @@ class XMLPrinter : ASTVisitor
         case tok!"dstringLiteral": tagName = "dstringLiteral"; break;
         case tok!"wstringLiteral": tagName = "wstringLiteral"; break;
         case tok!"scriptLine": tagName = "scriptLine"; break;
-        case tok!"$": output.writeln("<dollar/>"); return;
-        case tok!".": output.writeln("<dot/>"); return;
-        default: output.writeln("<", str(token.type), "/>"); return;
+        case tok!"$": output.write("\n<dollar/>"); return;
+        case tok!".": output.write("\n<dot/>"); return;
+        default: output.write("\n<", str(token.type), "/>"); return;
         }
-        output.writeln("<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
+        output.writeln("\n<", tagName, ">", xmlEscape(token.text), "</", tagName, ">");
     }
 
     override void visit(const Type type)
@@ -828,7 +828,7 @@ class XMLPrinter : ASTVisitor
         auto app = appender!string();
         auto formatter = new Formatter!(typeof(app))(app);
         formatter.format(type);
-        output.writeln("<type pretty=\"", xmlAttributeEscape(app.data), "\">");
+        output.write("\n<type pretty=\"", xmlAttributeEscape(app.data), "\">");
         type.accept(this);
         output.writeln("</type>");
     }
@@ -836,10 +836,10 @@ class XMLPrinter : ASTVisitor
     override void visit(const Type2 type2)
     {
         if (type2.builtinType != tok!"")
-            output.writeln("<type2>", str(type2.builtinType), "</type2>");
+            output.writeln("\n<type2>", str(type2.builtinType), "</type2>");
         else
         {
-            output.writeln("<type2>");
+            output.write("\n<type2>");
             type2.accept(this);
             output.writeln("</type2>");
         }
@@ -848,28 +848,28 @@ class XMLPrinter : ASTVisitor
     override void visit(const TypeSuffix typeSuffix)
     {
         if (typeSuffix.star)
-            output.writeln("<typeSuffix type=\"*\"/>");
+            output.write("\n<typeSuffix type=\"*\"/>");
         else if (typeSuffix.array)
         {
             if (typeSuffix.low is null && typeSuffix.type is null)
-                output.writeln("<typeSuffix type=\"[]\"/>");
+                output.write("\n<typeSuffix type=\"[]\"/>");
             else
             {
                 if (typeSuffix.low is null)
                 {
-                    output.writeln("<typeSuffix type=\"[]\">");
+                    output.write("\n<typeSuffix type=\"[]\">");
                     visit(typeSuffix.type);
                     output.writeln("</typeSuffix>");
                 }
                 else
                 {
-                    output.writeln("<typeSuffix type=\"[]\">");
+                    output.write("\n<typeSuffix type=\"[]\">");
                     if (typeSuffix.high !is null)
                     {
-                        output.writeln("<low>");
+                        output.write("\n<low>");
                         visit(typeSuffix.low);
                         output.writeln("</low>");
-                        output.writeln("<high>");
+                        output.write("\n<high>");
                         visit(typeSuffix.high);
                         output.writeln("</high>");
                     }
@@ -892,10 +892,10 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const UnaryExpression unaryExpression)
     {
-        output.writeln("<unaryExpression>");
+        output.write("\n<unaryExpression>");
         if (unaryExpression.prefix != tok!"")
         {
-            output.writeln("<prefix>", xmlEscape(str(unaryExpression.prefix.type)),
+            output.write("\n<prefix>", xmlEscape(str(unaryExpression.prefix.type)),
                 "</prefix>");
             unaryExpression.unaryExpression.accept(this);
         }
@@ -903,7 +903,7 @@ class XMLPrinter : ASTVisitor
         {
             assert(unaryExpression.suffix.text == "");
             unaryExpression.unaryExpression.accept(this);
-            output.writeln("<suffix>", str(unaryExpression.suffix.type),
+            output.write("\n<suffix>", str(unaryExpression.suffix.type),
                 "</suffix>");
         }
         else
@@ -913,9 +913,9 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const UnionDeclaration unionDeclaration)
     {
-        output.writeln("<unionDeclaration line=\"", unionDeclaration.name.line, "\">");
+        output.write("\n<unionDeclaration line=\"", unionDeclaration.name.line, "\">");
         if (unionDeclaration.name != tok!"")
-            output.writeln("<name>", unionDeclaration.name.text, "</name>");
+            output.writeln("\n<name>", unionDeclaration.name.text, "</name>");
         if (unionDeclaration.templateParameters !is null)
             visit(unionDeclaration.templateParameters);
         if (unionDeclaration.constraint !is null)
@@ -927,14 +927,14 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Unittest unittest_)
     {
-        output.writeln("<unittest>");
+        output.write("\n<unittest>");
         unittest_.accept(this);
         output.writeln("</unittest>");
     }
 
     override void visit(const VariableDeclaration variableDeclaration)
     {
-        output.writeln("<variableDeclaration>");
+        output.write("\n<variableDeclaration>");
         writeDdoc(variableDeclaration.comment);
         variableDeclaration.accept(this);
         output.writeln("</variableDeclaration>");
@@ -942,13 +942,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const XorExpression xorExpression)
     {
-        output.writeln("<xorExpression>");
-        output.writeln("<left>");
+        output.write("\n<xorExpression>");
+        output.write("\n<left>");
         visit(xorExpression.left);
         output.writeln("</left>");
         if (xorExpression.right !is null)
         {
-            output.writeln("<right>");
+            output.write("\n<right>");
             visit(xorExpression.right);
             output.writeln("</right>");
         }
@@ -1091,9 +1091,8 @@ class XMLPrinter : ASTVisitor
     private void writeDdoc(string comment)
     {
         if (comment is null) return;
-        output.writeln("<ddoc>", xmlEscape(comment), "</ddoc>");
+        output.writeln("\n<ddoc>", xmlEscape(comment), "</ddoc>");
     }
 
     File output;
 }
-
