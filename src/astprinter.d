@@ -847,7 +847,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const TypeSuffix typeSuffix)
     {
-        if (typeSuffix.star)
+        if (typeSuffix.star != tok!"")
             output.writeln("<typeSuffix type=\"*\"/>");
         else if (typeSuffix.array)
         {
