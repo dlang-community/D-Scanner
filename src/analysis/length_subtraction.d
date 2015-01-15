@@ -29,8 +29,8 @@ class LengthSubtractionCheck : BaseAnalyzer
 	{
 		if (addExpression.operator == tok!"-")
 		{
-			UnaryExpression l = cast(UnaryExpression) addExpression.left;
-			UnaryExpression r = cast(UnaryExpression) addExpression.right;
+			const UnaryExpression l = cast(const UnaryExpression) addExpression.left;
+			const UnaryExpression r = cast(const UnaryExpression) addExpression.right;
 			if (l is null || r is null)
 			{
 //				stderr.writeln(__FILE__, " ", __LINE__);

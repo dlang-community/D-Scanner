@@ -54,6 +54,8 @@ class ImmutableFinder:BaseAnalyzer
 		{
 			foreach (d; dec.declarators)
 			{
+				if (initializedFromCast(d.initializer))
+					continue;
 				tree[$ - 1].insert(new VariableInfo(d.name.text, d.name.line,
 					d.name.column));
 			}
@@ -68,9 +70,13 @@ class ImmutableFinder:BaseAnalyzer
 				&& autoDeclaration.storageClass.token != tok!"enum"
 				&& autoDeclaration.storageClass.token != tok!"immutable"))
 		{
-			foreach (id; autoDeclaration.identifiers)
+			foreach (size_t i, id; autoDeclaration.identifiers)
+			{
+				if (initializedFromCast(autoDeclaration.initializers[i]))
+					continue;
 				tree[$ - 1].insert(new VariableInfo(id.text, id.line,
 					id.column));
+			}
 		}
 		autoDeclaration.accept(this);
 	}
@@ -130,6 +136,17 @@ class ImmutableFinder:BaseAnalyzer
 			unary.accept(this);
 	}
 
+	override void visit(const ForeachStatement foreachStatement)
+	{
+		if (foreachStatement.low !is null)
+		{
+			interest++;
+			foreachStatement.low.accept(this);
+			interest--;
+		}
+		foreachStatement.declarationOrStatement.accept(this);
+	}
+
 private:
 
 	template PartsMightModify(T)
@@ -154,6 +171,28 @@ private:
 				break;
 			index--;
 		}
+	}
+
+	bool initializedFromCast(const Initializer initializer)
+	{
+		import std.typecons : scoped;
+
+		static class CastFinder : ASTVisitor
+		{
+			alias visit = ASTVisitor.visit;
+			override void visit(const CastExpression castExpression)
+			{
+				foundCast = true;
+				castExpression.accept(this);
+			}
+			bool foundCast = false;
+		}
+
+		if (initializer is null)
+			return false;
+		auto finder = scoped!CastFinder();
+		finder.visit(initializer);
+		return finder.foundCast;
 	}
 
 	bool canFindImmutable(const Declaration dec)
@@ -195,7 +234,7 @@ private:
 		foreach (vi; tree[$ - 1])
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
-				~ " could have been declared immutable";
+				~ " is never modified and could have been declared immutable.";
 			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.could_be_immutable",
 				errorMessage);
 		}

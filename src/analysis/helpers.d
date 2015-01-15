@@ -69,7 +69,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 	foreach (rawWarning; rawWarnings[])
 	{
 		// Skip the warning if it is on line zero
-		size_t rawLine = rawWarning.line;
+		immutable size_t rawLine = rawWarning.line;
 		if (rawLine == 0)
 		{
 			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s", rawWarning.message);
@@ -89,8 +89,8 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 			continue;
 
 		// Skip if there is no comment or code
-		string codePart = codeLine.before("// ");
-		string commentPart = codeLine.after("// ");
+		immutable string codePart = codeLine.before("// ");
+		immutable string commentPart = codeLine.after("// ");
 		if (!codePart.length || !commentPart.length)
 			continue;
 
@@ -107,7 +107,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 		// No warning
 		if (lineNo !in warnings)
 		{
-			string errors = "Expected warning:\n%s\nFrom source code at (%s:?):\n%s".format(
+			immutable string errors = "Expected warning:\n%s\nFrom source code at (%s:?):\n%s".format(
 				messages[lineNo],
 				lineNo,
 				codeLines[lineNo - line]
@@ -117,7 +117,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 		// Different warning
 		else if (warnings[lineNo] != messages[lineNo])
 		{
-			string errors = "Expected warning:\n%s\nBut was:\n%s\nFrom source code at (%s:?):\n%s".format(
+			immutable string errors = "Expected warning:\n%s\nBut was:\n%s\nFrom source code at (%s:?):\n%s".format(
 				messages[lineNo],
 				warnings[lineNo],
 				lineNo,
@@ -143,7 +143,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 	}
 	if (unexpectedWarnings.length)
 	{
-		string message = "Unexpected warnings:\n" ~ unexpectedWarnings.join("\n");
+		immutable string message = "Unexpected warnings:\n" ~ unexpectedWarnings.join("\n");
 		throw new core.exception.AssertError(message, file, line);
 	}
 }

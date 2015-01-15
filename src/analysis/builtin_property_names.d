@@ -29,8 +29,6 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	enum string KEY = "dscanner.confusing.builtin_property_names";
-
 	this(string fileName)
 	{
 		super(fileName);
@@ -47,7 +45,7 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 
 	override void visit(const FunctionBody functionBody)
 	{
-		int d = depth;
+		immutable int d = depth;
 		scope(exit) depth = d;
 		depth = 0;
 		functionBody.accept(this);
@@ -77,16 +75,18 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 
 private:
 
+	enum string KEY = "dscanner.confusing.builtin_property_names";
+
 	string generateErrorMessage(string name)
 	{
-		import std.string;
+		import std.string : format;
 		return format("Avoid naming members '%s'. This can"
 		~ " confuse code that depends on the '.%s' property of a type.", name, name);
 	}
 
 	bool isBuiltinProperty(string name)
 	{
-		import std.algorithm;
+		import std.algorithm : canFind;
 		return builtinProperties.canFind(name);
 	}
 
@@ -98,7 +98,7 @@ private:
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
 	StaticAnalysisConfig sac;
 	sac.builtin_property_names_check = true;
 	assertAnalyzerWarnings(q{

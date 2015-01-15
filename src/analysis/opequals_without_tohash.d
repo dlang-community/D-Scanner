@@ -57,7 +57,7 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 				continue;
 
 			// Check if opEquals or toHash
-			string methodName = declaration.functionDeclaration.name.text;
+			immutable string methodName = declaration.functionDeclaration.name.text;
 			if (methodName == "opEquals")
 				hasOpEquals = true;
 			else if (methodName == "toHash")

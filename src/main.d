@@ -133,7 +133,7 @@ int run(string[] args)
 	}
 	else if (tokenDump || highlight)
 	{
-		bool usingStdin = args.length == 1;
+		immutable bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
 		LexerConfig config;
 		config.stringBehavior = StringBehavior.source;
@@ -211,7 +211,7 @@ int run(string[] args)
 		}
 		else if (imports)
 		{
-			string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
+			const string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
 			LexerConfig config;
 			config.stringBehavior = StringBehavior.source;
 			auto visitor = new ImportPrinter;
@@ -236,12 +236,6 @@ int run(string[] args)
 			auto tokens = getTokensForParser(
 				usingStdin ? readStdin() : readFile(args[1]),
 				config, &cache);
-//			writeln("text                    blank\tindex\tline\tcolumn\ttype\tcomment");
-//			foreach (token; tokens)
-//			{
-//				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null ? str(token.type) : token.text,
-//					token.text !is null, token.index, token.line, token.column, token.type, token.comment);
-//			}
 			auto mod = parseModule(tokens, fileName, null, &doNothing);
 
 			if (ast)
@@ -387,6 +381,7 @@ string getConfigurationLocation()
 {
 	version (useXDG)
 	{
+		int x;
 		import std.process;
 		string configDir = environment.get("XDG_CONFIG_HOME", null);
 		if (configDir is null)

@@ -18,11 +18,11 @@ class ConstructorCheck : BaseAnalyzer
 
 	override void visit(const ClassDeclaration classDeclaration)
 	{
-		bool oldHasDefault = hasDefaultArgConstructor;
-		bool oldHasNoArg = hasNoArgConstructor;
+		immutable bool oldHasDefault = hasDefaultArgConstructor;
+		immutable bool oldHasNoArg = hasNoArgConstructor;
 		hasNoArgConstructor = false;
 		hasDefaultArgConstructor = false;
-		State prev = state;
+		immutable State prev = state;
 		state = State.inClass;
 		classDeclaration.accept(this);
 		if (hasNoArgConstructor && hasDefaultArgConstructor)
@@ -39,7 +39,7 @@ class ConstructorCheck : BaseAnalyzer
 
 	override void visit(const StructDeclaration structDeclaration)
 	{
-		State prev = state;
+		immutable State prev = state;
 		state = State.inStruct;
 		structDeclaration.accept(this);
 		state = prev;

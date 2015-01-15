@@ -44,7 +44,7 @@ class UnusedVariableCheck : BaseAnalyzer
 		pushScope();
 		if (functionDec.functionBody !is null)
 		{
-			bool ias = inAggregateScope;
+			immutable bool ias = inAggregateScope;
 			inAggregateScope = false;
 			if (!isOverride)
 				functionDec.parameters.accept(this);
