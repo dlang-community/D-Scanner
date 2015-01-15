@@ -165,6 +165,11 @@ private:
 	bool canFindImmutable(const VariableDeclaration dec)
 	{
 		import std.algorithm : canFind;
+		foreach (storageClass; dec.storageClasses)
+		{
+			if (storageClass.token == tok!"enum")
+				return true;
+		}
 		foreach (attr; dec.attributes)
 		{
 			if (attr.attribute.type == tok!"immutable")
