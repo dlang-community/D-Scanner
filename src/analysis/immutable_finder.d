@@ -65,6 +65,7 @@ class ImmutableFinder:BaseAnalyzer
 	{
 		if (blockStatementDepth > 0 && isImmutable <= 0
 			&& (autoDeclaration.storageClass !is null
+				&& autoDeclaration.storageClass.token != tok!"enum"
 				&& autoDeclaration.storageClass.token != tok!"immutable"))
 		{
 			foreach (id; autoDeclaration.identifiers)
