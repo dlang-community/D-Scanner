@@ -14,13 +14,13 @@ import analysis.base;
  */
 class ImmutableFinder:BaseAnalyzer
 {
-    alias visit = BaseAnalyzer.visit;
+	alias visit = BaseAnalyzer.visit;
 
 	///
 	this(string fileName)
-    {
-        super(fileName);
-    }
+	{
+		super(fileName);
+	}
 
 	override void visit(const Module mod)
 	{
