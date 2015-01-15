@@ -80,4 +80,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for local imports that are too broad")
 	bool local_import_check;
+
+	@INI("Checks for variables that could be declared immutable")
+	bool could_be_immutable_check = false; // disabled by default for now
 }

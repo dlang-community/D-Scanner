@@ -224,7 +224,7 @@ class UnusedVariableCheck : BaseAnalyzer
 			{
 				foreach (part; matchAll(primary.primary.text, re))
 				{
-					size_t treeIndex = tree.length - 1;
+					immutable size_t treeIndex = tree.length - 1;
 					auto uu = UnUsed(part.hit);
 					auto r = tree[treeIndex].equalRange(&uu);
 					if (!r.empty)
@@ -247,7 +247,7 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const BlockStatement blockStatement)
 	{
-		bool sb = inAggregateScope;
+		immutable bool sb = inAggregateScope;
 		inAggregateScope = false;
 		if (blockStatementIntroducesScope)
 			pushScope();
@@ -281,12 +281,12 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Parameter parameter)
 	{
-		import std.algorithm;
-		import std.array;
+		import std.algorithm : canFind;
+		import std.array : array;
 		if (parameter.name != tok!"")
 		{
 //			stderr.writeln("Adding parameter ", parameter.name.text);
-			bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
+			immutable bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
 				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"in")
 				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"out");
 			variableDeclared(parameter.name.text, parameter.name.line,
@@ -302,7 +302,7 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const StructBody structBody)
 	{
-		bool sb = inAggregateScope;
+		immutable bool sb = inAggregateScope;
 		inAggregateScope = true;
 		foreach (dec; structBody.declarations)
 			visit(dec);
@@ -311,7 +311,7 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const ConditionalStatement conditionalStatement)
 	{
-		bool cs = blockStatementIntroducesScope;
+		immutable bool cs = blockStatementIntroducesScope;
 		blockStatementIntroducesScope = false;
 		conditionalStatement.accept(this);
 		blockStatementIntroducesScope = cs;
@@ -324,6 +324,8 @@ class UnusedVariableCheck : BaseAnalyzer
 		if (primary.identifierChain !is null)
 			variableUsed(primary.identifierChain.identifiers[0].text);
 	}
+
+private:
 
 	void variableDeclared(string name, size_t line, size_t column,
 		bool isParameter, bool isRef)
@@ -353,8 +355,8 @@ class UnusedVariableCheck : BaseAnalyzer
 		{
 			if (!uu.isRef && tree.length > 1)
 			{
-				string certainty = uu.uncertain ? " might not be used." : " is never used.";
-				string errorMessage = (uu.isParameter ? "Parameter " : "Variable ")
+				immutable string certainty = uu.uncertain ? " might not be used." : " is never used.";
+				immutable string errorMessage = (uu.isParameter ? "Parameter " : "Variable ")
 						~ uu.name ~ certainty;
 				addErrorMessage(uu.line, uu.column,
 					uu.isParameter ? "dscanner.suspicious.unused_parameter"
