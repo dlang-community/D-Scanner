@@ -10,7 +10,7 @@ import std.d.lexer;
 import analysis.base;
 
 /**
- * Checks for variables that could have been declared immutable
+ * Checks for variables that could have been declared const or immutable
  */
 class ImmutableFinder:BaseAnalyzer
 {
@@ -50,7 +50,8 @@ class ImmutableFinder:BaseAnalyzer
 
 	override void visit(const VariableDeclaration dec)
 	{
-		if (dec.autoDeclaration is null && blockStatementDepth > 0 && isImmutable <= 0 && !canFindImmutable(dec))
+		if (dec.autoDeclaration is null && blockStatementDepth > 0
+			&& isImmutable <= 0 && !canFindImmutable(dec))
 		{
 			foreach (d; dec.declarators)
 			{
@@ -67,6 +68,7 @@ class ImmutableFinder:BaseAnalyzer
 	{
 		if (blockStatementDepth > 0 && isImmutable <= 0
 			&& (autoDeclaration.storageClass !is null
+				&& autoDeclaration.storageClass.token != tok!"const"
 				&& autoDeclaration.storageClass.token != tok!"enum"
 				&& autoDeclaration.storageClass.token != tok!"immutable"))
 		{
@@ -88,7 +90,7 @@ class ImmutableFinder:BaseAnalyzer
 			interest++;
 			assignExpression.ternaryExpression.accept(this);
 			interest--;
-			assignExpression.ternaryExpression.accept(this);
+			assignExpression.assignExpression.accept(this);
 		}
 		else
 			assignExpression.accept(this);
@@ -96,7 +98,7 @@ class ImmutableFinder:BaseAnalyzer
 
 	override void visit(const Declaration dec)
 	{
-		if (canFindImmutable(dec))
+		if (canFindImmutableOrConst(dec))
 		{
 			isImmutable++;
 			dec.accept(this);
@@ -195,10 +197,12 @@ private:
 		return finder.foundCast;
 	}
 
-	bool canFindImmutable(const Declaration dec)
+	bool canFindImmutableOrConst(const Declaration dec)
 	{
-		import std.algorithm : canFind, map;
-		return dec.attributes.map!(a => a.attribute).canFind(cast(IdType) tok!"immutable");
+		import std.algorithm : canFind, map, filter;
+		return !dec.attributes.map!(a => a.attribute).filter!(
+			a => a == cast(IdType) tok!"immutable" || a == cast(IdType) tok!"const")
+			.empty;
 	}
 
 	bool canFindImmutable(const VariableDeclaration dec)
@@ -211,7 +215,7 @@ private:
 		}
 		foreach (attr; dec.attributes)
 		{
-			if (attr.attribute.type == tok!"immutable")
+			if (attr.attribute.type == tok!"immutable" || attr.attribute.type == tok!"const")
 				return true;
 		}
 		if (dec.type !is null)
@@ -234,7 +238,8 @@ private:
 		foreach (vi; tree[$ - 1])
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
-				~ " is never modified and could have been declared immutable.";
+				~ " is never modified and could have been declared const"
+				~ " or immutable.";
 			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.could_be_immutable",
 				errorMessage);
 		}
