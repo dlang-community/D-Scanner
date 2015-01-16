@@ -2,7 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
-module analysis.immutable_finder;
+module analysis.unmodified;
 
 import std.container;
 import std.d.ast;
@@ -12,7 +12,7 @@ import analysis.base;
 /**
  * Checks for variables that could have been declared const or immutable
  */
-class ImmutableFinder:BaseAnalyzer
+class UnmodifiedFinder:BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
