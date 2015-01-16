@@ -240,7 +240,7 @@ private:
 			immutable string errorMessage = "Variable " ~ vi.name
 				~ " is never modified and could have been declared const"
 				~ " or immutable.";
-			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.could_be_immutable",
+			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.unmodified",
 				errorMessage);
 		}
 		tree = tree[0 .. $ - 1];
