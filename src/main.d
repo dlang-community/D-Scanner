@@ -260,7 +260,9 @@ string[] expandArgs(string[] args)
 	if (args.length == 1)
 		args ~= ".";
 	foreach (arg; args[1 ..$])
-	{
+	{        
+		if (!exists(arg))
+            		continue; 
 		if (isFile(arg))
 			rVal ~= arg;
 		else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
