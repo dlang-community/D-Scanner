@@ -17,8 +17,12 @@ import analysis.helpers;
  */
 class NumberStyleCheck : BaseAnalyzer
 {
+public:
 	alias visit = BaseAnalyzer.visit;
 
+	/**
+	 * Constructs the style checker with the given file name.
+	 */
 	this(string fileName)
 	{
 		super(fileName);
@@ -26,7 +30,6 @@ class NumberStyleCheck : BaseAnalyzer
 
 	override void visit(const Token t)
 	{
-		import std.algorithm;
 		if (isNumberLiteral(t.type) && !t.text.startsWith("0x")
 			&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex).empty)
 				|| !t.text.matchFirst(badDecimalRegex).empty))
@@ -35,14 +38,14 @@ class NumberStyleCheck : BaseAnalyzer
 				"Use underscores to improve number constant readability.");
 		}
 	}
-
+private:
 	auto badBinaryRegex = ctRegex!(`^0b[01]{9,}`);
 	auto badDecimalRegex = ctRegex!(`^\d{5,}`);
 }
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
 	StaticAnalysisConfig sac;
 	sac.number_style_check = true;
 	assertAnalyzerWarnings(q{

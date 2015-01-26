@@ -19,6 +19,9 @@ class LocalImportCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	/**
+	 * Construct with the given file name.
+	 */
 	this(string fileName)
 	{
 		super(fileName);

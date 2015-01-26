@@ -10,13 +10,9 @@ import std.stdio;
 import std.string;
 import std.array;
 
-template tagAndAccept(string tagName)
-{
-    immutable tagAndAccept = `output.writeln("<` ~ tagName ~ `>");`
-        ~ tagName ~ `.accept(this);`
-        ~ `output.writeln("</` ~ tagName ~ `>");`;
-}
-
+/**
+ * AST visitor that outputs an XML representation of the AST to its file.
+ */
 class XMLPrinter : ASTVisitor
 {
     override void visit(const AddExpression addExpression)
@@ -1094,6 +1090,17 @@ class XMLPrinter : ASTVisitor
         output.writeln("<ddoc>", xmlEscape(comment), "</ddoc>");
     }
 
+	/**
+	 * File that output  is written to.
+	 */
     File output;
 }
 
+private:
+
+template tagAndAccept(string tagName)
+{
+    immutable tagAndAccept = `output.writeln("<` ~ tagName ~ `>");`
+        ~ tagName ~ `.accept(this);`
+        ~ `output.writeln("</` ~ tagName ~ `>");`;
+}
