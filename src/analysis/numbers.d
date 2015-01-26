@@ -30,6 +30,7 @@ public:
 
 	override void visit(const Token t)
 	{
+		import std.algorithm : startsWith;
 		if (isNumberLiteral(t.type) && !t.text.startsWith("0x")
 			&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex).empty)
 				|| !t.text.matchFirst(badDecimalRegex).empty))

@@ -43,8 +43,9 @@ class ImportPrinter : ASTVisitor
 
 	alias visit = ASTVisitor.visit;
 
-private:
-
+	/// Collected imports
 	RedBlackTree!string imports;
+
+private:
 	bool ignore = true;
 }

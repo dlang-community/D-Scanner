@@ -91,7 +91,6 @@ class XMLPrinter : ASTVisitor
             visit(asmInstruction.identifierOrIntegerOrOpcode);
         if (asmInstruction.operands !is null)
         {
-            stderr.writeln("operands is not null");
             visit(asmInstruction.operands);
         }
         output.writeln("</asmInstruction>");

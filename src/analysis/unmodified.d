@@ -108,17 +108,21 @@ class UnmodifiedFinder:BaseAnalyzer
 			dec.accept(this);
 	}
 
+	override void visit(const IdentifierChain ic)
+	{
+		if (ic.identifiers.length && interest > 0)
+			variableMightBeModified(ic.identifiers[0].text);
+		ic.accept(this);
+	}
+
 	override void visit(const IdentifierOrTemplateInstance ioti)
 	{
-//		import std.stdio : stderr;
-//		stderr.writeln(ioti.identifier.text, " ", ioti.identifier.line);
 		if (ioti.identifier != tok!"" && interest > 0)
-		{
 			variableMightBeModified(ioti.identifier.text);
-		}
 		ioti.accept(this);
 	}
 
+	mixin PartsMightModify!AsmPrimaryExp;
 	mixin PartsMightModify!IndexExpression;
 	mixin PartsMightModify!SliceExpression;
 	mixin PartsMightModify!FunctionCallExpression;
