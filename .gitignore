@@ -25,3 +25,6 @@ dscanner-report.json
 *.o
 *.obj
 *.exe
+
+#debug build
+dsc
