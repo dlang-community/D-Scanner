@@ -14,8 +14,12 @@ import std.stdio;
 import std.array;
 import std.conv;
 
-void doNothing(string, size_t, size_t, string, bool) {}
-
+/**
+ * Prints CTAGS information to the given file.
+ * Params:
+ *     outpt = the file that CTAGS info is written to
+ *     fileNames = tags will be generated from these files
+ */
 void printCtags(File output, string[] fileNames)
 {
 	string[] tags;
@@ -40,6 +44,10 @@ void printCtags(File output, string[] fileNames)
 			~ "!_TAG_PROGRAM_URL\thttps://github.com/Hackerpilot/Dscanner/\n");
 	tags.sort().copy(output.lockingTextWriter);
 }
+
+private:
+
+void doNothing(string, size_t, size_t, string, bool) {}
 
 class CTagsPrinter : ASTVisitor
 {

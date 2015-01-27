@@ -9,6 +9,9 @@ import std.d.ast;
 import std.stdio;
 import std.container;
 
+/**
+ * AST visitor that collects modules imported to an R-B tree.
+ */
 class ImportPrinter : ASTVisitor
 {
 	this()
@@ -38,9 +41,11 @@ class ImportPrinter : ASTVisitor
 		imports.insert(s);
 	}
 
-	RedBlackTree!string imports;
-
 	alias visit = ASTVisitor.visit;
 
+	/// Collected imports
+	RedBlackTree!string imports;
+
+private:
 	bool ignore = true;
 }

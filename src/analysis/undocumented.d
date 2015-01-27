@@ -43,16 +43,19 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 			}
 		}
 
-		bool shouldPop = false;
-		bool prevOverride = getOverride();
+		immutable bool shouldPop = dec.attributeDeclaration is null;
+		immutable bool prevOverride = getOverride();
 		bool ovr = false;
+		bool pushed = false;
 		foreach (attribute; dec.attributes)
 		{
-			shouldPop = dec.attributeDeclaration !is null;
 			if (isProtection(attribute.attribute.type))
 			{
 				if (shouldPop)
+				{
+					pushed = true;
 					push(attribute.attribute.type);
+				}
 				else
 					set(attribute.attribute.type);
 			}
@@ -62,7 +65,7 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 		if (ovr)
 			setOverride(true);
 		dec.accept(this);
-		if (shouldPop)
+		if (shouldPop && pushed)
 			pop();
 		if (ovr)
 			setOverride(prevOverride);
