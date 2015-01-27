@@ -119,11 +119,6 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const EnumDeclaration dec)
 	{
-		if (dec.name == tok!"")
-		{
-			dec.accept(this);
-			return;
-		}
 		tagLines ~= "%s\t%s\t%d;\"\tg%s\n".format(dec.name.text, fileName,
 			dec.name.line, context);
 		auto c = context;
@@ -145,6 +140,12 @@ class CTagsPrinter : ASTVisitor
 		context = "\tunion:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
+	}
+
+	override void visit(const AnonymousEnumMember mem)
+	{
+		tagLines ~= "%s\t%s\t%d;\"\te%s\n".format(mem.name.text, fileName,
+			mem.name.line, context);
 	}
 
 	override void visit(const EnumMember mem)
