@@ -194,7 +194,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const ClassDeclaration classDec)
     {
         output.writeln("<classDeclaration line=\"", classDec.name.line, "\">");
-        output.writeln("<name>", classDec.name.text, "</name>");
+        writeName(classDec.name.text);
         writeDdoc(classDec.comment);
         classDec.accept(this);
         output.writeln("</classDeclaration>");
@@ -263,7 +263,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const Declarator declarator)
     {
         output.writeln("<declarator line=\"", declarator.name.line, "\">");
-        output.writeln("<name>", declarator.name.text, "</name>");
+        writeName(declarator.name.text);
         writeDdoc(declarator.comment);
         declarator.accept(this);
         output.writeln("</declarator>");
@@ -282,10 +282,22 @@ class XMLPrinter : ASTVisitor
         output.writeln("<enumDeclaration line=\"", enumDec.name.line, "\">");
         writeDdoc(enumDec.comment);
         if (enumDec.name.type == tok!"identifier")
-            output.writeln("<name>", enumDec.name.text, "</name>");
+            writeName(enumDec.name.text);
         enumDec.accept(this);
         output.writeln("</enumDeclaration>");
     }
+
+	override void visit(const AnonymousEnumMember enumMember)
+	{
+		output.writeln("<anonymousEnumMember line=\"", enumMember.name.line, "\">");
+		writeDdoc(enumMember.comment);
+		if (enumMember.type !is null)
+			visit(enumMember.type);
+		output.write("<name>", enumMember.name.text, "</name>");
+		if (enumMember.assignExpression !is null)
+			visit(enumMember.assignExpression);
+		output.writeln("</anonymousEnumMember>");
+	}
 
     override void visit(const EnumMember enumMem)
     {
@@ -378,7 +390,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const FunctionDeclaration functionDec)
     {
         output.writeln("<functionDeclaration line=\"", functionDec.name.line, "\">");
-        output.writeln("<name>", functionDec.name.text, "</name>");
+        writeName(functionDec.name.text);
         writeDdoc(functionDec.comment);
         if (functionDec.hasAuto)
             output.writeln("<auto/>");
@@ -510,7 +522,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const InterfaceDeclaration interfaceDec)
     {
         output.writeln("<interfaceDeclaration line=\"", interfaceDec.name.line, "\">");
-        output.writeln("<name>", interfaceDec.name.text, "</name>");
+        writeName(interfaceDec.name.text);
         writeDdoc(interfaceDec.comment);
         interfaceDec.accept(this);
         output.writeln("</interfaceDeclaration>");
@@ -635,7 +647,7 @@ class XMLPrinter : ASTVisitor
     {
         output.writeln("<parameter>");
         if (param.name.type == tok!"identifier")
-            output.writeln("<name>", param.name.text, "</name>");
+            writeName(param.name.text);
         foreach (attribute; param.parameterAttributes)
         {
             output.writeln("<parameterAttribute>", str(attribute), "</parameterAttribute>");
@@ -732,7 +744,7 @@ class XMLPrinter : ASTVisitor
     override void visit(const StructDeclaration structDec)
     {
         output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
-        output.writeln("<name>", structDec.name.text, "</name>");
+        writeName(structDec.name.text);
         writeDdoc(structDec.comment);
         structDec.accept(this);
         output.writeln("</structDeclaration>");
@@ -778,7 +790,7 @@ class XMLPrinter : ASTVisitor
         writeDdoc(templateDeclaration.comment);
         output.writeln("<templateDeclaration line=\"",
             templateDeclaration.name.line, "\">");
-        output.writeln("<name>", templateDeclaration.name.text, "</name>");
+        writeName(templateDeclaration.name.text);
         visit(templateDeclaration.templateParameters);
         if (templateDeclaration.constraint !is null)
             visit(templateDeclaration.constraint);
@@ -910,7 +922,7 @@ class XMLPrinter : ASTVisitor
     {
         output.writeln("<unionDeclaration line=\"", unionDeclaration.name.line, "\">");
         if (unionDeclaration.name != tok!"")
-            output.writeln("<name>", unionDeclaration.name.text, "</name>");
+            writeName(unionDeclaration.name.text);
         if (unionDeclaration.templateParameters !is null)
             visit(unionDeclaration.templateParameters);
         if (unionDeclaration.constraint !is null)
@@ -952,6 +964,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AliasInitializer aliasInitializer) { mixin (tagAndAccept!"aliasInitializer"); }
     override void visit(const AliasThisDeclaration aliasThisDeclaration) { mixin (tagAndAccept!"aliasThisDeclaration"); }
+	override void visit(const AnonymousEnumDeclaration anonymousEnumDeclaration) { mixin (tagAndAccept!"anonymousEnumDeclaration"); }
     override void visit(const ArgumentList argumentList) { mixin (tagAndAccept!"argumentList"); }
     override void visit(const Arguments arguments) { mixin (tagAndAccept!"arguments"); }
     override void visit(const ArrayInitializer arrayInitializer) { mixin (tagAndAccept!"arrayInitializer"); }
@@ -1082,6 +1095,11 @@ class XMLPrinter : ASTVisitor
         return s.translate(['<' : "&lt;", '>' : "&gt;", '&' : "&amp;",
             '\"' : "&quot;", '\'' : "&apos;"]);
     }
+
+	private void writeName(string name)
+	{
+		output.write("<name>", name, "</name>");
+	}
 
     private void writeDdoc(string comment)
     {

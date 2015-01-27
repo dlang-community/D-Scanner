@@ -54,10 +54,14 @@ class FinderVisitor : ASTVisitor
 
 	override void visit(const EnumDeclaration dec)
 	{
-		if (dec.name == tok!"")
-			dec.accept(this);
-		else if (dec.name.text == symbolName)
+		if (dec.name.text == symbolName)
 			output.writefln("%s(%d:%d)", fileName, dec.name.line, dec.name.column);
+	}
+
+	override void visit(const AnonymousEnumMember member)
+	{
+		if (member.name.text == symbolName)
+			output.writefln("%s(%d:%d)", fileName, member.name.line, member.name.column);
 	}
 
 	override void visit(const EnumMember member)

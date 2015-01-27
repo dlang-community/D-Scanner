@@ -38,6 +38,21 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
+	override void visit(const AnonymousEnumMember enumMem)
+	{
+		printIndentation();
+		if (enumMem.type !is null)
+		{
+			auto app = appender!(char[])();
+			auto f = new Formatter!(typeof(app))(app);
+			f.format(enumMem.type);
+			output.writeln("enum ", app.data, " ", enumMem.name.text, " : ", enumMem.name.line);
+		}
+		else
+			output.writeln("enum ", enumMem.name.text, " : ", enumMem.name.line);
+		finish();
+	}
+
 	override void visit(const EnumMember enumMem)
 	{
 		printIndentation();
@@ -127,11 +142,7 @@ class Outliner : ASTVisitor
 				auto f = new Formatter!(typeof(app))(app);
 				f.format(variableDeclaration.type);
 			}
-			app.put(" ");
-			app.put(d.name.text);
-			app.put(" : ");
-			app.put(to!string(d.name.line));
-			output.writeln(app.data);
+			output.writeln(app.data, " ", d.name.text, " : ", d.name.line);
 		}
 		finish();
 	}
