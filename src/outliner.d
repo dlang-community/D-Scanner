@@ -147,6 +147,8 @@ class Outliner : ASTVisitor
 		finish();
 	}
 
+private:
+
 	void finish()
 	{
 		if (indentLevel == 0)
