@@ -28,3 +28,6 @@ dscanner-report.json
 
 #debug build
 dsc
+
+# Git hash
+githash.txt

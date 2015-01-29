@@ -16,21 +16,24 @@ all: dmdbuild
 ldc: ldcbuild
 gdc: gdcbuild
 
+githash:
+	git log -1 --format="%H" > githash.txt
+
 debug:
 	${DMD} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
-dmdbuild:
+dmdbuild: githash
 	mkdir -p bin
-	${DMD} -w -O -release -inline -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DMD} -w -O -release -inline -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 	rm -f bin/dscanner.o
 
-gdcbuild:
+gdcbuild: githash
 	mkdir -p bin
-	${GDC} -O3 -frelease -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${GDC} -O3 -frelease -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
-ldcbuild:
+ldcbuild: githash
 	mkdir -p bin
-	${LDC} -O5 -release -oq -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${LDC} -O5 -release -oq -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
 test:
 	@./test.sh

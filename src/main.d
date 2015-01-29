@@ -26,6 +26,7 @@ import outliner;
 import symbol_finder;
 import analysis.run;
 import analysis.config;
+import dscanner_version;
 
 import inifiled;
 
@@ -101,7 +102,10 @@ int run(string[] args)
 
 	if (printVersion)
 	{
-		writeln("v0.1.0");
+		version (Windows)
+			writeln(DSCANNER_VERSION);
+		else
+			write(DSCANNER_VERSION, " ", GIT_HASH);
 		return 0;
 	}
 
