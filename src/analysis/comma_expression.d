@@ -27,7 +27,7 @@ class CommaExpressionCheck : BaseAnalyzer
 	{
 		if (ex.items.length > 1)
 		{
-			addErrorMessage(ex.items[1].line, ex.items[1].column, KEY,
+			addErrorMessage(ex.line, ex.column, KEY,
 				"Avoid using the comma expression.");
 		}
 		ex.accept(this);
