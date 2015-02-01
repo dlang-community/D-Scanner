@@ -20,7 +20,7 @@ githash:
 	git log -1 --format="%H" > githash.txt
 
 debug:
-	${DMD} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DMD} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
 dmdbuild: githash
 	mkdir -p bin
