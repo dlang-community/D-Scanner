@@ -40,6 +40,7 @@ import analysis.comma_expression;
 import analysis.function_attributes;
 import analysis.local_imports;
 import analysis.unmodified;
+import analysis.if_statements;
 
 bool first = true;
 
@@ -112,8 +113,8 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 	writeln("}");
 }
 
-// For multiple files
-// Returns: true if there were errors
+/// For multiple files
+/// Returns: true if there were errors
 bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
 {
 	bool hasErrors = false;
@@ -187,6 +188,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName);
 	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
 	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName);
+	if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
 
 	foreach (check; checks)
 	{

@@ -83,4 +83,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for variables that could be declared immutable")
 	bool could_be_immutable_check = false; // disabled by default for now
+
+	@INI("Checks for redundant expressions in if statements")
+	bool redundant_if_check;
 }
