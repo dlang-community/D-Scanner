@@ -188,7 +188,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName);
 	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
 	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName);
-	if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
+	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
 
 	foreach (check; checks)
 	{
