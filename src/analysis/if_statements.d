@@ -21,7 +21,7 @@ class IfStatementCheck : BaseAnalyzer
 
 	override void visit(const IfStatement ifStatement)
 	{
-		import std.format : format;
+		import std.string : format;
 		import std.algorithm : sort, countUntil;
 		import std.array : appender;
 
@@ -72,7 +72,7 @@ private:
 	void redundancyCheck(const ExpressionNode expression, size_t line,
 		size_t column)
 	{
-		import std.format : format;
+		import std.string : format;
 		import std.array : appender;
 		import std.algorithm : sort;
 
