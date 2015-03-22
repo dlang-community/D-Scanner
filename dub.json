@@ -5,8 +5,10 @@
 	"authors": ["Brian Schott"],
 	"license" : "Boost Software License - Version 1.0",
 	"targetType": "executable",
+	"preBuildCommands": ["git log -1 --format='%H' > githash.txt"],
+	"stringImportPaths": ["."],
 	"dependencies": {
-		"libdparse": { "path": "libdparse/" },
-		"inifiled": { "path": "inifiled/" }
-	}
+		"libdparse": "~>0.2.0",
+		"inifiled": ">=0.0.3",
+	},
 }
