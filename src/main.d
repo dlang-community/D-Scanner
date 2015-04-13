@@ -61,6 +61,7 @@ int run(string[] args)
 	string symbolName;
 	string configLocation;
 	bool printVersion;
+	bool explore;
 
 	try
 	{
@@ -71,7 +72,7 @@ int run(string[] args)
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
 			"config", &configLocation, "report", &report,
-			"version", &printVersion, "muffinButton", &muffin);
+			"version", &printVersion, "muffinButton", &muffin, "explore", &explore);
 	}
 	catch (ConvException e)
 	{
@@ -92,6 +93,13 @@ int run(string[] args)
   |I|I|I|I|I|I|I|I|I|I|
   |I|I|I|I|I|I|I|I|I|I|`);
 		return 0;
+	}
+
+	if (explore)
+	{
+		stdout.writeln("D-Scanner: Scanning...");
+		stderr.writeln("D-Scanner: No new astronomical objects discovered.");
+		return 1;
 	}
 
 	if (help)
