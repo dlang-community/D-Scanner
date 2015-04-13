@@ -271,8 +271,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const Deprecated deprecated_)
     {
-        if (deprecated_.stringLiteral.type != tok!"")
-            output.writeln("<deprecated>", deprecated_.stringLiteral.text, "</deprecated>");
+        if (deprecated_.stringLiterals.length > 0)
+        {
+            output.writeln("<deprecated>");
+            foreach (literal; deprecated_.stringLiterals)
+                output.writeln("<stringLiteral>", xmlEscape(literal.text), "</stringLiteral>");
+            output.writeln("</deprecated>");
+        }
         else
             output.writeln("<deprecated/>");
     }
@@ -287,17 +292,17 @@ class XMLPrinter : ASTVisitor
         output.writeln("</enumDeclaration>");
     }
 
-	override void visit(const AnonymousEnumMember enumMember)
-	{
-		output.writeln("<anonymousEnumMember line=\"", enumMember.name.line, "\">");
-		writeDdoc(enumMember.comment);
-		if (enumMember.type !is null)
-			visit(enumMember.type);
-		output.write("<name>", enumMember.name.text, "</name>");
-		if (enumMember.assignExpression !is null)
-			visit(enumMember.assignExpression);
-		output.writeln("</anonymousEnumMember>");
-	}
+    override void visit(const AnonymousEnumMember enumMember)
+    {
+        output.writeln("<anonymousEnumMember line=\"", enumMember.name.line, "\">");
+        writeDdoc(enumMember.comment);
+        if (enumMember.type !is null)
+            visit(enumMember.type);
+        output.write("<name>", enumMember.name.text, "</name>");
+        if (enumMember.assignExpression !is null)
+            visit(enumMember.assignExpression);
+        output.writeln("</anonymousEnumMember>");
+    }
 
     override void visit(const EnumMember enumMem)
     {
@@ -964,7 +969,7 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AliasInitializer aliasInitializer) { mixin (tagAndAccept!"aliasInitializer"); }
     override void visit(const AliasThisDeclaration aliasThisDeclaration) { mixin (tagAndAccept!"aliasThisDeclaration"); }
-	override void visit(const AnonymousEnumDeclaration anonymousEnumDeclaration) { mixin (tagAndAccept!"anonymousEnumDeclaration"); }
+    override void visit(const AnonymousEnumDeclaration anonymousEnumDeclaration) { mixin (tagAndAccept!"anonymousEnumDeclaration"); }
     override void visit(const ArgumentList argumentList) { mixin (tagAndAccept!"argumentList"); }
     override void visit(const Arguments arguments) { mixin (tagAndAccept!"arguments"); }
     override void visit(const ArrayInitializer arrayInitializer) { mixin (tagAndAccept!"arrayInitializer"); }
@@ -1096,10 +1101,10 @@ class XMLPrinter : ASTVisitor
             '\"' : "&quot;", '\'' : "&apos;"]);
     }
 
-	private void writeName(string name)
-	{
-		output.write("<name>", name, "</name>");
-	}
+    private void writeName(string name)
+    {
+        output.write("<name>", name, "</name>");
+    }
 
     private void writeDdoc(string comment)
     {
@@ -1107,9 +1112,9 @@ class XMLPrinter : ASTVisitor
         output.writeln("<ddoc>", xmlEscape(comment), "</ddoc>");
     }
 
-	/**
-	 * File that output  is written to.
-	 */
+    /**
+     * File that output  is written to.
+     */
     File output;
 }
 
