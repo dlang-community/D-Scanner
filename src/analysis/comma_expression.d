@@ -9,8 +9,6 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 
-import std.stdio;
-
 /**
  * Check for uses of the comma expression.
  */
