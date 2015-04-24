@@ -18,6 +18,10 @@ class UnusedVariableCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	/**
+	 * Params:
+	 *     fileName = the name of the file being analyzed
+	 */
 	this(string fileName)
 	{
 		super(fileName);
@@ -52,18 +56,6 @@ class UnusedVariableCheck : BaseAnalyzer
 			inAggregateScope = ias;
 		}
 		popScope();
-	}
-
-//	override void visit(const Type type) {}
-
-	mixin template PartsUseVariables(NodeType)
-	{
-		override void visit(const NodeType node)
-		{
-			interestDepth++;
-			node.accept(this);
-			interestDepth--;
-		}
 	}
 
 	mixin PartsUseVariables!AliasInitializer;
@@ -326,6 +318,16 @@ class UnusedVariableCheck : BaseAnalyzer
 	}
 
 private:
+
+	mixin template PartsUseVariables(NodeType)
+	{
+		override void visit(const NodeType node)
+		{
+			interestDepth++;
+			node.accept(this);
+			interestDepth--;
+		}
+	}
 
 	void variableDeclared(string name, size_t line, size_t column,
 		bool isParameter, bool isRef)

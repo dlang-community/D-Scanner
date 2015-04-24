@@ -63,7 +63,8 @@ private:
 
 unittest
 {
-	import std.stdio;
+	import std.stdio:stderr;
+
 	LineSpans l;
 	l.addLine(5);
 	foreach (i; 2 .. 9)

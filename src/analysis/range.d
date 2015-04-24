@@ -19,8 +19,13 @@ class BackwardsRangeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	/// Key for this check in the report output
 	enum string KEY = "dscanner.bugs.backwards_slices";
 
+	/**
+	 * Params:
+	 *     fileName = the name of the file being analyzed
+	 */
 	this(string fileName)
 	{
 		super(fileName);
@@ -30,7 +35,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 	{
 		if (foreachStatement.low !is null && foreachStatement.high !is null)
 		{
-			import std.string;
+			import std.string : format;
 			state = State.left;
 			visit(foreachStatement.low);
 			state = State.right;
@@ -67,7 +72,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 
 	override void visit(const PrimaryExpression primary)
 	{
-		import std.conv;
+		import std.conv : to, ConvException;
 
 		if (state == State.ignore || !isNumberLiteral(primary.primary.type))
 			return;
@@ -99,7 +104,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 			state = State.ignore;
 			if (hasLeft && hasRight && left > right)
 			{
-				import std.string;
+				import std.string : format;
 				string message = format(
 					"%d is larger than %d. This slice is likely incorrect.",
 					left, right);

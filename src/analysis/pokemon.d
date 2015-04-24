@@ -84,7 +84,8 @@ class PokemonExceptionCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.exception_check = true;
 	assertAnalyzerWarnings(q{

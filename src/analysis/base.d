@@ -51,8 +51,6 @@ protected:
 		}
 	}
 
-	import core.vararg;
-
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
 		_messages.insert(Message(fileName, line, column, key, message));

@@ -156,7 +156,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
 	StaticAnalysisConfig sac;
 	sac.duplicate_attribute = true;
 	assertAnalyzerWarnings(q{

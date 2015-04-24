@@ -79,7 +79,8 @@ class IfElseSameCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.if_else_same_check = true;
 	assertAnalyzerWarnings(q{

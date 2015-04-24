@@ -91,7 +91,8 @@ private:
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.constructor_check = true;
 	assertAnalyzerWarnings(q{

@@ -93,7 +93,8 @@ class StyleChecker : BaseAnalyzer
 
 unittest
 {
-	import analysis.config;
+	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.style_check = true;
 

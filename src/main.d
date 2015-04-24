@@ -378,9 +378,9 @@ options:
         programName);
 }
 
-void doNothing(string, size_t, size_t, string, bool) {}
+private void doNothing(string, size_t, size_t, string, bool) {}
 
-enum CONFIG_FILE_NAME = "dscanner.ini";
+private enum CONFIG_FILE_NAME = "dscanner.ini";
 version(linux) version = useXDG;
 version(BSD) version = useXDG;
 version(FreeBSD) version = useXDG;
@@ -393,8 +393,7 @@ string getConfigurationLocation()
 {
 	version (useXDG)
 	{
-		int x;
-		import std.process;
+		import std.process : environment;
 		string configDir = environment.get("XDG_CONFIG_HOME", null);
 		if (configDir is null)
 		{
