@@ -19,15 +19,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	bool hasLeft;
-	bool hasRight;
-	long left;
-	long right;
-	size_t column;
-	size_t line;
-	enum State { ignore, left, right }
 	enum string KEY = "dscanner.bugs.backwards_slices";
-	State state = State.ignore;
 
 	this(string fileName)
 	{
@@ -40,9 +32,9 @@ class BackwardsRangeCheck : BaseAnalyzer
 		{
 			import std.string;
 			state = State.left;
-			foreachStatement.low.accept(this);
+			visit(foreachStatement.low);
 			state = State.right;
-			foreachStatement.high.accept(this);
+			visit(foreachStatement.high);
 			state = State.ignore;
 			if (hasLeft && hasRight && left > right)
 			{
@@ -96,29 +88,14 @@ class BackwardsRangeCheck : BaseAnalyzer
 		}
 	}
 
-	long parseNumber(string te)
-	{
-		import std.conv;
-		import std.string;
-		string t = te.removechars("_uUlL");
-		if (t.length > 2)
-		{
-			if (t[1] == 'x' || t[1] == 'X')
-				return to!long(t[2..$], 16);
-			if (t[1] == 'b' || t[1] == 'B')
-				return to!long(t[2..$], 2);
-		}
-		return to!long(t);
-	}
-
 	override void visit(const SliceExpression sliceExpression)
 	{
 		if (sliceExpression.lower !is null && sliceExpression.upper !is null)
 		{
 			state = State.left;
-			sliceExpression.lower.accept(this);
+			visit(sliceExpression.lower);
 			state = State.right;
-			sliceExpression.upper.accept(this);
+			visit(sliceExpression.upper);
 			state = State.ignore;
 			if (hasLeft && hasRight && left > right)
 			{
@@ -133,16 +110,45 @@ class BackwardsRangeCheck : BaseAnalyzer
 		}
 		sliceExpression.accept(this);
 	}
+
+private:
+	bool hasLeft;
+	bool hasRight;
+	long left;
+	long right;
+	size_t column;
+	size_t line;
+	enum State { ignore, left, right }
+	State state = State.ignore;
+
+	long parseNumber(string te)
+	{
+		import std.conv : to;
+		import std.string : removechars;
+		string t = te.removechars("_uUlL");
+		if (t.length > 2)
+		{
+			if (t[1] == 'x' || t[1] == 'X')
+				return to!long(t[2..$], 16);
+			if (t[1] == 'b' || t[1] == 'B')
+				return to!long(t[2..$], 2);
+		}
+		return to!long(t);
+	}
 }
 
 unittest
 {
-	import analysis.config;
+	import analysis.config:StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.backwards_range_check = true;
 	assertAnalyzerWarnings(q{
 		void testRange()
 		{
+			a = node.tupleof[2..T.length+1]; // ok
+			foreach (a; 10 .. j + 2) {} // ok
+
 			int[] data = [1, 2, 3, 4, 5];
 
 			data = data[1 .. 3]; // ok

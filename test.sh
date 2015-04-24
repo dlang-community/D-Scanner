@@ -9,7 +9,8 @@ dmd\
 	inifiled/source/*.d\
 	src/analysis/*.d\
 	-oftest\
-	-g -unittest
+	-g -unittest\
+	-J.
 
 ./test
 
