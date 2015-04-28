@@ -20,6 +20,7 @@ import std.d.parser;
 import highlighter;
 import stats;
 import ctags;
+import etags;
 import astprinter;
 import imports;
 import outliner;
@@ -47,6 +48,7 @@ int run(string[] args)
 	bool sloc;
 	bool highlight;
 	bool ctags;
+	bool etags;
 	bool help;
 	bool tokenCount;
 	bool syntaxCheck;
@@ -67,6 +69,7 @@ int run(string[] args)
 	{
 		getopt(args, std.getopt.config.caseSensitive, "sloc|l", &sloc,
 			"highlight", &highlight, "ctags|c", &ctags, "help|h", &help,
+			"etags|e", &etags,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
@@ -117,7 +120,7 @@ int run(string[] args)
 		return 0;
 	}
 
-	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
+	auto optionCount = count!"a"([sloc, highlight, ctags, etags, tokenCount,
 		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
 		report, symbolName !is null]);
 	if (optionCount > 1)
@@ -173,6 +176,10 @@ int run(string[] args)
 	else if (ctags)
 	{
 		stdout.printCtags(expandArgs(args));
+	}
+	else if (etags)
+	{
+		stdout.printEtags(expandArgs(args));
 	}
 	else if (styleCheck)
 	{
@@ -355,6 +362,11 @@ options:
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
         ctags information requires a filename, so stdin cannot be used in place
+        of a filename.
+
+    --etags | -e sourceFile
+        Generates etags information from the given source code file. Note that
+        etags information requires a filename, so stdin cannot be used in place
         of a filename.
 
     --ast | --xml sourceFile
