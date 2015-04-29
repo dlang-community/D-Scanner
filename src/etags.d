@@ -35,11 +35,12 @@ void printEtags(File output, string[] fileNames)
 		auto tokens = getTokensForParser(bytes, config, &cache);
 		Module m = parseModule(tokens.array, fileName, null, &doNothing);
 		auto printer = new EtagsPrinter;
+		printer.moduleName = m.moduleFullName(fileName);
 
 		// I think I like this
 		enum useModuleContext = true;
 		if (useModuleContext)
-			printer.context = m.moduleFullName(fileName) ~ ".";
+			printer.context = printer.moduleName ~ ".";
 		
 		printer.bytes = bytes.sansBOM;
 		printer.visit(m);
@@ -73,6 +74,16 @@ string moduleFullName(Module m, string fileName)
 
 class EtagsPrinter : ASTVisitor
 {
+	override void visit(const ModuleDeclaration dec)
+	{
+		auto tok0 = dec.moduleName.identifiers[0];
+		auto was = context;
+		context = "";
+		maketag(moduleName, tok0.index, tok0.line);
+		context = was;
+		dec.accept(this);
+	}
+
 	override void visit(const ClassDeclaration dec)
 	{
 		maketag(dec.name);
@@ -81,6 +92,11 @@ class EtagsPrinter : ASTVisitor
 
 	override void visit(const StructDeclaration dec)
 	{
+		if (dec.name == tok!"")
+		{
+			dec.accept(this);
+			return;
+		}
 		maketag(dec.name);
 		acceptInContext(dec, dec.name.text);
 	}
@@ -180,6 +196,23 @@ class EtagsPrinter : ASTVisitor
 		dec.accept(this);
 	}
 
+	override void visit(const AliasDeclaration dec)
+	{
+		// Old style alias
+		if (dec.identifierList)
+		{
+			foreach (i; dec.identifierList.identifiers)
+				maketag(i);
+		}
+		dec.accept(this);
+	}
+
+	override void visit(const AliasInitializer dec)
+	{
+		maketag(dec.name);
+		dec.accept(this);
+	}
+
 	override void visit(const Invariant dec)
 	{
 		maketag("invariant", dec.index, dec.line);
@@ -206,8 +239,7 @@ class EtagsPrinter : ASTVisitor
 
 		// tag is a searchable string from beginning of line
 		size_t b = index;
-		while (b > 0 && bytes[--b] != '\n') {}
-		++b;
+		while (b > 0 && bytes[b-1] != '\n') --b;
 
 		// tag end is one char beyond tag name
 		size_t e = index + text.length;
@@ -229,6 +261,7 @@ class EtagsPrinter : ASTVisitor
 	bool inUnittest;
 	bool inFunc;
 	ubyte[] bytes;
+	string moduleName;
 	string tags;
 	string context;
 }
