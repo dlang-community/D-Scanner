@@ -8,6 +8,7 @@ module analysis.enumarrayliteral;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import std.algorithm : canFind;
 
 void doNothing(string, size_t, size_t, string, bool) {}
 
@@ -29,7 +30,7 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 
 	override void visit(const AutoDeclaration autoDec)
 	{
-		if (autoDec.storageClass && autoDec.storageClass.token == tok!"enum")
+		if (autoDec.storageClasses.canFind!(a => a.token == tok!"enum"))
 		{
 			foreach (i, initializer; autoDec.initializers)
 			{

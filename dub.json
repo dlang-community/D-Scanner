@@ -8,7 +8,7 @@
 	"preBuildCommands": ["git log -1 --format='%H' > githash.txt"],
 	"stringImportPaths": ["."],
 	"dependencies": {
-		"libdparse": "~>0.2.0",
+		"libdparse": "0.2.1",
 		"inifiled": ">=0.0.3",
 	},
 }

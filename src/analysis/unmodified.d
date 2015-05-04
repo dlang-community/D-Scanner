@@ -66,11 +66,11 @@ class UnmodifiedFinder:BaseAnalyzer
 
 	override void visit(const AutoDeclaration autoDeclaration)
 	{
+		import std.algorithm : canFind;
+
 		if (blockStatementDepth > 0 && isImmutable <= 0
-			&& (autoDeclaration.storageClass !is null
-				&& autoDeclaration.storageClass.token != tok!"const"
-				&& autoDeclaration.storageClass.token != tok!"enum"
-				&& autoDeclaration.storageClass.token != tok!"immutable"))
+			&& (!autoDeclaration.storageClasses.canFind!(a => a.token == tok!"const"
+			|| a.token == tok!"enum" || a.token == tok!"immutable")))
 		{
 			foreach (size_t i, id; autoDeclaration.identifiers)
 			{
