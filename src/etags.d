@@ -199,18 +199,18 @@ class EtagsPrinter : ASTVisitor
 		maketag(name.text, name.index, name.line);
 	}
 	
-	void maketag(string text, ulong index, ulong line)
+	void maketag(string text, size_t index, ulong line)
 	{
 		// skip declaration in unittests and funcs
 		if (inUnittest || inFunc) return;
 
 		// tag is a searchable string from beginning of line
-		ulong b = index;
+		size_t b = index;
 		while (b > 0 && bytes[--b] != '\n') {}
 		++b;
 
 		// tag end is one char beyond tag name
-		ulong e = index + text.length;
+		size_t e = index + text.length;
 		if (e < bytes.length && bytes[e] != '\n') ++e;
 
 		auto tag = cast(char[])bytes[b..e];
