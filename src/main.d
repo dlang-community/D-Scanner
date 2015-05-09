@@ -49,6 +49,7 @@ int run(string[] args)
 	bool highlight;
 	bool ctags;
 	bool etags;
+	bool etagsAll;
 	bool help;
 	bool tokenCount;
 	bool syntaxCheck;
@@ -69,7 +70,7 @@ int run(string[] args)
 	{
 		getopt(args, std.getopt.config.caseSensitive, "sloc|l", &sloc,
 			"highlight", &highlight, "ctags|c", &ctags, "help|h", &help,
-			"etags|e", &etags,
+			"etags|e", &etags, "etagsAll", &etagsAll,
 			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
@@ -120,9 +121,9 @@ int run(string[] args)
 		return 0;
 	}
 
-	auto optionCount = count!"a"([sloc, highlight, ctags, etags, tokenCount,
+	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
 		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
-		report, symbolName !is null]);
+		report, symbolName !is null, etags, etagsAll]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -177,9 +178,9 @@ int run(string[] args)
 	{
 		stdout.printCtags(expandArgs(args));
 	}
-	else if (etags)
+	else if (etags || etagsAll)
 	{
-		stdout.printEtags(expandArgs(args));
+		stdout.printEtags(etagsAll, expandArgs(args));
 	}
 	else if (styleCheck)
 	{
@@ -368,6 +369,9 @@ options:
         Generates etags information from the given source code file. Note that
         etags information requires a filename, so stdin cannot be used in place
         of a filename.
+
+    --etagsAll sourceFile
+        Same as --etags except private and package declarations are tagged too.
 
     --ast | --xml sourceFile
         Generates an XML representation of the source files abstract syntax
