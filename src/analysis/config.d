@@ -51,6 +51,9 @@ struct StaticAnalysisConfig
 	@INI("Checks for unused variables and function parameters")
 	bool unused_variable_check;
 
+	@INI("Checks for unused labels")
+	bool unused_label_check;
+
 	@INI("Checks for duplicate attributes")
 	bool duplicate_attribute;
 

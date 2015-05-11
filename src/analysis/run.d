@@ -28,6 +28,7 @@ import analysis.range;
 import analysis.ifelsesame;
 import analysis.constructors;
 import analysis.unused;
+import analysis.unused_label;
 import analysis.duplicate_attribute;
 import analysis.opequals_without_tohash;
 import analysis.length_subtraction;
@@ -176,6 +177,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.backwards_range_check) checks ~= new BackwardsRangeCheck(fileName);
 	if (analysisConfig.if_else_same_check) checks ~= new IfElseSameCheck(fileName);
 	if (analysisConfig.constructor_check) checks ~= new ConstructorCheck(fileName);
+	if (analysisConfig.unused_label_check) checks ~= new UnusedLabelCheck(fileName);
 	if (analysisConfig.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
 	if (analysisConfig.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName);
 	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
