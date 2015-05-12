@@ -278,11 +278,13 @@ int run(string[] args)
 string[] expandArgs(string[] args)
 {
 	// isFile can throw if it's a broken symlink.
-	bool isFileSafe(T)(T a){
+	bool isFileSafe(T)(T a)
+	{
 		try{
 			return isFile(a);
 		}
-		catch{
+		catch(FileException)
+		{
 			return false;
 		}
 	}
