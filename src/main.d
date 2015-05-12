@@ -280,7 +280,8 @@ string[] expandArgs(string[] args)
 	// isFile can throw if it's a broken symlink.
 	bool isFileSafe(T)(T a)
 	{
-		try{
+		try
+		{
 			return isFile(a);
 		}
 		catch(FileException)
