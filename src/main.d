@@ -274,18 +274,32 @@ int run(string[] args)
 	return 0;
 }
 
+
 string[] expandArgs(string[] args)
 {
+	// isFile can throw if it's a broken symlink.
+	bool isFileSafe(T)(T a)
+	{
+		try
+		{
+			return isFile(a);
+		}
+		catch(FileException)
+		{
+			return false;
+		}
+	}
+	
 	string[] rVal;
 	if (args.length == 1)
 		args ~= ".";
 	foreach (arg; args[1 ..$])
 	{
-		if (isFile(arg))
+		if (isFileSafe(arg))
 			rVal ~= arg;
 		else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
 		{
-			if (isFile(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
+			if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
 				rVal ~= item;
 			else
 				continue;
