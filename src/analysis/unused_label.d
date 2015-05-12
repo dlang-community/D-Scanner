@@ -95,7 +95,8 @@ class UnusedLabelCheck : BaseAnalyzer
 			label.line = token.line;
 			label.column = token.column;
 		}
-		labeledStatement.declarationOrStatement.accept(this);
+		if (labeledStatement.declarationOrStatement !is null)
+			labeledStatement.declarationOrStatement.accept(this);
 	}
 
 	void labelUsed(string name)
@@ -165,6 +166,7 @@ unittest
 			}();
 		F: // [warn]: Label "F" is not used.
 			return x;
+		G: // [warn]: Label "G" is not used.
 		}
 	}c, sac);
 
