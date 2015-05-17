@@ -42,6 +42,7 @@ import analysis.function_attributes;
 import analysis.local_imports;
 import analysis.unmodified;
 import analysis.if_statements;
+import analysis.redundant_parens;
 
 bool first = true;
 
@@ -190,6 +191,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName);
 	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
 	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName);
+	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName);
 	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
 
 	foreach (check; checks)

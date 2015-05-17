@@ -89,4 +89,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for redundant expressions in if statements")
 	bool redundant_if_check;
+
+	@INI("Checks for redundant parenthesis")
+	bool redundant_parens_check;
 }
