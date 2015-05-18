@@ -26,7 +26,7 @@ debug:
 
 dmdbuild: githash
 	mkdir -p bin
-	${DMD}  -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${DMD} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 	rm -f bin/dscanner.o
 
 gdcbuild: githash
