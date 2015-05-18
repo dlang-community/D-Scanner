@@ -29,16 +29,29 @@ class RedundantParenCheck : BaseAnalyzer
 		unary = cast(UnaryExpression) statement.expression.items[0];
 		if (unary is null)
 			goto end;
-		visit(unary.primaryExpression);
+		if (unary.primaryExpression is null)
+			goto end;
+		if (unary.primaryExpression.expression is null)
+			goto end;
+		addErrorMessage(unary.primaryExpression.expression.line,
+			unary.primaryExpression.expression.column, KEY, "Redundant parenthesis");
 	end:
 		statement.accept(this);
 	}
 
 	override void visit(const PrimaryExpression primaryExpression)
 	{
-		if (primaryExpression is null)
-			goto end;
+		import std.stdio : stderr;
+
+		UnaryExpression unary;
 		if (primaryExpression.expression is null)
+			goto end;
+		unary = cast(UnaryExpression) primaryExpression.expression.items[0];
+		if (unary is null)
+			goto end;
+		if (unary.primaryExpression is null)
+			goto end;
+		if (unary.primaryExpression.expression is null)
 			goto end;
 		addErrorMessage(primaryExpression.expression.line,
 			primaryExpression.expression.column, KEY, "Redundant parenthesis");

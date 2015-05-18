@@ -11,6 +11,8 @@ SRC = src/*.d\
 INCLUDE_PATHS = -Ilibdparse/src
 VERSIONS =
 DEBUG_VERSIONS = -version=std_parser_verbose
+DMD_FLAGS = -w -O -release -inline
+#DMD_FLAGS = -w
 
 all: dmdbuild
 ldc: ldcbuild
@@ -24,7 +26,7 @@ debug:
 
 dmdbuild: githash
 	mkdir -p bin
-	${DMD} -w -O -release -inline -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${DMD}  -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 	rm -f bin/dscanner.o
 
 gdcbuild: githash
