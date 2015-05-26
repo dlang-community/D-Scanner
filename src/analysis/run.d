@@ -14,6 +14,8 @@ import std.array;
 import std.d.lexer;
 import std.d.parser;
 import std.d.ast;
+import std.allocator : CAllocatorImpl;
+import std.typecons:scoped;
 
 import analysis.config;
 import analysis.base;
@@ -43,6 +45,11 @@ import analysis.local_imports;
 import analysis.unmodified;
 import analysis.if_statements;
 import analysis.redundant_parens;
+
+import memory.allocators:BlockAllocator;
+
+import dsymbol.scope_;
+import dsymbol.conversion;
 
 bool first = true;
 
@@ -166,33 +173,36 @@ MessageSet analyze(string fileName, const Module m,
 	if (!staticAnalyze)
 		return null;
 
+	auto allocator = scoped!(CAllocatorImpl!(BlockAllocator!(1024 * 16)))();
+	const(Scope)* moduleScope = generateAutocompleteTrees(m, allocator);
+
 	BaseAnalyzer[] checks;
 
-	if (analysisConfig.style_check) checks ~= new StyleChecker(fileName);
-	if (analysisConfig.enum_array_literal_check) checks ~= new EnumArrayLiteralCheck(fileName);
-	if (analysisConfig.exception_check) checks ~= new PokemonExceptionCheck(fileName);
-	if (analysisConfig.delete_check) checks ~= new DeleteCheck(fileName);
-	if (analysisConfig.float_operator_check) checks ~= new FloatOperatorCheck(fileName);
-	if (analysisConfig.number_style_check) checks ~= new NumberStyleCheck(fileName);
-	if (analysisConfig.object_const_check) checks ~= new ObjectConstCheck(fileName);
-	if (analysisConfig.backwards_range_check) checks ~= new BackwardsRangeCheck(fileName);
-	if (analysisConfig.if_else_same_check) checks ~= new IfElseSameCheck(fileName);
-	if (analysisConfig.constructor_check) checks ~= new ConstructorCheck(fileName);
-	if (analysisConfig.unused_label_check) checks ~= new UnusedLabelCheck(fileName);
-	if (analysisConfig.unused_variable_check) checks ~= new UnusedVariableCheck(fileName);
-	if (analysisConfig.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName);
-	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName);
-	if (analysisConfig.length_subtraction_check) checks ~= new LengthSubtractionCheck(fileName);
-	if (analysisConfig.builtin_property_names_check) checks ~= new BuiltinPropertyNameCheck(fileName);
-	if (analysisConfig.asm_style_check) checks ~= new AsmStyleCheck(fileName);
-	if (analysisConfig.logical_precedence_check) checks ~= new LogicPrecedenceCheck(fileName);
-	if (analysisConfig.undocumented_declaration_check) checks ~= new UndocumentedDeclarationCheck(fileName);
-	if (analysisConfig.function_attribute_check) checks ~= new FunctionAttributeCheck(fileName);
-	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName);
-	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
-	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName);
-	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName);
-	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
+	if (analysisConfig.style_check) checks ~= new StyleChecker(fileName, moduleScope);
+	if (analysisConfig.enum_array_literal_check) checks ~= new EnumArrayLiteralCheck(fileName, moduleScope);
+	if (analysisConfig.exception_check) checks ~= new PokemonExceptionCheck(fileName, moduleScope);
+	if (analysisConfig.delete_check) checks ~= new DeleteCheck(fileName, moduleScope);
+	if (analysisConfig.float_operator_check) checks ~= new FloatOperatorCheck(fileName, moduleScope);
+	if (analysisConfig.number_style_check) checks ~= new NumberStyleCheck(fileName, moduleScope);
+	if (analysisConfig.object_const_check) checks ~= new ObjectConstCheck(fileName, moduleScope);
+	if (analysisConfig.backwards_range_check) checks ~= new BackwardsRangeCheck(fileName, moduleScope);
+	if (analysisConfig.if_else_same_check) checks ~= new IfElseSameCheck(fileName, moduleScope);
+	if (analysisConfig.constructor_check) checks ~= new ConstructorCheck(fileName, moduleScope);
+	if (analysisConfig.unused_label_check) checks ~= new UnusedLabelCheck(fileName, moduleScope);
+	if (analysisConfig.unused_variable_check) checks ~= new UnusedVariableCheck(fileName, moduleScope);
+	if (analysisConfig.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName, moduleScope);
+	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName, moduleScope);
+	if (analysisConfig.length_subtraction_check) checks ~= new LengthSubtractionCheck(fileName, moduleScope);
+	if (analysisConfig.builtin_property_names_check) checks ~= new BuiltinPropertyNameCheck(fileName, moduleScope);
+	if (analysisConfig.asm_style_check) checks ~= new AsmStyleCheck(fileName, moduleScope);
+	if (analysisConfig.logical_precedence_check) checks ~= new LogicPrecedenceCheck(fileName, moduleScope);
+	if (analysisConfig.undocumented_declaration_check) checks ~= new UndocumentedDeclarationCheck(fileName, moduleScope);
+	if (analysisConfig.function_attribute_check) checks ~= new FunctionAttributeCheck(fileName, moduleScope);
+	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName, moduleScope);
+	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName, moduleScope);
+	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName, moduleScope);
+	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName, moduleScope);
+	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName, moduleScope);
 
 	foreach (check; checks)
 	{

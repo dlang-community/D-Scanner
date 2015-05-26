@@ -11,6 +11,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_;
 
 /**
  * The following code should be killed with fire:
@@ -29,9 +30,9 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const FunctionDeclaration fd)

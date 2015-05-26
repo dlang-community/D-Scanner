@@ -10,6 +10,7 @@ import std.d.lexer;
 import analysis.base;
 import std.container;
 import std.regex : Regex, regex, matchAll;
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks for unused variables.
@@ -22,9 +23,9 @@ class UnusedVariableCheck : BaseAnalyzer
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 		re = regex("[\\p{Alphabetic}_][\\w_]*");
 	}
 

@@ -8,15 +8,14 @@ import std.d.ast;
 import std.d.lexer;
 import std.d.formatter;
 import analysis.base;
+import dsymbol.scope_ : Scope;
 
 class IfStatementCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		import std.container.binaryheap : heapify;
-
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const IfStatement ifStatement)

@@ -10,6 +10,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks for use of the deprecated floating point comparison operators.
@@ -20,9 +21,9 @@ class FloatOperatorCheck : BaseAnalyzer
 
 	enum string KEY = "dscanner.deprecated.floating_point_operators";
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const RelExpression r)

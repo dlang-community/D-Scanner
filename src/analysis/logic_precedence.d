@@ -10,6 +10,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_;
 
 /**
  * Checks for code with confusing && and || operator precedence
@@ -24,9 +25,9 @@ class LogicPrecedenceCheck : BaseAnalyzer
 
 	enum string KEY = "dscanner.confusing.logical_precedence";
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const OrOrExpression orOr)

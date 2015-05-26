@@ -4,10 +4,11 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 module analysis.unmodified;
 
+import analysis.base;
+import dsymbol.scope_ : Scope;
 import std.container;
 import std.d.ast;
 import std.d.lexer;
-import analysis.base;
 
 /**
  * Checks for variables that could have been declared const or immutable
@@ -17,9 +18,9 @@ class UnmodifiedFinder:BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 	///
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const Module mod)
@@ -41,7 +42,7 @@ class UnmodifiedFinder:BaseAnalyzer
 	override void visit(const StructBody structBody)
 	{
 		pushScope();
-		auto oldBlockStatementDepth = blockStatementDepth;
+		immutable oldBlockStatementDepth = blockStatementDepth;
 		blockStatementDepth = 0;
 		structBody.accept(this);
 		blockStatementDepth = oldBlockStatementDepth;

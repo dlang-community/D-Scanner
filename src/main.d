@@ -1,4 +1,4 @@
-//          Copyright Brian Schott (Hackerpilot) 2012.
+//          Copyright Brian Schott (Hackerpilot) 2012-2015.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -30,6 +30,8 @@ import analysis.config;
 import dscanner_version;
 
 import inifiled;
+
+import dsymbol.modulecache;
 
 int main(string[] args)
 {
@@ -65,6 +67,7 @@ int run(string[] args)
 	string configLocation;
 	bool printVersion;
 	bool explore;
+	string[] importPaths;
 
 	try
 	{
@@ -75,7 +78,7 @@ int run(string[] args)
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
-			"config", &configLocation, "report", &report,
+			"config", &configLocation, "report", &report, "I", &importPaths,
 			"version", &printVersion, "muffinButton", &muffin, "explore", &explore);
 	}
 	catch (ConvException e)
@@ -121,7 +124,13 @@ int run(string[] args)
 		return 0;
 	}
 
-	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
+	const(string[]) absImportPaths = importPaths.map!(
+		a => a.absolutePath().buildNormalizedPath()).array();
+
+	if (absImportPaths.length)
+		ModuleCache.addImportPaths(absImportPaths);
+
+	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
 		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
 		report, symbolName !is null, etags, etagsAll]);
 	if (optionCount > 1)
@@ -274,7 +283,6 @@ int run(string[] args)
 	return 0;
 }
 
-
 string[] expandArgs(string[] args)
 {
 	// isFile can throw if it's a broken symlink.
@@ -289,7 +297,7 @@ string[] expandArgs(string[] args)
 			return false;
 		}
 	}
-	
+
 	string[] rVal;
 	if (args.length == 1)
 		args ~= ".";

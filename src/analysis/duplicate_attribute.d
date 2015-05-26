@@ -11,6 +11,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_ : Scope;
 
 
 /**
@@ -21,9 +22,9 @@ class DuplicateAttributeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const Declaration node)

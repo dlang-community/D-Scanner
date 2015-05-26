@@ -7,12 +7,21 @@ SRC = src/*.d\
 	src/analysis/*.d\
 	libdparse/src/std/*.d\
 	libdparse/src/std/d/*.d\
-	inifiled/source/*.d
-INCLUDE_PATHS = -Ilibdparse/src
+	inifiled/source/*.d\
+	$(shell find dsymbol/src -name "*.d")\
+	containers/src/containers/ttree.d\
+	containers/src/containers/unrolledlist.d\
+	containers/src/containers/hashset.d\
+	containers/src/containers/internal/hash.d\
+	containers/src/containers/internal/node.d\
+	containers/src/containers/internal/storage_type.d\
+	containers/src/memory/allocators.d\
+	containers/src/memory/appender.d
+INCLUDE_PATHS = -Ilibdparse/src -Idsymbol/src -Icontainers/src
 VERSIONS =
 DEBUG_VERSIONS = -version=std_parser_verbose
-DMD_FLAGS = -w -O -release -inline
-#DMD_FLAGS = -w
+#DMD_FLAGS = -w -O -release -inline
+DMD_FLAGS = -w
 
 all: dmdbuild
 ldc: ldcbuild

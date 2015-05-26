@@ -11,6 +11,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks that opEquals, opCmp, toHash, and toString are either const,
@@ -20,9 +21,9 @@ class ObjectConstCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	mixin visitTemplate!ClassDeclaration;

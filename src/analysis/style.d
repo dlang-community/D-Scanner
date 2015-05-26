@@ -13,8 +13,8 @@ import std.array;
 import std.conv;
 import std.format;
 import analysis.helpers;
-
 import analysis.base;
+import dsymbol.scope_ : Scope;
 
 class StyleChecker : BaseAnalyzer
 {
@@ -25,9 +25,9 @@ class StyleChecker : BaseAnalyzer
 	enum string moduleNameRegex = `^[\p{Ll}_\d]+$`;
 	enum string KEY = "dscanner.style.phobos_naming_convention";
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const ModuleDeclaration dec)

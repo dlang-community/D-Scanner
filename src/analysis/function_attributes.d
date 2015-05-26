@@ -5,11 +5,11 @@
 
 module analysis.function_attributes;
 
+import analysis.base;
 import std.d.ast;
 import std.d.lexer;
-import analysis.base;
-
 import std.stdio;
+import dsymbol.scope_;
 
 /**
  * Prefer
@@ -25,9 +25,9 @@ class FunctionAttributeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const InterfaceDeclaration dec)
