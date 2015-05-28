@@ -45,6 +45,7 @@ import analysis.local_imports;
 import analysis.unmodified;
 import analysis.if_statements;
 import analysis.redundant_parens;
+import analysis.mismatched_args;
 
 import memory.allocators:BlockAllocator;
 
@@ -202,6 +203,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName, moduleScope);
 	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName, moduleScope);
 	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName, moduleScope);
+	if (analysisConfig.mismatched_args_check) checks ~= new MismatchedArgumentCheck(fileName, moduleScope);
 	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName, moduleScope);
 
 	foreach (check; checks)

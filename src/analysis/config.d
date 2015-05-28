@@ -92,4 +92,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for redundant parenthesis")
 	bool redundant_parens_check;
+
+	@INI("Checks for mismatched argument and parameter names")
+	bool mismatched_args_check;
 }
