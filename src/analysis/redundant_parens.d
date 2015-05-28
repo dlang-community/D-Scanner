@@ -21,9 +21,6 @@ class RedundantParenCheck : BaseAnalyzer
 
 	override void visit(const IfStatement statement)
 	{
-		import std.stdio : stderr;
-
-		stderr.writeln(__PRETTY_FUNCTION__);
 		UnaryExpression unary;
 		if (statement.expression is null || statement.expression.items.length != 1)
 			goto end;
@@ -42,8 +39,6 @@ class RedundantParenCheck : BaseAnalyzer
 
 	override void visit(const PrimaryExpression primaryExpression)
 	{
-		import std.stdio : stderr;
-
 		UnaryExpression unary;
 		if (primaryExpression.expression is null)
 			goto end;
