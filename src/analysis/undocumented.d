@@ -89,6 +89,15 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 		}
 	}
 
+	override void visit(const ConditionalDeclaration cond)
+	{
+		const VersionCondition ver = cond.compileCondition.versionCondition;
+		if (ver is null || ver.token != tok!"unittest" && ver.token.text != "none")
+			cond.accept(this);
+		else if (cond.falseDeclaration !is null)
+			visit(cond.falseDeclaration);
+	}
+
 	override void visit(const FunctionBody fb) {}
 	override void visit(const Unittest u) {}
 
