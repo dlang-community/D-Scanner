@@ -59,7 +59,7 @@ class UnmodifiedFinder:BaseAnalyzer
 				if (initializedFromCast(d.initializer))
 					continue;
 				tree[$ - 1].insert(new VariableInfo(d.name.text, d.name.line,
-					d.name.column));
+					d.name.column, isValueTypeSimple(dec.type)));
 			}
 		}
 		dec.accept(this);
@@ -89,7 +89,9 @@ class UnmodifiedFinder:BaseAnalyzer
 		if (assignExpression.operator != tok!"")
 		{
 			interest++;
+			guaranteeUse++;
 			assignExpression.ternaryExpression.accept(this);
+			guaranteeUse--;
 			interest--;
 			assignExpression.assignExpression.accept(this);
 		}
@@ -133,10 +135,13 @@ class UnmodifiedFinder:BaseAnalyzer
 	override void visit(const UnaryExpression unary)
 	{
 		if (unary.prefix == tok!"++" || unary.prefix == tok!"--"
-			|| unary.suffix == tok!"++" || unary.suffix == tok!"--")
+			|| unary.suffix == tok!"++" || unary.suffix == tok!"--"
+			|| unary.prefix == tok!"*" || unary.prefix == tok!"&")
 		{
 			interest++;
+			guaranteeUse++;
 			unary.accept(this);
+			guaranteeUse--;
 			interest--;
 		}
 		else
@@ -168,10 +173,14 @@ private:
 
 	void variableMightBeModified(string name)
 	{
-//		import std.stdio : stderr;
-//		stderr.writeln("Marking ", name, " as possibly modified");
 		size_t index = tree.length - 1;
 		auto vi = VariableInfo(name);
+		if (guaranteeUse == 0)
+		{
+			auto r = tree[index].equalRange(&vi);
+			if (!r.empty && r.front.isValueType)
+				return;
+		}
 		while (true)
 		{
 			if (tree[index].removeKey(&vi) != 0 || index == 0)
@@ -236,6 +245,7 @@ private:
 		string name;
 		size_t line;
 		size_t column;
+		bool isValueType;
 	}
 
 	void popScope()
@@ -260,8 +270,16 @@ private:
 
 	int interest;
 
+	int guaranteeUse;
+
 	int isImmutable;
 
 	RedBlackTree!(VariableInfo*, "a.name < b.name")[] tree;
 }
 
+bool isValueTypeSimple(const Type type) pure nothrow @nogc
+{
+	if (type.type2 is null)
+		return false;
+	return type.type2.builtinType != tok!"" && type.typeSuffixes.length == 0;
+}
