@@ -135,8 +135,9 @@ private:
 						}
 						else
 						{
-							addMessage(declaration.name.line, declaration.name.column,
-								declaration.name.text);
+							if (declaration.name.type != tok!"")
+								addMessage(declaration.name.line, declaration.name.column,
+									declaration.name.text);
 						}
 					}
 					else
