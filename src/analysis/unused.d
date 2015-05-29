@@ -1,8 +1,7 @@
-//          Copyright Brian Schott (Hackerpilot) 2014.
+//          Copyright Brian Schott (Hackerpilot) 2014-2015.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
-
 module analysis.unused;
 
 import std.d.ast;
@@ -278,7 +277,6 @@ class UnusedVariableCheck : BaseAnalyzer
 		import std.array : array;
 		if (parameter.name != tok!"")
 		{
-//			stderr.writeln("Adding parameter ", parameter.name.text);
 			immutable bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
 				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"in")
 				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"out");
@@ -398,4 +396,3 @@ private:
 
 	Regex!char re;
 }
-
