@@ -127,6 +127,7 @@ int run(string[] args)
 	const(string[]) absImportPaths = importPaths.map!(
 		a => a.absolutePath().buildNormalizedPath()).array();
 
+	ModuleCache.includeParameterSymbols = true;
 	if (absImportPaths.length)
 		ModuleCache.addImportPaths(absImportPaths);
 
