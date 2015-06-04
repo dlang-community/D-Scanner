@@ -9,6 +9,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 
+import std.regex : ctRegex, matchAll;
 import std.stdio;
 
 /**
@@ -38,9 +39,7 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 			if (isProtection(attr.attribute.type))
 				set(attr.attribute.type);
 			else if (attr.attribute == tok!"override")
-			{
 				setOverride(true);
-			}
 		}
 
 		immutable bool shouldPop = dec.attributeDeclaration is null;
@@ -92,7 +91,7 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 	override void visit(const ConditionalDeclaration cond)
 	{
 		const VersionCondition ver = cond.compileCondition.versionCondition;
-		if (ver is null || ver.token != tok!"unittest" && ver.token.text != "none")
+		if ((ver is null || ver.token != tok!"unittest") && ver.token.text != "none")
 			cond.accept(this);
 		else if (cond.falseDeclaration !is null)
 			visit(cond.falseDeclaration);
@@ -156,8 +155,7 @@ private:
 
 	static bool isGetterOrSetter(string name)
 	{
-		import std.algorithm:startsWith;
-		return name.startsWith("get") || name.startsWith("set");
+		return !matchAll(name, getSetRe).empty;
 	}
 
 	static bool isProperty(const FunctionDeclaration dec)
@@ -232,3 +230,5 @@ private immutable string[] ignoredFunctionNames = [
 	"toHash",
 	"main"
 ];
+
+private enum getSetRe = ctRegex!`^(?:get|set)(?:\p{Lu}|_).*`;
