@@ -153,6 +153,11 @@ class UnmodifiedFinder:BaseAnalyzer
 		foreachStatement.declarationOrStatement.accept(this);
 	}
 
+	override void visit(const TraitsExpression)
+	{
+		// Issue #266. Ignore everything inside of __traits expressions.
+	}
+
 private:
 
 	template PartsMightModify(T)

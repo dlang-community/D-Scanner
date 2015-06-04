@@ -316,6 +316,11 @@ class UnusedVariableCheck : BaseAnalyzer
 			variableUsed(primary.identifierChain.identifiers[0].text);
 	}
 
+	override void visit(const TraitsExpression)
+	{
+		// Issue #266. Ignore everything inside of __traits expressions.
+	}
+
 private:
 
 	mixin template PartsUseVariables(NodeType)
