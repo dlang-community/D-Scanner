@@ -277,7 +277,6 @@ class UnusedVariableCheck : BaseAnalyzer
 		import std.array : array;
 		if (parameter.name != tok!"")
 		{
-//			stderr.writeln("Adding parameter ", parameter.name.text);
 			immutable bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
 				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"in")
 				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"out");
@@ -334,13 +333,11 @@ private:
 	{
 		if (inAggregateScope)
 			return;
-//		stderr.writeln("Adding ", name, " ", isParameter, " ", isRef);
 		tree[$ - 1].insert(new UnUsed(name, line, column, isParameter, isRef));
 	}
 
 	void variableUsed(string name)
 	{
-//		writeln("Marking ", name, " used");
 		size_t treeIndex = tree.length - 1;
 		auto uu = UnUsed(name);
 		while (true)
