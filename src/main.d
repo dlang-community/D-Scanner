@@ -34,17 +34,8 @@ import inifiled;
 int main(string[] args)
 {
 	version (unittest)
-	{
 		return 0;
-	}
-	else
-	{
-		return run(args);
-	}
-}
 
-int run(string[] args)
-{
 	bool sloc;
 	bool highlight;
 	bool ctags;
@@ -289,7 +280,7 @@ string[] expandArgs(string[] args)
 			return false;
 		}
 	}
-	
+
 	string[] rVal;
 	if (args.length == 1)
 		args ~= ".";
