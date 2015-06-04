@@ -115,8 +115,11 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 	writeln("}");
 }
 
-/// For multiple files
-/// Returns: true if there were errors
+/**
+ * For multiple files
+ *
+ * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
+ */
 bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
 {
 	bool hasErrors = false;
@@ -129,10 +132,11 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticA
 		ParseAllocator p = new ParseAllocator;
 		StringCache cache = StringCache(StringCache.defaultBucketCount);
 		uint errorCount = 0;
+		uint warningCount = 0;
 		const Module m = parseModule(fileName, code, p, cache, false, null,
-			&errorCount, null);
+			&errorCount, &warningCount);
 		assert (m);
-		if (errorCount > 0)
+		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
 		MessageSet results = analyze(fileName, m, config, staticAnalyze);
 		if (results is null)
