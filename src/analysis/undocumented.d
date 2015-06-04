@@ -40,10 +40,18 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 				set(attr.attribute.type);
 			else if (attr.attribute == tok!"override")
 				setOverride(true);
+			else if (attr.deprecated_ !is null)
+				setDeprecated(true);
+			else if (attr.atAttribute !is null && attr.atAttribute.identifier.text == "disable")
+				setDisabled(true);
 		}
 
 		immutable bool shouldPop = dec.attributeDeclaration is null;
 		immutable bool prevOverride = getOverride();
+		immutable bool prevDisabled = getDisabled();
+		immutable bool prevDeprecated = getDeprecated();
+		bool dis = false;
+		bool dep = false;
 		bool ovr = false;
 		bool pushed = false;
 		foreach (attribute; dec.attributes)
@@ -60,14 +68,26 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 			}
 			else if (attribute.attribute == tok!"override")
 				ovr = true;
+			else if (attribute.deprecated_ !is null)
+				dep = true;
+			else if (attribute.atAttribute !is null && attribute.atAttribute.identifier.text == "disable")
+				dis = true;
 		}
 		if (ovr)
 			setOverride(true);
+		if (dis)
+			setDisabled(true);
+		if (dep)
+			setDeprecated(true);
 		dec.accept(this);
 		if (shouldPop && pushed)
 			pop();
 		if (ovr)
 			setOverride(prevOverride);
+		if (dis)
+			setDisabled(prevDisabled);
+		if (dep)
+			setDeprecated(prevDeprecated);
 	}
 
 	override void visit(const VariableDeclaration variable)
@@ -99,6 +119,7 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 
 	override void visit(const FunctionBody fb) {}
 	override void visit(const Unittest u) {}
+	override void visit(const TraitsExpression t) {}
 
 	mixin V!ClassDeclaration;
 	mixin V!InterfaceDeclaration;
@@ -188,9 +209,30 @@ private:
 		stack[$ - 1].isOverride = o;
 	}
 
+	bool getDisabled()
+	{
+		return stack[$ - 1].isDisabled;
+	}
+
+	void setDisabled(bool d = true)
+	{
+		stack[$ - 1].isDisabled = d;
+	}
+
+	bool getDeprecated()
+	{
+		return stack[$ - 1].isDeprecated;
+	}
+
+	void setDeprecated(bool d = true)
+	{
+		stack[$ - 1].isDeprecated = d;
+	}
+
 	bool currentIsInteresting()
 	{
-		return stack[$ - 1].protection == tok!"public" && !(stack[$ - 1].isOverride);
+		return stack[$ - 1].protection == tok!"public" && !stack[$ - 1].isOverride
+			&& !stack[$ - 1].isDisabled && !stack[$ - 1].isDeprecated;
 	}
 
 	void set(IdType p)
@@ -217,6 +259,8 @@ private:
 	{
 		IdType protection;
 		bool isOverride;
+		bool isDeprecated;
+		bool isDisabled;
 	}
 
 	ProtectionInfo[] stack;
