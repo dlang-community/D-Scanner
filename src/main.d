@@ -34,17 +34,8 @@ import inifiled;
 int main(string[] args)
 {
 	version (unittest)
-	{
 		return 0;
-	}
-	else
-	{
-		return run(args);
-	}
-}
 
-int run(string[] args)
-{
 	bool sloc;
 	bool highlight;
 	bool ctags;
@@ -191,11 +182,11 @@ int run(string[] args)
 		if (report)
 			generateReport(expandArgs(args), config);
 		else
-			analyze(expandArgs(args), config, true);
+			return analyze(expandArgs(args), config, true) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(expandArgs(args));
+		return .syntaxCheck(expandArgs(args)) ? 1 : 0;
 	}
 	else
 	{
@@ -274,6 +265,7 @@ int run(string[] args)
 	return 0;
 }
 
+private:
 
 string[] expandArgs(string[] args)
 {
@@ -289,7 +281,7 @@ string[] expandArgs(string[] args)
 			return false;
 		}
 	}
-	
+
 	string[] rVal;
 	if (args.length == 1)
 		args ~= ".";
@@ -368,11 +360,13 @@ options:
     --syntaxCheck | -s [sourceFile]
         Lexes and parses sourceFile, printing the line and column number of any
         syntax errors to stdout. One error or warning is printed per line.
-        If no files are specified, input is read from stdin.
+        If no files are specified, input is read from stdin. %1$s will exit with
+        a status code of zero if no errors are found, 1 otherwise.
 
     --styleCheck | -S [sourceFiles]
         Lexes and parses sourceFiles, printing the line and column number of any
-        static analysis check failures stdout.
+        static analysis check failures stdout. %1$s will exit with a status code
+        of zero if no warnings or errors are found, 1 otherwise.
 
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
@@ -397,7 +391,9 @@ options:
         current working directory if none are specified.
 
     --report [sourceFiles sourceDirectories]
-        Generate a static analysis report in JSON format. Implies --styleCheck.
+        Generate a static analysis report in JSON format. Implies --styleCheck,
+        however the exit code will still be zero if errors or warnings are
+        found.
 
     --config configFile
         Use the given configuration file instead of the default located in
