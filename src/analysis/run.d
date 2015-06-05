@@ -43,6 +43,7 @@ import analysis.local_imports;
 import analysis.unmodified;
 import analysis.if_statements;
 import analysis.redundant_parens;
+import analysis.label_var_same_name_check;
 
 bool first = true;
 
@@ -196,6 +197,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
 	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName);
 	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName);
+	if (analysisConfig.label_var_same_name_check) checks ~= new LabelVarNameCheck(fileName);
 	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
 
 	foreach (check; checks)
