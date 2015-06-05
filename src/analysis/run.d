@@ -43,6 +43,7 @@ import analysis.local_imports;
 import analysis.unmodified;
 import analysis.if_statements;
 import analysis.redundant_parens;
+import analysis.label_var_same_name_check;
 
 bool first = true;
 
@@ -115,8 +116,11 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 	writeln("}");
 }
 
-/// For multiple files
-/// Returns: true if there were errors
+/**
+ * For multiple files
+ *
+ * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
+ */
 bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
 {
 	bool hasErrors = false;
@@ -129,10 +133,11 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticA
 		ParseAllocator p = new ParseAllocator;
 		StringCache cache = StringCache(StringCache.defaultBucketCount);
 		uint errorCount = 0;
+		uint warningCount = 0;
 		const Module m = parseModule(fileName, code, p, cache, false, null,
-			&errorCount, null);
+			&errorCount, &warningCount);
 		assert (m);
-		if (errorCount > 0)
+		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
 		MessageSet results = analyze(fileName, m, config, staticAnalyze);
 		if (results is null)
@@ -192,6 +197,7 @@ MessageSet analyze(string fileName, const Module m,
 	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName);
 	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName);
 	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName);
+	if (analysisConfig.label_var_same_name_check) checks ~= new LabelVarNameCheck(fileName);
 	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName);
 
 	foreach (check; checks)

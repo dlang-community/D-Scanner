@@ -53,8 +53,8 @@ class CTagsPrinter : ASTVisitor
 {
 	override void visit(const ClassDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tc%s\n".format(dec.name.text, fileName, dec.name.line, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\tc\tline:%d%s\n".format(dec.name.text, fileName, dec.name.line, dec.name.line, context);
+		const c = context;
 		context = "\tclass:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -62,8 +62,8 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const StructDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\ts%s\n".format(dec.name.text, fileName, dec.name.line, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\ts\tline:%d%s\n".format(dec.name.text, fileName, dec.name.line, dec.name.line, context);
+		const c = context;
 		context = "\tstruct:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -71,8 +71,8 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const InterfaceDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\ti%s\n".format(dec.name.text, fileName, dec.name.line, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\ti\tline:%d%s\n".format(dec.name.text, fileName, dec.name.line, dec.name.line, context);
+		const c = context;
 		context = "\tclass:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -80,8 +80,8 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const TemplateDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tT%s\n".format(dec.name.text, fileName, dec.name.line, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\tT\tline:%d%s\n".format(dec.name.text, fileName, dec.name.line, dec.name.line, context);
+		const c = context;
 		context = "\ttemplate:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -89,9 +89,9 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const FunctionDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tf\tarity:%d%s\n".format(dec.name.text, fileName,
-			dec.name.line, dec.parameters.parameters.length, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\tf\tarity:%d\tline:%d%s\n".format(dec.name.text, fileName,
+			dec.name.line, dec.parameters.parameters.length, dec.name.line, context);
+		const c = context;
 		context = "\tfunction:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -99,9 +99,9 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const Constructor dec)
 	{
-		tagLines ~= "this\t%s\t%d;\"\tf\tarity:%d%s\n".format(fileName,
-			dec.line, dec.parameters.parameters.length, context);
-		auto c = context;
+		tagLines ~= "this\t%s\t%d;\"\tf\tarity:%d\tline:%d%s\n".format(fileName,
+			dec.line, dec.parameters.parameters.length, dec.line, context);
+		const c = context;
 		context = "\tfunction: this";
 		dec.accept(this);
 		context = c;
@@ -109,9 +109,9 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const Destructor dec)
 	{
-		tagLines ~= "~this\t%s\t%d;\"\tf%s\n".format(fileName, dec.line,
-			context);
-		auto c = context;
+		tagLines ~= "~this\t%s\t%d;\"\tf\tline:%d%s\n".format(fileName, dec.line,
+			dec.line, context);
+		const c = context;
 		context = "\tfunction: this";
 		dec.accept(this);
 		context = c;
@@ -119,9 +119,9 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const EnumDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tg%s\n".format(dec.name.text, fileName,
-			dec.name.line, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\tg\tline:%d%s\n".format(dec.name.text, fileName,
+			dec.name.line, dec.name.line, context);
+		const c = context;
 		context = "\tenum:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -134,9 +134,9 @@ class CTagsPrinter : ASTVisitor
 			dec.accept(this);
 			return;
 		}
-		tagLines ~= "%s\t%s\t%d;\"\tu%s\n".format(dec.name.text, fileName,
-			dec.name.line, context);
-		auto c = context;
+		tagLines ~= "%s\t%s\t%d;\"\tu\tline:%d%s\n".format(dec.name.text, fileName,
+			dec.name.line, dec.name.line, context);
+		const c = context;
 		context = "\tunion:" ~ dec.name.text;
 		dec.accept(this);
 		context = c;
@@ -144,22 +144,22 @@ class CTagsPrinter : ASTVisitor
 
 	override void visit(const AnonymousEnumMember mem)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\te%s\n".format(mem.name.text, fileName,
-			mem.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text, fileName,
+			mem.name.line, mem.name.line, context);
 	}
 
 	override void visit(const EnumMember mem)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\te%s\n".format(mem.name.text, fileName,
-			mem.name.line, context);
+		tagLines ~= "%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text, fileName,
+			mem.name.line, mem.name.line, context);
 	}
 
 	override void visit(const VariableDeclaration dec)
 	{
 		foreach (d; dec.declarators)
 		{
-			tagLines ~= "%s\t%s\t%d;\"\tv%s\n".format(d.name.text, fileName,
-				d.name.line, context);
+			tagLines ~= "%s\t%s\t%d;\"\tv\tline:%d%s\n".format(d.name.text, fileName,
+				d.name.line, d.name.line, context);
 		}
 		dec.accept(this);
 	}
@@ -168,15 +168,15 @@ class CTagsPrinter : ASTVisitor
 	{
 		foreach (i; dec.identifiers)
 		{
-			tagLines ~= "%s\t%s\t%d;\"\tv%s\n".format(i.text, fileName,
-				i.line, context);
+			tagLines ~= "%s\t%s\t%d;\"\tv\tline:%d%s\n".format(i.text, fileName,
+				i.line, i.line, context);
 		}
 		dec.accept(this);
 	}
 
 	override void visit(const Invariant dec)
 	{
-		tagLines ~= "invariant\t%s\t%d;\"\tv%s\n".format(fileName, dec.line, context);
+		tagLines ~= "invariant\t%s\t%d;\"\tv\tline:%d%s\n".format(fileName, dec.line, dec.line, context);
 	}
 
 	alias visit = ASTVisitor.visit;
