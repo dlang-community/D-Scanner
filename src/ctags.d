@@ -19,7 +19,7 @@ import std.typecons;
  * Prints CTAGS information to the given file.
  * Includes metadata according to exuberant format used by Vim.
  * Params:
- *     outpt = the file that Exuberant TAGS info is written to
+ *     output = the file that Exuberant TAGS info is written to
  *     fileNames = tags will be generated from these files
  */
 void printCtags(File output, string[] fileNames)
@@ -49,13 +49,15 @@ void printCtags(File output, string[] fileNames)
 
 private:
 
-/// States determining how an access modifier affects the parsning.
-/// Reset, when ascending the AST reset back to the previous access.
-/// Keep, when ascending the AST keep the new access.
+/// States determining how an access modifier affects tags when traversing the
+/// AST.
+/// The assumption is that there are fewer AST nodes and patterns that affects
+/// the whole scope.
+/// Therefor the default was chosen to be Reset.
 enum AccessState
 {
-	Reset,
-	Keep
+	Reset, /// when ascending the AST reset back to the previous access.
+	Keep /// when ascending the AST keep the new access.
 }
 
 alias ContextType = Tuple!(string, "c", string, "access");
@@ -71,17 +73,13 @@ string paramsToString(Dec)(const Dec dec)
 	auto app = appender!string();
 	auto formatter = new Formatter!(typeof(app))(app);
 
-	static if (is(Dec == FunctionDeclaration))
+	static if (is(Dec == FunctionDeclaration) || is(Dec == Constructor))
 	{
 		formatter.format(dec.parameters);
 	}
 	else static if (is(Dec == TemplateDeclaration))
 	{
 		formatter.format(dec.templateParameters);
-	}
-	else static if (is(Dec == Constructor))
-	{
-		formatter.format(dec.parameters);
 	}
 
 	return app.data;
@@ -282,10 +280,11 @@ final class CTagsPrinter
 
 	override void visit(const Unittest dec)
 	{
-		// skipping symbols inside a unit test.
-		//TODO investigate if it would be useful to show the unittests that was
-		//found when std.experimental.unittest is released. Could be possible
-		//to then use the UDA to show the unittest with a "name".
+		// skipping symbols inside a unit test to not clutter the ctags file
+		// with "temporary" symbols.
+		// TODO when phobos have a unittest library investigate how that could
+		// be used to describe the tests.
+		// Maybe with UDA's to give the unittest a "name".
 	}
 
 	override void visit(const AliasDeclaration dec)
