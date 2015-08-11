@@ -3,12 +3,16 @@
 DMD = dmd
 GDC = gdc
 LDC = ldc2
+experimental_allocator_D = libdparse/experimental_allocator/src/
+allocator_D = ${experimental_allocator_D}/std/experimental/allocator/
 SRC = src/*.d\
 	src/analysis/*.d\
 	libdparse/src/std/*.d\
 	libdparse/src/std/d/*.d\
-	inifiled/source/*.d
-INCLUDE_PATHS = -Ilibdparse/src
+	inifiled/source/*.d\
+	${allocator_D}/*.d\
+	${allocator_D}/building_blocks/*.d
+INCLUDE_PATHS = -Ilibdparse/src -I${experimental_allocator_D}
 VERSIONS =
 DEBUG_VERSIONS = -version=std_parser_verbose
 DMD_FLAGS = -w -O -release -inline
