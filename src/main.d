@@ -222,11 +222,11 @@ int main(string[] args)
 		}
 		else if (imports)
 		{
-			const string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
+			string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
 			LexerConfig config;
 			config.stringBehavior = StringBehavior.source;
 			auto visitor = new ImportPrinter;
-			foreach (name; fileNames)
+			foreach (name; expandArgs(fileNames))
 			{
 				config.fileName = name;
 				auto tokens = getTokensForParser(
