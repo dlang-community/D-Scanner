@@ -31,11 +31,11 @@ import dscanner_version;
 
 import inifiled;
 
+version (unittest)
+void main() {}
+else
 int main(string[] args)
 {
-	version (unittest)
-		return 0;
-
 	bool sloc;
 	bool highlight;
 	bool ctags;
