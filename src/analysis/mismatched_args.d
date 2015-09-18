@@ -5,15 +5,16 @@ import dsymbol.scope_;
 import dsymbol.symbol;
 import std.d.ast;
 import std.d.lexer : tok;
+import dsymbol.builtin.names;
 
 /// Checks for mismatched argument and parameter names
 final class MismatchedArgumentCheck : BaseAnalyzer
 {
 	///
-    this(string fileName, const Scope* sc)
-    {
-        super(fileName, sc);
-    }
+	this(string fileName, const Scope* sc)
+	{
+		super(fileName, sc);
+	}
 
 	override void visit(const FunctionCallExpression fce)
 	{
@@ -30,10 +31,11 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 		auto identVisitor = scoped!IdentVisitor;
 		identVisitor.visit(fce.unaryExpression);
 
-		const(DSymbol)* sym = resolveSymbol(sc, identVisitor.names);
+		const(DSymbol)* sym = resolveSymbol(sc,
+			identVisitor.names.length > 0 ? identVisitor.names : [CONSTRUCTOR_SYMBOL_NAME]);
 		const istring[] params = sym is null ? [] : sym.opSlice().map!(a => cast() a.name).array();
 		const ArgMismatch[] mismatches = compareArgsToParams(params, args);
-		foreach(size_t i, ref const mm; mismatches)
+		foreach (size_t i, ref const mm; mismatches)
 			addErrorMessage(argVisitor.lines[i], argVisitor.columns[i], KEY,
 				createWarningFromMismatch(mm));
 	}
@@ -90,8 +92,8 @@ final class ArgVisitor : ASTVisitor
 		}
 	}
 
-    override void visit(const UnaryExpression unary)
-    {
+	override void visit(const UnaryExpression unary)
+	{
 		import dsymbol.string_interning : internString;
 
 		if (unary.primaryExpression is null)
@@ -104,18 +106,18 @@ final class ArgVisitor : ASTVisitor
 		lines ~= t.line;
 		columns ~= t.column;
 		args ~= internString(t.text);
-    }
+	}
 
 	alias visit = ASTVisitor.visit;
 
 	size_t[] lines;
 	size_t[] columns;
-    istring[] args;
+	istring[] args;
 }
 
 const(DSymbol)* resolveSymbol(const Scope* sc, const istring[] symbolChain)
 {
-	import std.array:empty;
+	import std.array : empty;
 
 	const(DSymbol)*[] s = sc.getSymbolsByName(symbolChain[0]);
 	if (s.empty)
@@ -124,7 +126,8 @@ const(DSymbol)* resolveSymbol(const Scope* sc, const istring[] symbolChain)
 	const(DSymbol)* sym = s[0];
 	foreach (i; 1 .. symbolChain.length)
 	{
-		if (sym.kind == CompletionKind.variableName || sym.kind == CompletionKind.memberVariableName
+		if (sym.kind == CompletionKind.variableName
+				|| sym.kind == CompletionKind.memberVariableName
 				|| sym.kind == CompletionKind.functionName)
 			sym = sym.type;
 		if (sym is null)
@@ -139,62 +142,62 @@ const(DSymbol)* resolveSymbol(const Scope* sc, const istring[] symbolChain)
 
 struct ArgMismatch
 {
-    size_t argIndex;
-    size_t paramIndex;
+	size_t argIndex;
+	size_t paramIndex;
 	string name;
 }
 
 const(ArgMismatch[]) compareArgsToParams(const istring[] params, const istring[] args) pure
 {
-	if(args.length != params.length)
+	if (args.length != params.length)
 		return [];
-    ArgMismatch[] retVal;
-    foreach (i, arg; args)
-    {
-        if (arg is null || arg == params[i])
-            continue;
-        foreach (j, param; params)
-            if (param == arg)
+	ArgMismatch[] retVal;
+	foreach (i, arg; args)
+	{
+		if (arg is null || arg == params[i])
+			continue;
+		foreach (j, param; params)
+			if (param == arg)
 				retVal ~= ArgMismatch(i, j, arg);
-    }
-    return retVal;
+	}
+	return retVal;
 }
 
 string createWarningFromMismatch(const ArgMismatch mismatch) pure
 {
-    import std.format : format;
+	import std.format : format;
 
-    return "Argument %d is named '%s', but this is the name of parameter %d"
-        .format(mismatch.argIndex + 1, mismatch.name, mismatch.paramIndex + 1);
+	return "Argument %d is named '%s', but this is the name of parameter %d".format(
+		mismatch.argIndex + 1, mismatch.name, mismatch.paramIndex + 1);
 }
 
 unittest
 {
-    {
-        string[] args = ["a", "b", "c"];
-        string[] params = ["a", "b", "c"];
-        immutable res = compareArgsToParams(params, args);
-        assert(res == []);
-    }
+	{
+		string[] args = ["a", "b", "c"];
+		string[] params = ["a", "b", "c"];
+		immutable res = compareArgsToParams(params, args);
+		assert(res == []);
+	}
 
-    {
-        string[] args = ["a", "c", "b"];
-        string[] params = ["a", "b", "c"];
-        immutable res = compareArgsToParams(params, args);
-        assert(res == [ArgMismatch(1, 2), ArgMismatch(2, 1)]);
-    }
+	{
+		string[] args = ["a", "c", "b"];
+		string[] params = ["a", "b", "c"];
+		immutable res = compareArgsToParams(params, args);
+		assert(res == [ArgMismatch(1, 2), ArgMismatch(2, 1)]);
+	}
 
-    {
-        string[] args = ["a", "c", "b"];
-        string[] params = ["alpha", "bravo", "c"];
-        immutable res = compareArgsToParams(params, args);
-        assert(res == [ArgMismatch(1, 2)]);
-    }
+	{
+		string[] args = ["a", "c", "b"];
+		string[] params = ["alpha", "bravo", "c"];
+		immutable res = compareArgsToParams(params, args);
+		assert(res == [ArgMismatch(1, 2)]);
+	}
 
-    {
-        string[] args = ["a", "b"];
-        string[] params = [null, "b"];
-        immutable res = compareArgsToParams(params, args);
-        assert(res == []);
-    }
+	{
+		string[] args = ["a", "b"];
+		string[] params = [null, "b"];
+		immutable res = compareArgsToParams(params, args);
+		assert(res == []);
+	}
 }

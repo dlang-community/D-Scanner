@@ -19,7 +19,7 @@ INCLUDE_PATHS = \
 	-Idsymbol/src -Icontainers/src
 VERSIONS =
 DEBUG_VERSIONS = -version=std_parser_verbose
-DMD_FLAGS = -w -O -inline -J. -od${OBJ_DIR}
+DMD_FLAGS = -w -O -inline -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
 DMD_TEST_FLAGS = -w -g -unittest -J.
 
 all: dmdbuild
