@@ -30,7 +30,7 @@ githash:
 	git log -1 --format="%H" > githash.txt
 
 debug:
-	${DC} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DC} -w -g -J. -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild: githash $(SRC)
 	mkdir -p bin

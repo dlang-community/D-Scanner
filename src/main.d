@@ -118,7 +118,7 @@ int main(string[] args)
 	const(string[]) absImportPaths = importPaths.map!(
 		a => a.absolutePath().buildNormalizedPath()).array();
 
-	ModuleCache moduleCache;
+	auto moduleCache = ModuleCache(new dsymbol.modulecache.ASTAllocator);
 
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);

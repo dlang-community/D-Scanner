@@ -59,7 +59,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 	ParseAllocator p = new ParseAllocator;
 	const(Module) m = parseModule(file, cast(ubyte[]) code, p, cache, false);
 
-	ModuleCache moduleCache;
+	auto moduleCache = ModuleCache(p);
 
 	// Run the code and get any warnings
 	MessageSet rawWarnings = analyze("test", m, config, moduleCache);
