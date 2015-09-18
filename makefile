@@ -45,7 +45,7 @@ ldcbuild: githash
 	mkdir -p bin
 	${LDC} -O5 -release -oq -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
-test:
+test: githash
 	${DC} -w -g -J. -unittest ${INCLUDE_PATHS} ${SRC} -ofbin/dscanner-unittest -version=StdLoggerDisableWarning
 	./bin/dscanner-unittest
 	rm -f bin/dscanner-unittest
