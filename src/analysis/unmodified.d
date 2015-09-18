@@ -155,7 +155,12 @@ class UnmodifiedFinder:BaseAnalyzer
 
 	override void visit(const TraitsExpression)
 	{
-		// Issue #266. Ignore everything inside of __traits expressions.
+		// issue #266: Ignore unmodified variables inside of `__traits` expressions
+	}
+
+	override void visit(const TypeofExpression)
+	{
+		// issue #270: Ignore unmodified variables inside of `typeof` expressions
 	}
 
 private:
