@@ -1,11 +1,11 @@
-# Overview
-DScanner is a tool for analyzing D source code
+# D-Scanner [![CI status](https://travis-ci.org/Hackerpilot/Dscanner.svg?branch=master)](https://travis-ci.org/Hackerpilot/Dscanner/)
+D-Scanner is a tool for analyzing D source code
 
 ### Building and installing
 First make sure that you have all the source code. Run ```git submodule update --init --recursive```
 after cloning the project.
 
-To build DScanner, run ```make``` (or the build.bat file on Windows).
+To build D-Scanner, run ```make``` (or the build.bat file on Windows).
 The build time can be rather long with the -inline flag on front-end versions
 older than 2.066, so you may wish to remove it from the build script. The
 makefile has "ldc" and "gdc" targets if you'd prefer to compile with one of these
