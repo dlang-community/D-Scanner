@@ -93,7 +93,7 @@ class UnmodifiedFinder:BaseAnalyzer
 			assignExpression.ternaryExpression.accept(this);
 			guaranteeUse--;
 			interest--;
-			assignExpression.assignExpression.accept(this);
+			assignExpression.expression.accept(this);
 		}
 		else
 			assignExpression.accept(this);

@@ -24,13 +24,27 @@ class CommaExpressionCheck : BaseAnalyzer
 
 	override void visit(const Expression ex)
 	{
-		if (ex.items.length > 1)
+		if (ex.items.length > 1 && interest > 0)
 		{
 			addErrorMessage(ex.line, ex.column, KEY,
 				"Avoid using the comma expression.");
 		}
 		ex.accept(this);
 	}
+
+	override void visit(const AssignExpression ex)
+	{
+		++interest;
+		ex.accept(this);
+		--interest;
+	}
+
+	invariant
+	{
+		assert(interest >= 0);
+	}
+
+	int interest;
 
 	private enum KEY = "dscanner.suspicious.comma_expression";
 }

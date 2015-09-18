@@ -40,7 +40,7 @@ class IfElseSameCheck : BaseAnalyzer
 
 	override void visit(const AssignExpression assignExpression)
 	{
-		const AssignExpression e = cast(const AssignExpression) assignExpression.assignExpression;
+		auto e = cast(const AssignExpression) (cast(const Expression) assignExpression.expression).items[$ - 1];
 		if (e !is null && assignExpression.operator == tok!"="
 			&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{

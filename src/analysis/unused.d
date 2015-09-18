@@ -154,17 +154,17 @@ class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const AssignExpression assignExp)
 	{
 		assignExp.ternaryExpression.accept(this);
-		if (assignExp.assignExpression !is null)
+		if (assignExp.expression !is null)
 		{
 			interestDepth++;
-			assignExp.assignExpression.accept(this);
+			assignExp.expression.accept(this);
 			interestDepth--;
 		}
 	}
 
 	override void visit(const TemplateDeclaration templateDeclaration)
 	{
-		auto inAgg = inAggregateScope;
+		immutable inAgg = inAggregateScope;
 		inAggregateScope = true;
 		templateDeclaration.accept(this);
 		inAggregateScope = inAgg;
