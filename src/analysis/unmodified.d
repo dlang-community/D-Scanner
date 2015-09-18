@@ -159,6 +159,16 @@ class UnmodifiedFinder:BaseAnalyzer
 		foreachStatement.declarationOrStatement.accept(this);
 	}
 
+	override void visit(const TraitsExpression)
+	{
+		// issue #266: Ignore unmodified variables inside of `__traits` expressions
+	}
+
+	override void visit(const TypeofExpression)
+	{
+		// issue #270: Ignore unmodified variables inside of `typeof` expressions
+	}
+
 private:
 
 	template PartsMightModify(T)

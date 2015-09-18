@@ -1,4 +1,4 @@
-//          Copyright Brian Schott (Hackerpilot) 2012-2015.
+//          Copyright Brian Schott (Hackerpilot) 2012.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
@@ -33,19 +33,10 @@ import inifiled;
 
 import dsymbol.modulecache;
 
+version (unittest)
+void main() {}
+else
 int main(string[] args)
-{
-	version (unittest)
-	{
-		return 0;
-	}
-	else
-	{
-		return run(args);
-	}
-}
-
-int run(string[] args)
 {
 	bool sloc;
 	bool highlight;
@@ -65,9 +56,9 @@ int run(string[] args)
 	bool report;
 	string symbolName;
 	string configLocation;
+	string[] importPaths;
 	bool printVersion;
 	bool explore;
-	string[] importPaths;
 
 	try
 	{
@@ -127,9 +118,10 @@ int run(string[] args)
 	const(string[]) absImportPaths = importPaths.map!(
 		a => a.absolutePath().buildNormalizedPath()).array();
 
-	ModuleCache.includeParameterSymbols = true;
+	ModuleCache moduleCache;
+
 	if (absImportPaths.length)
-		ModuleCache.addImportPaths(absImportPaths);
+		moduleCache.addImportPaths(absImportPaths);
 
 	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
 		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
@@ -199,13 +191,13 @@ int run(string[] args)
 		if (s.exists())
 			readINIFile(config, s);
 		if (report)
-			generateReport(expandArgs(args), config);
+			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
-			analyze(expandArgs(args), config, true);
+			return analyze(expandArgs(args), config, cache, moduleCache, true) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(expandArgs(args));
+		return .syntaxCheck(expandArgs(args), cache, moduleCache) ? 1 : 0;
 	}
 	else
 	{
@@ -241,11 +233,11 @@ int run(string[] args)
 		}
 		else if (imports)
 		{
-			const string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
+			string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
 			LexerConfig config;
 			config.stringBehavior = StringBehavior.source;
 			auto visitor = new ImportPrinter;
-			foreach (name; fileNames)
+			foreach (name; expandArgs(fileNames))
 			{
 				config.fileName = name;
 				auto tokens = getTokensForParser(
@@ -283,6 +275,7 @@ int run(string[] args)
 	}
 	return 0;
 }
+
 
 string[] expandArgs(string[] args)
 {
@@ -377,11 +370,13 @@ options:
     --syntaxCheck | -s [sourceFile]
         Lexes and parses sourceFile, printing the line and column number of any
         syntax errors to stdout. One error or warning is printed per line.
-        If no files are specified, input is read from stdin.
+        If no files are specified, input is read from stdin. %1$s will exit with
+        a status code of zero if no errors are found, 1 otherwise.
 
     --styleCheck | -S [sourceFiles]
         Lexes and parses sourceFiles, printing the line and column number of any
-        static analysis check failures stdout.
+        static analysis check failures stdout. %1$s will exit with a status code
+        of zero if no warnings or errors are found, 1 otherwise.
 
     --ctags | -c sourceFile
         Generates ctags information from the given source code file. Note that
@@ -406,7 +401,9 @@ options:
         current working directory if none are specified.
 
     --report [sourceFiles sourceDirectories]
-        Generate a static analysis report in JSON format. Implies --styleCheck.
+        Generate a static analysis report in JSON format. Implies --styleCheck,
+        however the exit code will still be zero if errors or warnings are
+        found.
 
     --config configFile
         Use the given configuration file instead of the default located in

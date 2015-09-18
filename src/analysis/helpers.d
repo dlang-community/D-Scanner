@@ -59,8 +59,10 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, stri
 	ParseAllocator p = new ParseAllocator;
 	const(Module) m = parseModule(file, cast(ubyte[]) code, p, cache, false);
 
+	ModuleCache moduleCache;
+
 	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config);
+	MessageSet rawWarnings = analyze("test", m, config, moduleCache);
 	string[] codeLines = code.split("\n");
 
 	// Get the warnings ordered by line

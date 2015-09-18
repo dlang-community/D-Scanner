@@ -1,27 +1,26 @@
 .PHONY: all test
 
-DMD = dmd
-GDC = gdc
-LDC = ldc2
-SRC = src/*.d\
-	src/analysis/*.d\
-	libdparse/src/std/*.d\
-	libdparse/src/std/d/*.d\
-	inifiled/source/*.d\
+DC ?= dmd
+DMD := $(DC)
+GDC := gdc
+LDC := ldc2
+OBJ_DIR := obj
+SRC := \
+	$(shell find containers/experimental_allocator/src -name "*.d")\
+	$(shell find containers/src -name "*.d")\
 	$(shell find dsymbol/src -name "*.d")\
-	containers/src/containers/ttree.d\
-	containers/src/containers/unrolledlist.d\
-	containers/src/containers/hashset.d\
-	containers/src/containers/internal/hash.d\
-	containers/src/containers/internal/node.d\
-	containers/src/containers/internal/storage_type.d\
-	containers/src/memory/allocators.d\
-	containers/src/memory/appender.d
-INCLUDE_PATHS = -Ilibdparse/src -Idsymbol/src -Icontainers/src
+	$(shell find inifiled/source/ -name "*.d")\
+	$(shell find libdparse/src/std/ -name "*.d")\
+	$(shell find src/ -name "*.d")
+INCLUDE_PATHS = \
+	-Iinifiled/source -Isrc\
+	-Ilibdparse/src\
+	-Ilibdparse/experimental_allocator/src\
+	-Idsymbol/src -Icontainers/src
 VERSIONS =
 DEBUG_VERSIONS = -version=std_parser_verbose
-#DMD_FLAGS = -w -O -release -inline
-DMD_FLAGS = -w
+DMD_FLAGS = -w -O -inline -J. -od${OBJ_DIR}
+DMD_TEST_FLAGS = -w -g -unittest -J.
 
 all: dmdbuild
 ldc: ldcbuild
@@ -31,11 +30,11 @@ githash:
 	git log -1 --format="%H" > githash.txt
 
 debug:
-	${DMD} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${DC} -w -g -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
-dmdbuild: githash
+dmdbuild: githash $(SRC)
 	mkdir -p bin
-	${DMD} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${DC} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
 	rm -f bin/dscanner.o
 
 gdcbuild: githash
@@ -50,8 +49,9 @@ test:
 	@./test.sh
 
 clean:
-	rm -rf dsc *.o
+	rm -rf dsc
 	rm -rf bin
+	rm -rf ${OBJ_DIR}
 	rm -f dscanner-report.json
 
 report: all

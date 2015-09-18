@@ -8,7 +8,7 @@ module dscanner_version;
 /**
  * Human-readable version number
  */
-enum DSCANNER_VERSION = "v0.2.0-dev";
+enum DSCANNER_VERSION = "v0.2.0-beta1";
 
 version (Windows) {}
 else

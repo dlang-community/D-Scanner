@@ -95,4 +95,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for mismatched argument and parameter names")
 	bool mismatched_args_check;
+
+	@INI("Checks for labels with the same name as variables")
+	bool label_var_same_name_check;
 }

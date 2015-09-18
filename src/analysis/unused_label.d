@@ -4,7 +4,6 @@
 
 module analysis.unused_label;
 
-import std.stdio;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
@@ -20,39 +19,11 @@ class UnusedLabelCheck : BaseAnalyzer
 		super(fileName, sc);
 	}
 
-	static struct Label
+	override void visit(const Module mod)
 	{
-		string name;
-		size_t line;
-		size_t column;
-		bool used;
-	}
-
-	Label[string][] stack;
-
-	auto ref current() @property
-	{
-		return stack[$-1];
-	}
-
-	void pushScope()
-	{
-		stack.length++;
-	}
-
-	void popScope()
-	{
-		foreach (label; current.byValue())
-		{
-			assert(label.line != size_t.max && label.column != size_t.max);
-			if (!label.used)
-			{
-				addErrorMessage(label.line, label.column,
-					"dscanner.suspicious.unused_label",
-					"Label \"" ~ label.name ~ "\" is not used.");
-			}
-		}
-		stack.length--;
+		pushScope();
+		mod.accept(this);
+		popScope();
 	}
 
 	override void visit(const FunctionBody functionBody)
@@ -100,15 +71,6 @@ class UnusedLabelCheck : BaseAnalyzer
 			labeledStatement.declarationOrStatement.accept(this);
 	}
 
-	void labelUsed(string name)
-	{
-		Label* entry = name in current;
-		if (entry is null)
-			current[name] = Label(name, size_t.max, size_t.max, true);
-		else
-			entry.used = true;
-	}
-
 	override void visit(const ContinueStatement contStatement)
 	{
 		if (contStatement.label.text.length)
@@ -124,11 +86,58 @@ class UnusedLabelCheck : BaseAnalyzer
 		if (gotoStatement.label.text.length)
 			labelUsed(gotoStatement.label.text);
 	}
+
+private:
+
+	static struct Label
+	{
+		string name;
+		size_t line;
+		size_t column;
+		bool used;
+	}
+
+	Label[string][] stack;
+
+	auto ref current() @property
+	{
+		return stack[$-1];
+	}
+
+	void pushScope()
+	{
+		stack.length++;
+	}
+
+	void popScope()
+	{
+		foreach (label; current.byValue())
+		{
+			assert(label.line != size_t.max && label.column != size_t.max);
+			if (!label.used)
+			{
+				addErrorMessage(label.line, label.column,
+					"dscanner.suspicious.unused_label",
+					"Label \"" ~ label.name ~ "\" is not used.");
+			}
+		}
+		stack.length--;
+	}
+
+	void labelUsed(string name)
+	{
+		Label* entry = name in current;
+		if (entry is null)
+			current[name] = Label(name, size_t.max, size_t.max, true);
+		else
+			entry.used = true;
+	}
 }
 
 unittest
 {
 	import analysis.config : StaticAnalysisConfig;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
 	sac.unused_label_check = true;

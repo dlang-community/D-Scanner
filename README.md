@@ -79,12 +79,13 @@ you do not want to use the one created by the "--defaultConfig" option.
 * Confusing asm syntax.
 * Placement of const, immutable, or inout before a function return type instead of after the parameters.
 * Functions in interface declarations redundantly marked 'abstract'.
+* Declaring a variable with the same name as a label.
+* Variables that could have been declared const or immutable (experimental)
+* Redundant parenthesis.
+* Unused labels.
 
 #### Wishlish
-* Assigning to foreach variables that are not "ref".
-* Unused imports.
-* Variables that are never modified and not declared immutable.
-* Assignment in conditionals
+https://github.com/Hackerpilot/Dscanner/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement
 
 ### Reports
 The "--report" option writes a JSON report on the static analysis checks

@@ -316,6 +316,16 @@ class UnusedVariableCheck : BaseAnalyzer
 			variableUsed(primary.identifierChain.identifiers[0].text);
 	}
 
+	override void visit(const TraitsExpression)
+	{
+		// issue #266: Ignore unused variables inside of `__traits` expressions
+	}
+
+	override void visit(const TypeofExpression)
+	{
+		// issue #270: Ignore unused variables inside of `typeof` expressions
+	}
+
 private:
 
 	mixin template PartsUseVariables(NodeType)
@@ -333,13 +343,11 @@ private:
 	{
 		if (inAggregateScope)
 			return;
-//		stderr.writeln("Adding ", name, " ", isParameter, " ", isRef);
 		tree[$ - 1].insert(new UnUsed(name, line, column, isParameter, isRef));
 	}
 
 	void variableUsed(string name)
 	{
-//		writeln("Marking ", name, " used");
 		size_t treeIndex = tree.length - 1;
 		auto uu = UnUsed(name);
 		while (true)

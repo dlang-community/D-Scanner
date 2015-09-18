@@ -30,8 +30,8 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 		auto identVisitor = scoped!IdentVisitor;
 		identVisitor.visit(fce.unaryExpression);
 
-		DSymbol* sym = resolveSymbol(sc, identVisitor.names);
-		const istring[] params = sym is null ? [] : sym.parts[].map!(a => a.name).array();
+		const(DSymbol)* sym = resolveSymbol(sc, identVisitor.names);
+		const istring[] params = sym is null ? [] : sym.opSlice().map!(a => cast() a.name).array();
 		const ArgMismatch[] mismatches = compareArgsToParams(params, args);
 		foreach(size_t i, ref const mm; mismatches)
 			addErrorMessage(argVisitor.lines[i], argVisitor.columns[i], KEY,
@@ -113,15 +113,15 @@ final class ArgVisitor : ASTVisitor
     istring[] args;
 }
 
-DSymbol* resolveSymbol(const Scope* sc, const istring[] symbolChain)
+const(DSymbol)* resolveSymbol(const Scope* sc, const istring[] symbolChain)
 {
 	import std.array:empty;
 
-	DSymbol*[] s = sc.getSymbolsByName(symbolChain[0]);
+	const(DSymbol)*[] s = sc.getSymbolsByName(symbolChain[0]);
 	if (s.empty)
 		return null;
 
-	DSymbol* sym = s[0];
+	const(DSymbol)* sym = s[0];
 	foreach (i; 1 .. symbolChain.length)
 	{
 		if (sym.kind == CompletionKind.variableName || sym.kind == CompletionKind.memberVariableName

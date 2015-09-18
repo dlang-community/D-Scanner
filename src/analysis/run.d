@@ -14,8 +14,12 @@ import std.array;
 import std.d.lexer;
 import std.d.parser;
 import std.d.ast;
-import std.allocator : CAllocatorImpl;
-import std.typecons:scoped;
+import std.typecons : scoped;
+
+import std.experimental.allocator : CAllocatorImpl;
+import std.experimental.allocator.mallocator : Mallocator;
+import std.experimental.allocator.building_blocks.region : Region;
+import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
 
 import analysis.config;
 import analysis.base;
@@ -46,22 +50,29 @@ import analysis.unmodified;
 import analysis.if_statements;
 import analysis.redundant_parens;
 import analysis.mismatched_args;
+import analysis.label_var_same_name_check;
 
-import memory.allocators:BlockAllocator;
-
+import dsymbol.string_interning : internString;
 import dsymbol.scope_;
+import dsymbol.semantic;
 import dsymbol.conversion;
+import dsymbol.conversion.first;
+import dsymbol.conversion.second;
+import dsymbol.modulecache : ModuleCache;
 
 bool first = true;
 
-void messageFunction(string fileName, size_t line, size_t column, string message,
-	bool isError)
+private alias ASTAllocator = CAllocatorImpl!(
+	AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
+
+void messageFunction(string fileName, size_t line, size_t column, string message, bool isError)
 {
-	writefln("%s(%d:%d)[%s]: %s", fileName, line, column,
-		isError ? "error" : "warn", message);
+	writefln("%s(%d:%d)[%s]: %s", fileName, line, column, isError ? "error" : "warn",
+		message);
 }
 
-void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
+void messageFunctionJSON(string fileName, size_t line, size_t column, string message,
+	bool)
 {
 	writeJSON("dscanner.syntax", fileName, line, column, message);
 }
@@ -78,16 +89,17 @@ void writeJSON(string key, string fileName, size_t line, size_t column, string m
 	writeln(`      "line": `, line, `,`);
 	writeln(`      "column": `, column, `,`);
 	writeln(`      "message": "`, message.replace(`"`, `\"`), `"`);
-	write(  "    }");
+	write("    }");
 }
 
-bool syntaxCheck(string[] fileNames)
+bool syntaxCheck(string[] fileNames, ref StringCache stringCache, ref ModuleCache moduleCache)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	return analyze(fileNames, config, false);
+	return analyze(fileNames, config, stringCache, moduleCache, false);
 }
 
-void generateReport(string[] fileNames, const StaticAnalysisConfig config)
+void generateReport(string[] fileNames, const StaticAnalysisConfig config,
+	ref StringCache cache, ref ModuleCache moduleCache)
 {
 	writeln("{");
 	writeln(`  "issues": [`);
@@ -97,14 +109,14 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
-		if (f.size == 0) continue;
+		if (f.size == 0)
+			continue;
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
 		ParseAllocator p = new ParseAllocator;
-		StringCache cache = StringCache(StringCache.defaultBucketCount);
 		const Module m = parseModule(fileName, code, p, cache, true, &lineOfCodeCount);
 		stats.visit(m);
-		MessageSet results = analyze(fileName, m, config, true);
+		MessageSet results = analyze(fileName, m, config, moduleCache, true);
 		foreach (result; results[])
 		{
 			writeJSON(result.key, result.fileName, result.line, result.column, result.message);
@@ -123,26 +135,31 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config)
 	writeln("}");
 }
 
-/// For multiple files
-/// Returns: true if there were errors
-bool analyze(string[] fileNames, const StaticAnalysisConfig config, bool staticAnalyze = true)
+/**
+ * For multiple files
+ *
+ * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
+ */
+bool analyze(string[] fileNames, const StaticAnalysisConfig config,
+	ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
 {
 	bool hasErrors = false;
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
-		if (f.size == 0) continue;
+		if (f.size == 0)
+			continue;
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
 		ParseAllocator p = new ParseAllocator;
-		StringCache cache = StringCache(StringCache.defaultBucketCount);
 		uint errorCount = 0;
+		uint warningCount = 0;
 		const Module m = parseModule(fileName, code, p, cache, false, null,
-			&errorCount, null);
-		assert (m);
-		if (errorCount > 0)
+			&errorCount, &warningCount);
+		assert(m);
+		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, staticAnalyze);
+		MessageSet results = analyze(fileName, m, config, moduleCache, staticAnalyze);
 		if (results is null)
 			continue;
 		foreach (result; results[])
@@ -157,6 +174,7 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 	uint* errorCount = null, uint* warningCount = null)
 {
 	import stats : isLineOfCode;
+
 	LexerConfig config;
 	config.fileName = fileName;
 	config.stringBehavior = StringBehavior.source;
@@ -164,47 +182,81 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
 	return std.d.parser.parseModule(tokens, fileName, p,
-		report ? &messageFunctionJSON : &messageFunction,
-		errorCount, warningCount);
+		report ? &messageFunctionJSON : &messageFunction, errorCount, warningCount);
 }
 
 MessageSet analyze(string fileName, const Module m,
-	const StaticAnalysisConfig analysisConfig, bool staticAnalyze = true)
+	const StaticAnalysisConfig analysisConfig, ref ModuleCache moduleCache, bool staticAnalyze = true)
 {
 	if (!staticAnalyze)
 		return null;
 
-	auto allocator = scoped!(CAllocatorImpl!(BlockAllocator!(1024 * 16)))();
-	const(Scope)* moduleScope = generateAutocompleteTrees(m, allocator);
+	auto symbolAllocator = new ASTAllocator;
+	auto first = scoped!FirstPass(m, internString(fileName), symbolAllocator,
+		symbolAllocator, true, &moduleCache, null);
+	first.run();
+
+	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
+	typeid(SemanticSymbol).destroy(first.rootSymbol);
+	const(Scope)* moduleScope = first.moduleScope;
 
 	BaseAnalyzer[] checks;
 
-	if (analysisConfig.style_check) checks ~= new StyleChecker(fileName, moduleScope);
-	if (analysisConfig.enum_array_literal_check) checks ~= new EnumArrayLiteralCheck(fileName, moduleScope);
-	if (analysisConfig.exception_check) checks ~= new PokemonExceptionCheck(fileName, moduleScope);
-	if (analysisConfig.delete_check) checks ~= new DeleteCheck(fileName, moduleScope);
-	if (analysisConfig.float_operator_check) checks ~= new FloatOperatorCheck(fileName, moduleScope);
-	if (analysisConfig.number_style_check) checks ~= new NumberStyleCheck(fileName, moduleScope);
-	if (analysisConfig.object_const_check) checks ~= new ObjectConstCheck(fileName, moduleScope);
-	if (analysisConfig.backwards_range_check) checks ~= new BackwardsRangeCheck(fileName, moduleScope);
-	if (analysisConfig.if_else_same_check) checks ~= new IfElseSameCheck(fileName, moduleScope);
-	if (analysisConfig.constructor_check) checks ~= new ConstructorCheck(fileName, moduleScope);
-	if (analysisConfig.unused_label_check) checks ~= new UnusedLabelCheck(fileName, moduleScope);
-	if (analysisConfig.unused_variable_check) checks ~= new UnusedVariableCheck(fileName, moduleScope);
-	if (analysisConfig.duplicate_attribute) checks ~= new DuplicateAttributeCheck(fileName, moduleScope);
-	if (analysisConfig.opequals_tohash_check) checks ~= new OpEqualsWithoutToHashCheck(fileName, moduleScope);
-	if (analysisConfig.length_subtraction_check) checks ~= new LengthSubtractionCheck(fileName, moduleScope);
-	if (analysisConfig.builtin_property_names_check) checks ~= new BuiltinPropertyNameCheck(fileName, moduleScope);
-	if (analysisConfig.asm_style_check) checks ~= new AsmStyleCheck(fileName, moduleScope);
-	if (analysisConfig.logical_precedence_check) checks ~= new LogicPrecedenceCheck(fileName, moduleScope);
-	if (analysisConfig.undocumented_declaration_check) checks ~= new UndocumentedDeclarationCheck(fileName, moduleScope);
-	if (analysisConfig.function_attribute_check) checks ~= new FunctionAttributeCheck(fileName, moduleScope);
-	if (analysisConfig.comma_expression_check) checks ~= new CommaExpressionCheck(fileName, moduleScope);
-	if (analysisConfig.local_import_check) checks ~= new LocalImportCheck(fileName, moduleScope);
-	if (analysisConfig.could_be_immutable_check) checks ~= new UnmodifiedFinder(fileName, moduleScope);
-	if (analysisConfig.redundant_parens_check) checks ~= new RedundantParenCheck(fileName, moduleScope);
-	if (analysisConfig.mismatched_args_check) checks ~= new MismatchedArgumentCheck(fileName, moduleScope);
-	version(none) if (analysisConfig.redundant_if_check) checks ~= new IfStatementCheck(fileName, moduleScope);
+	if (analysisConfig.asm_style_check)
+		checks ~= new AsmStyleCheck(fileName, moduleScope);
+	if (analysisConfig.backwards_range_check)
+		checks ~= new BackwardsRangeCheck(fileName, moduleScope);
+	if (analysisConfig.builtin_property_names_check)
+		checks ~= new BuiltinPropertyNameCheck(fileName, moduleScope);
+	if (analysisConfig.comma_expression_check)
+		checks ~= new CommaExpressionCheck(fileName, moduleScope);
+	if (analysisConfig.constructor_check)
+		checks ~= new ConstructorCheck(fileName, moduleScope);
+	if (analysisConfig.could_be_immutable_check)
+		checks ~= new UnmodifiedFinder(fileName, moduleScope);
+	if (analysisConfig.delete_check)
+		checks ~= new DeleteCheck(fileName, moduleScope);
+	if (analysisConfig.duplicate_attribute)
+		checks ~= new DuplicateAttributeCheck(fileName, moduleScope);
+	if (analysisConfig.enum_array_literal_check)
+		checks ~= new EnumArrayLiteralCheck(fileName, moduleScope);
+	if (analysisConfig.exception_check)
+		checks ~= new PokemonExceptionCheck(fileName, moduleScope);
+	if (analysisConfig.float_operator_check)
+		checks ~= new FloatOperatorCheck(fileName, moduleScope);
+	if (analysisConfig.function_attribute_check)
+		checks ~= new FunctionAttributeCheck(fileName, moduleScope);
+	if (analysisConfig.if_else_same_check)
+		checks ~= new IfElseSameCheck(fileName, moduleScope);
+	if (analysisConfig.label_var_same_name_check)
+		checks ~= new LabelVarNameCheck(fileName, moduleScope);
+	if (analysisConfig.length_subtraction_check)
+		checks ~= new LengthSubtractionCheck(fileName, moduleScope);
+	if (analysisConfig.local_import_check)
+		checks ~= new LocalImportCheck(fileName, moduleScope);
+	if (analysisConfig.logical_precedence_check)
+		checks ~= new LogicPrecedenceCheck(fileName, moduleScope);
+	if (analysisConfig.mismatched_args_check)
+		checks ~= new MismatchedArgumentCheck(fileName, moduleScope);
+	if (analysisConfig.number_style_check)
+		checks ~= new NumberStyleCheck(fileName, moduleScope);
+	if (analysisConfig.object_const_check)
+		checks ~= new ObjectConstCheck(fileName, moduleScope);
+	if (analysisConfig.opequals_tohash_check)
+		checks ~= new OpEqualsWithoutToHashCheck(fileName, moduleScope);
+	if (analysisConfig.redundant_parens_check)
+		checks ~= new RedundantParenCheck(fileName, moduleScope);
+	if (analysisConfig.style_check)
+		checks ~= new StyleChecker(fileName, moduleScope);
+	if (analysisConfig.undocumented_declaration_check)
+		checks ~= new UndocumentedDeclarationCheck(fileName, moduleScope);
+	if (analysisConfig.unused_label_check)
+		checks ~= new UnusedLabelCheck(fileName, moduleScope);
+	if (analysisConfig.unused_variable_check)
+		checks ~= new UnusedVariableCheck(fileName, moduleScope);
+	version (none)
+		if (analysisConfig.redundant_if_check)
+			checks ~= new IfStatementCheck(fileName, moduleScope);
 
 	foreach (check; checks)
 	{
@@ -217,4 +269,3 @@ MessageSet analyze(string fileName, const Module m,
 			set.insert(message);
 	return set;
 }
-
