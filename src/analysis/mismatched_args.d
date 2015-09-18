@@ -147,8 +147,10 @@ struct ArgMismatch
 	string name;
 }
 
-const(ArgMismatch[]) compareArgsToParams(const istring[] params, const istring[] args) pure
+immutable(ArgMismatch[]) compareArgsToParams(const istring[] params, const istring[] args) pure
 {
+	import std.exception : assumeUnique;
+
 	if (args.length != params.length)
 		return [];
 	ArgMismatch[] retVal;
@@ -160,7 +162,7 @@ const(ArgMismatch[]) compareArgsToParams(const istring[] params, const istring[]
 			if (param == arg)
 				retVal ~= ArgMismatch(i, j, arg);
 	}
-	return retVal;
+	return assumeUnique(retVal);
 }
 
 string createWarningFromMismatch(const ArgMismatch mismatch) pure
@@ -173,30 +175,35 @@ string createWarningFromMismatch(const ArgMismatch mismatch) pure
 
 unittest
 {
+	import dsymbol.string_interning : internString;
+	import std.algorithm.iteration : map;
+	import std.array : array;
+	import std.conv : to;
+
 	{
-		string[] args = ["a", "b", "c"];
-		string[] params = ["a", "b", "c"];
+		istring[] args = ["a", "b", "c"].map!internString().array();
+		istring[] params = ["a", "b", "c"].map!internString().array();
 		immutable res = compareArgsToParams(params, args);
 		assert(res == []);
 	}
 
 	{
-		string[] args = ["a", "c", "b"];
-		string[] params = ["a", "b", "c"];
+		istring[] args = ["a", "c", "b"].map!internString().array();
+		istring[] params = ["a", "b", "c"].map!internString().array();
 		immutable res = compareArgsToParams(params, args);
-		assert(res == [ArgMismatch(1, 2), ArgMismatch(2, 1)]);
+		assert(res == [ArgMismatch(1, 2, "c"), ArgMismatch(2, 1, "b")], to!string(res));
 	}
 
 	{
-		string[] args = ["a", "c", "b"];
-		string[] params = ["alpha", "bravo", "c"];
+		istring[] args = ["a", "c", "b"].map!internString().array();
+		istring[] params = ["alpha", "bravo", "c"].map!internString().array();
 		immutable res = compareArgsToParams(params, args);
-		assert(res == [ArgMismatch(1, 2)]);
+		assert(res == [ArgMismatch(1, 2, "c")]);
 	}
 
 	{
-		string[] args = ["a", "b"];
-		string[] params = [null, "b"];
+		istring[] args = ["a", "b"].map!internString().array();
+		istring[] params = [null, "b"].map!internString().array();
 		immutable res = compareArgsToParams(params, args);
 		assert(res == []);
 	}
