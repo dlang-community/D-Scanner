@@ -33,7 +33,9 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 
 		const(DSymbol)* sym = resolveSymbol(sc,
 			identVisitor.names.length > 0 ? identVisitor.names : [CONSTRUCTOR_SYMBOL_NAME]);
-		const istring[] params = sym is null ? [] : sym.opSlice().map!(a => cast() a.name).array();
+		// The cast is a hack because .array() confuses the compiler's overload
+		// resolution code.
+		const(istring)[] params = sym is null ? [] : sym.argNames[].map!(a => cast() a).array();
 		const ArgMismatch[] mismatches = compareArgsToParams(params, args);
 		foreach (size_t i, ref const mm; mismatches)
 			addErrorMessage(argVisitor.lines[i], argVisitor.columns[i], KEY,
