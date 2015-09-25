@@ -911,15 +911,18 @@ class XMLPrinter : ASTVisitor
                 "</prefix>");
             unaryExpression.unaryExpression.accept(this);
         }
-        if (unaryExpression.suffix != tok!"")
-        {
-            assert(unaryExpression.suffix.text == "");
-            unaryExpression.unaryExpression.accept(this);
-            output.writeln("<suffix>", str(unaryExpression.suffix.type),
-                "</suffix>");
-        }
         else
-            unaryExpression.accept(this);
+        {
+            if (unaryExpression.suffix != tok!"")
+            {
+                assert(unaryExpression.suffix.text == "");
+                unaryExpression.unaryExpression.accept(this);
+                output.writeln("<suffix>", str(unaryExpression.suffix.type),
+                    "</suffix>");
+            }
+            else
+                unaryExpression.accept(this);
+        }
         output.writeln("</unaryExpression>");
     }
 
