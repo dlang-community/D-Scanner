@@ -93,7 +93,12 @@ class UnmodifiedFinder:BaseAnalyzer
 			assignExpression.ternaryExpression.accept(this);
 			guaranteeUse--;
 			interest--;
+
+			if (assignExpression.operator == tok!"~=")
+				interest++;
 			assignExpression.expression.accept(this);
+			if (assignExpression.operator == tok!"~=")
+				interest--;
 		}
 		else
 			assignExpression.accept(this);
