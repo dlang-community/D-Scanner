@@ -84,8 +84,9 @@ you do not want to use the one created by the "--defaultConfig" option.
 * Redundant parenthesis.
 * Unused labels.
 
-#### Wishlish
-https://github.com/Hackerpilot/Dscanner/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement
+#### Wishlist
+
+[See this list of open issues](https://github.com/Hackerpilot/Dscanner/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) for the wishlist. 
 
 ### Reports
 The "--report" option writes a JSON report on the static analysis checks
