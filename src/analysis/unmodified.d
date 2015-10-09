@@ -174,6 +174,13 @@ class UnmodifiedFinder:BaseAnalyzer
 		// issue #270: Ignore unmodified variables inside of `typeof` expressions
 	}
 
+	override void visit(const AsmStatement a)
+	{
+		inAsm = true;
+		a.accept(this);
+		inAsm = false;
+	}
+
 private:
 
 	template PartsMightModify(T)
@@ -193,7 +200,7 @@ private:
 		if (guaranteeUse == 0)
 		{
 			auto r = tree[index].equalRange(&vi);
-			if (!r.empty && r.front.isValueType)
+			if (!r.empty && r.front.isValueType && !inAsm)
 				return;
 		}
 		while (true)
@@ -288,6 +295,8 @@ private:
 	int guaranteeUse;
 
 	int isImmutable;
+
+	bool inAsm;
 
 	RedBlackTree!(VariableInfo*, "a.name < b.name")[] tree;
 }
