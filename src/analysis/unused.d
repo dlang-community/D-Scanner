@@ -1,8 +1,7 @@
-//          Copyright Brian Schott (Hackerpilot) 2014.
+//          Copyright Brian Schott (Hackerpilot) 2014-2015.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
-
 module analysis.unused;
 
 import std.d.ast;
@@ -10,6 +9,7 @@ import std.d.lexer;
 import analysis.base;
 import std.container;
 import std.regex : Regex, regex, matchAll;
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks for unused variables.
@@ -22,9 +22,9 @@ class UnusedVariableCheck : BaseAnalyzer
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 		re = regex("[\\p{Alphabetic}_][\\w_]*");
 	}
 
@@ -154,17 +154,17 @@ class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const AssignExpression assignExp)
 	{
 		assignExp.ternaryExpression.accept(this);
-		if (assignExp.assignExpression !is null)
+		if (assignExp.expression !is null)
 		{
 			interestDepth++;
-			assignExp.assignExpression.accept(this);
+			assignExp.expression.accept(this);
 			interestDepth--;
 		}
 	}
 
 	override void visit(const TemplateDeclaration templateDeclaration)
 	{
-		auto inAgg = inAggregateScope;
+		immutable inAgg = inAggregateScope;
 		inAggregateScope = true;
 		templateDeclaration.accept(this);
 		inAggregateScope = inAgg;
@@ -404,4 +404,3 @@ private:
 
 	Regex!char re;
 }
-

@@ -9,6 +9,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import std.algorithm : canFind;
+import dsymbol.scope_ : Scope;
 
 void doNothing(string, size_t, size_t, string, bool) {}
 
@@ -16,9 +17,9 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	bool looking = false;

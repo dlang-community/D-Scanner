@@ -8,14 +8,15 @@ module analysis.redundant_parens;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import dsymbol.scope_ : Scope;
 
 class RedundantParenCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const IfStatement statement)

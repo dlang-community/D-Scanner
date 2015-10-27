@@ -4,6 +4,7 @@ import std.container;
 import std.string;
 import std.d.ast;
 import std.array;
+import dsymbol.scope_ : Scope;
 
 struct Message
 {
@@ -26,8 +27,9 @@ alias MessageSet = RedBlackTree!(Message, comparitor, true);
 abstract class BaseAnalyzer : ASTVisitor
 {
 public:
-	this(string fileName)
+	this(string fileName, const Scope* sc)
 	{
+		this.sc = sc;
 		this.fileName = fileName;
 		_messages = new MessageSet;
 	}
@@ -60,6 +62,8 @@ protected:
 	 * The file name
 	 */
 	string fileName;
+
+	const(Scope)* sc;
 
 	MessageSet _messages;
 }

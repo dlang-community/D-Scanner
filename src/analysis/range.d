@@ -10,6 +10,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks for .. expressions where the left side is larger than the right. This
@@ -26,9 +27,9 @@ class BackwardsRangeCheck : BaseAnalyzer
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const ForeachStatement foreachStatement)
@@ -56,7 +57,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 
 	override void visit(const AddExpression add)
 	{
-		auto s = state;
+		immutable s = state;
 		state = State.ignore;
 		add.accept(this);
 		state = s;

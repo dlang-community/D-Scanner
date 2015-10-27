@@ -31,6 +31,8 @@ import dscanner_version;
 
 import inifiled;
 
+import dsymbol.modulecache;
+
 version (unittest)
 void main() {}
 else
@@ -54,6 +56,7 @@ int main(string[] args)
 	bool report;
 	string symbolName;
 	string configLocation;
+	string[] importPaths;
 	bool printVersion;
 	bool explore;
 
@@ -66,7 +69,7 @@ int main(string[] args)
 			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
 			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
 			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
-			"config", &configLocation, "report", &report,
+			"config", &configLocation, "report", &report, "I", &importPaths,
 			"version", &printVersion, "muffinButton", &muffin, "explore", &explore);
 	}
 	catch (ConvException e)
@@ -112,7 +115,15 @@ int main(string[] args)
 		return 0;
 	}
 
-	auto optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
+	const(string[]) absImportPaths = importPaths.map!(
+		a => a.absolutePath().buildNormalizedPath()).array();
+
+	auto moduleCache = ModuleCache(new dsymbol.modulecache.ASTAllocator);
+
+	if (absImportPaths.length)
+		moduleCache.addImportPaths(absImportPaths);
+
+	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
 		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
 		report, symbolName !is null, etags, etagsAll]);
 	if (optionCount > 1)
@@ -180,13 +191,13 @@ int main(string[] args)
 		if (s.exists())
 			readINIFile(config, s);
 		if (report)
-			generateReport(expandArgs(args), config);
+			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
-			return analyze(expandArgs(args), config, true) ? 1 : 0;
+			return analyze(expandArgs(args), config, cache, moduleCache, true) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(expandArgs(args)) ? 1 : 0;
+		return .syntaxCheck(expandArgs(args), cache, moduleCache) ? 1 : 0;
 	}
 	else
 	{
@@ -265,7 +276,6 @@ int main(string[] args)
 	return 0;
 }
 
-private:
 
 string[] expandArgs(string[] args)
 {

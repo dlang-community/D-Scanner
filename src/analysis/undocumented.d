@@ -5,9 +5,10 @@
 
 module analysis.undocumented;
 
+import analysis.base;
+import dsymbol.scope_ : Scope;
 import std.d.ast;
 import std.d.lexer;
-import analysis.base;
 
 import std.regex : ctRegex, matchAll;
 import std.stdio;
@@ -20,9 +21,9 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const Module mod)

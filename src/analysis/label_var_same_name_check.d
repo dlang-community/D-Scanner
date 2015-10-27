@@ -15,9 +15,9 @@ import analysis.helpers;
  */
 class LabelVarNameCheck : BaseAnalyzer
 {
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const Module mod)
@@ -44,14 +44,23 @@ class LabelVarNameCheck : BaseAnalyzer
 	override void visit(const VariableDeclaration var)
 	{
 		foreach (dec; var.declarators)
-			duplicateCheck(dec.name, false);
+			duplicateCheck(dec.name, false, conditionalDepth > 0);
 	}
 
 	override void visit(const LabeledStatement labeledStatement)
 	{
-		duplicateCheck(labeledStatement.identifier, true);
+		duplicateCheck(labeledStatement.identifier, true, conditionalDepth > 0);
 		if (labeledStatement.declarationOrStatement !is null)
 			labeledStatement.declarationOrStatement.accept(this);
+	}
+
+	override void visit(const ConditionalDeclaration condition)
+	{
+		if (condition.falseDeclaration)
+			++conditionalDepth;
+		condition.accept(this);
+		if (condition.falseDeclaration)
+			--conditionalDepth;
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -60,19 +69,27 @@ private:
 
 	Thing[string][] stack;
 
-	void duplicateCheck(const Token name, bool fromLabel)
+	void duplicateCheck(const Token name, bool fromLabel, bool isConditional)
 	{
 		import std.conv : to;
-		const(Thing)* thing = name.text in currentScope;
-		if (thing is null)
-			currentScope[name.text] = Thing(name.text, name.line, name.column, false);
-		else
+		import std.range : retro;
+
+		size_t i = 0;
+		foreach (s; retro(stack))
 		{
-			immutable thisKind = fromLabel ? "Label" : "Variable";
-			immutable otherKind = thing.isVar ? "variable" : "label";
-			addErrorMessage(name.line, name.column, "dscanner.suspicious.label_var_same_name",
-				thisKind ~ " \"" ~ name.text ~ "\" has the same name as a "
-				~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
+			const(Thing)* thing = name.text in s;
+			if (thing is null)
+				currentScope[name.text] = Thing(name.text, name.line, name.column,
+					!fromLabel/+, isConditional+/);
+			else if (i != 0 || !isConditional)
+			{
+				immutable thisKind = fromLabel ? "Label" : "Variable";
+				immutable otherKind = thing.isVar ? "variable" : "label";
+				addErrorMessage(name.line, name.column, "dscanner.suspicious.label_var_same_name",
+					thisKind ~ " \"" ~ name.text ~ "\" has the same name as a "
+					~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
+			}
+			++i;
 		}
 	}
 
@@ -82,6 +99,7 @@ private:
 		size_t line;
 		size_t column;
 		bool isVar;
+		//bool isConditional;
 	}
 
 	ref currentScope() @property
@@ -98,6 +116,8 @@ private:
 	{
 		stack.length--;
 	}
+
+	int conditionalDepth;
 }
 
 unittest
@@ -114,6 +134,29 @@ blah:
 	int blah; // [warn]: Variable "blah" has the same name as a label defined on line 4.
 }
 int blah;
-	}c, sac);
+unittest
+{
+	static if (stuff)
+		int a;
+	int a; // [warn]: Variable "a" has the same name as a variable defined on line 11.
+}
+
+unittest
+{
+	static if (stuff)
+		int a = 10;
+	else
+		int a = 20;
+}
+
+unittest
+{
+	static if (stuff)
+		int a = 10;
+	else
+		int a = 20;
+	int a; // [warn]: Variable "a" has the same name as a variable defined on line 28.
+}
+}c, sac);
 	stderr.writeln("Unittest for LabelVarNameCheck passed.");
 }

@@ -15,7 +15,7 @@ class StatsCollector : BaseAnalyzer
 
 	this(string fileName)
 	{
-		super(fileName);
+		super(fileName, null);
 	}
 
 	override void visit(const Statement statement)

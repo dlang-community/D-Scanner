@@ -25,9 +25,13 @@ dscanner-report.json
 *.o
 *.obj
 *.exe
+obj
 
-#debug build
+# debug build
 dsc
 
 # Git hash
 githash.txt
+
+# GDB history
+.gdb_history

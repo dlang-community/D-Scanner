@@ -6,12 +6,11 @@
 module analysis.ifelsesame;
 
 import std.stdio;
-
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
-
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks for duplicated code in conditional and logical expressions.
@@ -25,9 +24,9 @@ class IfElseSameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const IfStatement ifStatement)
@@ -41,7 +40,7 @@ class IfElseSameCheck : BaseAnalyzer
 
 	override void visit(const AssignExpression assignExpression)
 	{
-		const AssignExpression e = cast(const AssignExpression) assignExpression.assignExpression;
+		auto e = cast(const AssignExpression) (cast(const Expression) assignExpression.expression).items[$ - 1];
 		if (e !is null && assignExpression.operator == tok!"="
 			&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{

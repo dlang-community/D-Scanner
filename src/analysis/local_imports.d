@@ -10,6 +10,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_;
 
 /**
  * Checks for local imports that import all symbols.
@@ -22,9 +23,9 @@ class LocalImportCheck : BaseAnalyzer
 	/**
 	 * Construct with the given file name.
 	 */
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	mixin visitThing!StructBody;

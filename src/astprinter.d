@@ -113,13 +113,13 @@ class XMLPrinter : ASTVisitor
 
     override void visit(const AssignExpression assignExpression)
     {
-        if (assignExpression.assignExpression is null)
-            output.writeln("<assignExpression>");
+        if (assignExpression.expression is null)
+            output.writeln("<expression>");
         else
-            output.writeln("<assignExpression operator=\"",
+            output.writeln("<expression operator=\"",
                 xmlAttributeEscape(str(assignExpression.operator)), "\">");
         assignExpression.accept(this);
-        output.writeln("</assignExpression>");
+        output.writeln("</expression>");
     }
 
     override void visit(const AtAttribute atAttribute)
@@ -911,15 +911,18 @@ class XMLPrinter : ASTVisitor
                 "</prefix>");
             unaryExpression.unaryExpression.accept(this);
         }
-        if (unaryExpression.suffix != tok!"")
-        {
-            assert(unaryExpression.suffix.text == "");
-            unaryExpression.unaryExpression.accept(this);
-            output.writeln("<suffix>", str(unaryExpression.suffix.type),
-                "</suffix>");
-        }
         else
-            unaryExpression.accept(this);
+        {
+            if (unaryExpression.suffix != tok!"")
+            {
+                assert(unaryExpression.suffix.text == "");
+                unaryExpression.unaryExpression.accept(this);
+                output.writeln("<suffix>", str(unaryExpression.suffix.type),
+                    "</suffix>");
+            }
+            else
+                unaryExpression.accept(this);
+        }
         output.writeln("</unaryExpression>");
     }
 

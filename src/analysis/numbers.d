@@ -11,6 +11,7 @@ import std.d.ast;
 import std.d.lexer;
 import analysis.base;
 import analysis.helpers;
+import dsymbol.scope_ : Scope;
 
 /**
  * Checks for long and hard-to-read number literals
@@ -23,9 +24,9 @@ public:
 	/**
 	 * Constructs the style checker with the given file name.
 	 */
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const Token t)

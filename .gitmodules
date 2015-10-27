@@ -5,3 +5,9 @@
 [submodule "inifiled"]
 	path = inifiled
 	url = https://github.com/burner/inifiled.git
+[submodule "containers"]
+	path = containers
+	url = https://github.com/economicmodeling/containers.git
+[submodule "dsymbol"]
+	path = dsymbol
+	url = https://github.com/Hackerpilot/dsymbol.git

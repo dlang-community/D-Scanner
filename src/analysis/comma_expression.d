@@ -8,6 +8,7 @@ module analysis.comma_expression;
 import std.d.ast;
 import std.d.lexer;
 import analysis.base;
+import dsymbol.scope_;
 
 /**
  * Check for uses of the comma expression.
@@ -16,20 +17,34 @@ class CommaExpressionCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, const(Scope)* sc)
 	{
-		super(fileName);
+		super(fileName, sc);
 	}
 
 	override void visit(const Expression ex)
 	{
-		if (ex.items.length > 1)
+		if (ex.items.length > 1 && interest > 0)
 		{
 			addErrorMessage(ex.line, ex.column, KEY,
 				"Avoid using the comma expression.");
 		}
 		ex.accept(this);
 	}
+
+	override void visit(const AssignExpression ex)
+	{
+		++interest;
+		ex.accept(this);
+		--interest;
+	}
+
+	invariant
+	{
+		assert(interest >= 0);
+	}
+
+	int interest;
 
 	private enum KEY = "dscanner.suspicious.comma_expression";
 }
