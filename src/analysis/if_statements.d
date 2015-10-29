@@ -4,9 +4,9 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 module analysis.if_statements;
 
-import std.d.ast;
-import std.d.lexer;
-import std.d.formatter;
+import dparse.ast;
+import dparse.lexer;
+import dparse.formatter;
 import analysis.base;
 import dsymbol.scope_ : Scope;
 
@@ -78,7 +78,7 @@ private:
 		if (expression is null)
 			return;
 		auto app = appender!string();
-		std.d.formatter.format(app, expression);
+		dparse.formatter.format(app, expression);
 		immutable size_t prevLocation = alreadyChecked(app.data, line, column);
 		if (prevLocation != size_t.max)
 		{

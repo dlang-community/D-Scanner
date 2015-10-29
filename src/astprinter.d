@@ -3,9 +3,9 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-import std.d.lexer;
-import std.d.ast;
-import std.d.formatter;
+import dparse.lexer;
+import dparse.ast;
+import dparse.formatter;
 import std.stdio;
 import std.string;
 import std.array;
@@ -727,25 +727,6 @@ class XMLPrinter : ASTVisitor
         output.writeln("</singleImport>");
     }
 
-    override void visit(const SliceExpression sliceExpression)
-    {
-        output.writeln("<sliceExpression>");
-        visit(sliceExpression.unaryExpression);
-        if (sliceExpression.lower !is null)
-        {
-            output.writeln("<low>");
-            visit(sliceExpression.lower);
-            output.writeln("</low>");
-        }
-        if (sliceExpression.upper !is null)
-        {
-            output.writeln("<high>");
-            visit(sliceExpression.upper);
-            output.writeln("</high>");
-        }
-        output.writeln("</sliceExpression>");
-    }
-
     override void visit(const StructDeclaration structDec)
     {
         output.writeln("<structDeclaration line=\"", structDec.name.line, "\">");
@@ -969,6 +950,24 @@ class XMLPrinter : ASTVisitor
         }
         output.writeln("</xorExpression>");
     }
+
+	override void visit(const Index index)
+	{
+		output.writeln("<index>");
+		if (index.high)
+		{
+			output.writeln("<low>");
+			visit(index.low);
+			output.writeln("<low>");
+
+			output.writeln("<high>");
+			visit(index.high);
+			output.writeln("<high>");
+		}
+		else
+			visit(index.low);
+		output.writeln("</index>");
+	}
 
     override void visit(const AliasInitializer aliasInitializer) { mixin (tagAndAccept!"aliasInitializer"); }
     override void visit(const AliasThisDeclaration aliasThisDeclaration) { mixin (tagAndAccept!"aliasThisDeclaration"); }

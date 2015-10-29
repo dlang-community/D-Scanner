@@ -7,8 +7,8 @@ module analysis.length_subtraction;
 
 import std.stdio;
 
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_;

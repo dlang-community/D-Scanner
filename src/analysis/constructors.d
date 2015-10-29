@@ -1,7 +1,7 @@
 module analysis.constructors;
 
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import std.stdio;
 import analysis.base;
 import analysis.helpers;

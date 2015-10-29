@@ -6,9 +6,9 @@
 module symbol_finder;
 
 import std.stdio : File;
-import std.d.lexer;
-import std.d.parser;
-import std.d.ast;
+import dparse.lexer;
+import dparse.parser;
+import dparse.ast;
 import std.stdio;
 import std.file:isFile;
 

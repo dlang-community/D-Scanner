@@ -5,7 +5,7 @@
 
 module imports;
 
-import std.d.ast;
+import dparse.ast;
 import std.stdio;
 import std.container;
 

@@ -10,7 +10,8 @@ SRC := \
 	$(shell find containers/src -name "*.d")\
 	$(shell find dsymbol/src -name "*.d")\
 	$(shell find inifiled/source/ -name "*.d")\
-	$(shell find libdparse/src/std/ -name "*.d")\
+	$(shell find libdparse/src/std/experimental/ -name "*.d")\
+	$(shell find libdparse/src/dparse/ -name "*.d")\
 	$(shell find src/ -name "*.d")
 INCLUDE_PATHS = \
 	-Iinifiled/source -Isrc\

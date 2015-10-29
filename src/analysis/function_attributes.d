@@ -6,8 +6,8 @@
 module analysis.function_attributes;
 
 import analysis.base;
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import std.stdio;
 import dsymbol.scope_;
 

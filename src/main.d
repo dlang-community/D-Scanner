@@ -13,9 +13,9 @@ import std.getopt;
 import std.path;
 import std.stdio;
 import std.range;
-import std.lexer;
-import std.d.lexer;
-import std.d.parser;
+import std.experimental.lexer;
+import dparse.lexer;
+import dparse.parser;
 
 import highlighter;
 import stats;

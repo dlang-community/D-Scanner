@@ -6,9 +6,9 @@
 
 module etags;
 
-import std.d.parser;
-import std.d.lexer;
-import std.d.ast;
+import dparse.parser;
+import dparse.lexer;
+import dparse.ast;
 import std.algorithm;
 import std.range;
 import std.stdio;
@@ -288,7 +288,7 @@ private:
 	{
 		maketag(name.text, name.index, name.line);
 	}
-	
+
 	void maketag(string text, size_t index, ulong line)
 	{
 		// skip unittests and hidden declarations

@@ -5,9 +5,9 @@
 
 module ctags;
 
-import std.d.parser;
-import std.d.lexer;
-import std.d.ast;
+import dparse.parser;
+import dparse.lexer;
+import dparse.ast;
 import std.algorithm;
 import std.range;
 import std.stdio;
@@ -68,7 +68,7 @@ void doNothing(string, size_t, size_t, string, bool)
 
 string paramsToString(Dec)(const Dec dec)
 {
-	import std.d.formatter : Formatter;
+	import dparse.formatter : Formatter;
 
 	auto app = appender!string();
 	auto formatter = new Formatter!(typeof(app))(app);

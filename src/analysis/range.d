@@ -6,8 +6,8 @@
 module analysis.range;
 
 import std.stdio;
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_ : Scope;
@@ -94,14 +94,14 @@ class BackwardsRangeCheck : BaseAnalyzer
 		}
 	}
 
-	override void visit(const SliceExpression sliceExpression)
+	override void visit(const Index index)
 	{
-		if (sliceExpression.lower !is null && sliceExpression.upper !is null)
+		if (index.low !is null && index.high !is null)
 		{
 			state = State.left;
-			visit(sliceExpression.lower);
+			visit(index.low);
 			state = State.right;
-			visit(sliceExpression.upper);
+			visit(index.high);
 			state = State.ignore;
 			if (hasLeft && hasRight && left > right)
 			{
@@ -114,7 +114,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 			hasLeft = false;
 			hasRight = false;
 		}
-		sliceExpression.accept(this);
+		index.accept(this);
 	}
 
 private:

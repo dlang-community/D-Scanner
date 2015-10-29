@@ -2,7 +2,7 @@ module analysis.base;
 
 import std.container;
 import std.string;
-import std.d.ast;
+import dparse.ast;
 import std.array;
 import dsymbol.scope_ : Scope;
 
