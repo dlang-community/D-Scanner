@@ -5,8 +5,8 @@
 
 module analysis.comma_expression;
 
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import analysis.base;
 import dsymbol.scope_;
 

@@ -7,8 +7,8 @@ module analysis.builtin_property_names;
 
 import std.stdio;
 import std.regex;
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_;

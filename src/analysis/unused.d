@@ -4,8 +4,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 module analysis.unused;
 
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import analysis.base;
 import std.container;
 import std.regex : Regex, regex, matchAll;
@@ -69,7 +69,6 @@ class UnusedVariableCheck : BaseAnalyzer
 	mixin PartsUseVariables!Initializer;
 	mixin PartsUseVariables!InterfaceDeclaration;
 	mixin PartsUseVariables!NewExpression;
-	mixin PartsUseVariables!SliceExpression;
 	mixin PartsUseVariables!StaticIfCondition;
 	mixin PartsUseVariables!StructDeclaration;
 	mixin PartsUseVariables!TemplateArgumentList;

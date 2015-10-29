@@ -3,8 +3,8 @@ module analysis.mismatched_args;
 import analysis.base : BaseAnalyzer;
 import dsymbol.scope_;
 import dsymbol.symbol;
-import std.d.ast;
-import std.d.lexer : tok;
+import dparse.ast;
+import dparse.lexer : tok;
 import dsymbol.builtin.names;
 
 /// Checks for mismatched argument and parameter names

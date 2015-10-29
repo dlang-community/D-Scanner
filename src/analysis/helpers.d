@@ -9,7 +9,7 @@ import std.string;
 import std.traits;
 import std.stdio;
 
-import std.d.ast;
+import dparse.ast;
 import analysis.config;
 import analysis.run;
 import analysis.base;
@@ -53,7 +53,7 @@ S after(S)(S value, S separator)
 void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, string file=__FILE__, size_t line=__LINE__)
 {
 	import analysis.run : ParseAllocator, parseModule;
-	import std.d.lexer : StringCache;
+	import dparse.lexer : StringCache;
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	ParseAllocator p = new ParseAllocator;

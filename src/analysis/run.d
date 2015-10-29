@@ -11,9 +11,9 @@ import std.conv;
 import std.algorithm;
 import std.range;
 import std.array;
-import std.d.lexer;
-import std.d.parser;
-import std.d.ast;
+import dparse.lexer;
+import dparse.parser;
+import dparse.ast;
 import std.typecons : scoped;
 
 import std.experimental.allocator : CAllocatorImpl;
@@ -181,7 +181,7 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 	const(Token)[] tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
-	return std.d.parser.parseModule(tokens, fileName, p,
+	return dparse.parser.parseModule(tokens, fileName, p,
 		report ? &messageFunctionJSON : &messageFunction, errorCount, warningCount);
 }
 

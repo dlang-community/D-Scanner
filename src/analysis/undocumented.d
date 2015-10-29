@@ -7,8 +7,8 @@ module analysis.undocumented;
 
 import analysis.base;
 import dsymbol.scope_ : Scope;
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 
 import std.regex : ctRegex, matchAll;
 import std.stdio;

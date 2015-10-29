@@ -4,8 +4,8 @@
 
 module analysis.label_var_same_name_check;
 
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 
 import analysis.base;
 import analysis.helpers;

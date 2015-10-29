@@ -5,8 +5,8 @@
 
 module analysis.redundant_parens;
 
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import analysis.base;
 import dsymbol.scope_ : Scope;
 

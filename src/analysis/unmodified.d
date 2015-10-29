@@ -7,13 +7,13 @@ module analysis.unmodified;
 import analysis.base;
 import dsymbol.scope_ : Scope;
 import std.container;
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 
 /**
  * Checks for variables that could have been declared const or immutable
  */
-class UnmodifiedFinder:BaseAnalyzer
+class UnmodifiedFinder : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
@@ -132,7 +132,6 @@ class UnmodifiedFinder:BaseAnalyzer
 
 	mixin PartsMightModify!AsmPrimaryExp;
 	mixin PartsMightModify!IndexExpression;
-	mixin PartsMightModify!SliceExpression;
 	mixin PartsMightModify!FunctionCallExpression;
 	mixin PartsMightModify!IdentifierOrTemplateChain;
 	mixin PartsMightModify!ReturnStatement;

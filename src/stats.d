@@ -7,7 +7,7 @@ module stats;
 
 import std.stdio;
 import std.algorithm;
-import std.d.lexer;
+import dparse.lexer;
 
 pure nothrow bool isLineOfCode(IdType t)
 {
