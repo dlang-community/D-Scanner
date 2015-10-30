@@ -83,10 +83,11 @@ you do not want to use the one created by the "--defaultConfig" option.
 * Variables that could have been declared const or immutable (experimental)
 * Redundant parenthesis.
 * Unused labels.
+* Lines longer than 120 characters.
 
 #### Wishlist
 
-[See this list of open issues](https://github.com/Hackerpilot/Dscanner/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) for the wishlist. 
+[See this list of open issues](https://github.com/Hackerpilot/Dscanner/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) for the wishlist.
 
 ### Reports
 The "--report" option writes a JSON report on the static analysis checks

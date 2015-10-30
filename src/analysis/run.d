@@ -51,6 +51,7 @@ import analysis.if_statements;
 import analysis.redundant_parens;
 import analysis.mismatched_args;
 import analysis.label_var_same_name_check;
+import analysis.line_length;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -114,9 +115,10 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
 		ParseAllocator p = new ParseAllocator;
-		const Module m = parseModule(fileName, code, p, cache, true, &lineOfCodeCount);
+		const(Token)[] tokens;
+		const Module m = parseModule(fileName, code, p, cache, true, tokens, &lineOfCodeCount);
 		stats.visit(m);
-		MessageSet results = analyze(fileName, m, config, moduleCache, true);
+		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true);
 		foreach (result; results[])
 		{
 			writeJSON(result.key, result.fileName, result.line, result.column, result.message);
@@ -154,12 +156,13 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		ParseAllocator p = new ParseAllocator;
 		uint errorCount = 0;
 		uint warningCount = 0;
-		const Module m = parseModule(fileName, code, p, cache, false, null,
+		const(Token)[] tokens;
+		const Module m = parseModule(fileName, code, p, cache, false, tokens, null,
 			&errorCount, &warningCount);
 		assert(m);
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, moduleCache, staticAnalyze);
+		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
 		if (results is null)
 			continue;
 		foreach (result; results[])
@@ -170,15 +173,15 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 }
 
 const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
-	ref StringCache cache, bool report, ulong* linesOfCode = null,
-	uint* errorCount = null, uint* warningCount = null)
+	ref StringCache cache, bool report, ref const(Token)[] tokens,
+	ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {
 	import stats : isLineOfCode;
 
 	LexerConfig config;
 	config.fileName = fileName;
 	config.stringBehavior = StringBehavior.source;
-	const(Token)[] tokens = getTokensForParser(code, config, &cache);
+	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
 	return dparse.parser.parseModule(tokens, fileName, p,
@@ -186,7 +189,8 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 }
 
 MessageSet analyze(string fileName, const Module m,
-	const StaticAnalysisConfig analysisConfig, ref ModuleCache moduleCache, bool staticAnalyze = true)
+	const StaticAnalysisConfig analysisConfig, ref ModuleCache moduleCache,
+	const(Token)[] tokens, bool staticAnalyze = true)
 {
 	if (!staticAnalyze)
 		return null;
@@ -254,6 +258,8 @@ MessageSet analyze(string fileName, const Module m,
 		checks ~= new UnusedLabelCheck(fileName, moduleScope);
 	if (analysisConfig.unused_variable_check)
 		checks ~= new UnusedVariableCheck(fileName, moduleScope);
+	if (analysisConfig.long_line_check)
+		checks ~= new LineLengthCheck(fileName, tokens);
 	version (none)
 		if (analysisConfig.redundant_if_check)
 			checks ~= new IfStatementCheck(fileName, moduleScope);

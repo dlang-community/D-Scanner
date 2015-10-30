@@ -53,16 +53,17 @@ S after(S)(S value, S separator)
 void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config, string file=__FILE__, size_t line=__LINE__)
 {
 	import analysis.run : ParseAllocator, parseModule;
-	import dparse.lexer : StringCache;
+	import dparse.lexer : StringCache, Token;
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	ParseAllocator p = new ParseAllocator;
-	const(Module) m = parseModule(file, cast(ubyte[]) code, p, cache, false);
+	const(Token)[] tokens;
+	const(Module) m = parseModule(file, cast(ubyte[]) code, p, cache, false, tokens);
 
 	auto moduleCache = ModuleCache(p);
 
 	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache);
+	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);
 	string[] codeLines = code.split("\n");
 
 	// Get the warnings ordered by line
