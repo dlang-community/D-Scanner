@@ -9,7 +9,6 @@ import std.stdio;
 import dparse.ast;
 import dparse.lexer;
 import analysis.base;
-import analysis.helpers;
 import dsymbol.scope_;
 
 /**
@@ -35,6 +34,7 @@ class DeleteCheck : BaseAnalyzer
 unittest
 {
 	import analysis.config : StaticAnalysisConfig;
+	import analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac;
 	sac.delete_check = true;
