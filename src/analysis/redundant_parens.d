@@ -10,10 +10,14 @@ import dparse.lexer;
 import analysis.base;
 import dsymbol.scope_ : Scope;
 
+/**
+ * Checks for redundant parenthesis
+ */
 class RedundantParenCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	///
 	this(string fileName, const(Scope)* sc)
 	{
 		super(fileName, sc);
@@ -32,7 +36,7 @@ class RedundantParenCheck : BaseAnalyzer
 		if (unary.primaryExpression.expression is null)
 			goto end;
 		addErrorMessage(unary.primaryExpression.expression.line,
-			unary.primaryExpression.expression.column, KEY, "Redundant parenthesis");
+			unary.primaryExpression.expression.column, KEY, "Redundant parenthesis.");
 	end:
 		statement.accept(this);
 	}
@@ -50,7 +54,7 @@ class RedundantParenCheck : BaseAnalyzer
 		if (unary.primaryExpression.expression is null)
 			goto end;
 		addErrorMessage(primaryExpression.expression.line,
-			primaryExpression.expression.column, KEY, "Redundant parenthesis");
+			primaryExpression.expression.column, KEY, "Redundant parenthesis.");
 	end:
 		primaryExpression.accept(this);
 	}

@@ -76,7 +76,7 @@ class AutoRefAssignmentCheck : BaseAnalyzer
 
 private:
 
-	enum string MESSAGE = "Assignment to auto-ref function parameter";
+	enum string MESSAGE = "Assignment to auto-ref function parameter.";
 	enum string KEY = "dscanner.suspicious.auto_ref_assignment";
 
 	invariant
