@@ -58,7 +58,7 @@ class AutoRefAssignmentCheck : BaseAnalyzer
 			return;
 		if (scopes[$ - 1].canFind(ioti.identifier.text))
 			addErrorMessage(ioti.identifier.line, ioti.identifier.column, KEY,
-				"Assignment to auto-ref function parameter");
+				MESSAGE);
 	}
 
 	override void visit(const IdentifierChain ic)
