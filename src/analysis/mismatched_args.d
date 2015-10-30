@@ -31,15 +31,39 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 		auto identVisitor = scoped!IdentVisitor;
 		identVisitor.visit(fce.unaryExpression);
 
-		const(DSymbol)* sym = resolveSymbol(sc,
+		const(DSymbol)*[] symbols = resolveSymbol(sc,
 			identVisitor.names.length > 0 ? identVisitor.names : [CONSTRUCTOR_SYMBOL_NAME]);
-		// The cast is a hack because .array() confuses the compiler's overload
-		// resolution code.
-		const(istring)[] params = sym is null ? [] : sym.argNames[].map!(a => cast() a).array();
-		const ArgMismatch[] mismatches = compareArgsToParams(params, args);
-		foreach (size_t i, ref const mm; mismatches)
-			addErrorMessage(argVisitor.lines[i], argVisitor.columns[i], KEY,
-				createWarningFromMismatch(mm));
+
+		static struct ErrorMessage
+		{
+			size_t line;
+			size_t column;
+			string message;
+		}
+
+		ErrorMessage[] messages;
+		bool matched;
+
+		foreach (sym; symbols)
+		{
+			// The cast is a hack because .array() confuses the compiler's overload
+			// resolution code.
+			const(istring)[] params = sym is null ? [] : sym.argNames[].map!(a => cast() a).array();
+			const ArgMismatch[] mismatches = compareArgsToParams(params, args);
+			if (mismatches.length == 0)
+				matched = true;
+			else
+			{
+				foreach (size_t i, ref const mm; mismatches)
+				{
+					messages ~= ErrorMessage(argVisitor.lines[i], argVisitor.columns[i],
+						createWarningFromMismatch(mm));
+				}
+			}
+		}
+
+		if (!matched) foreach (m; messages)
+			addErrorMessage(m.line, m.column, KEY, m.message);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -117,29 +141,37 @@ final class ArgVisitor : ASTVisitor
 	istring[] args;
 }
 
-const(DSymbol)* resolveSymbol(const Scope* sc, const istring[] symbolChain)
+const(DSymbol)*[] resolveSymbol(const Scope* sc, const istring[] symbolChain)
 {
 	import std.array : empty;
 
-	const(DSymbol)*[] s = sc.getSymbolsByName(symbolChain[0]);
-	if (s.empty)
+	const(DSymbol)*[] matchingSymbols = sc.getSymbolsByName(symbolChain[0]);
+	if (matchingSymbols.empty)
 		return null;
 
-	const(DSymbol)* sym = s[0];
-	foreach (i; 1 .. symbolChain.length)
+	foreach (ref symbol; matchingSymbols)
 	{
-		if (sym.kind == CompletionKind.variableName
-				|| sym.kind == CompletionKind.memberVariableName
-				|| sym.kind == CompletionKind.functionName)
-			sym = sym.type;
-		if (sym is null)
-			return null;
-		auto p = sym.getPartsByName(symbolChain[i]);
-		if (p.empty)
-			return null;
-		sym = p[0];
+		inner: foreach (i; 1 .. symbolChain.length)
+		{
+			if (symbol.kind == CompletionKind.variableName
+					|| symbol.kind == CompletionKind.memberVariableName
+					|| symbol.kind == CompletionKind.functionName)
+				symbol = symbol.type;
+			if (symbol is null)
+			{
+				symbol = null;
+				break inner;
+			}
+			auto p = symbol.getPartsByName(symbolChain[i]);
+			if (p.empty)
+			{
+				symbol = null;
+				break inner;
+			}
+			symbol = p[0];
+		}
 	}
-	return sym;
+	return matchingSymbols;
 }
 
 struct ArgMismatch
