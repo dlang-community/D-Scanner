@@ -26,7 +26,7 @@ class LineLengthCheck : BaseAnalyzer
 		ulong lastErrorLine = ulong.max;
 		foreach (token; tokens)
 		{
-			if (token.column + token.text.length > MAX_LINE_LENGTH && token.line != lastErrorLine)
+			if (tokenEndColumn(token) > MAX_LINE_LENGTH && token.line != lastErrorLine)
 			{
 				addErrorMessage(token.line, token.column, KEY, MESSAGE);
 				lastErrorLine = token.line;
@@ -37,6 +37,21 @@ class LineLengthCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 private:
+
+	static ulong tokenEndColumn(ref const Token tok)
+	{
+		import std.uni : lineSep, paraSep;
+
+		ulong endColumn = tok.column;
+		foreach (dchar c; tok.text)
+		{
+			if (c == lineSep || c == '\n' || c == '\v' || c == '\r' || c == paraSep)
+				endColumn = 0;
+			else
+				endColumn++;
+		}
+		return endColumn;
+	}
 
 	import std.conv : to;
 
