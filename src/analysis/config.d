@@ -101,4 +101,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for lines longer than 120 characters")
 	bool long_line_check;
+
+	@INI("Checks for assignment to auto-ref function parameters")
+	bool auto_ref_assignment_check;
 }
