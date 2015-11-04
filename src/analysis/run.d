@@ -53,6 +53,7 @@ import analysis.mismatched_args;
 import analysis.label_var_same_name_check;
 import analysis.line_length;
 import analysis.auto_ref_assignment;
+import analysis.incorrect_infinite_range;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -263,6 +264,7 @@ MessageSet analyze(string fileName, const Module m,
 		checks ~= new LineLengthCheck(fileName, tokens);
 	if (analysisConfig.auto_ref_assignment_check)
 		checks ~= new AutoRefAssignmentCheck(fileName);
+	checks ~= new IncorrectInfiniteRangeCheck(fileName);
 	version (none)
 		if (analysisConfig.redundant_if_check)
 			checks ~= new IfStatementCheck(fileName, moduleScope);

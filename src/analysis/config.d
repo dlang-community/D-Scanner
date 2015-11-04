@@ -104,4 +104,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for assignment to auto-ref function parameters")
 	bool auto_ref_assignment_check;
+
+	@INI("Checks for incorrect infinite range definitions")
+	bool incorrect_infinite_range;
 }
