@@ -5,3 +5,16 @@ indent_size = 4
 tab_width = 4
 trim_trailing_whitespace = true
 indent_style = tab
+charset = UTF-8
+max_line_length = 120
+
+[*.d]
+dfmt_brace_style = allman
+dfmt_soft_max_line_length = 80
+dfmt_align_switch_statements = true
+dfmt_outdent_attributes = true
+dfmt_split_operator_at_end_of_line = true
+dfmt_space_after_cast = true
+dfmt_space_after_keywords = true
+dfmt_selective_import_space = true
+dfmt_compact_labeled_statements = true
