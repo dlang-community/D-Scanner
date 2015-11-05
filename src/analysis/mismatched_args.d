@@ -70,7 +70,7 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 
 private:
 
-	enum KEY = "dscanner.confusing.argument_parameter_mismatch";
+	enum string KEY = "dscanner.confusing.argument_parameter_mismatch";
 }
 
 final class IdentVisitor : ASTVisitor

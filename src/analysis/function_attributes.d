@@ -114,8 +114,8 @@ class FunctionAttributeCheck : BaseAnalyzer
 		dec.accept(this);
 	}
 
+private:
 	bool inInterface;
-
-	private enum ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
-	private enum KEY = "dscanner.confusing.function_attributes";
+	enum string ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
+	enum string KEY = "dscanner.confusing.function_attributes";
 }

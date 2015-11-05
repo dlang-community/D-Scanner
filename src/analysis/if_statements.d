@@ -109,7 +109,7 @@ private:
 	bool inIfExpresson;
 	int depth;
 	ExpressionInfo[] expressions;
-	private enum KEY = "dscanner.if_statement";
+	enum string KEY = "dscanner.if_statement";
 }
 
 private struct ExpressionInfo

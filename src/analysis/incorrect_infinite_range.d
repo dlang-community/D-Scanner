@@ -79,8 +79,8 @@ class IncorrectInfiniteRangeCheck : BaseAnalyzer
 
 private:
 	uint inStruct;
-	enum KEY = "dscanner.suspicios.incorrect_infinite_range";
-	enum MESSAGE = "Use `enum bool empty = false;` to define an infinite range.";
+	enum string KEY = "dscanner.suspicios.incorrect_infinite_range";
+	enum string MESSAGE = "Use `enum bool empty = false;` to define an infinite range.";
 	size_t line;
 	size_t column;
 }

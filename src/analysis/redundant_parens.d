@@ -60,5 +60,5 @@ class RedundantParenCheck : BaseAnalyzer
 	}
 
 private:
-	enum KEY = "dscanner.suspicious.redundant_parens";
+	enum string KEY = "dscanner.suspicious.redundant_parens";
 }

@@ -46,5 +46,5 @@ class CommaExpressionCheck : BaseAnalyzer
 
 	int interest;
 
-	private enum KEY = "dscanner.suspicious.comma_expression";
+	private enum string KEY = "dscanner.suspicious.comma_expression";
 }
