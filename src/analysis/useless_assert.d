@@ -28,14 +28,11 @@ class UselessAssertCheck : BaseAnalyzer
 	override void visit(const AssertExpression ae)
 	{
 		import std.conv : to;
+		import std.string : removechars;
 
 		UnaryExpression unary = cast(UnaryExpression) ae.assertion;
 		if (unary is null)
-		{
-			stderr.writeln("unary is null");
 			return;
-		}
-
 		if (unary.primaryExpression is null)
 			return;
 		immutable token = unary.primaryExpression.primary;
@@ -45,11 +42,11 @@ class UselessAssertCheck : BaseAnalyzer
 		if (!skipSwitch) switch (token.type)
 		{
 		case tok!"doubleLiteral":
-			if (!token.text.to!double)
+			if (!token.text.removechars("Ll").to!double)
 				return;
 			break;
 		case tok!"floatLiteral":
-			if (!token.text.to!float)
+			if (!token.text.removechars("Ff").to!float)
 				return;
 			break;
 		case tok!"idoubleLiteral":
@@ -61,7 +58,7 @@ class UselessAssertCheck : BaseAnalyzer
 				return;
 			break;
 		case tok!"longLiteral":
-			if (!token.text.to!long)
+			if (!token.text.removechars("Ll").to!long)
 				return;
 			break;
 		case tok!"realLiteral":
@@ -69,11 +66,11 @@ class UselessAssertCheck : BaseAnalyzer
 				return;
 			break;
 		case tok!"uintLiteral":
-			if (!token.text.to!uint)
+			if (!token.text.removechars("Uu").to!uint)
 				return;
 			break;
 		case tok!"ulongLiteral":
-			if (!token.text.to!ulong)
+			if (!token.text.removechars("UuLl").to!ulong)
 				return;
 			break;
 		case tok!"characterLiteral":
@@ -88,9 +85,35 @@ class UselessAssertCheck : BaseAnalyzer
 		default:
 			return;
 		}
-		addErrorMessage(ae.line, ae.column, KEY, "Assert condition is always true");
+		addErrorMessage(ae.line, ae.column, KEY, MESSAGE);
 	}
 
 private:
 	enum string KEY = "dscanner.suspicious.useless_assert";
+	enum string MESSAGE = "Assert condition is always true.";
 }
+
+unittest
+{
+	import std.stdio : stderr;
+	import analysis.config : StaticAnalysisConfig;
+	import std.format : format;
+
+	StaticAnalysisConfig sac;
+	sac.useless_assert_check = true;
+	assertAnalyzerWarnings(q{
+unittest
+{
+	assert(true); // [warn]: %1$s
+	assert(1); // [warn]: %1$s
+	assert([10]); // [warn]: %1$s
+	assert(false);
+	assert(0);
+	assert(0.0L);
+}
+
+}c
+		.format(UselessAssertCheck.MESSAGE), sac);
+	stderr.writeln("Unittest for UselessAssertCheck passed.");
+}
+

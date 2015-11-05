@@ -84,6 +84,8 @@ you do not want to use the one created by the "--defaultConfig" option.
 * Redundant parenthesis.
 * Unused labels.
 * Lines longer than 120 characters.
+* Incorrect infinite range definitions.
+* Some assertions that check conditions that will always be true.
 
 #### Wishlist
 

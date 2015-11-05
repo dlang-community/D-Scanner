@@ -92,7 +92,7 @@ unittest
 	import std.format : format;
 
 	StaticAnalysisConfig sac;
-	sac.builtin_property_names_check = true;
+	sac.incorrect_infinite_range_check = true;
 	assertAnalyzerWarnings(q{struct InfiniteRange
 {
 	bool empty() // [warn]: %1$s
