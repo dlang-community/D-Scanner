@@ -106,5 +106,8 @@ struct StaticAnalysisConfig
 	bool auto_ref_assignment_check;
 
 	@INI("Checks for incorrect infinite range definitions")
-	bool incorrect_infinite_range;
+	bool incorrect_infinite_range_check;
+
+	@INI("Checks for asserts that are always true")
+	bool useless_assert_check;
 }
