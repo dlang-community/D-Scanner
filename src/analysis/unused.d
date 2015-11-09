@@ -73,6 +73,7 @@ class UnusedVariableCheck : BaseAnalyzer
 	mixin PartsUseVariables!StructDeclaration;
 	mixin PartsUseVariables!TemplateArgumentList;
 	mixin PartsUseVariables!ThrowStatement;
+	mixin PartsUseVariables!CastExpression;
 
 	override void visit(const SwitchStatement switchStatement)
 	{
@@ -402,4 +403,35 @@ private:
 	bool blockStatementIntroducesScope = true;
 
 	Regex!char re;
+}
+
+unittest
+{
+	import std.stdio : stderr;
+	import analysis.config : StaticAnalysisConfig;
+	import analysis.helpers : assertAnalyzerWarnings;
+
+	StaticAnalysisConfig sac;
+	sac.unused_variable_check = true;
+	assertAnalyzerWarnings(q{
+
+	// Issue 274
+	unittest
+	{
+		size_t byteIndex = 0;
+		*(cast(FieldType*)(retVal.ptr + byteIndex)) = item;
+	}
+
+	unittest
+	{
+		int a; // [warn]: Variable a is never used.
+	}
+
+	void doStuff(int a, int b) // [warn]: Parameter b is never used.
+	{
+		return a;
+	}
+
+	}c, sac);
+	stderr.writeln("Unittest for UnusedVariableCheck passed.");
 }
