@@ -14,7 +14,7 @@ import analysis.helpers;
 import dsymbol.scope_ : Scope;
 
 /**
- * Checks that opEquals, opCmp, toHash, and toString are either const,
+ * Checks that opEquals, opCmp, toHash, 'opCast', and toString are either const,
  * immutable, or inout.
  */
 class ObjectConstCheck : BaseAnalyzer
@@ -40,7 +40,7 @@ class ObjectConstCheck : BaseAnalyzer
 		{
 			addErrorMessage(d.functionDeclaration.name.line,
 				d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
-				"Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.");
+				"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
 		}
 		d.accept(this);
 	}
@@ -62,7 +62,7 @@ class ObjectConstCheck : BaseAnalyzer
 	private static bool isInteresting(string name)
 	{
 		return name == "opCmp" || name == "toHash" || name == "opEquals"
-			|| name == "toString";
+			|| name == "toString" || name == "opCast";
 	}
 
 	private bool looking = false;
@@ -104,22 +104,22 @@ unittest
 			// Will warn, because none are const
 			class Dog
 			{
-				bool opEquals(Object a, Object b) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
+				bool opEquals(Object a, Object b) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return true;
 				}
 
-				int opCmp(Object o) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
+				int opCmp(Object o) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return 1;
 				}
 
-				hash_t toHash() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
+				hash_t toHash() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return 0;
 				}
 
-				string toString() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', and 'toString' are non-const.
+				string toString() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return "Dog";
 				}
