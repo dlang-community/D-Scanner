@@ -145,6 +145,7 @@ CTAGS output uses the following tag kinds:
 * f -- function declaration
 * u -- union declaration
 * T -- template declaration
+* a -- alias declarataion
 
 More information on the CTAGS format can be found [here](http://ctags.sourceforge.net/FORMAT).
 
