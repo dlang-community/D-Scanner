@@ -154,8 +154,7 @@ outline of the file's declarations to stdout.
 
 ### AST Dump
 The "--ast" or "--xml" options will dump the complete abstract syntax tree of
-the given source file to standard output in XML format. JSON output is planned
-but not yet implemented.
+the given source file to standard output in XML format.
 
 	$ dscanner --ast helloworld.d
 	<module>
@@ -234,3 +233,8 @@ but not yet implemented.
 	</functionDeclaration>
 	</declaration>
 	</module>
+
+For more readable output, pipe the command through [xmllint](http://xmlsoft.org/xmllint.html)
+using its formatting switch.
+
+	$ dscanner --ast helloworld.d | xmllint --format -
