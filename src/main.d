@@ -155,15 +155,17 @@ int main(string[] args)
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
 		LexerConfig config;
 		config.stringBehavior = StringBehavior.source;
-		auto tokens = byToken(bytes, config, &cache);
+
 		if (highlight)
 		{
+			auto tokens = byToken(bytes, config, &cache);
 			highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
 			return 0;
 		}
 		else if (tokenDump)
 		{
-			writeln("text                    blank\tindex\tline\tcolumn\ttype\tcomment");
+			auto tokens = getTokensForParser(bytes, config, &cache);
+			writeln("text                    blank\tindex\tline\tcolumn\ttype\tcomment\ttrailingComment");
 			foreach (token; tokens)
 			{
 				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null ? str(token.type) : token.text,
