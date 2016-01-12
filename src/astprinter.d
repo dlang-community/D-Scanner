@@ -208,11 +208,12 @@ class XMLPrinter : ASTVisitor
         foreach (dec; conditionalDeclaration.trueDeclarations)
             visit(dec);
         output.writeln("</trueDeclarations>");
-        if (conditionalDeclaration.falseDeclaration !is null)
+        if (conditionalDeclaration.falseDeclarations.length > 0)
         {
-            output.writeln("<falseDeclaration>");
-            visit(conditionalDeclaration.falseDeclaration);
-            output.writeln("</falseDeclaration>");
+            output.writeln("<falseDeclarations>");
+            foreach (dec; conditionalDeclaration.falseDeclarations)
+                visit(dec);
+            output.writeln("</falseDeclarations>");
         }
         output.writeln("</conditionalDeclaration>");
     }

@@ -56,10 +56,10 @@ class LabelVarNameCheck : BaseAnalyzer
 
 	override void visit(const ConditionalDeclaration condition)
 	{
-		if (condition.falseDeclaration)
+		if (condition.falseDeclarations.length > 0)
 			++conditionalDepth;
 		condition.accept(this);
-		if (condition.falseDeclaration)
+		if (condition.falseDeclarations.length > 0)
 			--conditionalDepth;
 	}
 

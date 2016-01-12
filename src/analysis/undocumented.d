@@ -114,8 +114,9 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 		const VersionCondition ver = cond.compileCondition.versionCondition;
 		if (ver is null || (ver.token != tok!"unittest" && ver.token.text != "none"))
 			cond.accept(this);
-		else if (cond.falseDeclaration !is null)
-			visit(cond.falseDeclaration);
+		else if (cond.falseDeclarations.length > 0)
+			foreach (f; cond.falseDeclarations)
+				visit(f);
 	}
 
 	override void visit(const FunctionBody fb) {}
