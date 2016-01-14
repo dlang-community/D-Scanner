@@ -35,3 +35,7 @@ githash.txt
 
 # GDB history
 .gdb_history
+
+# Dub stuff
+.dub
+dub.selections.json

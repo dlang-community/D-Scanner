@@ -6,9 +6,10 @@
 	"license" : "Boost Software License - Version 1.0",
 	"targetType": "executable",
 	"preBuildCommands": ["git log -1 --format='%H' > githash.txt"],
-	"stringImportPaths": ["."],
+	"versions": ["built_with_dub"],
 	"dependencies": {
-		"libdparse": "0.2.1",
+		"libdparse": "~>0.3.0",
+		"dsymbol": "~>0.1.0",
 		"inifiled": ">=0.0.3",
 	},
 }

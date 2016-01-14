@@ -110,6 +110,8 @@ int main(string[] args)
 	{
 		version (Windows)
 			writeln(DSCANNER_VERSION);
+		else version(built_with_dub)
+			writeln(DSCANNER_VERSION);
 		else
 			write(DSCANNER_VERSION, " ", GIT_HASH);
 		return 0;

@@ -8,9 +8,10 @@ module dscanner_version;
 /**
  * Human-readable version number
  */
-enum DSCANNER_VERSION = "v0.2.0-beta1";
+enum DSCANNER_VERSION = "v0.3.0-alpha";
 
 version (Windows) {}
+else version (built_with_dub) {}
 else
 {
 	/**
