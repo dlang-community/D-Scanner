@@ -248,9 +248,9 @@ private:
 			if (storageClass.token == tok!"enum")
 				return true;
 		}
-		foreach (attr; dec.attributes)
+		foreach (sc; dec.storageClasses)
 		{
-			if (attr.attribute.type == tok!"immutable" || attr.attribute.type == tok!"const")
+			if (sc.token == tok!"immutable" || sc.token == tok!"const")
 				return true;
 		}
 		if (dec.type !is null)
