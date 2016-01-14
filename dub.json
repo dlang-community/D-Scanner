@@ -5,7 +5,6 @@
 	"authors": ["Brian Schott"],
 	"license" : "Boost Software License - Version 1.0",
 	"targetType": "executable",
-	"preBuildCommands": ["git log -1 --format='%H' > githash.txt"],
 	"versions": ["built_with_dub"],
 	"dependencies": {
 		"libdparse": "~>0.3.0",
