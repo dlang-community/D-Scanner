@@ -1116,7 +1116,7 @@ class XMLPrinter : ASTVisitor
 
 	private void writeDdoc(string comment)
 	{
-		if (comment is null) return;
+		if (comment.ptr is null) return;
 		output.writeln("<ddoc>", xmlEscape(comment), "</ddoc>");
 	}
 

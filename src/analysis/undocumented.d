@@ -93,7 +93,7 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 
 	override void visit(const VariableDeclaration variable)
 	{
-		if (!currentIsInteresting() || variable.comment !is null)
+		if (!currentIsInteresting() || variable.comment.ptr !is null)
 			return;
 		if (variable.autoDeclaration !is null)
 		{
@@ -104,7 +104,8 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 		}
 		foreach (dec; variable.declarators)
 		{
-			addMessage(dec.name.line, dec.name.column, dec.name.text);
+			if (dec.comment.ptr is null)
+				addMessage(dec.name.line, dec.name.column, dec.name.text);
 			return;
 		}
 	}
@@ -140,7 +141,7 @@ private:
 			import std.traits : hasMember;
 			if (currentIsInteresting())
 			{
-				if (declaration.comment is null)
+				if (declaration.comment.ptr is null)
 				{
 					static if (hasMember!(T, "name"))
 					{
