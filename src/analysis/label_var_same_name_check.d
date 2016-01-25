@@ -41,6 +41,13 @@ class LabelVarNameCheck : BaseAnalyzer
 		popScope();
 	}
 
+	override void visit(const CaseStatement caseStatement)
+	{
+		pushScope();
+		caseStatement.accept(this);
+		popScope();
+	}
+
 	override void visit(const VariableDeclaration var)
 	{
 		foreach (dec; var.declarators)
