@@ -52,7 +52,7 @@ unittest
 				add near ptr [EAX], 3;
 			}
 		}
-	}c, );
+	}c, sac);
 
 	stderr.writeln("Unittest for AsmStyleCheck passed.");
 }
