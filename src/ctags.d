@@ -14,6 +14,7 @@ import std.stdio;
 import std.array;
 import std.conv;
 import std.typecons;
+import containers.ttree;
 
 /**
  * Prints CTAGS information to the given file.
@@ -24,7 +25,7 @@ import std.typecons;
  */
 void printCtags(File output, string[] fileNames)
 {
-	string[] tags;
+	TTree!string tags;
 	LexerConfig config;
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	foreach (fileName; fileNames)
@@ -37,14 +38,13 @@ void printCtags(File output, string[] fileNames)
 		auto tokens = getTokensForParser(bytes, config, &cache);
 		Module m = parseModule(tokens.array, fileName, null, &doNothing);
 
-		auto printer = new CTagsPrinter;
+		auto printer = new CTagsPrinter(&tags);
 		printer.fileName = fileName;
 		printer.visit(m);
-		tags ~= printer.tagLines;
 	}
 	output.write(
 		"!_TAG_FILE_FORMAT\t2\n" ~ "!_TAG_FILE_SORTED\t1\n" ~ "!_TAG_FILE_AUTHOR\tBrian Schott\n" ~ "!_TAG_PROGRAM_URL\thttps://github.com/Hackerpilot/Dscanner/\n");
-	tags.sort().copy(output.lockingTextWriter);
+	tags[].copy(output.lockingTextWriter);
 }
 
 private:
@@ -85,14 +85,18 @@ string paramsToString(Dec)(const Dec dec)
 	return app.data;
 }
 
-final class CTagsPrinter
-	: ASTVisitor
+final class CTagsPrinter: ASTVisitor
 {
+	public this(TTree!string* output)
+	{
+		this.tagLines = output;
+	}
+
 	override void visit(const ClassDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tc\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access);
-		auto c = context;
+		tagLines.insert("%s\t%s\t%d;\"\tc\tline:%d%s%s\n".format(dec.name.text,
+			fileName, dec.name.line, dec.name.line, context.c, context.access));
+		immutable c = context;
 		context = ContextType("\tclass:" ~ dec.name.text, "\taccess:public");
 		dec.accept(this);
 		context = c;
@@ -105,9 +109,9 @@ final class CTagsPrinter
 			dec.accept(this);
 			return;
 		}
-		tagLines ~= "%s\t%s\t%d;\"\ts\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access);
-		auto c = context;
+		tagLines.insert("%s\t%s\t%d;\"\ts\tline:%d%s%s\n".format(dec.name.text,
+			fileName, dec.name.line, dec.name.line, context.c, context.access));
+		immutable c = context;
 		context = ContextType("\tstruct:" ~ dec.name.text, "\taccess:public");
 		dec.accept(this);
 		context = c;
@@ -115,9 +119,9 @@ final class CTagsPrinter
 
 	override void visit(const InterfaceDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\ti\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access);
-		auto c = context;
+		tagLines.insert("%s\t%s\t%d;\"\ti\tline:%d%s%s\n".format(dec.name.text,
+			fileName, dec.name.line, dec.name.line, context.c, context.access));
+		immutable c = context;
 		context = ContextType("\tclass:" ~ dec.name.text, context.access);
 		dec.accept(this);
 		context = c;
@@ -127,10 +131,10 @@ final class CTagsPrinter
 	{
 		auto params = paramsToString(dec);
 
-		tagLines ~= "%s\t%s\t%d;\"\tT\tline:%d%s%s\tsignature:%s\n".format(
+		tagLines.insert("%s\t%s\t%d;\"\tT\tline:%d%s%s\tsignature:%s\n".format(
 			dec.name.text, fileName, dec.name.line, dec.name.line, context.c,
-			context.access, params);
-		auto c = context;
+			context.access, params));
+		immutable c = context;
 		context = ContextType("\ttemplate:" ~ dec.name.text, context.access);
 		dec.accept(this);
 		context = c;
@@ -140,30 +144,30 @@ final class CTagsPrinter
 	{
 		auto params = paramsToString(dec);
 
-		tagLines ~= "%s\t%s\t%d;\"\tf\tline:%d%s%s\tsignature:%s\n".format(
+		tagLines.insert("%s\t%s\t%d;\"\tf\tline:%d%s%s\tsignature:%s\n".format(
 			dec.name.text, fileName, dec.name.line, dec.name.line, context.c,
-			context.access, params);
+			context.access, params));
 	}
 
 	override void visit(const Constructor dec)
 	{
 		auto params = paramsToString(dec);
 
-		tagLines ~= "this\t%s\t%d;\"\tf\tline:%d%s\tsignature:%s%s\n".format(fileName,
-			dec.line, dec.line, context.c, params, context.access);
+		tagLines.insert("this\t%s\t%d;\"\tf\tline:%d%s\tsignature:%s%s\n".format(fileName,
+			dec.line, dec.line, context.c, params, context.access));
 	}
 
 	override void visit(const Destructor dec)
 	{
-		tagLines ~= "~this\t%s\t%d;\"\tf\tline:%d%s\n".format(fileName,
-			dec.line, dec.line, context.c);
+		tagLines.insert("~this\t%s\t%d;\"\tf\tline:%d%s\n".format(fileName,
+			dec.line, dec.line, context.c));
 	}
 
 	override void visit(const EnumDeclaration dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\tg\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access);
-		auto c = context;
+		tagLines.insert("%s\t%s\t%d;\"\tg\tline:%d%s%s\n".format(dec.name.text,
+			fileName, dec.name.line, dec.name.line, context.c, context.access));
+		immutable c = context;
 		context = ContextType("\tenum:" ~ dec.name.text, context.access);
 		dec.accept(this);
 		context = c;
@@ -176,9 +180,9 @@ final class CTagsPrinter
 			dec.accept(this);
 			return;
 		}
-		tagLines ~= "%s\t%s\t%d;\"\tu\tline:%d%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c);
-		auto c = context;
+		tagLines.insert("%s\t%s\t%d;\"\tu\tline:%d%s\n".format(dec.name.text,
+			fileName, dec.name.line, dec.name.line, context.c));
+		immutable c = context;
 		context = ContextType("\tunion:" ~ dec.name.text, context.access);
 		dec.accept(this);
 		context = c;
@@ -186,22 +190,22 @@ final class CTagsPrinter
 
 	override void visit(const AnonymousEnumMember mem)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text,
-			fileName, mem.name.line, mem.name.line, context.c);
+		tagLines.insert("%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text,
+			fileName, mem.name.line, mem.name.line, context.c));
 	}
 
 	override void visit(const EnumMember mem)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text,
-			fileName, mem.name.line, mem.name.line, context.c);
+		tagLines.insert("%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text,
+			fileName, mem.name.line, mem.name.line, context.c));
 	}
 
 	override void visit(const VariableDeclaration dec)
 	{
 		foreach (d; dec.declarators)
 		{
-			tagLines ~= "%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(d.name.text,
-				fileName, d.name.line, d.name.line, context.c, context.access);
+			tagLines.insert("%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(d.name.text,
+				fileName, d.name.line, d.name.line, context.c, context.access));
 		}
 		dec.accept(this);
 	}
@@ -210,16 +214,16 @@ final class CTagsPrinter
 	{
 		foreach (i; dec.identifiers)
 		{
-			tagLines ~= "%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(i.text,
-				fileName, i.line, i.line, context.c, context.access);
+			tagLines.insert("%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(i.text,
+				fileName, i.line, i.line, context.c, context.access));
 		}
 		dec.accept(this);
 	}
 
 	override void visit(const Invariant dec)
 	{
-		tagLines ~= "invariant\t%s\t%d;\"\tv\tline:%d%s%s\n".format(fileName,
-			dec.line, dec.line, context.c, context.access);
+		tagLines.insert("invariant\t%s\t%d;\"\tv\tline:%d%s%s\n".format(fileName,
+			dec.line, dec.line, context.c, context.access));
 	}
 
 	override void visit(const ModuleDeclaration dec)
@@ -264,7 +268,7 @@ final class CTagsPrinter
 
 	override void visit(const Declaration dec)
 	{
-		auto c = context;
+		immutable c = context;
 		dec.accept(this);
 
 		final switch (accessSt) with (AccessState)
@@ -294,8 +298,8 @@ final class CTagsPrinter
 		{
 			foreach (i; dec.identifierList.identifiers)
 			{
-				tagLines ~= "%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(i.text,
-					fileName, i.line, i.line, context.c, context.access);
+				tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(i.text,
+					fileName, i.line, i.line, context.c, context.access));
 			}
 		}
 		dec.accept(this);
@@ -303,8 +307,8 @@ final class CTagsPrinter
 
 	override void visit(const AliasInitializer dec)
 	{
-		tagLines ~= "%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access);
+		tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(dec.name.text,
+			fileName, dec.name.line, dec.name.line, context.c, context.access));
 
 		dec.accept(this);
 	}
@@ -312,15 +316,15 @@ final class CTagsPrinter
 	override void visit(const AliasThisDeclaration dec)
 	{
 		auto name = dec.identifier;
-		tagLines ~= "%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(name.text,
-			fileName, name.line, name.line, context.c, context.access);
+		tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(name.text,
+			fileName, name.line, name.line, context.c, context.access));
 
 		dec.accept(this);
 	}
 
 	alias visit = ASTVisitor.visit;
 	string fileName;
-	string[] tagLines;
+	TTree!string* tagLines;
 	ContextType context;
 	AccessState accessSt;
 }
