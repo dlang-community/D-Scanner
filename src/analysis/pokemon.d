@@ -12,7 +12,6 @@ import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_ : Scope;
 
-
 /**
  * Checks for Pokémon exception handling, i.e. "gotta' catch 'em all".
  *
@@ -53,10 +52,10 @@ class PokemonExceptionCheck : BaseAnalyzer
 		c.accept(this);
 	}
 
-
 	override void visit(const Type2 type2)
 	{
-		if (ignoreType) return;
+		if (ignoreType)
+			return;
 
 		if (type2.type !is null)
 		{
@@ -68,13 +67,14 @@ class PokemonExceptionCheck : BaseAnalyzer
 		{
 			return;
 		}
-		auto identOrTemplate = type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+		auto identOrTemplate = type2.symbol.identifierOrTemplateChain
+			.identifiersOrTemplateInstances[0];
 		if (identOrTemplate.templateInstance !is null)
 		{
 			return;
 		}
 		if (identOrTemplate.identifier.text == "Throwable"
-			|| identOrTemplate.identifier.text == "Error")
+				|| identOrTemplate.identifier.text == "Error")
 		{
 			immutable column = identOrTemplate.identifier.column;
 			immutable line = identOrTemplate.identifier.line;
@@ -129,4 +129,3 @@ unittest
 
 	stderr.writeln("Unittest for PokemonExceptionCheck passed.");
 }
-

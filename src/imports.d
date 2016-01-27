@@ -28,7 +28,8 @@ class ImportPrinter : ASTVisitor
 
 	override void visit(const IdentifierChain identifierChain)
 	{
-		if (ignore) return;
+		if (ignore)
+			return;
 		bool first = true;
 		string s;
 		foreach (ident; identifierChain.identifiers)

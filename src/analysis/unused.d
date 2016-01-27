@@ -37,8 +37,9 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Declaration declaration)
 	{
-		if (!isOverride) foreach (attribute; declaration.attributes)
-			isOverride = isOverride || (attribute.attribute == tok!"override");
+		if (!isOverride)
+			foreach (attribute; declaration.attributes)
+				isOverride = isOverride || (attribute.attribute == tok!"override");
 		declaration.accept(this);
 		isOverride = false;
 	}
@@ -206,13 +207,13 @@ class UnusedVariableCheck : BaseAnalyzer
 		if (interestDepth > 0)
 		{
 			if (primary.identifierOrTemplateInstance !is null
-				&& primary.identifierOrTemplateInstance.identifier != tok!"")
+					&& primary.identifierOrTemplateInstance.identifier != tok!"")
 			{
 				variableUsed(primary.identifierOrTemplateInstance.identifier.text);
 			}
 			if (mixinDepth > 0 && primary.primary == tok!"stringLiteral"
-				|| primary.primary == tok!"wstringLiteral"
-				|| primary.primary == tok!"dstringLiteral")
+					|| primary.primary == tok!"wstringLiteral"
+					|| primary.primary == tok!"dstringLiteral")
 			{
 				foreach (part; matchAll(primary.primary.text, re))
 				{
@@ -275,13 +276,15 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		import std.algorithm : canFind;
 		import std.array : array;
+
 		if (parameter.name != tok!"")
 		{
 			immutable bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
-				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"in")
-				|| canFind(parameter.parameterAttributes, cast(IdType) tok!"out");
+				|| canFind(parameter.parameterAttributes,
+						cast(IdType) tok!"in") || canFind(parameter.parameterAttributes,
+						cast(IdType) tok!"out");
 			variableDeclared(parameter.name.text, parameter.name.line,
-				parameter.name.column, true, isRef);
+					parameter.name.column, true, isRef);
 			if (parameter.default_ !is null)
 			{
 				interestDepth++;
@@ -338,8 +341,7 @@ private:
 		}
 	}
 
-	void variableDeclared(string name, size_t line, size_t column,
-		bool isParameter, bool isRef)
+	void variableDeclared(string name, size_t line, size_t column, bool isParameter, bool isRef)
 	{
 		if (inAggregateScope)
 			return;
@@ -364,11 +366,11 @@ private:
 		{
 			if (!uu.isRef && tree.length > 1)
 			{
-				immutable string certainty = uu.uncertain ? " might not be used." : " is never used.";
+				immutable string certainty = uu.uncertain ? " might not be used."
+					: " is never used.";
 				immutable string errorMessage = (uu.isParameter ? "Parameter " : "Variable ")
-						~ uu.name ~ certainty;
-				addErrorMessage(uu.line, uu.column,
-					uu.isParameter ? "dscanner.suspicious.unused_parameter"
+					~ uu.name ~ certainty;
+				addErrorMessage(uu.line, uu.column, uu.isParameter ? "dscanner.suspicious.unused_parameter"
 						: "dscanner.suspicious.unused_variable", errorMessage);
 			}
 		}

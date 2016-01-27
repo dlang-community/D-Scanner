@@ -83,8 +83,7 @@ class Outliner : ASTVisitor
 	override void visit(const InterfaceDeclaration interfaceDec)
 	{
 		printIndentation();
-		output.writeln("interface ", interfaceDec.name.text, " : ",
-			interfaceDec.name.line);
+		output.writeln("interface ", interfaceDec.name.text, " : ", interfaceDec.name.line);
 		indent();
 		interfaceDec.accept(this);
 		outdent();
@@ -94,8 +93,7 @@ class Outliner : ASTVisitor
 	override void visit(const StructDeclaration structDec)
 	{
 		printIndentation();
-		output.writeln("struct ", structDec.name.text, " : ",
-			structDec.name.line);
+		output.writeln("struct ", structDec.name.text, " : ", structDec.name.line);
 		indent();
 		structDec.accept(this);
 		outdent();
@@ -106,25 +104,26 @@ class Outliner : ASTVisitor
 	{
 		printIndentation();
 		output.writeln("template ", templateDeclaration.name.text, " : ",
-			templateDeclaration.name.line);
+				templateDeclaration.name.line);
 		indent();
 		templateDeclaration.accept(this);
 		outdent();
 		finish();
 	}
 
+	//dfmt off
 	override void visit(const StaticConstructor s) {}
 	override void visit(const StaticDestructor s) {}
 	override void visit(const SharedStaticConstructor s) {}
 	override void visit(const SharedStaticDestructor s) {}
 	override void visit(const Constructor c) {}
 	override void visit(const Unittest u) {}
+	// dfmt on
 
 	override void visit(const UnionDeclaration unionDeclaration)
 	{
 		printIndentation();
-		output.writeln("union ", unionDeclaration.name.text, " : ",
-			unionDeclaration.name.line);
+		output.writeln("union ", unionDeclaration.name.text, " : ", unionDeclaration.name.line);
 		indent();
 		unionDeclaration.accept(this);
 		outdent();

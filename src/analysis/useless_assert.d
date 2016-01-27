@@ -113,7 +113,6 @@ unittest
 }
 
 }c
-		.format(UselessAssertCheck.MESSAGE), sac);
+			.format(UselessAssertCheck.MESSAGE), sac);
 	stderr.writeln("Unittest for UselessAssertCheck passed.");
 }
-

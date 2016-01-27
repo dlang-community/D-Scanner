@@ -51,7 +51,7 @@ class FunctionAttributeCheck : BaseAnalyzer
 		if (inInterface && dec.attribute.attribute == tok!"abstract")
 		{
 			addErrorMessage(dec.attribute.attribute.line,
-				dec.attribute.attribute.column, KEY, ABSTRACT_MESSAGE);
+					dec.attribute.attribute.column, KEY, ABSTRACT_MESSAGE);
 		}
 	}
 
@@ -63,21 +63,20 @@ class FunctionAttributeCheck : BaseAnalyzer
 			bool foundProperty = false;
 			foreach (attribute; dec.attributes)
 				foundConst = foundConst || attribute.attribute.type == tok!"const"
-				|| attribute.attribute.type == tok!"immutable"
-				|| attribute.attribute.type == tok!"inout";
+					|| attribute.attribute.type == tok!"immutable"
+					|| attribute.attribute.type == tok!"inout";
 			foreach (attribute; dec.memberFunctionAttributes)
 			{
 				foundProperty = foundProperty || (attribute.atAttribute !is null
-					&& attribute.atAttribute.identifier.text == "property");
+						&& attribute.atAttribute.identifier.text == "property");
 				foundConst = foundConst || attribute.tokenType == tok!"const"
-					|| attribute.tokenType == tok!"immutable"
-					|| attribute.tokenType == tok!"inout";
+					|| attribute.tokenType == tok!"immutable" || attribute.tokenType == tok!"inout";
 			}
 			if (foundProperty && !foundConst)
 			{
 				addErrorMessage(dec.name.line, dec.name.column, KEY,
-					"Zero-parameter '@property' function should be"
-					~ " marked 'const', 'inout', or 'immutable'.");
+						"Zero-parameter '@property' function should be"
+						~ " marked 'const', 'inout', or 'immutable'.");
 			}
 		}
 		dec.accept(this);
@@ -93,21 +92,19 @@ class FunctionAttributeCheck : BaseAnalyzer
 				continue;
 			if (attr.attribute == tok!"abstract" && inInterface)
 			{
-				addErrorMessage(attr.attribute.line,
-					attr.attribute.column, KEY, ABSTRACT_MESSAGE);
+				addErrorMessage(attr.attribute.line, attr.attribute.column, KEY, ABSTRACT_MESSAGE);
 				continue;
 			}
-			if (dec.functionDeclaration !is null
-				&& (attr.attribute == tok!"const"
-				|| attr.attribute == tok!"inout"
-				|| attr.attribute == tok!"immutable"))
+			if (dec.functionDeclaration !is null && (attr.attribute == tok!"const"
+					|| attr.attribute == tok!"inout" || attr.attribute == tok!"immutable"))
 			{
 				import std.string : format;
+
 				immutable string attrString = str(attr.attribute.type);
 				addErrorMessage(dec.functionDeclaration.name.line,
-					dec.functionDeclaration.name.column, KEY,
-					format("'%s' is not an attribute of the return type."
-					~ " Place it after the parameter list to clarify.", attrString));
+						dec.functionDeclaration.name.column, KEY, format(
+							"'%s' is not an attribute of the return type." ~ " Place it after the parameter list to clarify.",
+							attrString));
 			}
 		}
 	end:

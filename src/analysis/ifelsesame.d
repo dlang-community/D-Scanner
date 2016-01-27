@@ -33,20 +33,19 @@ class IfElseSameCheck : BaseAnalyzer
 	{
 		if (ifStatement.thenStatement == ifStatement.elseStatement)
 			addErrorMessage(ifStatement.line, ifStatement.column,
-				"dscanner.bugs.if_else_same",
-				"'Else' branch is identical to 'Then' branch.");
+					"dscanner.bugs.if_else_same", "'Else' branch is identical to 'Then' branch.");
 		ifStatement.accept(this);
 	}
 
 	override void visit(const AssignExpression assignExpression)
 	{
-		auto e = cast(const AssignExpression) (cast(const Expression) assignExpression.expression).items[$ - 1];
+		auto e = cast(const AssignExpression)(cast(const Expression) assignExpression.expression)
+			.items[$ - 1];
 		if (e !is null && assignExpression.operator == tok!"="
-			&& e.ternaryExpression == assignExpression.ternaryExpression)
+				&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{
-			addErrorMessage(assignExpression.line, assignExpression.column,
-				"dscanner.bugs.self_assignment",
-				"Left side of assignment operatior is identical to the right side.");
+			addErrorMessage(assignExpression.line, assignExpression.column, "dscanner.bugs.self_assignment",
+					"Left side of assignment operatior is identical to the right side.");
 		}
 		assignExpression.accept(this);
 	}
@@ -54,11 +53,11 @@ class IfElseSameCheck : BaseAnalyzer
 	override void visit(const AndAndExpression andAndExpression)
 	{
 		if (andAndExpression.left !is null && andAndExpression.right !is null
-			&& andAndExpression.left == andAndExpression.right)
+				&& andAndExpression.left == andAndExpression.right)
 		{
 			addErrorMessage(andAndExpression.line, andAndExpression.column,
-				"dscanner.bugs.logic_operator_operands",
-				"Left side of logical and is identical to right side.");
+					"dscanner.bugs.logic_operator_operands",
+					"Left side of logical and is identical to right side.");
 		}
 		andAndExpression.accept(this);
 	}
@@ -66,11 +65,11 @@ class IfElseSameCheck : BaseAnalyzer
 	override void visit(const OrOrExpression orOrExpression)
 	{
 		if (orOrExpression.left !is null && orOrExpression.right !is null
-			&& orOrExpression.left == orOrExpression.right)
+				&& orOrExpression.left == orOrExpression.right)
 		{
 			addErrorMessage(orOrExpression.line, orOrExpression.column,
-				"dscanner.bugs.logic_operator_operands",
-				"Left side of logical or is identical to right side.");
+					"dscanner.bugs.logic_operator_operands",
+					"Left side of logical or is identical to right side.");
 		}
 		orOrExpression.accept(this);
 	}
@@ -99,4 +98,3 @@ unittest
 	}c, sac);
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }
-

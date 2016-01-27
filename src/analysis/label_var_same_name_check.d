@@ -86,15 +86,14 @@ private:
 		{
 			const(Thing)* thing = name.text in s;
 			if (thing is null)
-				currentScope[name.text] = Thing(name.text, name.line, name.column,
-					!fromLabel/+, isConditional+/);
+				currentScope[name.text] = Thing(name.text, name.line, name.column, !fromLabel /+, isConditional+/ );
 			else if (i != 0 || !isConditional)
 			{
 				immutable thisKind = fromLabel ? "Label" : "Variable";
 				immutable otherKind = thing.isVar ? "variable" : "label";
 				addErrorMessage(name.line, name.column, "dscanner.suspicious.label_var_same_name",
-					thisKind ~ " \"" ~ name.text ~ "\" has the same name as a "
-					~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
+						thisKind ~ " \"" ~ name.text ~ "\" has the same name as a "
+						~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
 			}
 			++i;
 		}
@@ -111,7 +110,7 @@ private:
 
 	ref currentScope() @property
 	{
-		return stack[$-1];
+		return stack[$ - 1];
 	}
 
 	void pushScope()

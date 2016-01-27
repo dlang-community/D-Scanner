@@ -32,14 +32,16 @@ public:
 	override void visit(const Token t)
 	{
 		import std.algorithm : startsWith;
+
 		if (isNumberLiteral(t.type) && !t.text.startsWith("0x")
-			&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex).empty)
-				|| !t.text.matchFirst(badDecimalRegex).empty))
+				&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex)
+					.empty) || !t.text.matchFirst(badDecimalRegex).empty))
 		{
 			addErrorMessage(t.line, t.column, "dscanner.style.number_literals",
-				"Use underscores to improve number constant readability.");
+					"Use underscores to improve number constant readability.");
 		}
 	}
+
 private:
 	auto badBinaryRegex = ctRegex!(`^0b[01]{9,}`);
 	auto badDecimalRegex = ctRegex!(`^\d{5,}`);
@@ -48,6 +50,7 @@ private:
 unittest
 {
 	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.number_style_check = true;
 	assertAnalyzerWarnings(q{
@@ -66,4 +69,3 @@ unittest
 
 	stderr.writeln("Unittest for NumberStyleCheck passed.");
 }
-

@@ -57,8 +57,7 @@ class AutoRefAssignmentCheck : BaseAnalyzer
 		if (ioti.identifier == tok!"" || interest <= 0)
 			return;
 		if (scopes[$ - 1].canFind(ioti.identifier.text))
-			addErrorMessage(ioti.identifier.line, ioti.identifier.column, KEY,
-				MESSAGE);
+			addErrorMessage(ioti.identifier.line, ioti.identifier.column, KEY, MESSAGE);
 	}
 
 	override void visit(const IdentifierChain ic)
@@ -68,8 +67,7 @@ class AutoRefAssignmentCheck : BaseAnalyzer
 		if (ic.identifiers.length == 0 || interest <= 0)
 			return;
 		if (scopes[$ - 1].canFind(ic.identifiers[0].text))
-			addErrorMessage(ic.identifiers[0].line, ic.identifiers[0].column, KEY,
-				MESSAGE);
+			addErrorMessage(ic.identifiers[0].line, ic.identifiers[0].column, KEY, MESSAGE);
 	}
 
 	alias visit = BaseAnalyzer.visit;

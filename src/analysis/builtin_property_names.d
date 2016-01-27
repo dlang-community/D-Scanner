@@ -47,18 +47,20 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 	override void visit(const FunctionBody functionBody)
 	{
 		immutable int d = depth;
-		scope(exit) depth = d;
+		scope (exit)
+			depth = d;
 		depth = 0;
 		functionBody.accept(this);
 	}
 
 	override void visit(const AutoDeclaration ad)
 	{
-		if (depth > 0) foreach (i; ad.identifiers)
-		{
-			if (isBuiltinProperty(i.text))
-				addErrorMessage(i.line, i.column, KEY, generateErrorMessage(i.text));
-		}
+		if (depth > 0)
+			foreach (i; ad.identifiers)
+			{
+				if (isBuiltinProperty(i.text))
+					addErrorMessage(i.line, i.column, KEY, generateErrorMessage(i.text));
+			}
 	}
 
 	override void visit(const Declarator d)
@@ -81,25 +83,26 @@ private:
 	string generateErrorMessage(string name)
 	{
 		import std.string : format;
+
 		return format("Avoid naming members '%s'. This can"
-		~ " confuse code that depends on the '.%s' property of a type.", name, name);
+				~ " confuse code that depends on the '.%s' property of a type.", name, name);
 	}
 
 	bool isBuiltinProperty(string name)
 	{
 		import std.algorithm : canFind;
+
 		return builtinProperties.canFind(name);
 	}
 
-	enum string[] builtinProperties = [
-		"init", "sizeof", "mangleof", "alignof", "stringof"
-	];
+	enum string[] builtinProperties = ["init", "sizeof", "mangleof", "alignof", "stringof"];
 	int depth;
 }
 
 unittest
 {
 	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.builtin_property_names_check = true;
 	assertAnalyzerWarnings(q{
@@ -113,4 +116,3 @@ class SomeClass
 
 	stderr.writeln("Unittest for NumberStyleCheck passed.");
 }
-

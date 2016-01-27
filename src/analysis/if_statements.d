@@ -27,10 +27,10 @@ class IfStatementCheck : BaseAnalyzer
 		++depth;
 
 		if (ifStatement.expression.items.length == 1
-			&& (cast(AndAndExpression) ifStatement.expression.items[0]) is null)
+				&& (cast(AndAndExpression) ifStatement.expression.items[0]) is null)
 		{
-			redundancyCheck(ifStatement.expression, ifStatement.expression.line,
-				ifStatement.expression.column);
+			redundancyCheck(ifStatement.expression,
+					ifStatement.expression.line, ifStatement.expression.column);
 		}
 		inIfExpresson = true;
 		ifStatement.expression.accept(this);
@@ -47,12 +47,10 @@ class IfStatementCheck : BaseAnalyzer
 	{
 		if (inIfExpresson)
 		{
-			redundancyCheck(andAndExpression, andAndExpression.line,
-				andAndExpression.column);
-			redundancyCheck(andAndExpression.left, andAndExpression.line,
-				andAndExpression.column);
+			redundancyCheck(andAndExpression, andAndExpression.line, andAndExpression.column);
+			redundancyCheck(andAndExpression.left, andAndExpression.line, andAndExpression.column);
 			redundancyCheck(andAndExpression.right, andAndExpression.line,
-				andAndExpression.column);
+					andAndExpression.column);
 		}
 		andAndExpression.accept(this);
 	}
@@ -68,8 +66,7 @@ private:
 		assert(depth >= 0);
 	}
 
-	void redundancyCheck(const ExpressionNode expression, size_t line,
-		size_t column)
+	void redundancyCheck(const ExpressionNode expression, size_t line, size_t column)
 	{
 		import std.string : format;
 		import std.array : appender;
@@ -82,10 +79,8 @@ private:
 		immutable size_t prevLocation = alreadyChecked(app.data, line, column);
 		if (prevLocation != size_t.max)
 		{
-			addErrorMessage(line, column, KEY,
-				"Expression %s is true: already checked on line %d.".format(
-				expressions[prevLocation].formatted,
-				expressions[prevLocation].line));
+			addErrorMessage(line, column, KEY, "Expression %s is true: already checked on line %d.".format(
+					expressions[prevLocation].formatted, expressions[prevLocation].line));
 		}
 		else
 		{

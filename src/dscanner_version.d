@@ -10,8 +10,12 @@ module dscanner_version;
  */
 enum DSCANNER_VERSION = "v0.3.0-alpha";
 
-version (Windows) {}
-else version (built_with_dub) {}
+version (Windows)
+{
+}
+else version (built_with_dub)
+{
+}
 else
 {
 	/**

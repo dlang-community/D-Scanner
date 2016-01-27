@@ -42,8 +42,8 @@ void printCtags(File output, string[] fileNames)
 		printer.fileName = fileName;
 		printer.visit(m);
 	}
-	output.write(
-		"!_TAG_FILE_FORMAT\t2\n" ~ "!_TAG_FILE_SORTED\t1\n" ~ "!_TAG_FILE_AUTHOR\tBrian Schott\n" ~ "!_TAG_PROGRAM_URL\thttps://github.com/Hackerpilot/Dscanner/\n");
+	output.write("!_TAG_FILE_FORMAT\t2\n" ~ "!_TAG_FILE_SORTED\t1\n" ~ "!_TAG_FILE_AUTHOR\tBrian Schott\n"
+			~ "!_TAG_PROGRAM_URL\thttps://github.com/Hackerpilot/Dscanner/\n");
 	tags[].copy(output.lockingTextWriter);
 }
 
@@ -85,7 +85,7 @@ string paramsToString(Dec)(const Dec dec)
 	return app.data;
 }
 
-final class CTagsPrinter: ASTVisitor
+final class CTagsPrinter : ASTVisitor
 {
 	public this(TTree!string* output)
 	{
@@ -95,7 +95,7 @@ final class CTagsPrinter: ASTVisitor
 	override void visit(const ClassDeclaration dec)
 	{
 		tagLines.insert("%s\t%s\t%d;\"\tc\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access));
+				fileName, dec.name.line, dec.name.line, context.c, context.access));
 		immutable c = context;
 		context = ContextType("\tclass:" ~ dec.name.text, "\taccess:public");
 		dec.accept(this);
@@ -110,7 +110,7 @@ final class CTagsPrinter: ASTVisitor
 			return;
 		}
 		tagLines.insert("%s\t%s\t%d;\"\ts\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access));
+				fileName, dec.name.line, dec.name.line, context.c, context.access));
 		immutable c = context;
 		context = ContextType("\tstruct:" ~ dec.name.text, "\taccess:public");
 		dec.accept(this);
@@ -120,7 +120,7 @@ final class CTagsPrinter: ASTVisitor
 	override void visit(const InterfaceDeclaration dec)
 	{
 		tagLines.insert("%s\t%s\t%d;\"\ti\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access));
+				fileName, dec.name.line, dec.name.line, context.c, context.access));
 		immutable c = context;
 		context = ContextType("\tclass:" ~ dec.name.text, context.access);
 		dec.accept(this);
@@ -131,9 +131,8 @@ final class CTagsPrinter: ASTVisitor
 	{
 		auto params = paramsToString(dec);
 
-		tagLines.insert("%s\t%s\t%d;\"\tT\tline:%d%s%s\tsignature:%s\n".format(
-			dec.name.text, fileName, dec.name.line, dec.name.line, context.c,
-			context.access, params));
+		tagLines.insert("%s\t%s\t%d;\"\tT\tline:%d%s%s\tsignature:%s\n".format(dec.name.text,
+				fileName, dec.name.line, dec.name.line, context.c, context.access, params));
 		immutable c = context;
 		context = ContextType("\ttemplate:" ~ dec.name.text, context.access);
 		dec.accept(this);
@@ -144,9 +143,8 @@ final class CTagsPrinter: ASTVisitor
 	{
 		auto params = paramsToString(dec);
 
-		tagLines.insert("%s\t%s\t%d;\"\tf\tline:%d%s%s\tsignature:%s\n".format(
-			dec.name.text, fileName, dec.name.line, dec.name.line, context.c,
-			context.access, params));
+		tagLines.insert("%s\t%s\t%d;\"\tf\tline:%d%s%s\tsignature:%s\n".format(dec.name.text,
+				fileName, dec.name.line, dec.name.line, context.c, context.access, params));
 	}
 
 	override void visit(const Constructor dec)
@@ -154,19 +152,19 @@ final class CTagsPrinter: ASTVisitor
 		auto params = paramsToString(dec);
 
 		tagLines.insert("this\t%s\t%d;\"\tf\tline:%d%s\tsignature:%s%s\n".format(fileName,
-			dec.line, dec.line, context.c, params, context.access));
+				dec.line, dec.line, context.c, params, context.access));
 	}
 
 	override void visit(const Destructor dec)
 	{
 		tagLines.insert("~this\t%s\t%d;\"\tf\tline:%d%s\n".format(fileName,
-			dec.line, dec.line, context.c));
+				dec.line, dec.line, context.c));
 	}
 
 	override void visit(const EnumDeclaration dec)
 	{
 		tagLines.insert("%s\t%s\t%d;\"\tg\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access));
+				fileName, dec.name.line, dec.name.line, context.c, context.access));
 		immutable c = context;
 		context = ContextType("\tenum:" ~ dec.name.text, context.access);
 		dec.accept(this);
@@ -181,7 +179,7 @@ final class CTagsPrinter: ASTVisitor
 			return;
 		}
 		tagLines.insert("%s\t%s\t%d;\"\tu\tline:%d%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c));
+				fileName, dec.name.line, dec.name.line, context.c));
 		immutable c = context;
 		context = ContextType("\tunion:" ~ dec.name.text, context.access);
 		dec.accept(this);
@@ -191,13 +189,13 @@ final class CTagsPrinter: ASTVisitor
 	override void visit(const AnonymousEnumMember mem)
 	{
 		tagLines.insert("%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text,
-			fileName, mem.name.line, mem.name.line, context.c));
+				fileName, mem.name.line, mem.name.line, context.c));
 	}
 
 	override void visit(const EnumMember mem)
 	{
 		tagLines.insert("%s\t%s\t%d;\"\te\tline:%d%s\n".format(mem.name.text,
-			fileName, mem.name.line, mem.name.line, context.c));
+				fileName, mem.name.line, mem.name.line, context.c));
 	}
 
 	override void visit(const VariableDeclaration dec)
@@ -205,7 +203,7 @@ final class CTagsPrinter: ASTVisitor
 		foreach (d; dec.declarators)
 		{
 			tagLines.insert("%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(d.name.text,
-				fileName, d.name.line, d.name.line, context.c, context.access));
+					fileName, d.name.line, d.name.line, context.c, context.access));
 		}
 		dec.accept(this);
 	}
@@ -215,7 +213,7 @@ final class CTagsPrinter: ASTVisitor
 		foreach (i; dec.identifiers)
 		{
 			tagLines.insert("%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(i.text,
-				fileName, i.line, i.line, context.c, context.access));
+					fileName, i.line, i.line, context.c, context.access));
 		}
 		dec.accept(this);
 	}
@@ -223,7 +221,7 @@ final class CTagsPrinter: ASTVisitor
 	override void visit(const Invariant dec)
 	{
 		tagLines.insert("invariant\t%s\t%d;\"\tv\tline:%d%s%s\n".format(fileName,
-			dec.line, dec.line, context.c, context.access));
+				dec.line, dec.line, context.c, context.access));
 	}
 
 	override void visit(const ModuleDeclaration dec)
@@ -299,7 +297,7 @@ final class CTagsPrinter: ASTVisitor
 			foreach (i; dec.identifierList.identifiers)
 			{
 				tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(i.text,
-					fileName, i.line, i.line, context.c, context.access));
+						fileName, i.line, i.line, context.c, context.access));
 			}
 		}
 		dec.accept(this);
@@ -308,7 +306,7 @@ final class CTagsPrinter: ASTVisitor
 	override void visit(const AliasInitializer dec)
 	{
 		tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(dec.name.text,
-			fileName, dec.name.line, dec.name.line, context.c, context.access));
+				fileName, dec.name.line, dec.name.line, context.c, context.access));
 
 		dec.accept(this);
 	}
@@ -317,7 +315,7 @@ final class CTagsPrinter: ASTVisitor
 	{
 		auto name = dec.identifier;
 		tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(name.text,
-			fileName, name.line, name.line, context.c, context.access));
+				fileName, name.line, name.line, context.c, context.access));
 
 		dec.accept(this);
 	}

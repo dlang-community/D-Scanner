@@ -37,6 +37,7 @@ class BackwardsRangeCheck : BaseAnalyzer
 		if (foreachStatement.low !is null && foreachStatement.high !is null)
 		{
 			import std.string : format;
+
 			state = State.left;
 			visit(foreachStatement.low);
 			state = State.right;
@@ -45,8 +46,8 @@ class BackwardsRangeCheck : BaseAnalyzer
 			if (hasLeft && hasRight && left > right)
 			{
 				string message = format(
-					"%d is larger than %d. Did you mean to use 'foreach_reverse( ... ; %d .. %d)'?",
-					left, right, right, left);
+						"%d is larger than %d. Did you mean to use 'foreach_reverse( ... ; %d .. %d)'?",
+						left, right, right, left);
 				addErrorMessage(line, this.column, KEY, message);
 			}
 			hasLeft = false;
@@ -82,14 +83,18 @@ class BackwardsRangeCheck : BaseAnalyzer
 			line = primary.primary.line;
 			this.column = primary.primary.column;
 
-			try left = parseNumber(primary.primary.text);
-			catch (ConvException e) return;
+			try
+				left = parseNumber(primary.primary.text);
+			catch (ConvException e)
+				return;
 			hasLeft = true;
 		}
 		else
 		{
-			try right = parseNumber(primary.primary.text);
-			catch (ConvException e) return;
+			try
+				right = parseNumber(primary.primary.text);
+			catch (ConvException e)
+				return;
 			hasRight = true;
 		}
 	}
@@ -106,9 +111,9 @@ class BackwardsRangeCheck : BaseAnalyzer
 			if (hasLeft && hasRight && left > right)
 			{
 				import std.string : format;
-				string message = format(
-					"%d is larger than %d. This slice is likely incorrect.",
-					left, right);
+
+				string message = format("%d is larger than %d. This slice is likely incorrect.",
+						left, right);
 				addErrorMessage(line, this.column, KEY, message);
 			}
 			hasLeft = false;
@@ -124,20 +129,27 @@ private:
 	long right;
 	size_t column;
 	size_t line;
-	enum State { ignore, left, right }
+	enum State
+	{
+		ignore,
+		left,
+		right
+	}
+
 	State state = State.ignore;
 
 	long parseNumber(string te)
 	{
 		import std.conv : to;
 		import std.string : removechars;
+
 		string t = te.removechars("_uUlL");
 		if (t.length > 2)
 		{
 			if (t[1] == 'x' || t[1] == 'X')
-				return to!long(t[2..$], 16);
+				return to!long(t[2 .. $], 16);
 			if (t[1] == 'b' || t[1] == 'B')
-				return to!long(t[2..$], 2);
+				return to!long(t[2 .. $], 2);
 		}
 		return to!long(t);
 	}
@@ -145,7 +157,7 @@ private:
 
 unittest
 {
-	import analysis.config:StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig;
 
 	StaticAnalysisConfig sac;
 	sac.backwards_range_check = true;
@@ -167,4 +179,3 @@ unittest
 
 	stderr.writeln("Unittest for BackwardsRangeCheck passed.");
 }
-

@@ -76,11 +76,13 @@ class UnusedLabelCheck : BaseAnalyzer
 		if (contStatement.label.text.length)
 			labelUsed(contStatement.label.text);
 	}
+
 	override void visit(const BreakStatement breakStatement)
 	{
 		if (breakStatement.label.text.length)
 			labelUsed(breakStatement.label.text);
 	}
+
 	override void visit(const GotoStatement gotoStatement)
 	{
 		if (gotoStatement.label.text.length)
@@ -101,7 +103,7 @@ private:
 
 	auto ref current() @property
 	{
-		return stack[$-1];
+		return stack[$ - 1];
 	}
 
 	void pushScope()
@@ -116,9 +118,8 @@ private:
 			assert(label.line != size_t.max && label.column != size_t.max);
 			if (!label.used)
 			{
-				addErrorMessage(label.line, label.column,
-					"dscanner.suspicious.unused_label",
-					"Label \"" ~ label.name ~ "\" is not used.");
+				addErrorMessage(label.line, label.column, "dscanner.suspicious.unused_label",
+						"Label \"" ~ label.name ~ "\" is not used.");
 			}
 		}
 		stack.length--;

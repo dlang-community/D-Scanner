@@ -28,17 +28,13 @@ class FloatOperatorCheck : BaseAnalyzer
 
 	override void visit(const RelExpression r)
 	{
-		if (r.operator == tok!"<>"
-			|| r.operator == tok!"<>="
-			|| r.operator == tok!"!<>"
-			|| r.operator == tok!"!>"
-			|| r.operator == tok!"!<"
-			|| r.operator == tok!"!<>="
-			|| r.operator == tok!"!>="
-			|| r.operator == tok!"!<=")
+		if (r.operator == tok!"<>" || r.operator == tok!"<>="
+				|| r.operator == tok!"!<>" || r.operator == tok!"!>"
+				|| r.operator == tok!"!<" || r.operator == tok!"!<>="
+				|| r.operator == tok!"!>=" || r.operator == tok!"!<=")
 		{
 			addErrorMessage(r.line, r.column, KEY,
-				"Avoid using the deprecated floating-point operators.");
+					"Avoid using the deprecated floating-point operators.");
 		}
 		r.accept(this);
 	}
@@ -68,4 +64,3 @@ unittest
 
 	stderr.writeln("Unittest for FloatOperatorCheck passed.");
 }
-

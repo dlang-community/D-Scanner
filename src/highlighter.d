@@ -70,8 +70,9 @@ html  { background-color: #fdf6e3; color: #002b36; }
 void writeSpan(string cssClass, string value)
 {
 	version (Windows)
-		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;").replace("\r", ""), `</span>`);
+		stdout.write(`<span class="`, cssClass, `">`, value.replace("&",
+				"&amp;").replace("<", "&lt;").replace("\r", ""), `</span>`);
 	else
-		stdout.write(`<span class="`, cssClass, `">`, value.replace("&", "&amp;").replace("<", "&lt;"), `</span>`);
+		stdout.write(`<span class="`, cssClass, `">`, value.replace("&",
+				"&amp;").replace("<", "&lt;"), `</span>`);
 }
-

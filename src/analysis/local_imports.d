@@ -49,12 +49,13 @@ class LocalImportCheck : BaseAnalyzer
 
 	override void visit(const ImportDeclaration id)
 	{
-		if ((!isStatic && interesting) && (id.importBindings is null || id.importBindings.importBinds.length == 0))
+		if ((!isStatic && interesting) && (id.importBindings is null
+				|| id.importBindings.importBinds.length == 0))
 		{
 			addErrorMessage(id.singleImports[0].identifierChain.identifiers[0].line,
-				id.singleImports[0].identifierChain.identifiers[0].column,
-				"dscanner.suspicious.local_imports", "Local imports should specify"
-				~ " the symbols being imported to avoid hiding local symbols.");
+					id.singleImports[0].identifierChain.identifiers[0].column, "dscanner.suspicious.local_imports",
+					"Local imports should specify"
+					~ " the symbols being imported to avoid hiding local symbols.");
 		}
 	}
 
@@ -74,4 +75,3 @@ private:
 	bool interesting;
 	bool isStatic;
 }
-

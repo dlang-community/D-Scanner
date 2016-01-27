@@ -10,20 +10,22 @@ import dparse.lexer;
 import dparse.parser;
 import dparse.ast;
 import std.stdio;
-import std.file:isFile;
+import std.file : isFile;
 
 void findDeclarationOf(File output, string symbolName, string[] fileNames)
 {
 	import std.array : uninitializedArray, array;
 	import std.conv : to;
+
 	LexerConfig config;
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	auto visitor = new FinderVisitor(output, symbolName);
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
-		assert (isFile(fileName));
-		if (f.size == 0) continue;
+		assert(isFile(fileName));
+		if (f.size == 0)
+			continue;
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
@@ -35,7 +37,9 @@ void findDeclarationOf(File output, string symbolName, string[] fileNames)
 
 private:
 
-void doNothing(string, size_t, size_t, string, bool) {}
+void doNothing(string, size_t, size_t, string, bool)
+{
+}
 
 class FinderVisitor : ASTVisitor
 {
@@ -84,7 +88,7 @@ class FinderVisitor : ASTVisitor
 		{
 			if (initializer.name.text == symbolName)
 				output.writefln("%s(%d:%d)", fileName, initializer.name.line,
-					initializer.name.column);
+						initializer.name.column);
 		}
 	}
 
@@ -103,7 +107,9 @@ class FinderVisitor : ASTVisitor
 		}
 	}
 
-	override void visit(const FunctionBody) {}
+	override void visit(const FunctionBody)
+	{
+	}
 
 	mixin template generateVisit(T)
 	{

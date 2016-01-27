@@ -56,10 +56,10 @@ class StatsCollector : BaseAnalyzer
 
 	uint interfaceCount;
 	uint classCount;
-    uint functionCount;
-    uint templateCount;
-    uint structCount;
-    uint statementCount;
-    uint lineOfCodeCount;
-    uint undocumentedPublicSymbols;
+	uint functionCount;
+	uint templateCount;
+	uint structCount;
+	uint statementCount;
+	uint lineOfCodeCount;
+	uint undocumentedPublicSymbols;
 }

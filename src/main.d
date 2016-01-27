@@ -34,9 +34,11 @@ import inifiled;
 import dsymbol.modulecache;
 
 version (unittest)
-void main() {}
+	void main()
+{
+}
 else
-int main(string[] args)
+	int main(string[] args)
 {
 	bool sloc;
 	bool highlight;
@@ -62,15 +64,30 @@ int main(string[] args)
 
 	try
 	{
-		getopt(args, std.getopt.config.caseSensitive, "sloc|l", &sloc,
-			"highlight", &highlight, "ctags|c", &ctags, "help|h", &help,
-			"etags|e", &etags, "etagsAll", &etagsAll,
-			"tokenCount|t", &tokenCount, "syntaxCheck|s", &syntaxCheck,
-			"ast|xml", &ast, "imports|i", &imports, "outline|o", &outline,
-			"tokenDump", &tokenDump, "styleCheck|S", &styleCheck,
-			"defaultConfig", &defaultConfig, "declaration|d", &symbolName,
-			"config", &configLocation, "report", &report, "I", &importPaths,
-			"version", &printVersion, "muffinButton", &muffin, "explore", &explore);
+		// dfmt off
+		getopt(args, std.getopt.config.caseSensitive,
+				"sloc|l", &sloc,
+				"highlight", &highlight,
+				"ctags|c", &ctags,
+				"help|h", &help,
+				"etags|e", &etags,
+				"etagsAll", &etagsAll,
+				"tokenCount|t", &tokenCount,
+				"syntaxCheck|s", &syntaxCheck,
+				"ast|xml", &ast,
+				"imports|i", &imports,
+				"outline|o", &outline,
+				"tokenDump", &tokenDump,
+				"styleCheck|S", &styleCheck,
+				"defaultConfig", &defaultConfig,
+				"declaration|d", &symbolName,
+				"config", &configLocation,
+				"report", &report,
+				"I", &importPaths,
+				"version", &printVersion,
+				"muffinButton", &muffin,
+				"explore", &explore);
+		//dfmt on
 	}
 	catch (ConvException e)
 	{
@@ -80,8 +97,7 @@ int main(string[] args)
 
 	if (muffin)
 	{
-		stdout.writeln(
-`       ___________
+		stdout.writeln(`       ___________
     __(#*O 0** @%*)__
   _(%*o#*O%*0 #O#%##@)_
  (*#@%#o*@ #o%O*%@ #o #)
@@ -110,24 +126,24 @@ int main(string[] args)
 	{
 		version (Windows)
 			writeln(DSCANNER_VERSION);
-		else version(built_with_dub)
+		else version (built_with_dub)
 			writeln(DSCANNER_VERSION);
 		else
 			write(DSCANNER_VERSION, " ", GIT_HASH);
 		return 0;
 	}
 
-	const(string[]) absImportPaths = importPaths.map!(
-		a => a.absolutePath().buildNormalizedPath()).array();
+	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
+			.buildNormalizedPath()).array();
 
 	auto moduleCache = ModuleCache(new dsymbol.modulecache.ASTAllocator);
 
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);
 
-	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
-		syntaxCheck, ast, imports, outline, tokenDump, styleCheck, defaultConfig,
-		report, symbolName !is null, etags, etagsAll]);
+	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
+			outline, tokenDump, styleCheck, defaultConfig, report,
+			symbolName !is null, etags, etagsAll]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -140,7 +156,8 @@ int main(string[] args)
 	}
 
 	// --report implies --styleCheck
-	if (report) styleCheck = true;
+	if (report)
+		styleCheck = true;
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	if (defaultConfig)
@@ -167,11 +184,13 @@ int main(string[] args)
 		else if (tokenDump)
 		{
 			auto tokens = getTokensForParser(bytes, config, &cache);
-			writeln("text                    blank\tindex\tline\tcolumn\ttype\tcomment\ttrailingComment");
+			writeln(
+					"text                    blank\tindex\tline\tcolumn\ttype\tcomment\ttrailingComment");
 			foreach (token; tokens)
 			{
-				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null ? str(token.type) : token.text,
-					token.text !is null, token.index, token.line, token.column, token.type, token.comment);
+				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null
+						? str(token.type) : token.text, token.text !is null, token.index,
+						token.line, token.column, token.type, token.comment);
 			}
 			return 0;
 		}
@@ -244,9 +263,8 @@ int main(string[] args)
 			foreach (name; expandArgs(fileNames))
 			{
 				config.fileName = name;
-				auto tokens = getTokensForParser(
-					usingStdin ? readStdin() : readFile(name),
-					config, &cache);
+				auto tokens = getTokensForParser(usingStdin ? readStdin()
+						: readFile(name), config, &cache);
 				auto mod = parseModule(tokens, name, null, &doNothing);
 				visitor.visit(mod);
 			}
@@ -259,9 +277,8 @@ int main(string[] args)
 			LexerConfig config;
 			config.fileName = fileName;
 			config.stringBehavior = StringBehavior.source;
-			auto tokens = getTokensForParser(
-				usingStdin ? readStdin() : readFile(args[1]),
-				config, &cache);
+			auto tokens = getTokensForParser(usingStdin ? readStdin()
+					: readFile(args[1]), config, &cache);
 			auto mod = parseModule(tokens, fileName, null, &doNothing);
 
 			if (ast)
@@ -280,36 +297,32 @@ int main(string[] args)
 	return 0;
 }
 
-
 string[] expandArgs(string[] args)
 {
 	// isFile can throw if it's a broken symlink.
 	bool isFileSafe(T)(T a)
 	{
 		try
-		{
 			return isFile(a);
-		}
-		catch(FileException)
-		{
+		catch (FileException)
 			return false;
-		}
 	}
 
 	string[] rVal;
 	if (args.length == 1)
 		args ~= ".";
-	foreach (arg; args[1 ..$])
+	foreach (arg; args[1 .. $])
 	{
 		if (isFileSafe(arg))
 			rVal ~= arg;
-		else foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
-		{
-			if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
-				rVal ~= item;
-			else
-				continue;
-		}
+		else
+			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
+			{
+				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
+					rVal ~= item;
+				else
+					continue;
+			}
 	}
 	return rVal;
 }
@@ -336,7 +349,8 @@ ubyte[] readFile(string fileName)
 		return [];
 	}
 	File f = File(fileName);
-	if (f.size == 0) return [];
+	if (f.size == 0)
+		return [];
 	ubyte[] sourceCode = uninitializedArray!(ubyte[])(to!size_t(f.size));
 	f.rawRead(sourceCode);
 	return sourceCode;
@@ -344,8 +358,7 @@ ubyte[] readFile(string fileName)
 
 void printHelp(string programName)
 {
-	stderr.writefln(
-`
+	stderr.writefln(`
     Usage: %s <options>
 
 Options:
@@ -417,16 +430,18 @@ Options:
 
     --defaultConfig
         Generates a default configuration file for the static analysis checks`,
-        programName);
+			programName);
 }
 
-private void doNothing(string, size_t, size_t, string, bool) {}
+private void doNothing(string, size_t, size_t, string, bool)
+{
+}
 
 private enum CONFIG_FILE_NAME = "dscanner.ini";
-version(linux) version = useXDG;
-version(BSD) version = useXDG;
-version(FreeBSD) version = useXDG;
-version(OSX) version = useXDG;
+version (linux) version = useXDG;
+version (BSD) version = useXDG;
+version (FreeBSD) version = useXDG;
+version (OSX) version = useXDG;
 
 /**
  * Locates the configuration file
@@ -436,6 +451,7 @@ string getConfigurationLocation()
 	version (useXDG)
 	{
 		import std.process : environment;
+
 		string configDir = environment.get("XDG_CONFIG_HOME", null);
 		if (configDir is null)
 		{
@@ -445,13 +461,9 @@ string getConfigurationLocation()
 			configDir = buildPath(configDir, ".config", "dscanner", CONFIG_FILE_NAME);
 		}
 		else
-		{
 			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
-		}
 		return configDir;
 	}
-	else version(Windows)
-	{
+	else version (Windows)
 		return CONFIG_FILE_NAME;
-	}
 }

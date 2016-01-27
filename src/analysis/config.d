@@ -11,7 +11,7 @@ StaticAnalysisConfig defaultStaticAnalysisConfig()
 {
 	StaticAnalysisConfig config;
 	foreach (mem; __traits(allMembers, StaticAnalysisConfig))
-		mixin ("config." ~ mem ~ " = true;");
+		mixin("config." ~ mem ~ " = true;");
 	return config;
 }
 

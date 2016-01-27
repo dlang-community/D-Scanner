@@ -13,7 +13,6 @@ import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_;
 
-
 /**
  * Checks for subtraction from a .length property. This is usually a bug.
  */
@@ -34,24 +33,23 @@ class LengthSubtractionCheck : BaseAnalyzer
 			const UnaryExpression r = cast(const UnaryExpression) addExpression.right;
 			if (l is null || r is null)
 			{
-//				stderr.writeln(__FILE__, " ", __LINE__);
+				//				stderr.writeln(__FILE__, " ", __LINE__);
 				goto end;
 			}
 			if (r.primaryExpression is null || r.primaryExpression.primary.type != tok!"intLiteral")
 			{
-//				stderr.writeln(__FILE__, " ", __LINE__);
+				//				stderr.writeln(__FILE__, " ", __LINE__);
 				goto end;
 			}
 			if (l.identifierOrTemplateInstance is null
-				|| l.identifierOrTemplateInstance.identifier.text != "length")
+					|| l.identifierOrTemplateInstance.identifier.text != "length")
 			{
-//				stderr.writeln(__FILE__, " ", __LINE__);
+				//				stderr.writeln(__FILE__, " ", __LINE__);
 				goto end;
 			}
 			const(Token) token = l.identifierOrTemplateInstance.identifier;
-			addErrorMessage(token.line, token.column,
-				"dscanner.suspicious.length_subtraction",
-				"Avoid subtracting from '.length' as it may be unsigned.");
+			addErrorMessage(token.line, token.column, "dscanner.suspicious.length_subtraction",
+					"Avoid subtracting from '.length' as it may be unsigned.");
 		}
 	end:
 		addExpression.accept(this);
@@ -73,4 +71,3 @@ unittest
 	}c, sac);
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }
-

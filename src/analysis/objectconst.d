@@ -34,13 +34,12 @@ class ObjectConstCheck : BaseAnalyzer
 	override void visit(const Declaration d)
 	{
 		if (inAggregate && d.functionDeclaration !is null
-			&& isInteresting(d.functionDeclaration.name.text)
-			&& (!hasConst(d.attributes)
-			&& !hasConst(d.functionDeclaration.memberFunctionAttributes)))
+				&& isInteresting(d.functionDeclaration.name.text) && (!hasConst(d.attributes)
+					&& !hasConst(d.functionDeclaration.memberFunctionAttributes)))
 		{
 			addErrorMessage(d.functionDeclaration.name.line,
-				d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
-				"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
+					d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
+					"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
 		}
 		d.accept(this);
 	}
@@ -48,15 +47,16 @@ class ObjectConstCheck : BaseAnalyzer
 	private static bool hasConst(const Attribute[] attributes)
 	{
 		import std.algorithm : any;
+
 		return attributes.any!(a => a.attribute == tok!"const");
 	}
 
 	private static bool hasConst(const MemberFunctionAttribute[] attributes)
 	{
 		import std.algorithm : any;
+
 		return attributes.any!(a => a.tokenType == tok!"const"
-			|| a.tokenType == tok!"immutable"
-			|| a.tokenType == tok!"inout");
+				|| a.tokenType == tok!"immutable" || a.tokenType == tok!"inout");
 	}
 
 	private static bool isInteresting(string name)
@@ -72,6 +72,7 @@ class ObjectConstCheck : BaseAnalyzer
 unittest
 {
 	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.object_const_check = true;
 	assertAnalyzerWarnings(q{
@@ -129,4 +130,3 @@ unittest
 
 	stderr.writeln("Unittest for ObjectConstCheck passed.");
 }
-

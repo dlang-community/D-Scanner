@@ -11,7 +11,9 @@ import analysis.base;
 import std.algorithm : canFind;
 import dsymbol.scope_ : Scope;
 
-void doNothing(string, size_t, size_t, string, bool) {}
+void doNothing(string, size_t, size_t, string, bool)
+{
+}
 
 class EnumArrayLiteralCheck : BaseAnalyzer
 {
@@ -35,17 +37,19 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 		{
 			foreach (i, initializer; autoDec.initializers)
 			{
-				if (initializer is null) continue;
-				if (initializer.nonVoidInitializer is null) continue;
-				if (initializer.nonVoidInitializer.arrayInitializer is null) continue;
-				addErrorMessage(autoDec.identifiers[i].line,
-					autoDec.identifiers[i].column, "dscanner.performance.enum_array_literal",
-					"This enum may lead to unnecessary allocation at run-time."
-					~ " Use 'static immutable " ~ autoDec.identifiers[i].text
-					~ " = [ ...' instead.");
+				if (initializer is null)
+					continue;
+				if (initializer.nonVoidInitializer is null)
+					continue;
+				if (initializer.nonVoidInitializer.arrayInitializer is null)
+					continue;
+				addErrorMessage(autoDec.identifiers[i].line, autoDec.identifiers[i].column,
+						"dscanner.performance.enum_array_literal",
+						"This enum may lead to unnecessary allocation at run-time."
+						~ " Use 'static immutable "
+						~ autoDec.identifiers[i].text ~ " = [ ...' instead.");
 			}
 		}
 		autoDec.accept(this);
 	}
 }
-

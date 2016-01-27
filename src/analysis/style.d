@@ -35,8 +35,8 @@ class StyleChecker : BaseAnalyzer
 		foreach (part; dec.moduleName.identifiers)
 		{
 			if (part.text.matchFirst(moduleNameRegex).length == 0)
-				addErrorMessage(part.line, part.column, KEY, "Module/package name '"
-					~ part.text ~ "' does not match style guidelines.");
+				addErrorMessage(part.line, part.column, KEY,
+						"Module/package name '" ~ part.text ~ "' does not match style guidelines.");
 		}
 	}
 
@@ -53,8 +53,8 @@ class StyleChecker : BaseAnalyzer
 	void checkLowercaseName(string type, ref const Token name)
 	{
 		if (name.text.length > 0 && name.text.matchFirst(varFunNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, KEY, type ~ " name '"
-				~ name.text ~ "' does not match style guidelines.");
+			addErrorMessage(name.line, name.column, KEY,
+					type ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
 
 	override void visit(const ClassDeclaration dec)
@@ -86,8 +86,8 @@ class StyleChecker : BaseAnalyzer
 	void checkAggregateName(string aggregateType, ref const Token name)
 	{
 		if (name.text.length > 0 && name.text.matchFirst(aggregateNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, KEY, aggregateType
-				~ " name '" ~ name.text ~ "' does not match style guidelines.");
+			addErrorMessage(name.line, name.column, KEY,
+					aggregateType ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
 }
 
@@ -114,4 +114,3 @@ unittest
 
 	stderr.writeln("Unittest for StyleChecker passed.");
 }
-

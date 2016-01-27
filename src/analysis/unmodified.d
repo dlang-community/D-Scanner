@@ -52,14 +52,14 @@ class UnmodifiedFinder : BaseAnalyzer
 	override void visit(const VariableDeclaration dec)
 	{
 		if (dec.autoDeclaration is null && blockStatementDepth > 0
-			&& isImmutable <= 0 && !canFindImmutable(dec))
+				&& isImmutable <= 0 && !canFindImmutable(dec))
 		{
 			foreach (d; dec.declarators)
 			{
 				if (initializedFromCast(d.initializer))
 					continue;
 				tree[$ - 1].insert(new VariableInfo(d.name.text, d.name.line,
-					d.name.column, isValueTypeSimple(dec.type)));
+						d.name.column, isValueTypeSimple(dec.type)));
 			}
 		}
 		dec.accept(this);
@@ -70,15 +70,14 @@ class UnmodifiedFinder : BaseAnalyzer
 		import std.algorithm : canFind;
 
 		if (blockStatementDepth > 0 && isImmutable <= 0
-			&& (!autoDeclaration.storageClasses.canFind!(a => a.token == tok!"const"
-			|| a.token == tok!"enum" || a.token == tok!"immutable")))
+				&& (!autoDeclaration.storageClasses.canFind!(a => a.token == tok!"const"
+					|| a.token == tok!"enum" || a.token == tok!"immutable")))
 		{
 			foreach (size_t i, id; autoDeclaration.identifiers)
 			{
 				if (initializedFromCast(autoDeclaration.initializers[i]))
 					continue;
-				tree[$ - 1].insert(new VariableInfo(id.text, id.line,
-					id.column));
+				tree[$ - 1].insert(new VariableInfo(id.text, id.line, id.column));
 			}
 		}
 		autoDeclaration.accept(this);
@@ -139,8 +138,8 @@ class UnmodifiedFinder : BaseAnalyzer
 	override void visit(const UnaryExpression unary)
 	{
 		if (unary.prefix == tok!"++" || unary.prefix == tok!"--"
-			|| unary.suffix == tok!"++" || unary.suffix == tok!"--"
-			|| unary.prefix == tok!"*" || unary.prefix == tok!"&")
+				|| unary.suffix == tok!"++" || unary.suffix == tok!"--"
+				|| unary.prefix == tok!"*" || unary.prefix == tok!"&")
 		{
 			interest++;
 			guaranteeUse++;
@@ -222,6 +221,7 @@ private:
 				foundCast = true;
 				castExpression.accept(this);
 			}
+
 			bool foundCast = false;
 		}
 
@@ -235,14 +235,15 @@ private:
 	bool canFindImmutableOrConst(const Declaration dec)
 	{
 		import std.algorithm : canFind, map, filter;
-		return !dec.attributes.map!(a => a.attribute).filter!(
-			a => a == cast(IdType) tok!"immutable" || a == cast(IdType) tok!"const")
-			.empty;
+
+		return !dec.attributes.map!(a => a.attribute)
+			.filter!(a => a == cast(IdType) tok!"immutable" || a == cast(IdType) tok!"const").empty;
 	}
 
 	bool canFindImmutable(const VariableDeclaration dec)
 	{
 		import std.algorithm : canFind;
+
 		foreach (storageClass; dec.storageClasses)
 		{
 			if (storageClass.token == tok!"enum")
@@ -274,10 +275,8 @@ private:
 		foreach (vi; tree[$ - 1])
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
-				~ " is never modified and could have been declared const"
-				~ " or immutable.";
-			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.unmodified",
-				errorMessage);
+				~ " is never modified and could have been declared const" ~ " or immutable.";
+			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.unmodified", errorMessage);
 		}
 		tree = tree[0 .. $ - 1];
 	}

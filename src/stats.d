@@ -52,4 +52,3 @@ ulong printLineCount(Tokens)(File output, string fileName, ref Tokens tokens)
 	output.writefln("%s:\t%d", fileName, count);
 	return count;
 }
-

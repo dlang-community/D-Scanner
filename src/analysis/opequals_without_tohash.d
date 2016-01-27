@@ -44,17 +44,14 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 		bool hasOpCmp = false;
 
 		// Just return if missing children
-		if (!structBody
-			|| !structBody.declarations
-			|| name is Token.init)
+		if (!structBody || !structBody.declarations || name is Token.init)
 			return;
 
 		// Check all the function declarations
 		foreach (declaration; structBody.declarations)
 		{
 			// Skip if not a function declaration
-			if (!declaration
-				|| !declaration.functionDeclaration)
+			if (!declaration || !declaration.functionDeclaration)
 				continue;
 
 			// Check if opEquals or toHash
@@ -83,7 +80,7 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 		if (hasOpCmp && !hasOpEquals)
 		{
 			addErrorMessage(name.line, name.column, KEY,
-				"'" ~ name.text ~ "' has method 'opCmp', but not 'opEquals'.");
+					"'" ~ name.text ~ "' has method 'opCmp', but not 'opEquals'.");
 		}
 	}
 
@@ -150,4 +147,3 @@ unittest
 
 	stderr.writeln("Unittest for OpEqualsWithoutToHashCheck passed.");
 }
-

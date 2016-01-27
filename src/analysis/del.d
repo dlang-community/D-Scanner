@@ -26,7 +26,7 @@ class DeleteCheck : BaseAnalyzer
 	override void visit(const DeleteExpression d)
 	{
 		addErrorMessage(d.line, d.column, "dscanner.deprecated.delete_keyword",
-			"Avoid using the 'delete' keyword.");
+				"Avoid using the 'delete' keyword.");
 		d.accept(this);
 	}
 }
@@ -51,4 +51,3 @@ unittest
 
 	stderr.writeln("Unittest for DeleteCheck passed.");
 }
-

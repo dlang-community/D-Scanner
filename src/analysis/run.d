@@ -67,16 +67,14 @@ import dsymbol.modulecache : ModuleCache;
 bool first = true;
 
 private alias ASTAllocator = CAllocatorImpl!(
-	AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
+		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
 
 void messageFunction(string fileName, size_t line, size_t column, string message, bool isError)
 {
-	writefln("%s(%d:%d)[%s]: %s", fileName, line, column, isError ? "error" : "warn",
-		message);
+	writefln("%s(%d:%d)[%s]: %s", fileName, line, column, isError ? "error" : "warn", message);
 }
 
-void messageFunctionJSON(string fileName, size_t line, size_t column, string message,
-	bool)
+void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
 {
 	writeJSON("dscanner.syntax", fileName, line, column, message);
 }
@@ -103,7 +101,7 @@ bool syntaxCheck(string[] fileNames, ref StringCache stringCache, ref ModuleCach
 }
 
 void generateReport(string[] fileNames, const StaticAnalysisConfig config,
-	ref StringCache cache, ref ModuleCache moduleCache)
+		ref StringCache cache, ref ModuleCache moduleCache)
 {
 	writeln("{");
 	writeln(`  "issues": [`);
@@ -146,7 +144,7 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
  * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
  */
 bool analyze(string[] fileNames, const StaticAnalysisConfig config,
-	ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
+		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
 {
 	bool hasErrors = false;
 	foreach (fileName; fileNames)
@@ -160,8 +158,8 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		uint errorCount = 0;
 		uint warningCount = 0;
 		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, p, cache, false, tokens, null,
-			&errorCount, &warningCount);
+		const Module m = parseModule(fileName, code, p, cache, false, tokens,
+				null, &errorCount, &warningCount);
 		assert(m);
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
@@ -170,14 +168,14 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 			continue;
 		foreach (result; results[])
 			writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
-				result.column, result.message);
+					result.column, result.message);
 	}
 	return hasErrors;
 }
 
 const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
-	ref StringCache cache, bool report, ref const(Token)[] tokens,
-	ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
+		ref StringCache cache, bool report, ref const(Token)[] tokens,
+		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {
 	import stats : isLineOfCode;
 
@@ -187,20 +185,19 @@ const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
 	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
-	return dparse.parser.parseModule(tokens, fileName, p,
-		report ? &messageFunctionJSON : &messageFunction, errorCount, warningCount);
+	return dparse.parser.parseModule(tokens, fileName, p, report
+			? &messageFunctionJSON : &messageFunction, errorCount, warningCount);
 }
 
-MessageSet analyze(string fileName, const Module m,
-	const StaticAnalysisConfig analysisConfig, ref ModuleCache moduleCache,
-	const(Token)[] tokens, bool staticAnalyze = true)
+MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
+		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true)
 {
 	if (!staticAnalyze)
 		return null;
 
 	auto symbolAllocator = new ASTAllocator;
 	auto first = scoped!FirstPass(m, internString(fileName), symbolAllocator,
-		symbolAllocator, true, &moduleCache, null);
+			symbolAllocator, true, &moduleCache, null);
 	first.run();
 
 	secondPass(first.rootSymbol, first.moduleScope, moduleCache);

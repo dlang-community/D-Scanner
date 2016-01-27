@@ -40,7 +40,8 @@ void printEtags(File output, bool tagAll, string[] fileNames)
 	foreach (fileName; fileNames)
 	{
 		File f = File(fileName);
-		if (f.size == 0) continue;
+		if (f.size == 0)
+			continue;
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
@@ -48,11 +49,9 @@ void printEtags(File output, bool tagAll, string[] fileNames)
 
 		auto printer = new EtagsPrinter;
 		printer.moduleName = m.moduleFullName(fileName);
-		version(UseModuleContext)
+		version (UseModuleContext)
 			printer.context = printer.moduleName ~ ".";
-		printer.privateVisibility = tagAll?
-			Visibility.exposed :
-			Visibility.hidden;
+		printer.privateVisibility = tagAll ? Visibility.exposed : Visibility.hidden;
 		printer.bytes = bytes.sansBOM;
 		printer.visit(m);
 
@@ -63,15 +62,20 @@ void printEtags(File output, bool tagAll, string[] fileNames)
 
 private:
 
-enum Visibility {exposed, hidden}
+enum Visibility
+{
+	exposed,
+	hidden
+}
 
-void doNothing(string, size_t, size_t, string, bool) {}
+void doNothing(string, size_t, size_t, string, bool)
+{
+}
 
 ubyte[] sansBOM(ubyte[] bytes)
 {
 	// At least handle UTF-8 since there is some in druntime/phobos
-	return (bytes.length >= 3 &&
-			bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf)
+	return (bytes.length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf)
 		? bytes[3 .. $] : bytes;
 }
 
@@ -82,7 +86,7 @@ string moduleFullName(Module m, string fileName)
 		return fileName.baseName.stripExtension;
 
 	// reconstruct module full name
-	return m.moduleDeclaration.moduleName.identifiers.map!(i=>i.text).join(".");
+	return m.moduleDeclaration.moduleName.identifiers.map!(i => i.text).join(".");
 }
 
 final class EtagsPrinter : ASTVisitor
@@ -109,7 +113,8 @@ final class EtagsPrinter : ASTVisitor
 		// visibility needs to be restored to what it was when changed by
 		// attribute.
 		auto was = visibility;
-		foreach (attr; dec.attributes) {
+		foreach (attr; dec.attributes)
+		{
 			updateVisibility(attr.attribute.type);
 		}
 
@@ -256,7 +261,8 @@ final class EtagsPrinter : ASTVisitor
 	}
 
 private:
-	void updateVisibility(IdType type) {
+	void updateVisibility(IdType type)
+	{
 		// maybe change visibility based on attribute 'type'
 		switch (type)
 		{
@@ -292,25 +298,24 @@ private:
 	void maketag(string text, size_t index, ulong line)
 	{
 		// skip unittests and hidden declarations
-		if (inUnittest || visibility == Visibility.hidden) return;
+		if (inUnittest || visibility == Visibility.hidden)
+			return;
 
 		// tag is a searchable string from beginning of line
 		size_t b = index;
-		while (b > 0 && bytes[b-1] != '\n') --b;
+		while (b > 0 && bytes[b - 1] != '\n')
+			--b;
 
 		// tag end is one char beyond tag name
 		size_t e = index + text.length;
-		if (e < bytes.length && bytes[e] != '\n') ++e;
+		if (e < bytes.length && bytes[e] != '\n')
+			++e;
 
-		auto tag = cast(char[])bytes[b..e];
-		auto tagname = context.empty ? text : context~text;
+		auto tag = cast(char[]) bytes[b .. e];
+		auto tagname = context.empty ? text : context ~ text;
 
 		// drum roll...	 the etags tag format
-		tags ~= format("%s\x7f%s\x01%u,%u\n",
-					   tag,
-					   tagname,
-					   line,
-					   b);
+		tags ~= format("%s\x7f%s\x01%u,%u\n", tag, tagname, line, b);
 	}
 
 	alias visit = ASTVisitor.visit;

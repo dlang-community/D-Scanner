@@ -13,7 +13,6 @@ import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_ : Scope;
 
-
 /**
  * Checks for duplicate attributes such as @property, @safe,
  * @trusted, @system, pure, and nothrow
@@ -47,7 +46,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		{
 			size_t line, column;
 			string attributeName = getAttributeName(attribute, line, column);
-			if (!attributeName || line==0 || column==0)
+			if (!attributeName || line == 0 || column == 0)
 				return;
 
 			// Check for the attributes
@@ -60,8 +59,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		}
 
 		// Just return if missing function nodes
-		if (!node.functionDeclaration
-			|| !node.functionDeclaration.memberFunctionAttributes)
+		if (!node.functionDeclaration || !node.functionDeclaration.memberFunctionAttributes)
 			return;
 
 		// Check the functions
@@ -69,7 +67,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		{
 			size_t line, column;
 			string attributeName = getAttributeName(memberFunctionAttribute, line, column);
-			if (!attributeName || line==0 || column==0)
+			if (!attributeName || line == 0 || column == 0)
 				return;
 
 			// Check for the attributes
@@ -82,7 +80,8 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		}
 	}
 
-	void checkDuplicateAttribute(const string attributeName, const string attributeDesired, size_t line, size_t column, ref bool hasAttribute)
+	void checkDuplicateAttribute(const string attributeName,
+			const string attributeDesired, size_t line, size_t column, ref bool hasAttribute)
 	{
 		// Just return if not an attribute
 		if (attributeName != attributeDesired)
@@ -102,11 +101,9 @@ class DuplicateAttributeCheck : BaseAnalyzer
 	string getAttributeName(const Attribute attribute, ref size_t line, ref size_t column)
 	{
 		// Get the name from the attribute identifier
-		if (attribute
-			&& attribute.atAttribute
-			&& attribute.atAttribute.identifier !is Token.init
-			&& attribute.atAttribute.identifier.text
-			&& attribute.atAttribute.identifier.text.length)
+		if (attribute && attribute.atAttribute && attribute.atAttribute.identifier !is Token.init
+				&& attribute.atAttribute.identifier.text
+				&& attribute.atAttribute.identifier.text.length)
 		{
 			auto token = attribute.atAttribute.identifier;
 			line = token.line;
@@ -125,25 +122,24 @@ class DuplicateAttributeCheck : BaseAnalyzer
 		return null;
 	}
 
-	string getAttributeName(const MemberFunctionAttribute memberFunctionAttribute, ref size_t line, ref size_t column)
+	string getAttributeName(const MemberFunctionAttribute memberFunctionAttribute,
+			ref size_t line, ref size_t column)
 	{
 		// Get the name from the tokenType
-		if (memberFunctionAttribute
-			&& memberFunctionAttribute.tokenType !is IdType.init
-			&& memberFunctionAttribute.tokenType.str
-			&& memberFunctionAttribute.tokenType.str.length)
+		if (memberFunctionAttribute && memberFunctionAttribute.tokenType !is IdType.init
+				&& memberFunctionAttribute.tokenType.str
+				&& memberFunctionAttribute.tokenType.str.length)
 		{
 			// FIXME: How do we get the line/column number?
 			return memberFunctionAttribute.tokenType.str;
 		}
 
 		// Get the name from the attribute identifier
-		if (memberFunctionAttribute
-			&& memberFunctionAttribute.atAttribute
-			&& memberFunctionAttribute.atAttribute.identifier !is Token.init
-			&& memberFunctionAttribute.atAttribute.identifier.type == tok!"identifier"
-			&& memberFunctionAttribute.atAttribute.identifier.text
-			&& memberFunctionAttribute.atAttribute.identifier.text.length)
+		if (memberFunctionAttribute && memberFunctionAttribute.atAttribute
+				&& memberFunctionAttribute.atAttribute.identifier !is Token.init
+				&& memberFunctionAttribute.atAttribute.identifier.type == tok!"identifier"
+				&& memberFunctionAttribute.atAttribute.identifier.text
+				&& memberFunctionAttribute.atAttribute.identifier.text.length)
 		{
 			auto iden = memberFunctionAttribute.atAttribute.identifier;
 			line = iden.line;
@@ -158,6 +154,7 @@ class DuplicateAttributeCheck : BaseAnalyzer
 unittest
 {
 	import analysis.config : StaticAnalysisConfig;
+
 	StaticAnalysisConfig sac;
 	sac.duplicate_attribute = true;
 	assertAnalyzerWarnings(q{
@@ -226,4 +223,3 @@ unittest
 
 	stderr.writeln("Unittest for DuplicateAttributeCheck passed.");
 }
-

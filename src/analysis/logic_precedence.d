@@ -32,13 +32,16 @@ class LogicPrecedenceCheck : BaseAnalyzer
 
 	override void visit(const OrOrExpression orOr)
 	{
-		if (orOr.left is null || orOr.right is null) return;
+		if (orOr.left is null || orOr.right is null)
+			return;
 		const AndAndExpression left = cast(AndAndExpression) orOr.left;
 		const AndAndExpression right = cast(AndAndExpression) orOr.right;
-		if (left is null && right is null) return;
-		if ((left !is null && left.right is null) && (right !is null && right.right is null)) return;
+		if (left is null && right is null)
+			return;
+		if ((left !is null && left.right is null) && (right !is null && right.right is null))
+			return;
 		addErrorMessage(orOr.line, orOr.column, KEY,
-			"Use parenthesis to clarify this expression.");
+				"Use parenthesis to clarify this expression.");
 		orOr.accept(this);
 	}
 }
@@ -60,4 +63,3 @@ unittest
 	}c, sac);
 	stderr.writeln("Unittest for LogicPrecedenceCheck passed.");
 }
-

@@ -7,7 +7,6 @@ import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_ : Scope;
 
-
 class ConstructorCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
@@ -29,9 +28,9 @@ class ConstructorCheck : BaseAnalyzer
 		if (hasNoArgConstructor && hasDefaultArgConstructor)
 		{
 			addErrorMessage(classDeclaration.name.line,
-				classDeclaration.name.column, "dscanner.confusing.constructor_args",
-				"This class has a zero-argument constructor as well as a"
-				~ " constructor with one default argument. This can be confusing.");
+					classDeclaration.name.column, "dscanner.confusing.constructor_args",
+					"This class has a zero-argument constructor as well as a"
+					~ " constructor with one default argument. This can be confusing.");
 		}
 		hasDefaultArgConstructor = oldHasDefault;
 		hasNoArgConstructor = oldHasNoArg;
@@ -52,17 +51,17 @@ class ConstructorCheck : BaseAnalyzer
 		{
 		case State.inStruct:
 			if (constructor.parameters.parameters.length == 1
-				&& constructor.parameters.parameters[0].default_ !is null)
+					&& constructor.parameters.parameters[0].default_ !is null)
 			{
 				addErrorMessage(constructor.line, constructor.column,
-					"dscanner.confusing.struct_constructor_default_args",
-					"This struct constructor can never be called with its "
-					~ "default argument.");
+						"dscanner.confusing.struct_constructor_default_args",
+						"This struct constructor can never be called with its "
+						~ "default argument.");
 			}
 			break;
 		case State.inClass:
 			if (constructor.parameters.parameters.length == 1
-				&& constructor.parameters.parameters[0].default_ !is null)
+					&& constructor.parameters.parameters[0].default_ !is null)
 			{
 				hasDefaultArgConstructor = true;
 			}
@@ -74,10 +73,9 @@ class ConstructorCheck : BaseAnalyzer
 		}
 	}
 
-
 private:
 
-	enum State: ubyte
+	enum State : ubyte
 	{
 		ignoring,
 		inClass,
@@ -112,4 +110,3 @@ unittest
 
 	stderr.writeln("Unittest for ConstructorCheck passed.");
 }
-
