@@ -346,70 +346,72 @@ void printHelp(string programName)
 {
 	stderr.writefln(
 `
-    Usage: %s options
+    Usage: %s <options>
 
-options:
-    --help | -h
+Options:
+    --help, -h
         Prints this help message
 
     --version
         Prints the program version
 
-    --sloc | -l [sourceFiles]
+    --sloc <file | directory>..., -l <file | directory>...
         Prints the number of logical lines of code in the given
         source files. If no files are specified, input is read from stdin.
 
-    --tokenCount | -t [sourceFiles]
+    --tokenCount <file | directory>..., -t <file | directory>...
         Prints the number of tokens in the given source files. If no files are
         specified, input is read from stdin.
 
-    --highlight [sourceFile] - Syntax-highlight the given source file. The
-        resulting HTML will be written to standard output. If no files are
-        specified, input is read from stdin.
+    --highlight <file>
+        Syntax-highlight the given source file. The resulting HTML will be
+        written to standard output. If no file is specified, input is read
+        from stdin.
 
-    --imports | -i [sourceFile]
+    --imports <file>, -i <file>
         Prints modules imported by the given source file. If no files are
         specified, input is read from stdin.
 
-    --syntaxCheck | -s [sourceFile]
+    --syntaxCheck <file>, -s <file>
         Lexes and parses sourceFile, printing the line and column number of any
         syntax errors to stdout. One error or warning is printed per line.
         If no files are specified, input is read from stdin. %1$s will exit with
         a status code of zero if no errors are found, 1 otherwise.
 
-    --styleCheck | -S [sourceFiles]
+    --styleCheck <file | directory>..., <file | directory>...
         Lexes and parses sourceFiles, printing the line and column number of any
         static analysis check failures stdout. %1$s will exit with a status code
         of zero if no warnings or errors are found, 1 otherwise.
 
-    --ctags | -c sourceFile
+    --ctags <file | directory>..., -c <file | directory>...
         Generates ctags information from the given source code file. Note that
         ctags information requires a filename, so stdin cannot be used in place
         of a filename.
 
-    --etags | -e sourceFile
+    --etags <file | directory>..., -e <file | directory>...
         Generates etags information from the given source code file. Note that
         etags information requires a filename, so stdin cannot be used in place
         of a filename.
 
-    --etagsAll sourceFile
+    --etagsAll <file | directory>...
         Same as --etags except private and package declarations are tagged too.
 
-    --ast | --xml sourceFile
+    --ast <file> | --xml <file>
         Generates an XML representation of the source files abstract syntax
         tree. If no files are specified, input is read from stdin.
 
-    --declaration | -d symbolName [sourceFiles sourceDirectories]
+    --declaration <symbolName> <file | directory>...,
+	-d <symbolName> <file | directory>...
         Find the location where symbolName is declared. This should be more
         accurate than "grep". Searches the given files and directories, or the
         current working directory if none are specified.
 
-    --report [sourceFiles sourceDirectories]
+    --report <file | directory>...
         Generate a static analysis report in JSON format. Implies --styleCheck,
         however the exit code will still be zero if errors or warnings are
         found.
 
-    --config configFile
+    --config <file>
         Use the given configuration file instead of the default located in
         $HOME/.config/dscanner/dscanner.ini
 
