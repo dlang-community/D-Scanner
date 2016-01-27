@@ -121,11 +121,10 @@ to the standard output. The CSS styling is currently hard-coded to use the
 
 	No example. It would take up too much space
 
-### CTAGS output
+### CTAGS Output
 The "--ctags" or "-c" option generates CTAGS information and writes it to the
-standard output. When used with the "--recursive", "-R", or "-r" option, CTAGS
-information will be generated for a specified directory and all of its
-sub-directories.
+standard output. Directory arguments are scanned recursively for `.d` and `.di`
+files.
 
 	$ dscanner --ctags helloworld.d
 	!_TAG_FILE_FORMAT	2
@@ -148,6 +147,12 @@ CTAGS output uses the following tag kinds:
 * a -- alias declarataion
 
 More information on the CTAGS format can be found [here](http://ctags.sourceforge.net/FORMAT).
+
+### Etags Output
+The `--etags`, `-e`, and `--etagsAll` options are similar to `--ctags` except
+that an Emacs-compatible tags file is generated. The `--etagsAll` option
+generates tags for private and package declarations in addition to what
+`--etags` and `-e` generate.
 
 ### Outline
 The "--outline" option parses the given D source file and writes an simple
