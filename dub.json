@@ -7,7 +7,7 @@
 	"targetType": "executable",
 	"versions": ["built_with_dub"],
 	"dependencies": {
-		"libdparse": "~>0.4.2",
+		"libdparse": "~>0.4.3",
 		"dsymbol": "~>0.1.1",
 		"inifiled": ">=0.0.3",
 	},
