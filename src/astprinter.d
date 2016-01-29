@@ -582,17 +582,6 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</labeledStatement>");
 	}
 
-	override void visit(const LambdaExpression lambdaExpression)
-	{
-		output.writeln("<lambdaExpression>");
-		if (lambdaExpression.functionType == tok!"function")
-			output.writeln("<function/>");
-		if (lambdaExpression.functionType == tok!"delegate")
-			output.writeln("<delegate/>");
-		lambdaExpression.accept(this);
-		output.writeln("</lambdaExpression>");
-	}
-
 	override void visit(const LinkageAttribute linkageAttribute)
 	{
 		if (linkageAttribute.hasPlusPlus)
