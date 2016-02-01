@@ -986,11 +986,11 @@ class XMLPrinter : ASTVisitor
 		{
 			output.writeln("<low>");
 			visit(index.low);
-			output.writeln("<low>");
+			output.writeln("</low>");
 
 			output.writeln("<high>");
 			visit(index.high);
-			output.writeln("<high>");
+			output.writeln("</high>");
 		}
 		else
 			visit(index.low);
