@@ -29,7 +29,10 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 		const istring[] args = argVisitor.args;
 
 		auto identVisitor = scoped!IdentVisitor;
-		identVisitor.visit(fce.unaryExpression);
+		if (fce.unaryExpression !is null)
+			identVisitor.visit(fce.unaryExpression);
+		else if (fce.type !is null)
+			identVisitor.visit(fce.type);
 
 		const(DSymbol)*[] symbols = resolveSymbol(sc, identVisitor.names.length > 0
 				? identVisitor.names : [CONSTRUCTOR_SYMBOL_NAME]);
