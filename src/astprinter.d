@@ -858,7 +858,11 @@ class XMLPrinter : ASTVisitor
 	override void visit(const Type2 type2)
 	{
 		if (type2.builtinType != tok!"")
+		{
 			output.writeln("<type2>", str(type2.builtinType), "</type2>");
+			if (type2.identifierOrTemplateChain !is null)
+				visit(type2.identifierOrTemplateChain);
+		}
 		else
 		{
 			output.writeln("<type2>");
