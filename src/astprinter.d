@@ -135,12 +135,21 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(const Attribute attribute)
 	{
-		output.writeln("<attribute>");
+
 		if (attribute.attribute == tok!"")
+		{
+			output.writeln("<attribute>");
 			attribute.accept(this);
+			output.writeln("</attribute>");
+		}
+		else if (attribute.identifierChain is null)
+			output.writeln("<attribute attribute=\"", str(attribute.attribute.type), "\"/>");
 		else
-			output.writeln(str(attribute.attribute.type));
-		output.writeln("</attribute>");
+		{
+			output.writeln("<attribute attribute=\"", str(attribute.attribute.type), "\">");
+			visit(attribute.identifierChain);
+			output.writeln("</attribute>");
+		}
 	}
 
 	override void visit(const AutoDeclaration autoDec)
