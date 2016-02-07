@@ -20,6 +20,13 @@ class AutoRefAssignmentCheck : BaseAnalyzer
 		super(fileName, null);
 	}
 
+	override void visit(const Module m)
+	{
+		pushScope();
+		m.accept(this);
+		popScope();
+	}
+
 	override void visit(const FunctionDeclaration func)
 	{
 		if (func.parameters is null || func.parameters.parameters.length == 0)
