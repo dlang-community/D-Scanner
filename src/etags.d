@@ -9,12 +9,14 @@ module etags;
 import dparse.parser;
 import dparse.lexer;
 import dparse.ast;
+import dparse.rollback_allocator;
 import std.algorithm;
 import std.range;
 import std.stdio;
 import std.path;
 import std.array;
 import std.conv;
+import std.string;
 
 // Prefix tags with their module name.	Seems like correct behavior, but just
 // in case, make it an option.
@@ -39,13 +41,14 @@ void printEtags(File output, bool tagAll, string[] fileNames)
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	foreach (fileName; fileNames)
 	{
+		RollbackAllocator rba;
 		File f = File(fileName);
 		if (f.size == 0)
 			continue;
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
-		Module m = parseModule(tokens.array, fileName, null, &doNothing);
+		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
 
 		auto printer = new EtagsPrinter;
 		printer.moduleName = m.moduleFullName(fileName);

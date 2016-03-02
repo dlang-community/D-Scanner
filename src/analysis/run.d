@@ -14,6 +14,7 @@ import std.array;
 import dparse.lexer;
 import dparse.parser;
 import dparse.ast;
+import dparse.rollback_allocator;
 import std.typecons : scoped;
 
 import std.experimental.allocator : CAllocatorImpl;
@@ -115,9 +116,9 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 			continue;
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
-		ParseAllocator p = new ParseAllocator;
+		RollbackAllocator r;
 		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, p, cache, true, tokens, &lineOfCodeCount);
+		const Module m = parseModule(fileName, code, &r, cache, true, tokens, &lineOfCodeCount);
 		stats.visit(m);
 		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true);
 		foreach (result; results[])
@@ -154,11 +155,11 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 			continue;
 		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(code);
-		ParseAllocator p = new ParseAllocator;
+		RollbackAllocator r;
 		uint errorCount = 0;
 		uint warningCount = 0;
 		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, p, cache, false, tokens,
+		const Module m = parseModule(fileName, code, &r, cache, false, tokens,
 				null, &errorCount, &warningCount);
 		assert(m);
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
@@ -173,7 +174,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 	return hasErrors;
 }
 
-const(Module) parseModule(string fileName, ubyte[] code, ParseAllocator p,
+const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		ref StringCache cache, bool report, ref const(Token)[] tokens,
 		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {

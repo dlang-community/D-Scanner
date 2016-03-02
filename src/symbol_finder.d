@@ -9,6 +9,7 @@ import std.stdio : File;
 import dparse.lexer;
 import dparse.parser;
 import dparse.ast;
+import dparse.rollback_allocator;
 import std.stdio;
 import std.file : isFile;
 
@@ -29,7 +30,8 @@ void findDeclarationOf(File output, string symbolName, string[] fileNames)
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
-		Module m = parseModule(tokens.array, fileName, null, &doNothing);
+		RollbackAllocator rba;
+		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
 		visitor.fileName = fileName;
 		visitor.visit(m);
 	}
