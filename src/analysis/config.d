@@ -110,4 +110,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for asserts that are always true")
 	bool useless_assert_check;
+
+	@INI("Check for uses of the old-style alias syntax")
+	bool alias_syntax_check;
 }
