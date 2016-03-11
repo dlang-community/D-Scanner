@@ -113,4 +113,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check for uses of the old-style alias syntax")
 	bool alias_syntax_check;
+
+	@INI("Checks for else if that should be else static if")
+	bool static_if_else_check;
 }
