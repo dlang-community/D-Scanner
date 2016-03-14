@@ -52,10 +52,16 @@ class LocalImportCheck : BaseAnalyzer
 		if ((!isStatic && interesting) && (id.importBindings is null
 				|| id.importBindings.importBinds.length == 0))
 		{
-			addErrorMessage(id.singleImports[0].identifierChain.identifiers[0].line,
-					id.singleImports[0].identifierChain.identifiers[0].column, "dscanner.suspicious.local_imports",
-					"Local imports should specify"
-					~ " the symbols being imported to avoid hiding local symbols.");
+			foreach (singleImport; id.singleImports)
+			{
+				if (singleImport.rename.text.length == 0)
+				{
+					addErrorMessage(singleImport.identifierChain.identifiers[0].line,
+							singleImport.identifierChain.identifiers[0].column,
+							"dscanner.suspicious.local_imports", "Local imports should specify"
+							~ " the symbols being imported to avoid hiding local symbols.");
+				}
+			}
 		}
 	}
 
@@ -74,4 +80,22 @@ private:
 
 	bool interesting;
 	bool isStatic;
+}
+
+unittest
+{
+	import analysis.config : StaticAnalysisConfig;
+
+	StaticAnalysisConfig sac;
+	sac.local_import_check = true;
+	assertAnalyzerWarnings(q{
+		void testLocalImport()
+		{
+			import std.stdio; // [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols.
+			import std.fish : scales, head;
+			import DAGRON = std.experimental.dragon;
+		}
+	}c, sac);
+
+	stderr.writeln("Unittest for LocalImportCheck passed.");
 }
