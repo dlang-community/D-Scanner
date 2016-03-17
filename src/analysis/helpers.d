@@ -10,9 +10,12 @@ import std.traits;
 import std.stdio;
 
 import dparse.ast;
+import dparse.rollback_allocator;
 import analysis.config;
 import analysis.run;
 import analysis.base;
+import std.experimental.allocator.mallocator;
+import std.experimental.allocator;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
@@ -21,24 +24,18 @@ S between(S)(S value, S before, S after) if (isSomeString!S)
 
 S before(S)(S value, S separator) if (isSomeString!S)
 {
-	auto i = indexOf(value, separator);
-
+	immutable i = indexOf(value, separator);
 	if (i == -1)
 		return value;
-
 	return value[0 .. i];
 }
 
 S after(S)(S value, S separator) if (isSomeString!S)
 {
-	auto i = indexOf(value, separator);
-
+	immutable i = indexOf(value, separator);
 	if (i == -1)
 		return "";
-
-	size_t start = i + separator.length;
-
-	return value[start .. $];
+	return value[i + separator.length .. $];
 }
 
 /**
@@ -49,15 +46,15 @@ S after(S)(S value, S separator) if (isSomeString!S)
 void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 		string file = __FILE__, size_t line = __LINE__)
 {
-	import analysis.run : ParseAllocator, parseModule;
+	import analysis.run : parseModule;
 	import dparse.lexer : StringCache, Token;
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
-	ParseAllocator p = new ParseAllocator;
+	RollbackAllocator r;
 	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) code, p, cache, false, tokens);
+	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, cache, false, tokens);
 
-	auto moduleCache = ModuleCache(p);
+	auto moduleCache = ModuleCache(new CAllocatorImpl!Mallocator);
 
 	// Run the code and get any warnings
 	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);

@@ -19,8 +19,8 @@ INCLUDE_PATHS = \
 	-Ilibdparse/experimental_allocator/src\
 	-Idsymbol/src -Icontainers/src
 VERSIONS =
-DEBUG_VERSIONS = -version=std_parser_verbose
-DMD_FLAGS = -w -O -inline -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
+DEBUG_VERSIONS = -version=dparse_verbose
+DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
 DMD_TEST_FLAGS = -w -g -unittest -J.
 
 all: dmdbuild

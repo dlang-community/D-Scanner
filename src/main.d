@@ -16,6 +16,7 @@ import std.range;
 import std.experimental.lexer;
 import dparse.lexer;
 import dparse.parser;
+import dparse.rollback_allocator;
 
 import highlighter;
 import stats;
@@ -257,6 +258,7 @@ else
 		else if (imports)
 		{
 			string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
+			RollbackAllocator rba;
 			LexerConfig config;
 			config.stringBehavior = StringBehavior.source;
 			auto visitor = new ImportPrinter;
@@ -265,7 +267,7 @@ else
 				config.fileName = name;
 				auto tokens = getTokensForParser(usingStdin ? readStdin()
 						: readFile(name), config, &cache);
-				auto mod = parseModule(tokens, name, null, &doNothing);
+				auto mod = parseModule(tokens, name, &rba, &doNothing);
 				visitor.visit(mod);
 			}
 			foreach (imp; visitor.imports[])
@@ -274,12 +276,13 @@ else
 		else if (ast || outline)
 		{
 			string fileName = usingStdin ? "stdin" : args[1];
+			RollbackAllocator rba;
 			LexerConfig config;
 			config.fileName = fileName;
 			config.stringBehavior = StringBehavior.source;
 			auto tokens = getTokensForParser(usingStdin ? readStdin()
 					: readFile(args[1]), config, &cache);
-			auto mod = parseModule(tokens, fileName, null, &doNothing);
+			auto mod = parseModule(tokens, fileName, &rba, &doNothing);
 
 			if (ast)
 			{
