@@ -126,10 +126,9 @@ class XMLPrinter : ASTVisitor
 	override void visit(const AtAttribute atAttribute)
 	{
 		output.writeln("<atAttribute>");
-		if (atAttribute.identifier.type == tok!"")
-			atAttribute.accept(this);
-		else
+		if (atAttribute.identifier.type != tok!"")
 			output.writeln("<identifier>", atAttribute.identifier.text, "</identifier>");
+		atAttribute.accept(this);
 		output.writeln("</atAttribute>");
 	}
 
@@ -286,11 +285,10 @@ class XMLPrinter : ASTVisitor
 
 	override void visit(const Deprecated deprecated_)
 	{
-		if (deprecated_.stringLiterals.length > 0)
+		if (deprecated_.assignExpression !is null)
 		{
 			output.writeln("<deprecated>");
-			foreach (literal; deprecated_.stringLiterals)
-				output.writeln("<stringLiteral>", xmlEscape(literal.text), "</stringLiteral>");
+			visit(deprecated_.assignExpression);
 			output.writeln("</deprecated>");
 		}
 		else
