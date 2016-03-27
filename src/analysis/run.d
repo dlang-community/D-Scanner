@@ -66,6 +66,8 @@ import dsymbol.conversion.first;
 import dsymbol.conversion.second;
 import dsymbol.modulecache : ModuleCache;
 
+import readers;
+
 bool first = true;
 
 private alias ASTAllocator = CAllocatorImpl!(
@@ -112,11 +114,10 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 	ulong lineOfCodeCount;
 	foreach (fileName; fileNames)
 	{
-		File f = File(fileName);
-		if (f.size == 0)
+		auto code = fileName == "stdin" ? readStdin() : readFile(fileName);
+		// Skip files that could not be read and continue with the rest
+		if (code.length == 0)
 			continue;
-		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
-		f.rawRead(code);
 		RollbackAllocator r;
 		const(Token)[] tokens;
 		const Module m = parseModule(fileName, code, &r, cache, true, tokens, &lineOfCodeCount);
@@ -151,11 +152,10 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 	bool hasErrors = false;
 	foreach (fileName; fileNames)
 	{
-		File f = File(fileName);
-		if (f.size == 0)
+		auto code = fileName == "stdin" ? readStdin() : readFile(fileName);
+		// Skip files that could not be read and continue with the rest
+		if (code.length == 0)
 			continue;
-		auto code = uninitializedArray!(ubyte[])(to!size_t(f.size));
-		f.rawRead(code);
 		RollbackAllocator r;
 		uint errorCount = 0;
 		uint warningCount = 0;

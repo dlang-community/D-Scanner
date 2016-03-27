@@ -29,6 +29,7 @@ import symbol_finder;
 import analysis.run;
 import analysis.config;
 import dscanner_version;
+import readers;
 
 import inifiled;
 
@@ -160,6 +161,8 @@ else
 	if (report)
 		styleCheck = true;
 
+	immutable usingStdin = args.length == 1;
+
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	if (defaultConfig)
 	{
@@ -171,7 +174,6 @@ else
 	}
 	else if (tokenDump || highlight)
 	{
-		immutable bool usingStdin = args.length == 1;
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
 		LexerConfig config;
 		config.stringBehavior = StringBehavior.source;
@@ -221,11 +223,10 @@ else
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(expandArgs(args), cache, moduleCache) ? 1 : 0;
+		return .syntaxCheck(usingStdin ? ["stdin"] : expandArgs(args), cache, moduleCache) ? 1 : 0;
 	}
 	else
 	{
-		bool usingStdin = args.length == 1;
 		if (sloc || tokenCount)
 		{
 			if (usingStdin)
@@ -328,35 +329,6 @@ string[] expandArgs(string[] args)
 			}
 	}
 	return rVal;
-}
-
-ubyte[] readStdin()
-{
-	auto sourceCode = appender!(ubyte[])();
-	ubyte[4096] buf;
-	while (true)
-	{
-		auto b = stdin.rawRead(buf);
-		if (b.length == 0)
-			break;
-		sourceCode.put(b);
-	}
-	return sourceCode.data;
-}
-
-ubyte[] readFile(string fileName)
-{
-	if (!exists(fileName))
-	{
-		stderr.writefln("%s does not exist", fileName);
-		return [];
-	}
-	File f = File(fileName);
-	if (f.size == 0)
-		return [];
-	ubyte[] sourceCode = uninitializedArray!(ubyte[])(to!size_t(f.size));
-	f.rawRead(sourceCode);
-	return sourceCode;
 }
 
 void printHelp(string programName)
