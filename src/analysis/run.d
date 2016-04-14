@@ -98,10 +98,11 @@ void writeJSON(string key, string fileName, size_t line, size_t column, string m
 	write("    }");
 }
 
-bool syntaxCheck(string[] fileNames, ref StringCache stringCache, ref ModuleCache moduleCache)
+bool syntaxCheck(string[] fileNames, ref StringCache stringCache, ref ModuleCache moduleCache,
+					bool enforce = false)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	return analyze(fileNames, config, stringCache, moduleCache, false);
+	return analyze(fileNames, config, stringCache, moduleCache, false, enforce);
 }
 
 void generateReport(string[] fileNames, const StaticAnalysisConfig config,
@@ -147,7 +148,8 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
  * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
  */
 bool analyze(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
+		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true,
+		bool enforce = false)
 {
 	bool hasErrors = false;
 	foreach (fileName; fileNames)
@@ -171,6 +173,8 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		foreach (result; results[])
 			writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
 					result.column, result.message);
+		if (enforce)
+			hasErrors = true;
 	}
 	return hasErrors;
 }
