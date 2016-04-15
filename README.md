@@ -158,6 +158,12 @@ generates tags for private and package declarations in addition to what
 The "--outline" option parses the given D source file and writes an simple
 outline of the file's declarations to stdout.
 
+### Configuration
+
+By default Dscanner uses the configuration file given in `$HOME/.config/dscanner/dscanner.ini`.
+Run `--defaultConfig` to regenerate it.
+The `--config` option allows one to use a custom configuration file.
+
 ### AST Dump
 The "--ast" or "--xml" options will dump the complete abstract syntax tree of
 the given source file to standard output in XML format.
