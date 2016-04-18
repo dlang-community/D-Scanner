@@ -11,6 +11,7 @@ import std.stdio;
 
 import dparse.ast;
 import dparse.rollback_allocator;
+import dsymbol.modulecache : ModuleCache;
 import analysis.config;
 import analysis.run;
 import analysis.base;
