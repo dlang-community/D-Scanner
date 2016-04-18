@@ -6,7 +6,7 @@ module analysis.label_var_same_name_check;
 
 import dparse.ast;
 import dparse.lexer;
-
+import dsymbol.scope_ : Scope;
 import analysis.base;
 import analysis.helpers;
 
@@ -20,33 +20,13 @@ class LabelVarNameCheck : BaseAnalyzer
 		super(fileName, sc);
 	}
 
-	override void visit(const Module mod)
-	{
-		pushScope();
-		mod.accept(this);
-		popScope();
-	}
-
-	override void visit(const BlockStatement block)
-	{
-		pushScope();
-		block.accept(this);
-		popScope();
-	}
-
-	override void visit(const StructBody structBody)
-	{
-		pushScope();
-		structBody.accept(this);
-		popScope();
-	}
-
-	override void visit(const CaseStatement caseStatement)
-	{
-		pushScope();
-		caseStatement.accept(this);
-		popScope();
-	}
+	mixin ScopedVisit!Module;
+	mixin ScopedVisit!BlockStatement;
+	mixin ScopedVisit!StructBody;
+	mixin ScopedVisit!CaseStatement;
+	mixin ScopedVisit!ForStatement;
+	mixin ScopedVisit!IfStatement;
+	mixin ScopedVisit!TemplateDeclaration;
 
 	override void visit(const VariableDeclaration var)
 	{
@@ -75,6 +55,16 @@ class LabelVarNameCheck : BaseAnalyzer
 private:
 
 	Thing[string][] stack;
+
+	template ScopedVisit(NodeType)
+	{
+		override void visit(const NodeType n)
+		{
+			pushScope();
+			n.accept(this);
+			popScope();
+		}
+	}
 
 	void duplicateCheck(const Token name, bool fromLabel, bool isConditional)
 	{
@@ -163,6 +153,21 @@ unittest
 		int a = 20;
 	int a; // [warn]: Variable "a" has the same name as a variable defined on line 28.
 }
+template T(stuff)
+{
+	int b;
+}
+
+void main(string[] args)
+{
+	for (int a = 0; a < 10; a++)
+		things(a);
+
+	for (int a = 0; a < 10; a++)
+		things(a);
+	int b;
+}
+
 }c, sac);
 	stderr.writeln("Unittest for LabelVarNameCheck passed.");
 }
