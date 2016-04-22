@@ -63,6 +63,7 @@ else
 	string[] importPaths;
 	bool printVersion;
 	bool explore;
+	bool enforce;
 
 	try
 	{
@@ -88,7 +89,8 @@ else
 				"I", &importPaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
-				"explore", &explore);
+				"explore", &explore,
+				"enforce", &enforce);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -219,11 +221,11 @@ else
 		if (report)
 			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
-			return analyze(expandArgs(args), config, cache, moduleCache, true) ? 1 : 0;
+			return analyze(expandArgs(args), config, cache, moduleCache, true, enforce) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(usingStdin ? ["stdin"] : expandArgs(args), cache, moduleCache) ? 1 : 0;
+		return .syntaxCheck(usingStdin ? ["stdin"] : expandArgs(args), cache, moduleCache, enforce) ? 1 : 0;
 	}
 	else
 	{
@@ -404,7 +406,10 @@ Options:
         $HOME/.config/dscanner/dscanner.ini
 
     --defaultConfig
-        Generates a default configuration file for the static analysis checks`,
+        Generates a default configuration file for the static analysis checks
+
+    --enforce
+        Exits with an error code if warnings are found during static analysis`,
 			programName);
 }
 
