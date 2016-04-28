@@ -15,7 +15,7 @@ StaticAnalysisConfig defaultStaticAnalysisConfig()
 	return config;
 }
 
-@INI("Configurue which static analysis checks are enabled")
+@INI("Configure which static analysis checks are enabled")
 struct StaticAnalysisConfig
 {
 	@INI("Check variable, class, struct, interface, union, and function names against the Phobos style guide")
