@@ -192,7 +192,7 @@ else
 			foreach (token; tokens)
 			{
 				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null
-						? str(token.type) : token.text, token.text !is null, token.index,
+						? str(token.type) : token.text, token.text is null, token.index,
 						token.line, token.column, token.type, token.comment);
 			}
 			return 0;
