@@ -38,6 +38,15 @@ class CommaExpressionCheck : BaseAnalyzer
 		--interest;
 	}
 
+	// Dconf 2016
+	override void visit(const SynchronizedStatement ss)
+	{
+		++interest;
+		visit(ss.expression);
+		--interest;
+		visit(ss.statementNoCaseNoDefault);
+	}
+
 	invariant
 	{
 		assert(interest >= 0);
