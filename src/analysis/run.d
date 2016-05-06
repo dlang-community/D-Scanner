@@ -57,6 +57,7 @@ import analysis.auto_ref_assignment;
 import analysis.incorrect_infinite_range;
 import analysis.useless_assert;
 import analysis.alias_syntax_check;
+import analysis.static_if_else;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -273,6 +274,8 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		checks ~= new UselessAssertCheck(fileName);
 	if (analysisConfig.alias_syntax_check)
 		checks ~= new AliasSyntaxCheck(fileName);
+	if (analysisConfig.static_if_else_check)
+		checks ~= new StaticIfElse(fileName);
 	version (none)
 		if (analysisConfig.redundant_if_check)
 			checks ~= new IfStatementCheck(fileName, moduleScope);
