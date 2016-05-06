@@ -169,8 +169,11 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		if (results is null)
 			continue;
 		foreach (result; results[])
+		{
+			hasErrors = true;
 			writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
 					result.column, result.message);
+		}
 	}
 	return hasErrors;
 }
