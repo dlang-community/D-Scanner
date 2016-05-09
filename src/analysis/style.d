@@ -109,7 +109,7 @@ unittest
 		class cat {} // [warn]: Class name 'cat' does not match style guidelines.
 		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines.
 		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
-		enum racoon {} // [warn]: Enum name 'racoon' does not match style guidelines.
+		enum racoon { a } // [warn]: Enum name 'racoon' does not match style guidelines.
 	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");
