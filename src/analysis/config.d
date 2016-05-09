@@ -116,4 +116,7 @@ struct StaticAnalysisConfig
 
 	@INI("Checks for else if that should be else static if")
 	bool static_if_else_check;
+
+	@INI("Check for unclear lambda syntax")
+	bool lambda_return_check;
 }

@@ -58,6 +58,7 @@ import analysis.incorrect_infinite_range;
 import analysis.useless_assert;
 import analysis.alias_syntax_check;
 import analysis.static_if_else;
+import analysis.lambda_return_check;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -276,6 +277,8 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		checks ~= new AliasSyntaxCheck(fileName);
 	if (analysisConfig.static_if_else_check)
 		checks ~= new StaticIfElse(fileName);
+	if (analysisConfig.lambda_return_check)
+		checks ~= new LambdaReturnCheck(fileName);
 	version (none)
 		if (analysisConfig.redundant_if_check)
 			checks ~= new IfStatementCheck(fileName, moduleScope);
