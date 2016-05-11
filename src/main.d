@@ -14,6 +14,7 @@ import std.path;
 import std.stdio;
 import std.range;
 import std.experimental.lexer;
+import std.typecons : scoped;
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
@@ -138,7 +139,8 @@ else
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
 
-	auto moduleCache = ModuleCache(new dsymbol.modulecache.ASTAllocator);
+	auto alloc = scoped!(dsymbol.modulecache.ASTAllocator)();
+	auto moduleCache = ModuleCache(alloc);
 
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);

@@ -199,18 +199,21 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
 		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true)
 {
+	import dsymbol.symbol : DSymbol;
+
 	if (!staticAnalyze)
 		return null;
 
-	auto symbolAllocator = new ASTAllocator;
+	auto symbolAllocator = scoped!ASTAllocator();
 	auto first = scoped!FirstPass(m, internString(fileName), symbolAllocator,
 			symbolAllocator, true, &moduleCache, null);
 	first.run();
 
 	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
-	typeid(SemanticSymbol).destroy(first.rootSymbol);
-	const(Scope)* moduleScope = first.moduleScope;
-
+	auto moduleScope = first.moduleScope;
+	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
+	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
+	scope(exit) typeid(Scope).destroy(first.moduleScope);
 	BaseAnalyzer[] checks;
 
 	if (analysisConfig.asm_style_check)
