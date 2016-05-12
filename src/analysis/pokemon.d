@@ -30,9 +30,9 @@ class PokemonExceptionCheck : BaseAnalyzer
 
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const LastCatch lc)
@@ -85,10 +85,10 @@ class PokemonExceptionCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.exception_check = true;
+	sac.exception_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testCatch()
 		{

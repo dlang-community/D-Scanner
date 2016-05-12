@@ -21,9 +21,9 @@ class ObjectConstCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	mixin visitTemplate!ClassDeclaration;
@@ -71,10 +71,10 @@ class ObjectConstCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.object_const_check = true;
+	sac.object_const_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testConsts()
 		{

@@ -21,9 +21,9 @@ class FloatOperatorCheck : BaseAnalyzer
 
 	enum string KEY = "dscanner.deprecated.floating_point_operators";
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const RelExpression r)
@@ -42,10 +42,10 @@ class FloatOperatorCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.float_operator_check = true;
+	sac.float_operator_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testFish()
 		{

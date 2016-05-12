@@ -13,10 +13,10 @@ class LambdaReturnCheck : BaseAnalyzer
 {
     alias visit = BaseAnalyzer.visit;
 
-    this(string fileName)
-    {
-        super(fileName, null);
-    }
+	this(string fileName, bool skipTests = false)
+	{
+		super(fileName, null, skipTests);
+	}
 
     override void visit(const FunctionLiteralExpression fLit)
     {
@@ -47,11 +47,11 @@ private:
 unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
-	sac.lambda_return_check = true;
+	sac.lambda_return_check = Check.enabled;
 
 	auto code = `
 		void main()

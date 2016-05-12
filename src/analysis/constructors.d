@@ -11,9 +11,9 @@ class ConstructorCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const ClassDeclaration classDeclaration)
@@ -90,10 +90,10 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.constructor_check = true;
+	sac.constructor_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		class Cat // [warn]: This class has a zero-argument constructor as well as a constructor with one default argument. This can be confusing.
 		{

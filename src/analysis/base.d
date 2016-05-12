@@ -27,10 +27,11 @@ alias MessageSet = RedBlackTree!(Message, comparitor, true);
 abstract class BaseAnalyzer : ASTVisitor
 {
 public:
-	this(string fileName, const Scope* sc)
+	this(string fileName, const Scope* sc, bool skipTests = false)
 	{
 		this.sc = sc;
 		this.fileName = fileName;
+        this.skipTests = skipTests;
 		_messages = new MessageSet;
 	}
 
@@ -39,9 +40,24 @@ public:
 		return _messages[].array;
 	}
 
+    alias visit = ASTVisitor.visit;
+
+    /**
+     * Visits a unittest.
+     *
+     * When overriden, the protected bool "skipTests" should be handled
+     * so that the content of the test is not analyzed.
+     */
+    override void visit(const Unittest unittest_)
+    {
+        if (!skipTests)
+            unittest_.accept(this);
+    }
+
 protected:
 
 	bool inAggregate = false;
+    bool skipTests;
 
 	template visitTemplate(T)
 	{

@@ -18,9 +18,9 @@ class IncorrectInfiniteRangeCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 	///
-	this(string fileName)
+	this(string fileName, bool skipTests = false)
 	{
-		super(fileName, null);
+		super(fileName, null, skipTests);
 	}
 
 	override void visit(const StructBody structBody)
@@ -88,11 +88,11 @@ private:
 unittest
 {
 	import std.stdio : stderr;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.format : format;
 
 	StaticAnalysisConfig sac;
-	sac.incorrect_infinite_range_check = true;
+	sac.incorrect_infinite_range_check = Check.enabled;
 	assertAnalyzerWarnings(q{struct InfiniteRange
 {
 	bool empty() // [warn]: %1$s

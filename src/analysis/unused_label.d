@@ -14,9 +14,9 @@ class UnusedLabelCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const Module mod)
@@ -137,11 +137,11 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
-	sac.unused_label_check = true;
+	sac.unused_label_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		int testUnusedLabel()
 		{

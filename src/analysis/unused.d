@@ -22,9 +22,9 @@ class UnusedVariableCheck : BaseAnalyzer
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 		re = regex("[\\p{Alphabetic}_][\\w_]*");
 	}
 
@@ -410,11 +410,11 @@ private:
 unittest
 {
 	import std.stdio : stderr;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac;
-	sac.unused_variable_check = true;
+	sac.unused_variable_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 
 	// Issue 274

@@ -20,9 +20,9 @@ class LengthSubtractionCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const AddExpression addExpression)
@@ -58,10 +58,10 @@ class LengthSubtractionCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.length_subtraction_check = true;
+	sac.length_subtraction_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testSizeT()
 		{

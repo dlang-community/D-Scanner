@@ -59,6 +59,7 @@ else
 	bool styleCheck;
 	bool defaultConfig;
 	bool report;
+    bool skipTests;
 	string symbolName;
 	string configLocation;
 	string[] importPaths;
@@ -89,7 +90,8 @@ else
 				"I", &importPaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
-				"explore", &explore);
+				"explore", &explore,
+                "skipTests", &skipTests);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -218,6 +220,8 @@ else
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
 			readINIFile(config, s);
+        if (skipTests)
+            config.fillConfig!(Check.skipTests);
 		if (report)
 			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
@@ -368,7 +372,7 @@ Options:
         If no files are specified, input is read from stdin. %1$s will exit with
         a status code of zero if no errors are found, 1 otherwise.
 
-    --styleCheck <file | directory>..., <file | directory>...
+    --styleCheck|S <file | directory>..., <file | directory>...
         Lexes and parses sourceFiles, printing the line and column number of any
         static analysis check failures stdout. %1$s will exit with a status code
         of zero if no warnings or errors are found, 1 otherwise.
@@ -406,8 +410,12 @@ Options:
         $HOME/.config/dscanner/dscanner.ini
 
     --defaultConfig
-        Generates a default configuration file for the static analysis checks`,
-			programName);
+        Generates a default configuration file for the static analysis checks,
+
+    --skipTests
+        Does not analyze in the unittests. Only works if --styleCheck.`,
+
+    programName);
 }
 
 private void doNothing(string, size_t, size_t, string, bool)

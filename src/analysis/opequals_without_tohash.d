@@ -20,9 +20,9 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const ClassDeclaration node)
@@ -89,10 +89,10 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.opequals_tohash_check = true;
+	sac.opequals_tohash_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		// Success because it has opEquals and toHash
 		class Chimp

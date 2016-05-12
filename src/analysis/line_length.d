@@ -15,9 +15,9 @@ import analysis.base : BaseAnalyzer;
 class LineLengthCheck : BaseAnalyzer
 {
 	///
-	this(string fileName, const(Token)[] tokens)
+	this(string fileName, const(Token)[] tokens, bool skipTests = false)
 	{
-		super(fileName, null);
+		super(fileName, null, skipTests);
 		this.tokens = tokens;
 	}
 

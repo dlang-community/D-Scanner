@@ -27,9 +27,9 @@ class BackwardsRangeCheck : BaseAnalyzer
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const Scope* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const ForeachStatement foreachStatement)
@@ -157,10 +157,10 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.backwards_range_check = true;
+	sac.backwards_range_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testRange()
 		{

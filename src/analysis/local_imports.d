@@ -23,9 +23,9 @@ class LocalImportCheck : BaseAnalyzer
 	/**
 	 * Construct with the given file name.
 	 */
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	mixin visitThing!StructBody;
@@ -84,10 +84,10 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.local_import_check = true;
+	sac.local_import_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testLocalImport()
 		{

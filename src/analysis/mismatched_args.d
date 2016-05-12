@@ -11,9 +11,9 @@ import dsymbol.builtin.names;
 final class MismatchedArgumentCheck : BaseAnalyzer
 {
 	///
-	this(string fileName, const Scope* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const FunctionCallExpression fce)

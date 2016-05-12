@@ -18,9 +18,9 @@ class DeleteCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const DeleteExpression d)
@@ -33,11 +33,11 @@ class DeleteCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac;
-	sac.delete_check = true;
+	sac.delete_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testDelete()
 		{

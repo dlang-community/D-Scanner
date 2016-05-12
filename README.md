@@ -43,12 +43,28 @@ analysis and it does not compile the code.
 The "--styleCheck" or "-S" option runs some basic static analysis checks against
 the given source files.
 
+#### Skip style checks in the tests
+Static checks in the unit tests can produce irrelevant warnings. For example,
+it's legit to declare a variable that's not used if the goal is to verify that
+a templatized function can be instantiated by inference of the type of this variable.
+To avoid these cases, it's possible to pass the "--skipTests" option.
+
 #### Configuration
 By default all checks are enabled. Individual checks can be enabled or disabled
 by using a configuration file. Running ```dscanner --defaultConfig``` will
 generate a default configuration file and print the file's location. The
 "--config" option will allow you to specify the path to a configuration file if
 you do not want to use the one created by the "--defaultConfig" option.
+
+For each check, three values are possible:
+* `"disabled"`: the check is not performed.
+* `"enabled"`: the check is performed.
+* `"skip-unittest"`: the check is performed but not in the unit tests.
+
+Any other value deactivates a check.
+
+Note that the "--skipTests" option is the equivalent of changing each
+`"enabled"` check by a `"skip-unittest"` check.
 
 #### Implemented checks
 * Old alias syntax (i.e "alias a b;" should be replaced with "alias b = a;").
@@ -85,7 +101,7 @@ you do not want to use the one created by the "--defaultConfig" option.
 * Unused labels.
 * Lines longer than 120 characters.
 * Incorrect infinite range definitions.
-* Some assertions that check conditions that will always be true.
+* Some assertions that check conditions that will always be true. This check can't be skipped in the tests.
 
 #### Wishlist
 
