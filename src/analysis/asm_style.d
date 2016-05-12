@@ -20,9 +20,9 @@ class AsmStyleCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const AsmBrExp brExp)
@@ -39,10 +39,10 @@ class AsmStyleCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.asm_style_check = true;
+	sac.asm_style_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testAsm()
 		{

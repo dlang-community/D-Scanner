@@ -21,9 +21,9 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const Module mod)

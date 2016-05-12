@@ -15,9 +15,9 @@ import analysis.helpers;
  */
 class LabelVarNameCheck : BaseAnalyzer
 {
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	mixin ScopedVisit!Module;
@@ -118,11 +118,11 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
-	sac.label_var_same_name_check = true;
+	sac.label_var_same_name_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 unittest
 {

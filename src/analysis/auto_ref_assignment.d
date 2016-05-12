@@ -15,9 +15,9 @@ import analysis.base;
 class AutoRefAssignmentCheck : BaseAnalyzer
 {
 	///
-	this(string fileName)
+	this(string fileName, bool skipTests = false)
 	{
-		super(fileName, null);
+		super(fileName, null, skipTests);
 	}
 
 	override void visit(const Module m)
@@ -113,11 +113,11 @@ unittest
 {
 	import std.stdio : stderr;
 	import std.format : format;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac;
-	sac.auto_ref_assignment_check = true;
+	sac.auto_ref_assignment_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		int doStuff(T)(auto ref int a)
 		{

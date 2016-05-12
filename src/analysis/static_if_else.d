@@ -25,9 +25,9 @@ class StaticIfElse : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string filename)
+	this(string fileName, bool skipTests = false)
 	{
-		super(filename, null);
+		super(fileName, null, skipTests);
 	}
 
 	override void visit(const ConditionalStatement cc)
@@ -66,11 +66,11 @@ class StaticIfElse : BaseAnalyzer
 unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
-	sac.static_if_else_check = true;
+	sac.static_if_else_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void foo() {
 			static if (false)

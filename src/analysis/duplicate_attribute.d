@@ -21,9 +21,9 @@ class DuplicateAttributeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const Declaration node)
@@ -153,10 +153,10 @@ class DuplicateAttributeCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.duplicate_attribute = true;
+	sac.duplicate_attribute = Check.enabled;
 	assertAnalyzerWarnings(q{
 		class ExampleAttributes
 		{

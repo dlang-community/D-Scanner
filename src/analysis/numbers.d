@@ -24,9 +24,9 @@ public:
 	/**
 	 * Constructs the style checker with the given file name.
 	 */
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const Token t)
@@ -49,10 +49,10 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.number_style_check = true;
+	sac.number_style_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testNumbers()
 		{

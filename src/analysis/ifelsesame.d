@@ -24,9 +24,9 @@ class IfElseSameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const IfStatement ifStatement)
@@ -77,10 +77,10 @@ class IfElseSameCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.if_else_same_check = true;
+	sac.if_else_same_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testSizeT()
 		{

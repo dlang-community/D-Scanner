@@ -205,8 +205,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		return null;
 
 	auto symbolAllocator = scoped!ASTAllocator();
+    version (unittest) enum ut = true; else enum ut = false;
+
 	auto first = scoped!FirstPass(m, internString(fileName), symbolAllocator,
-			symbolAllocator, true, &moduleCache, null);
+            symbolAllocator, true, &moduleCache, null);
 	first.run();
 
 	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
@@ -216,75 +218,142 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	scope(exit) typeid(Scope).destroy(first.moduleScope);
 	BaseAnalyzer[] checks;
 
-	if (analysisConfig.asm_style_check)
-		checks ~= new AsmStyleCheck(fileName, moduleScope);
-	if (analysisConfig.backwards_range_check)
-		checks ~= new BackwardsRangeCheck(fileName, moduleScope);
-	if (analysisConfig.builtin_property_names_check)
-		checks ~= new BuiltinPropertyNameCheck(fileName, moduleScope);
-	if (analysisConfig.comma_expression_check)
-		checks ~= new CommaExpressionCheck(fileName, moduleScope);
-	if (analysisConfig.constructor_check)
-		checks ~= new ConstructorCheck(fileName, moduleScope);
-	if (analysisConfig.could_be_immutable_check)
-		checks ~= new UnmodifiedFinder(fileName, moduleScope);
-	if (analysisConfig.delete_check)
-		checks ~= new DeleteCheck(fileName, moduleScope);
-	if (analysisConfig.duplicate_attribute)
-		checks ~= new DuplicateAttributeCheck(fileName, moduleScope);
-	if (analysisConfig.enum_array_literal_check)
-		checks ~= new EnumArrayLiteralCheck(fileName, moduleScope);
-	if (analysisConfig.exception_check)
-		checks ~= new PokemonExceptionCheck(fileName, moduleScope);
-	if (analysisConfig.float_operator_check)
-		checks ~= new FloatOperatorCheck(fileName, moduleScope);
-	if (analysisConfig.function_attribute_check)
-		checks ~= new FunctionAttributeCheck(fileName, moduleScope);
-	if (analysisConfig.if_else_same_check)
-		checks ~= new IfElseSameCheck(fileName, moduleScope);
-	if (analysisConfig.label_var_same_name_check)
-		checks ~= new LabelVarNameCheck(fileName, moduleScope);
-	if (analysisConfig.length_subtraction_check)
-		checks ~= new LengthSubtractionCheck(fileName, moduleScope);
-	if (analysisConfig.local_import_check)
-		checks ~= new LocalImportCheck(fileName, moduleScope);
-	if (analysisConfig.logical_precedence_check)
-		checks ~= new LogicPrecedenceCheck(fileName, moduleScope);
-	if (analysisConfig.mismatched_args_check)
-		checks ~= new MismatchedArgumentCheck(fileName, moduleScope);
-	if (analysisConfig.number_style_check)
-		checks ~= new NumberStyleCheck(fileName, moduleScope);
-	if (analysisConfig.object_const_check)
-		checks ~= new ObjectConstCheck(fileName, moduleScope);
-	if (analysisConfig.opequals_tohash_check)
-		checks ~= new OpEqualsWithoutToHashCheck(fileName, moduleScope);
-	if (analysisConfig.redundant_parens_check)
-		checks ~= new RedundantParenCheck(fileName, moduleScope);
-	if (analysisConfig.style_check)
-		checks ~= new StyleChecker(fileName, moduleScope);
-	if (analysisConfig.undocumented_declaration_check)
-		checks ~= new UndocumentedDeclarationCheck(fileName, moduleScope);
-	if (analysisConfig.unused_label_check)
-		checks ~= new UnusedLabelCheck(fileName, moduleScope);
-	if (analysisConfig.unused_variable_check)
-		checks ~= new UnusedVariableCheck(fileName, moduleScope);
-	if (analysisConfig.long_line_check)
-		checks ~= new LineLengthCheck(fileName, tokens);
-	if (analysisConfig.auto_ref_assignment_check)
-		checks ~= new AutoRefAssignmentCheck(fileName);
-	if (analysisConfig.incorrect_infinite_range_check)
-		checks ~= new IncorrectInfiniteRangeCheck(fileName);
-	if (analysisConfig.useless_assert_check)
-		checks ~= new UselessAssertCheck(fileName);
-	if (analysisConfig.alias_syntax_check)
-		checks ~= new AliasSyntaxCheck(fileName);
-	if (analysisConfig.static_if_else_check)
-		checks ~= new StaticIfElse(fileName);
-	if (analysisConfig.lambda_return_check)
-		checks ~= new LambdaReturnCheck(fileName);
+	if (analysisConfig.asm_style_check != Check.disabled)
+		checks ~= new AsmStyleCheck(fileName, moduleScope,
+        analysisConfig.asm_style_check == Check.skipTests && !ut);
+
+	if (analysisConfig.backwards_range_check != Check.disabled)
+		checks ~= new BackwardsRangeCheck(fileName, moduleScope,
+        analysisConfig.backwards_range_check == Check.skipTests && !ut);
+
+	if (analysisConfig.builtin_property_names_check != Check.disabled)
+		checks ~= new BuiltinPropertyNameCheck(fileName, moduleScope,
+        analysisConfig.builtin_property_names_check == Check.skipTests && !ut);
+
+	if (analysisConfig.comma_expression_check != Check.disabled)
+		checks ~= new CommaExpressionCheck(fileName, moduleScope,
+        analysisConfig.comma_expression_check == Check.skipTests && !ut);
+
+	if (analysisConfig.constructor_check != Check.disabled)
+		checks ~= new ConstructorCheck(fileName, moduleScope,
+        analysisConfig.constructor_check == Check.skipTests && !ut);
+
+	if (analysisConfig.could_be_immutable_check != Check.disabled)
+		checks ~= new UnmodifiedFinder(fileName, moduleScope,
+        analysisConfig.could_be_immutable_check == Check.skipTests && !ut);
+
+	if (analysisConfig.delete_check != Check.disabled)
+		checks ~= new DeleteCheck(fileName, moduleScope,
+        analysisConfig.delete_check == Check.skipTests && !ut);
+
+	if (analysisConfig.duplicate_attribute != Check.disabled)
+		checks ~= new DuplicateAttributeCheck(fileName, moduleScope,
+        analysisConfig.duplicate_attribute == Check.skipTests && !ut);
+
+	if (analysisConfig.enum_array_literal_check != Check.disabled)
+		checks ~= new EnumArrayLiteralCheck(fileName, moduleScope,
+        analysisConfig.enum_array_literal_check == Check.skipTests && !ut);
+
+	if (analysisConfig.exception_check != Check.disabled)
+		checks ~= new PokemonExceptionCheck(fileName, moduleScope,
+        analysisConfig.exception_check == Check.skipTests && !ut);
+
+	if (analysisConfig.float_operator_check != Check.disabled)
+		checks ~= new FloatOperatorCheck(fileName, moduleScope,
+        analysisConfig.float_operator_check == Check.skipTests && !ut);
+
+	if (analysisConfig.function_attribute_check != Check.disabled)
+		checks ~= new FunctionAttributeCheck(fileName, moduleScope,
+        analysisConfig.function_attribute_check == Check.skipTests && !ut);
+
+	if (analysisConfig.if_else_same_check != Check.disabled)
+		checks ~= new IfElseSameCheck(fileName, moduleScope,
+        analysisConfig.if_else_same_check == Check.skipTests&& !ut);
+
+	if (analysisConfig.label_var_same_name_check != Check.disabled)
+		checks ~= new LabelVarNameCheck(fileName, moduleScope,
+        analysisConfig.label_var_same_name_check == Check.skipTests && !ut);
+
+	if (analysisConfig.length_subtraction_check != Check.disabled)
+		checks ~= new LengthSubtractionCheck(fileName, moduleScope,
+        analysisConfig.length_subtraction_check == Check.skipTests && !ut);
+
+	if (analysisConfig.local_import_check != Check.disabled)
+		checks ~= new LocalImportCheck(fileName, moduleScope,
+        analysisConfig.local_import_check == Check.skipTests && !ut);
+
+	if (analysisConfig.logical_precedence_check != Check.disabled)
+		checks ~= new LogicPrecedenceCheck(fileName, moduleScope,
+        analysisConfig.logical_precedence_check == Check.skipTests && !ut);
+
+	if (analysisConfig.mismatched_args_check != Check.disabled)
+		checks ~= new MismatchedArgumentCheck(fileName, moduleScope,
+        analysisConfig.mismatched_args_check == Check.skipTests && !ut);
+
+	if (analysisConfig.number_style_check != Check.disabled)
+		checks ~= new NumberStyleCheck(fileName, moduleScope,
+        analysisConfig.number_style_check == Check.skipTests && !ut);
+
+	if (analysisConfig.object_const_check != Check.disabled)
+		checks ~= new ObjectConstCheck(fileName, moduleScope,
+        analysisConfig.object_const_check == Check.skipTests && !ut);
+
+	if (analysisConfig.opequals_tohash_check != Check.disabled)
+		checks ~= new OpEqualsWithoutToHashCheck(fileName, moduleScope,
+        analysisConfig.opequals_tohash_check == Check.skipTests && !ut);
+
+	if (analysisConfig.redundant_parens_check != Check.disabled)
+		checks ~= new RedundantParenCheck(fileName, moduleScope,
+        analysisConfig.redundant_parens_check == Check.skipTests && !ut);
+
+	if (analysisConfig.style_check != Check.disabled)
+		checks ~= new StyleChecker(fileName, moduleScope,
+        analysisConfig.style_check == Check.skipTests && !ut);
+
+	if (analysisConfig.undocumented_declaration_check != Check.disabled)
+		checks ~= new UndocumentedDeclarationCheck(fileName, moduleScope,
+        analysisConfig.undocumented_declaration_check == Check.skipTests && !ut);
+
+	if (analysisConfig.unused_label_check != Check.disabled)
+		checks ~= new UnusedLabelCheck(fileName, moduleScope,
+        analysisConfig.unused_label_check == Check.skipTests && !ut);
+
+	if (analysisConfig.unused_variable_check != Check.disabled)
+		checks ~= new UnusedVariableCheck(fileName, moduleScope,
+        analysisConfig.unused_variable_check == Check.skipTests && !ut);
+
+	if (analysisConfig.long_line_check != Check.disabled)
+		checks ~= new LineLengthCheck(fileName, tokens,
+        analysisConfig.long_line_check == Check.skipTests && !ut);
+
+	if (analysisConfig.auto_ref_assignment_check != Check.disabled)
+		checks ~= new AutoRefAssignmentCheck(fileName,
+        analysisConfig.auto_ref_assignment_check == Check.skipTests && !ut);
+
+	if (analysisConfig.incorrect_infinite_range_check != Check.disabled)
+		checks ~= new IncorrectInfiniteRangeCheck(fileName,
+        analysisConfig.incorrect_infinite_range_check == Check.skipTests && !ut);
+
+	if (analysisConfig.useless_assert_check != Check.disabled)
+		checks ~= new UselessAssertCheck(fileName,
+        analysisConfig.useless_assert_check == Check.skipTests && !ut);
+
+	if (analysisConfig.alias_syntax_check != Check.disabled)
+		checks ~= new AliasSyntaxCheck(fileName,
+        analysisConfig.alias_syntax_check == Check.skipTests && !ut);
+
+	if (analysisConfig.static_if_else_check != Check.disabled)
+		checks ~= new StaticIfElse(fileName,
+        analysisConfig.static_if_else_check == Check.skipTests && !ut);
+
+    if (analysisConfig.lambda_return_check != Check.disabled)
+		checks ~= new LambdaReturnCheck(fileName,
+        analysisConfig.lambda_return_check == Check.skipTests && !ut);
+
 	version (none)
-		if (analysisConfig.redundant_if_check)
-			checks ~= new IfStatementCheck(fileName, moduleScope);
+		if (analysisConfig.redundant_if_check != Check.disabled)
+			checks ~= new IfStatementCheck(fileName, moduleScope,
+            analysisConfig.redundant_if_check == Check.skipTests && !ut);
 
 	foreach (check; checks)
 	{
@@ -297,3 +366,4 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 			set.insert(message);
 	return set;
 }
+

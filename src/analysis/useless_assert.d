@@ -19,11 +19,12 @@ class UselessAssertCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	///
-	this(string fileName)
-	{
-		super(fileName, null);
-	}
+    ///
+    this(string fileName, bool skipTests = false)
+    {
+        // assertions likely to be in unittest so never skip
+	    super(fileName, null, false);
+    }
 
 	override void visit(const AssertExpression ae)
 	{
@@ -96,11 +97,11 @@ private:
 unittest
 {
 	import std.stdio : stderr;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.format : format;
 
 	StaticAnalysisConfig sac;
-	sac.useless_assert_check = true;
+	sac.useless_assert_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 unittest
 {

@@ -16,9 +16,9 @@ class AliasSyntaxCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName)
+	this(string fileName, bool skipTests = false)
 	{
-		super(fileName, null);
+		super(fileName, null, skipTests);
 	}
 
 	override void visit(const AliasDeclaration ad)
@@ -40,11 +40,11 @@ private:
 unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
-	sac.alias_syntax_check = true;
+	sac.alias_syntax_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		alias int abcde; // [warn]: Prefer the new "'alias' identifier '=' type ';'" syntax to the  old "'alias' type identifier ';'" syntax.
 		alias abcde = int;

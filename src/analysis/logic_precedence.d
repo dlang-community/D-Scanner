@@ -25,9 +25,9 @@ class LogicPrecedenceCheck : BaseAnalyzer
 
 	enum string KEY = "dscanner.confusing.logical_precedence";
 
-	this(string fileName, const(Scope)* sc)
+	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc);
+		super(fileName, sc, skipTests);
 	}
 
 	override void visit(const OrOrExpression orOr)
@@ -48,10 +48,10 @@ class LogicPrecedenceCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig;
+	import analysis.config : StaticAnalysisConfig, Check;
 
 	StaticAnalysisConfig sac;
-	sac.logical_precedence_check = true;
+	sac.logical_precedence_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testFish()
 		{
