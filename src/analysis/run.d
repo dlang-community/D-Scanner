@@ -59,6 +59,9 @@ import analysis.useless_assert;
 import analysis.alias_syntax_check;
 import analysis.static_if_else;
 import analysis.lambda_return_check;
+import analysis.allman;
+import analysis.trailing_whitespace;
+import analysis.consecutive_empty_lines;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -124,7 +127,7 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 		const(Token)[] tokens;
 		const Module m = parseModule(fileName, code, &r, cache, true, tokens, &lineOfCodeCount);
 		stats.visit(m);
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true);
+		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, code, true);
 		foreach (result; results[])
 		{
 			writeJSON(result.key, result.fileName, result.line, result.column, result.message);
@@ -167,7 +170,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		assert(m);
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
+		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, code, staticAnalyze);
 		if (results is null)
 			continue;
 		foreach (result; results[])
@@ -197,7 +200,7 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 }
 
 MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
-		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true)
+		ref ModuleCache moduleCache, const(Token)[] tokens, ubyte[] code, bool staticAnalyze = true)
 {
 	import dsymbol.symbol : DSymbol;
 
@@ -349,6 +352,18 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
     if (analysisConfig.lambda_return_check != Check.disabled)
 		checks ~= new LambdaReturnCheck(fileName,
         analysisConfig.lambda_return_check == Check.skipTests && !ut);
+
+    if (analysisConfig.allman_braces_check != Check.disabled)
+		checks ~= new AllManCheck(fileName, code,
+        analysisConfig.allman_braces_check == Check.skipTests && !ut);
+
+    if (analysisConfig.trailing_whitespace_check != Check.disabled)
+		checks ~= new TrailingWhitespaceCheck(fileName, code,
+        analysisConfig.trailing_whitespace_check == Check.skipTests && !ut);
+
+    if (analysisConfig.consecutive_empty_lines != Check.disabled)
+		checks ~= new ConsecutiveEmptyLines(fileName, code,
+        analysisConfig.consecutive_empty_lines == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
