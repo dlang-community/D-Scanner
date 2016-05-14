@@ -60,6 +60,7 @@ import analysis.alias_syntax_check;
 import analysis.static_if_else;
 import analysis.lambda_return_check;
 import analysis.allman;
+import analysis.trailing_whitespace;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -354,6 +355,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
     if (analysisConfig.allman_braces_check != Check.disabled)
 		checks ~= new AllManCheck(fileName, code,
         analysisConfig.allman_braces_check == Check.skipTests && !ut);
+
+    if (analysisConfig.trailing_whitespace_check != Check.disabled)
+		checks ~= new TrailingWhitespaceCheck(fileName, code,
+        analysisConfig.trailing_whitespace_check == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
