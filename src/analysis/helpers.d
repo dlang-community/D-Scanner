@@ -58,7 +58,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	auto moduleCache = ModuleCache(new CAllocatorImpl!Mallocator);
 
 	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);
+	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens, cast(ubyte[]) code);
 	string[] codeLines = code.split("\n");
 
 	// Get the warnings ordered by line
