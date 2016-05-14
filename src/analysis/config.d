@@ -144,4 +144,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check for unclear lambda syntax")
 	string lambda_return_check = Check.disabled;
+
+	@INI("Check allman brace style")
+	string allman_braces_check = Check.disabled;
 }
