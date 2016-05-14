@@ -156,4 +156,13 @@ struct StaticAnalysisConfig
 
     @INI("Check for useless usage of the final attribute")
     string final_attribute_check = Check.disabled;
+
+	@INI("Check allman brace style")
+	string allman_braces_check = Check.disabled;
+
+	@INI("Check for trailing whitespace")
+	string trailing_whitespace_check = Check.disabled;
+
+	@INI("Check for two or more consecutive empty lines")
+	string consecutive_empty_lines = Check.disabled;
 }
