@@ -41,9 +41,12 @@ class CommaExpressionCheck : BaseAnalyzer
 	// Dconf 2016
 	override void visit(const SynchronizedStatement ss)
 	{
-		++interest;
-		visit(ss.expression);
-		--interest;
+		if (ss.expression !is null)
+		{
+			++interest;
+			visit(ss.expression);
+			--interest;
+		}
 		visit(ss.statementNoCaseNoDefault);
 	}
 
