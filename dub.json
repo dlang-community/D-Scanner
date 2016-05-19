@@ -8,7 +8,7 @@
 	"versions": ["built_with_dub"],
 	"dependencies": {
 		"libdparse": "~>0.7.0-alpha11",
-		"dsymbol": "~>0.2.0-alpha6",
+		"dsymbol": "~>0.2.0-alpha7",
 		"inifiled": ">=0.0.6",
 	},
 }
