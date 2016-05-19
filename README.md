@@ -51,10 +51,10 @@ To avoid these cases, it's possible to pass the "--skipTests" option.
 
 #### Configuration
 By default all checks are enabled. Individual checks can be enabled or disabled
-by using a configuration file. Running ```dscanner --defaultConfig``` will
-generate a default configuration file and print the file's location. The
-"--config" option will allow you to specify the path to a configuration file if
-you do not want to use the one created by the "--defaultConfig" option.
+by using a configuration file. Such a file can be placed, for example, is the root directory of your project.
+Running ```dscanner --defaultConfig``` will generate a default configuration file and print the file's location.
+You can also specify the path to a configuration file by using the "--config" option if
+you want to override the default or the local settings.
 
 For each check, three values are possible:
 * `"disabled"`: the check is not performed.
@@ -179,6 +179,7 @@ outline of the file's declarations to stdout.
 By default Dscanner uses the configuration file given in `$HOME/.config/dscanner/dscanner.ini`.
 Run `--defaultConfig` to regenerate it.
 The `--config` option allows one to use a custom configuration file.
+If a `dscanner.ini` file is locate in the working directory or any of it's parents, it overrides any other configuration files.
 
 ### AST Dump
 The "--ast" or "--xml" options will dump the complete abstract syntax tree of
