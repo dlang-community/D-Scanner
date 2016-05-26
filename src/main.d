@@ -429,9 +429,9 @@ version (FreeBSD) version = useXDG;
 version (OSX) version = useXDG;
 
 /**
- * Locates the configuration file
+ * Locates the default configuration file
  */
-string getConfigurationLocation()
+string getDefaultConfigurationLocation()
 {
 	version (useXDG)
 	{
@@ -451,4 +451,41 @@ string getConfigurationLocation()
 	}
 	else version (Windows)
 		return CONFIG_FILE_NAME;
+}
+
+/**
+ * Searches upwards from the CWD through the directory hierarchy
+ */
+string tryFindConfigurationLocation()
+{
+	auto path = pathSplitter(getcwd());
+	string result;
+
+	while (!path.empty)
+	{
+		result = buildPath(buildPath(path), CONFIG_FILE_NAME);
+
+		if (exists(result))
+			break;
+
+		path.popBack();
+	}
+
+	if (path.empty)
+		return null;
+
+	return result;
+}
+
+/**
+ * Tries to find a config file and returns the default one on failure
+ */
+string getConfigurationLocation()
+{
+	immutable config = tryFindConfigurationLocation();
+
+	if (config !is null)
+		return config;
+
+	return getDefaultConfigurationLocation();
 }
