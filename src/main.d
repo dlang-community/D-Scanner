@@ -264,12 +264,12 @@ else
 		}
 		else if (imports)
 		{
-			string[] fileNames = usingStdin ? ["stdin"] : args[1 .. $];
+			string[] fileNames = usingStdin ? ["stdin"] : expandArgs(args);
 			RollbackAllocator rba;
 			LexerConfig config;
 			config.stringBehavior = StringBehavior.source;
 			auto visitor = new ImportPrinter;
-			foreach (name; expandArgs(fileNames))
+			foreach (name; fileNames)
 			{
 				config.fileName = name;
 				auto tokens = getTokensForParser(usingStdin ? readStdin()
