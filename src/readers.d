@@ -33,3 +33,37 @@ ubyte[] readFile(string fileName)
 	f.rawRead(sourceCode);
 	return sourceCode;
 }
+
+string[] expandArgs(string[] args)
+{
+	import std.file : isFile, FileException, dirEntries, SpanMode;
+	import std.algorithm.iteration : map;
+	import std.algorithm.searching : endsWith;
+
+	// isFile can throw if it's a broken symlink.
+	bool isFileSafe(T)(T a)
+	{
+		try
+			return isFile(a);
+		catch (FileException)
+			return false;
+	}
+
+	string[] rVal;
+	if (args.length == 1)
+		args ~= ".";
+	foreach (arg; args[1 .. $])
+	{
+		if (isFileSafe(arg))
+			rVal ~= arg;
+		else
+			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
+			{
+				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
+					rVal ~= item;
+				else
+					continue;
+			}
+	}
+	return rVal;
+}

@@ -34,6 +34,20 @@ source file.
 	$ dscanner --imports helloworld.d
 	std.stdio
 
+Passing "-I" arguments (import locations) will cause D-Scanner to also attempt
+to resolve the locations of the imported modules.
+
+    $ dscanner --imports helloworld.d -I ~/.dvm/compilers/dmd-2.071.1-b2/src/phobos/ -I ~/.dvm/compilers/dmd-2.071.1-b2/src/druntime/src/
+	/home/brian/.dvm/compilers/dmd-2.071.1-b2/src/phobos/std/stdio.d
+
+The "--recursiveImports" option is similar to "--imports", except that it lists
+imports of imports (and so on) recursively. The recursive import option requires
+import paths to be specified in order to work correctly.
+
+Limitations:
+* The import listing feature DOES NOT IGNORE imports that may be unused to to `version` or `static if`.
+* The import listing DOES NOT INCLUDE imports introduced by mixins.
+
 ### Syntax Check
 The "--syntaxCheck" or "-s" option prints a listing of any errors or warnings found
 while lexing or parsing the given source file. It does not do any semantic

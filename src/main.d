@@ -53,13 +53,14 @@ else
 	bool syntaxCheck;
 	bool ast;
 	bool imports;
+	bool recursiveImports;
 	bool muffin;
 	bool outline;
 	bool tokenDump;
 	bool styleCheck;
 	bool defaultConfig;
 	bool report;
-    bool skipTests;
+	bool skipTests;
 	string symbolName;
 	string configLocation;
 	string[] importPaths;
@@ -80,6 +81,7 @@ else
 				"syntaxCheck|s", &syntaxCheck,
 				"ast|xml", &ast,
 				"imports|i", &imports,
+				"recursiveImports", &recursiveImports,
 				"outline|o", &outline,
 				"tokenDump", &tokenDump,
 				"styleCheck|S", &styleCheck,
@@ -91,7 +93,7 @@ else
 				"version", &printVersion,
 				"muffinButton", &muffin,
 				"explore", &explore,
-                "skipTests", &skipTests);
+				"skipTests", &skipTests);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -149,7 +151,7 @@ else
 
 	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
 			outline, tokenDump, styleCheck, defaultConfig, report,
-			symbolName !is null, etags, etagsAll]);
+			symbolName !is null, etags, etagsAll, recursiveImports]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -262,23 +264,9 @@ else
 				writefln("total:\t%d", count);
 			}
 		}
-		else if (imports)
+		else if (imports || recursiveImports)
 		{
-			string[] fileNames = usingStdin ? ["stdin"] : expandArgs(args);
-			RollbackAllocator rba;
-			LexerConfig config;
-			config.stringBehavior = StringBehavior.source;
-			auto visitor = new ImportPrinter;
-			foreach (name; fileNames)
-			{
-				config.fileName = name;
-				auto tokens = getTokensForParser(usingStdin ? readStdin()
-						: readFile(name), config, &cache);
-				auto mod = parseModule(tokens, name, &rba, &doNothing);
-				visitor.visit(mod);
-			}
-			foreach (imp; visitor.imports[])
-				writeln(imp);
+			printImports(usingStdin, args, importPaths, &cache, recursiveImports);
 		}
 		else if (ast || outline)
 		{
@@ -305,36 +293,6 @@ else
 		}
 	}
 	return 0;
-}
-
-string[] expandArgs(string[] args)
-{
-	// isFile can throw if it's a broken symlink.
-	bool isFileSafe(T)(T a)
-	{
-		try
-			return isFile(a);
-		catch (FileException)
-			return false;
-	}
-
-	string[] rVal;
-	if (args.length == 1)
-		args ~= ".";
-	foreach (arg; args[1 .. $])
-	{
-		if (isFileSafe(arg))
-			rVal ~= arg;
-		else
-			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
-			{
-				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
-					rVal ~= item;
-				else
-					continue;
-			}
-	}
-	return rVal;
 }
 
 void printHelp(string programName)
@@ -364,7 +322,11 @@ Options:
 
     --imports <file>, -i <file>
         Prints modules imported by the given source file. If no files are
-        specified, input is read from stdin.
+        specified, input is read from stdin. Combine with "-I" arguments to
+        resolve import locations.
+
+    --recursive-imports <file>
+        Similar to "--imports", but lists imports of imports recursively.
 
     --syntaxCheck <file>, -s <file>
         Lexes and parses sourceFile, printing the line and column number of any
