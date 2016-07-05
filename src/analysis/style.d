@@ -40,9 +40,20 @@ class StyleChecker : BaseAnalyzer
 		}
 	}
 
+	override void visit(const VariableDeclaration vd)
+	{
+		import std.algorithm.iteration : filter;
+
+		varIsEnum = !vd.storageClasses.filter!(a => a.token == tok!"enum").empty;
+		vd.accept(this);
+	}
+
 	override void visit(const Declarator dec)
 	{
-		checkLowercaseName("Variable", dec.name);
+		if (varIsEnum)
+			checkAggregateName("Variable", dec.name);
+		else
+			checkLowercaseName("Variable", dec.name);
 	}
 
 	override void visit(const FunctionDeclaration dec)
@@ -89,6 +100,8 @@ class StyleChecker : BaseAnalyzer
 			addErrorMessage(name.line, name.column, KEY,
 					aggregateType ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
+
+	bool varIsEnum;
 }
 
 unittest
@@ -110,6 +123,7 @@ unittest
 		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines.
 		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
 		enum racoon { a } // [warn]: Enum name 'racoon' does not match style guidelines.
+		enum bool Something = false;
 	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");
