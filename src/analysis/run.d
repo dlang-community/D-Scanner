@@ -93,10 +93,10 @@ void writeJSON(string key, string fileName, size_t line, size_t column, string m
 		first = false;
 	writeln("    {");
 	writeln(`      "key": "`, key, `",`);
-	writeln(`      "fileName": "`, fileName, `",`);
+	writeln(`      "fileName": "`, .replace(`"`, `\"`).replace("\\", "\\\\"), `",`);
 	writeln(`      "line": `, line, `,`);
 	writeln(`      "column": `, column, `,`);
-	writeln(`      "message": "`, message.replace(`"`, `\"`), `"`);
+	writeln(`      "message": "`, message.replace(`"`, `\"`).replace("\\", "\\\\"), `"`);
 	write("    }");
 }
 
