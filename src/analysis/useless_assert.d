@@ -19,12 +19,12 @@ class UselessAssertCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
-    ///
-    this(string fileName, bool skipTests = false)
-    {
-        // assertions likely to be in unittest so never skip
-	    super(fileName, null, false);
-    }
+	///
+	this(string fileName, bool skipTests = false)
+	{
+		// assertions likely to be in unittest so never skip
+		super(fileName, null, skipTests);
+	}
 
 	override void visit(const AssertExpression ae)
 	{
