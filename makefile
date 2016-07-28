@@ -6,7 +6,6 @@ GDC := gdc
 LDC := ldc2
 OBJ_DIR := obj
 SRC := \
-	$(shell find containers/experimental_allocator/src -name "*.d")\
 	$(shell find containers/src -name "*.d")\
 	$(shell find dsymbol/src -name "*.d")\
 	$(shell find inifiled/source/ -name "*.d")\
@@ -16,7 +15,6 @@ SRC := \
 INCLUDE_PATHS = \
 	-Iinifiled/source -Isrc\
 	-Ilibdparse/src\
-	-Ilibdparse/experimental_allocator/src\
 	-Idsymbol/src -Icontainers/src
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
