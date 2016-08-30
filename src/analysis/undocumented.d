@@ -133,7 +133,9 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 	{
 	}
 
+	mixin V!AnonymousEnumMember;
 	mixin V!ClassDeclaration;
+	mixin V!EnumDeclaration;
 	mixin V!InterfaceDeclaration;
 	mixin V!StructDeclaration;
 	mixin V!UnionDeclaration;
