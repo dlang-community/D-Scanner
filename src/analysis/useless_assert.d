@@ -22,7 +22,6 @@ class UselessAssertCheck : BaseAnalyzer
 	///
 	this(string fileName, bool skipTests = false)
 	{
-		// assertions likely to be in unittest so never skip
 		super(fileName, null, skipTests);
 	}
 
