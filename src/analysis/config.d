@@ -140,8 +140,11 @@ struct StaticAnalysisConfig
 	string alias_syntax_check = Check.disabled;
 
 	@INI("Checks for else if that should be else static if")
-    string static_if_else_check = Check.disabled;
+	string static_if_else_check = Check.disabled;
 
 	@INI("Check for unclear lambda syntax")
 	string lambda_return_check = Check.disabled;
+
+	@INI("Check for auto function without return statement")
+	string auto_function_check = Check.disabled;
 }
