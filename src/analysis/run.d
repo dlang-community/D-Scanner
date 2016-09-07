@@ -59,6 +59,7 @@ import analysis.useless_assert;
 import analysis.alias_syntax_check;
 import analysis.static_if_else;
 import analysis.lambda_return_check;
+import analysis.auto_function;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -353,6 +354,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (analysisConfig.lambda_return_check != Check.disabled)
 		checks ~= new LambdaReturnCheck(fileName,
 		analysisConfig.lambda_return_check == Check.skipTests && !ut);
+
+	if (analysisConfig.auto_function_check != Check.disabled)
+		checks ~= new AutoFunctionChecker(fileName,
+		analysisConfig.auto_function_check == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
