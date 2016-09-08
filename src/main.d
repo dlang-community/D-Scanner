@@ -20,6 +20,7 @@ import dparse.parser;
 import dparse.rollback_allocator;
 
 import highlighter;
+import althighlighter;
 import stats;
 import ctags;
 import etags;
@@ -45,6 +46,7 @@ else
 {
 	bool sloc;
 	bool highlight;
+	bool althighlight;
 	bool ctags;
 	bool etags;
 	bool etagsAll;
@@ -73,6 +75,7 @@ else
 		getopt(args, std.getopt.config.caseSensitive,
 				"sloc|l", &sloc,
 				"highlight", &highlight,
+				"althighlight", &althighlight,
 				"ctags|c", &ctags,
 				"help|h", &help,
 				"etags|e", &etags,
@@ -149,7 +152,7 @@ else
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);
 
-	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
+	immutable optionCount = count!"a"([sloc, highlight, althighlight, ctags, tokenCount, syntaxCheck, ast, imports,
 			outline, tokenDump, styleCheck, defaultConfig, report,
 			symbolName !is null, etags, etagsAll, recursiveImports]);
 	if (optionCount > 1)
@@ -178,7 +181,7 @@ else
 		writeln("Writing default config file to ", s);
 		writeINIFile(saConfig, s);
 	}
-	else if (tokenDump || highlight)
+	else if (tokenDump || highlight || althighlight)
 	{
 		ubyte[] bytes = usingStdin ? readStdin() : readFile(args[1]);
 		LexerConfig config;
@@ -188,6 +191,12 @@ else
 		{
 			auto tokens = byToken(bytes, config, &cache);
 			highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
+			return 0;
+		}
+		else if (althighlight)
+		{
+			auto tokens = byToken(bytes, config, &cache);
+			althighlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
 			return 0;
 		}
 		else if (tokenDump)
