@@ -125,7 +125,7 @@ final class CTagsPrinter : ASTVisitor
 		tagLines.insert("%s\t%s\t%d;\"\ti\tline:%d%s%s\n".format(dec.name.text,
 				fileName, dec.name.line, dec.name.line, context.c, context.access));
 		immutable c = context;
-		context = ContextType("\tclass:" ~ dec.name.text, context.access);
+		context = ContextType("\tinterface:" ~ dec.name.text, context.access);
 		dec.accept(this);
 		context = c;
 	}
