@@ -73,11 +73,12 @@ class UnmodifiedFinder : BaseAnalyzer
 				&& (!autoDeclaration.storageClasses.canFind!(a => a.token == tok!"const"
 					|| a.token == tok!"enum" || a.token == tok!"immutable")))
 		{
-			foreach (size_t i, id; autoDeclaration.identifiers)
+			foreach (part; autoDeclaration.parts)
 			{
-				if (initializedFromCast(autoDeclaration.initializers[i]))
+				if (initializedFromCast(part.initializer))
 					continue;
-				tree[$ - 1].insert(new VariableInfo(id.text, id.line, id.column));
+				tree[$ - 1].insert(new VariableInfo(part.identifier.text,
+						part.identifier.line, part.identifier.column));
 			}
 		}
 		autoDeclaration.accept(this);

@@ -234,9 +234,9 @@ final class EtagsPrinter : ASTVisitor
 
 	override void visit(const AutoDeclaration dec)
 	{
-		foreach (i; dec.identifiers)
+		foreach (part; dec.parts)
 		{
-			maketag(i);
+			maketag(part.identifier);
 		}
 		dec.accept(this);
 	}

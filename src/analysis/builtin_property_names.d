@@ -12,6 +12,7 @@ import dparse.lexer;
 import analysis.base;
 import analysis.helpers;
 import dsymbol.scope_;
+import std.algorithm : map;
 
 /**
  * The following code should be killed with fire:
@@ -56,7 +57,7 @@ class BuiltinPropertyNameCheck : BaseAnalyzer
 	override void visit(const AutoDeclaration ad)
 	{
 		if (depth > 0)
-			foreach (i; ad.identifiers)
+			foreach (i; ad.parts.map!(a => a.identifier))
 			{
 				if (isBuiltinProperty(i.text))
 					addErrorMessage(i.line, i.column, KEY, generateErrorMessage(i.text));

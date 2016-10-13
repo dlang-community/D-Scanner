@@ -10,6 +10,7 @@ import analysis.base;
 import std.container;
 import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
+import std.algorithm : map;
 
 /**
  * Checks for unused variables.
@@ -259,7 +260,7 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const AutoDeclaration autoDeclaration)
 	{
-		foreach (t; autoDeclaration.identifiers)
+		foreach (t; autoDeclaration.parts.map!(a => a.identifier))
 			this.variableDeclared(t.text, t.line, t.column, false, false);
 		autoDeclaration.accept(this);
 	}

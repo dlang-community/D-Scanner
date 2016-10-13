@@ -165,15 +165,20 @@ class XMLPrinter : ASTVisitor
 			visit(sc);
 		output.writeln("</storageClasses>");
 
-		for (size_t i = 0; i < autoDec.identifiers.length; i++)
-		{
-			output.writeln("<item>");
-			output.writeln("<name line=\"", autoDec.identifiers[i].line, "\">",
-					autoDec.identifiers[i].text, "</name>");
-			visit(autoDec.initializers[i]);
-			output.writeln("</item>");
-		}
+		foreach (part; autoDec.parts)
+			visit(part);
 		output.writeln("</autoDeclaration>");
+	}
+
+	override void visit(const AutoDeclarationPart part)
+	{
+		output.writeln("<autoDeclarationPart>");
+
+		output.writeln("<item>");
+		output.writeln("<name line=\"", part.identifier.line, "\">", part.identifier.text, "</name>");
+		visit(part.initializer);
+		output.writeln("</item>");
+		output.writeln("</autoDeclarationPart>");
 	}
 
 	override void visit(const BreakStatement breakStatement)

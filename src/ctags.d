@@ -213,7 +213,7 @@ final class CTagsPrinter : ASTVisitor
 
 	override void visit(const AutoDeclaration dec)
 	{
-		foreach (i; dec.identifiers)
+		foreach (i; dec.parts.map!(a => a.identifier))
 		{
 			tagLines.insert("%s\t%s\t%d;\"\tv\tline:%d%s%s\n".format(i.text,
 					fileName, i.line, i.line, context.c, context.access));

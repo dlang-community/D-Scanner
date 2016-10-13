@@ -98,9 +98,9 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 			return;
 		if (variable.autoDeclaration !is null)
 		{
-			addMessage(variable.autoDeclaration.identifiers[0].line,
-					variable.autoDeclaration.identifiers[0].column,
-					variable.autoDeclaration.identifiers[0].text);
+			addMessage(variable.autoDeclaration.parts[0].identifier.line,
+					variable.autoDeclaration.parts[0].identifier.column,
+					variable.autoDeclaration.parts[0].identifier.text);
 			return;
 		}
 		foreach (dec; variable.declarators)

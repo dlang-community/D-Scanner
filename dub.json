@@ -7,9 +7,9 @@
 	"targetType": "executable",
 	"versions": ["built_with_dub"],
 	"dependencies": {
-		"libdparse": "0.7.0-alpha.15",
-		"dsymbol": "0.2.0-alpha.10",
+		"libdparse": "0.7.0-beta.1",
+		"dsymbol": "0.2.0-beta.1",
 		"inifiled": ">=0.0.6",
-		"emsi_containers": "0.5.0"
+		"emsi_containers": "0.5.2"
 	},
 }

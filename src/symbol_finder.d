@@ -102,10 +102,10 @@ class FinderVisitor : ASTVisitor
 
 	override void visit(const AutoDeclaration ad)
 	{
-		foreach (id; ad.identifiers)
+		foreach (part; ad.parts)
 		{
-			if (id.text == symbolName)
-				output.writefln("%s(%d:%d)", fileName, id.line, id.column);
+			if (part.identifier.text == symbolName)
+				output.writefln("%s(%d:%d)", fileName, part.identifier.line, part.identifier.column);
 		}
 	}
 

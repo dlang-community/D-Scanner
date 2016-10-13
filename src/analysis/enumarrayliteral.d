@@ -8,7 +8,7 @@ module analysis.enumarrayliteral;
 import dparse.ast;
 import dparse.lexer;
 import analysis.base;
-import std.algorithm : canFind;
+import std.algorithm : canFind, map;
 import dsymbol.scope_ : Scope;
 
 void doNothing(string, size_t, size_t, string, bool)
@@ -35,19 +35,19 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 	{
 		if (autoDec.storageClasses.canFind!(a => a.token == tok!"enum"))
 		{
-			foreach (i, initializer; autoDec.initializers)
+			foreach (part; autoDec.parts)
 			{
-				if (initializer is null)
+				if (part.initializer is null)
 					continue;
-				if (initializer.nonVoidInitializer is null)
+				if (part.initializer.nonVoidInitializer is null)
 					continue;
-				if (initializer.nonVoidInitializer.arrayInitializer is null)
+				if (part.initializer.nonVoidInitializer.arrayInitializer is null)
 					continue;
-				addErrorMessage(autoDec.identifiers[i].line, autoDec.identifiers[i].column,
+				addErrorMessage(part.identifier.line, part.identifier.column,
 						"dscanner.performance.enum_array_literal",
 						"This enum may lead to unnecessary allocation at run-time."
 						~ " Use 'static immutable "
-						~ autoDec.identifiers[i].text ~ " = [ ...' instead.");
+						~ part.identifier.text ~ " = [ ...' instead.");
 			}
 		}
 		autoDec.accept(this);
