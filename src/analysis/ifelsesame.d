@@ -39,8 +39,7 @@ class IfElseSameCheck : BaseAnalyzer
 
 	override void visit(const AssignExpression assignExpression)
 	{
-		auto e = cast(const AssignExpression)(cast(const Expression) assignExpression.expression)
-			.items[$ - 1];
+		auto e = cast(const AssignExpression) assignExpression.expression;
 		if (e !is null && assignExpression.operator == tok!"="
 				&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{
