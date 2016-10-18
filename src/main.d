@@ -194,12 +194,18 @@ else
 		{
 			auto tokens = getTokensForParser(bytes, config, &cache);
 			writeln(
-					"text                    blank\tindex\tline\tcolumn\ttype\tcomment\ttrailingComment");
+					"text                    \tblank\tindex\tline\tcolumn\ttype\tcomment\ttrailingComment");
 			foreach (token; tokens)
 			{
-				writefln("<<%20s>>%b\t%d\t%d\t%d\t%d\t%s", token.text is null
-						? str(token.type) : token.text, token.text is null, token.index,
-						token.line, token.column, token.type, token.comment);
+				writefln("<<%20s>>\t%b\t%d\t%d\t%d\t%d\t%s\t%s",
+						token.text is null ? str(token.type) : token.text,
+						token.text is null,
+						token.index,
+						token.line,
+						token.column,
+						token.type,
+						token.comment,
+						token.trailingComment);
 			}
 			return 0;
 		}
