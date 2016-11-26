@@ -52,7 +52,7 @@ public:
 
 		decl.accept(this);
 
-		if (autoFun && !_returns[$-1])
+		if (decl.functionBody && autoFun && !_returns[$-1])
 			addErrorMessage(decl.name.line, decl.name.column, KEY, MESSAGE);
 	}
 
@@ -148,6 +148,20 @@ unittest
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
+
+    assertAnalyzerWarnings(q{
+        auto doStuff(){} // [warn]: %s
+        extern(C) auto doStuff();
+    }c.format(
+        AutoFunctionChecker.MESSAGE,
+    ), sac);
+
+    assertAnalyzerWarnings(q{
+        auto doStuff(){} // [warn]: %s
+        @disable auto doStuff();
+    }c.format(
+        AutoFunctionChecker.MESSAGE,
+    ), sac);
 
 	stderr.writeln("Unittest for AutoFunctionChecker passed.");
 }
