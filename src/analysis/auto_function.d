@@ -30,6 +30,7 @@ private:
 
 	bool[] _returns;
 	size_t _mixinDepth;
+    string[] _literalWithReturn;
 
 public:
 
@@ -93,11 +94,63 @@ public:
 	override void visit(const(PrimaryExpression) exp)
 	{
 		exp.accept(this);
-		import std.algorithm.searching : find;
-		import std.range : empty;
-		if (_returns.length && _mixinDepth && !exp.primary.text.find("return").empty)
-			_returns[$-1] = true;
+
+		import std.algorithm.searching : canFind;
+
+		if (_returns.length && _mixinDepth)
+        {
+            if (findReturnInLiteral(exp.primary.text))
+			    _returns[$-1] = true;
+            else if (exp.identifierOrTemplateInstance &&
+                _literalWithReturn.canFind(exp.identifierOrTemplateInstance.identifier.text))
+                    _returns[$-1] = true;
+        }
 	}
+
+    bool findReturnInLiteral(const(string) value)
+    {
+        import std.algorithm.searching : find;
+        import std.range : empty;
+
+        return value == "return" || !value.find("return ").empty;
+    }
+
+    bool stringliteralHasReturn(const(NonVoidInitializer) nvi)
+    {
+        bool result;
+        if (!nvi.assignExpression || (cast(UnaryExpression) nvi.assignExpression) is null)
+            return result;
+
+        const(UnaryExpression) u = cast(UnaryExpression) nvi.assignExpression;
+        if (u.primaryExpression &&
+            u.primaryExpression.primary.type.isStringLiteral &&
+            findReturnInLiteral(u.primaryExpression.primary.text))
+                result = true;
+
+        return result;
+    }
+
+    override void visit(const(AutoDeclaration) decl)
+    {
+        decl.accept(this);
+
+        foreach(const(AutoDeclarationPart) p; decl.parts)
+            if (p.initializer &&
+                p.initializer.nonVoidInitializer &&
+                stringliteralHasReturn(p.initializer.nonVoidInitializer))
+                    _literalWithReturn ~= p.identifier.text.idup;
+    }
+
+    override void visit(const(VariableDeclaration) decl)
+    {
+        decl.accept(this);
+
+        foreach(const(Declarator) d; decl.declarators)
+            if (d.initializer &&
+                d.initializer.nonVoidInitializer &&
+                stringliteralHasReturn(d.initializer.nonVoidInitializer))
+                    _literalWithReturn ~= d.name.text.idup;
+    }
 }
 
 unittest
@@ -162,6 +215,11 @@ unittest
     }c.format(
         AutoFunctionChecker.MESSAGE,
     ), sac);
+
+    assertAnalyzerWarnings(q{
+        enum _genSave = "return true;";
+        auto doStuff(){ mixin(_genSave);}
+    }, sac);
 
 	stderr.writeln("Unittest for AutoFunctionChecker passed.");
 }
