@@ -23,8 +23,8 @@ void findDeclarationOf(File output, string symbolName, string[] fileNames)
 	auto visitor = new FinderVisitor(output, symbolName);
 	foreach (fileName; fileNames)
 	{
-		File f = File(fileName);
-		assert(isFile(fileName));
+		File f = fileName == "stdin" ? std.stdio.stdin : File(fileName);
+		assert(fileName == "stdin" || isFile(fileName));
 		if (f.size == 0)
 			continue;
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
