@@ -42,7 +42,7 @@ void printEtags(File output, bool tagAll, string[] fileNames)
 	foreach (fileName; fileNames)
 	{
 		RollbackAllocator rba;
-		File f = File(fileName);
+		File f = fileName == "stdin" ? std.stdio.stdin : File(fileName);
 		if (f.size == 0)
 			continue;
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));

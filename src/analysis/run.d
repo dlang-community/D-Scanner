@@ -117,7 +117,7 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 	ulong lineOfCodeCount;
 	foreach (fileName; fileNames)
 	{
-		auto code = fileName == "stdin" ? readStdin() : readFile(fileName);
+		auto code = readFile(fileName);
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
@@ -155,7 +155,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 	bool hasErrors = false;
 	foreach (fileName; fileNames)
 	{
-		auto code = fileName == "stdin" ? readStdin() : readFile(fileName);
+		auto code = readFile(fileName);
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;

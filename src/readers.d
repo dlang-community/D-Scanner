@@ -21,6 +21,8 @@ ubyte[] readStdin()
 
 ubyte[] readFile(string fileName)
 {
+	if (fileName == "stdin")
+		return readStdin();
 	if (!exists(fileName))
 	{
 		stderr.writefln("%s does not exist", fileName);
@@ -54,7 +56,7 @@ string[] expandArgs(string[] args)
 		args ~= ".";
 	foreach (arg; args[1 .. $])
 	{
-		if (isFileSafe(arg))
+		if (arg == "stdin" || isFileSafe(arg))
 			rVal ~= arg;
 		else
 			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
