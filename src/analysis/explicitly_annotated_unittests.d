@@ -28,13 +28,13 @@ class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 	{
 		if (decl.unittest_ !is null)
 		{
-			bool isSafeOrSystem = false;
+			bool isSafeOrSystem;
 			if (decl.attributes !is null)
 			foreach (attribute; decl.attributes)
 			{
 				if (attribute.atAttribute !is null)
 				{
-					auto token = attribute.atAttribute.identifier.text;
+					const token = attribute.atAttribute.identifier.text;
 					if (token == "safe" || token == "system")
 					{
 						isSafeOrSystem = true;
@@ -63,25 +63,12 @@ unittest
 	sac.explicitly_annotated_unittests = Check.enabled;
 
 	assertAnalyzerWarnings(q{
-		@safe unittest {
+		@safe unittest {}
+		@system unittest {}
+		pure nothrow @system @nogc unittest {}
 
-		}
-
-		@system unittest {
-
-		}
-
-		pure nothrow @system @nogc unittest {
-
-		}
-
-		unittest // [warn]: %s
-		{
-
-		}
-		pure nothrow @nogc unittest // [warn]: %s
-		{
-		}
+		unittest {} // [warn]: %s
+		pure nothrow @nogc unittest {} // [warn]: %s
 	}c.format(
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
@@ -91,21 +78,11 @@ unittest
 	assertAnalyzerWarnings(q{
 		struct Foo
 		{
-			@safe unittest {
+			@safe unittest {}
+			@system unittest {}
 
-			}
-
-			@system unittest {
-
-			}
-
-			unittest // [warn]: %s
-			{
-
-			}
-			pure nothrow @nogc unittest // [warn]: %s
-			{
-			}
+			unittest {} // [warn]: %s
+			pure nothrow @nogc unittest {} // [warn]: %s
 		}
 	}c.format(
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
