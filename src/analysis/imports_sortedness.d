@@ -4,9 +4,9 @@
 
 module analysis.imports_sortedness;
 
+import analysis.base : BaseAnalyzer;
 import dparse.lexer;
 import dparse.ast;
-import analysis.base : BaseAnalyzer;
 
 import std.stdio;
 
@@ -26,8 +26,30 @@ class ImportSortednessCheck : BaseAnalyzer
 
 	override void visit(const Module mod)
 	{
-		globalImports = [];
+		level = 0;
+		imports[level] = [];
 		mod.accept(this);
+	}
+
+	override void visit(const Statement decl)
+	{
+		imports[++level] = [];
+		decl.accept(this);
+		level--;
+	}
+
+	override void visit(const BlockStatement decl)
+	{
+		imports[++level] = [];
+		decl.accept(this);
+		level--;
+	}
+
+	override void visit(const StructBody decl)
+	{
+		imports[++level] = [];
+		decl.accept(this);
+		level--;
 	}
 
 	override void visit(const ImportDeclaration id)
@@ -59,20 +81,21 @@ class ImportSortednessCheck : BaseAnalyzer
 
 private:
 
-	string[] globalImports;
+	int level = 0;
+	string[][int] imports;
 
 	void addImport(string importModuleName, const SingleImport singleImport)
 	{
 		import std.uni : sicmp;
 
-		if (globalImports.length > 0 && globalImports[$ -1].sicmp(importModuleName) > 0)
+		if (imports[level].length > 0 && imports[level][$ -1].sicmp(importModuleName) > 0)
 		{
 			addErrorMessage(singleImport.identifierChain.identifiers[0].line,
 					singleImport.identifierChain.identifiers[0].column, KEY, MESSAGE);
 		}
 		else
 		{
-			globalImports ~= importModuleName;
+			imports[level] ~= importModuleName;
 		}
 	}
 }
@@ -182,6 +205,137 @@ unittest
 		import t1 : a, b = foo;
 		import t1 : b, a = foo; // [warn]: %s
 		import t0 : a, b = foo; // [warn]: %s
+	}c.format(
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+	), sac);
+
+	// local imports in functions
+	assertAnalyzerWarnings(q{
+		import t2;
+		import t1; // [warn]: %s
+		void foo()
+		{
+			import f2;
+			import f1; // [warn]: %s
+			import f3;
+		}
+		void bar()
+		{
+			import f1;
+			import f2;
+		}
+	}c.format(
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+	), sac);
+
+	// local imports in scopes
+	assertAnalyzerWarnings(q{
+		import t2;
+		import t1; // [warn]: %s
+		void foo()
+		{
+			import f2;
+			import f1; // [warn]: %s
+			import f3;
+			{
+				import f2;
+				import f1; // [warn]: %s
+				import f3;
+			}
+			{
+				import f1;
+				import f2;
+				import f3;
+			}
+		}
+	}c.format(
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+	), sac);
+
+	// local imports in functions
+	assertAnalyzerWarnings(q{
+		import t2;
+		import t1; // [warn]: %s
+		void foo()
+		{
+			import f2;
+			import f1; // [warn]: %s
+			import f3;
+			while (true) {
+				import f2;
+				import f1; // [warn]: %s
+				import f3;
+			}
+			for (;;) {
+				import f1;
+				import f2;
+				import f3;
+			}
+			foreach (el; arr) {
+				import f2;
+				import f1; // [warn]: %s
+				import f3;
+			}
+		}
+	}c.format(
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+	), sac);
+
+	// nested scopes
+	assertAnalyzerWarnings(q{
+		import t2;
+		import t1; // [warn]: %s
+		void foo()
+		{
+			import f2;
+			import f1; // [warn]: %s
+			import f3;
+			{
+				import f2;
+				import f1; // [warn]: %s
+				import f3;
+				{
+					import f2;
+					import f1; // [warn]: %s
+					import f3;
+					{
+						import f2;
+						import f1; // [warn]: %s
+						import f3;
+					}
+				}
+			}
+		}
+	}c.format(
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+		ImportSortednessCheck.MESSAGE,
+	), sac);
+
+	// local imports in functions
+	assertAnalyzerWarnings(q{
+		import t2;
+		import t1; // [warn]: %s
+		struct foo()
+		{
+			import f2;
+			import f1; // [warn]: %s
+			import f3;
+		}
+		class bar()
+		{
+			import f1;
+			import f2;
+		}
 	}c.format(
 		ImportSortednessCheck.MESSAGE,
 		ImportSortednessCheck.MESSAGE,
