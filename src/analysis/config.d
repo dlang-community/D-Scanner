@@ -154,6 +154,9 @@ struct StaticAnalysisConfig
 	@INI("Check for explicitly annotated unittests")
 	string explicitly_annotated_unittests = Check.disabled;
 
+	@INI("Check for properly documented public functions (Returns, Params)")
+	string properly_documented_public_functions = Check.disabled;
+
     @INI("Check for useless usage of the final attribute")
     string final_attribute_check = Check.disabled;
 }
