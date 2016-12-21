@@ -10,7 +10,7 @@ import analysis.base;
 import std.container;
 import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
-import std.algorithm : map;
+import std.algorithm.iteration : map;
 
 /**
  * Checks for unused variables.
@@ -207,10 +207,14 @@ class UnusedVariableCheck : BaseAnalyzer
 	{
 		if (interestDepth > 0)
 		{
-			if (primary.identifierOrTemplateInstance !is null
-					&& primary.identifierOrTemplateInstance.identifier != tok!"")
+			const IdentifierOrTemplateInstance idt = primary.identifierOrTemplateInstance;
+
+			if (idt !is null)
 			{
-				variableUsed(primary.identifierOrTemplateInstance.identifier.text);
+				if (idt.identifier != tok!"")
+					variableUsed(idt.identifier.text);
+				else if (idt.templateInstance && idt.templateInstance.identifier != tok!"")
+					variableUsed(idt.templateInstance.identifier.text);
 			}
 			if (mixinDepth > 0 && primary.primary == tok!"stringLiteral"
 					|| primary.primary == tok!"wstringLiteral"
@@ -428,6 +432,20 @@ unittest
 	unittest
 	{
 		int a; // [warn]: Variable a is never used.
+	}
+
+	// Issue 380
+	int templatedEnum()
+	{
+		enum a(T) = T.init;
+		return a!int;
+	}
+
+	// Issue 380
+	int otherTemplatedEnum()
+	{
+		auto a(T) = T.init; // [warn]: Variable a is never used.
+		return 0;
 	}
 
 	void doStuff(int a, int b) // [warn]: Parameter b is never used.
