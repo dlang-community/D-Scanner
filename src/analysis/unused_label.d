@@ -4,16 +4,20 @@
 
 module analysis.unused_label;
 
-import dparse.ast;
-import dparse.lexer;
 import analysis.base;
 import analysis.helpers;
+import dparse.ast;
+import dparse.lexer;
 import dsymbol.scope_ : Scope;
 
-class UnusedLabelCheck : BaseAnalyzer
+/**
+ * Checks for labels that are never used.
+ */
+final class UnusedLabelCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);
@@ -101,10 +105,10 @@ class UnusedLabelCheck : BaseAnalyzer
 			return;
 
 		const AsmExp e = cast(AsmExp) instr.operands.operands[0];
-		if (e.left && cast(const(AsmBrExp)) e.left)
+		if (e.left && cast(AsmBrExp) e.left)
 		{
 			const AsmBrExp b = cast(AsmBrExp) e.left;
-			if (b.asmUnaExp && b.asmUnaExp.asmPrimaryExp)
+			if (b && b.asmUnaExp && b.asmUnaExp.asmPrimaryExp)
 			{
 				const AsmPrimaryExp p = b.asmUnaExp.asmPrimaryExp;
 				if (p && p.identifierChain && p.identifierChain.identifiers.length == 1)
@@ -125,7 +129,7 @@ private:
 
 	Label[string][] stack;
 
-	auto ref current() @property
+	auto ref current()
 	{
 		return stack[$ - 1];
 	}
@@ -161,7 +165,7 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : Check, StaticAnalysisConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
