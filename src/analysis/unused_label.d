@@ -101,7 +101,7 @@ final class UnusedLabelCheck : BaseAnalyzer
 		if (instr.identifierOrIntegerOrOpcode.text.length)
 			jmp = instr.identifierOrIntegerOrOpcode.text[0] == 'j';
 
-		if (!jmp || instr.operands.operands.length != 1)
+		if (!jmp || !instr.operands || instr.operands.operands.length != 1)
 			return;
 
 		const AsmExp e = cast(AsmExp) instr.operands.operands[0];
