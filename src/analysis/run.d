@@ -66,6 +66,7 @@ import analysis.final_attribute;
 import analysis.allman;
 import analysis.trailing_whitespace;
 import analysis.consecutive_empty_lines;
+import analysis.if_constraints_index;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -386,6 +387,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
     if (analysisConfig.consecutive_empty_lines != Check.disabled)
 		checks ~= new ConsecutiveEmptyLines(fileName, code,
         analysisConfig.consecutive_empty_lines == Check.skipTests && !ut);
+
+    if (analysisConfig.if_constraints_index != Check.disabled)
+		checks ~= new IfConstraintsIndexCheck(fileName, code,
+        analysisConfig.if_constraints_index == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)

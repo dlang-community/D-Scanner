@@ -165,4 +165,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check for two or more consecutive empty lines")
 	string consecutive_empty_lines = Check.disabled;
+
+	@INI("If constraint whitespace check")
+	string if_constraints_index = Check.disabled;
 }
