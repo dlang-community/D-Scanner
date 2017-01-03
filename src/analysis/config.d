@@ -150,4 +150,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check for sortedness of imports")
 	string imports_sortedness = Check.disabled;
+
+	@INI("Check for explicitly annotated unittests")
+	string explicitly_annotated_unittests = Check.disabled;
 }
