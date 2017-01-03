@@ -4,16 +4,20 @@
 
 module analysis.unused_label;
 
-import dparse.ast;
-import dparse.lexer;
 import analysis.base;
 import analysis.helpers;
+import dparse.ast;
+import dparse.lexer;
 import dsymbol.scope_ : Scope;
 
-class UnusedLabelCheck : BaseAnalyzer
+/**
+ * Checks for labels that are never used.
+ */
+final class UnusedLabelCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);
@@ -89,6 +93,30 @@ class UnusedLabelCheck : BaseAnalyzer
 			labelUsed(gotoStatement.label.text);
 	}
 
+	override void visit(const AsmInstruction instr)
+	{
+		instr.accept(this);
+
+		bool jmp;
+		if (instr.identifierOrIntegerOrOpcode.text.length)
+			jmp = instr.identifierOrIntegerOrOpcode.text[0] == 'j';
+
+		if (!jmp || !instr.operands || instr.operands.operands.length != 1)
+			return;
+
+		const AsmExp e = cast(AsmExp) instr.operands.operands[0];
+		if (e.left && cast(AsmBrExp) e.left)
+		{
+			const AsmBrExp b = cast(AsmBrExp) e.left;
+			if (b && b.asmUnaExp && b.asmUnaExp.asmPrimaryExp)
+			{
+				const AsmPrimaryExp p = b.asmUnaExp.asmPrimaryExp;
+				if (p && p.identifierChain && p.identifierChain.identifiers.length == 1)
+					labelUsed(p.identifierChain.identifiers[0].text);
+			}
+		}
+	}
+
 private:
 
 	static struct Label
@@ -101,7 +129,7 @@ private:
 
 	Label[string][] stack;
 
-	auto ref current() @property
+	auto ref current()
 	{
 		return stack[$ - 1];
 	}
@@ -137,7 +165,7 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : Check, StaticAnalysisConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac;
@@ -178,6 +206,22 @@ unittest
 		F: // [warn]: Label "F" is not used.
 			return x;
 		G: // [warn]: Label "G" is not used.
+		}
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		void testAsm()
+		{
+			asm { jmp lbl;}
+			lbl:
+		}
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		void testAsm()
+		{
+			asm { mov RAX,1;}
+			lbl: // [warn]: Label "lbl" is not used.
 		}
 	}c, sac);
 
