@@ -159,7 +159,7 @@ public:
         if (d.classDeclaration || d.structDeclaration || d.unionDeclaration)
         {
             _finalAggregate = isFinal;
-            if (savedParent == Parent.module_)
+            if (_finalAggregate && savedParent == Parent.module_)
             {
                 if (d.structDeclaration)
                     addError(d.structDeclaration, MESSAGE.struct_i);
@@ -222,6 +222,14 @@ public:
 
     assertAnalyzerWarnings(q{
         void foo(){void foo(){}}
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        struct S{}
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        union U{}
     }, sac);
 
     assertAnalyzerWarnings(q{
