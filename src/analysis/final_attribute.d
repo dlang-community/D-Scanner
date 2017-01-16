@@ -116,13 +116,20 @@ public:
 	{
         const Parent savedParent = _parent;
         bool privatePushed;
-        _parent = Parent.function_;
 
         scope(exit)
         {
             d.accept(this);
             _parent = savedParent;
         }
+
+        if (!d.attributeDeclaration &&
+            !d.classDeclaration &&
+            !d.structDeclaration &&
+            !d.unionDeclaration &&
+            !d.interfaceDeclaration &&
+            !d.functionDeclaration)
+                return;
 
         import std.algorithm.searching : find;
         import std.algorithm.iteration: filter;
@@ -172,6 +179,7 @@ public:
             return;
 
         // check final functions
+        _parent = Parent.function_;
         const(FunctionDeclaration) fd = d.functionDeclaration;
 
         if (isFinal) final switch(savedParent)
@@ -248,6 +256,21 @@ public:
         class Foo{private: public: final void foo(){}}
     }, sac);
 
+    assertAnalyzerWarnings(q{
+        class Foo{private: public: final void foo(){}}
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        class Impl
+        {
+            private:
+            static if (true)
+            {
+                protected final void _wrap_getSource() {}
+            }
+        }
+    }, sac);
+
     // fail
 
     assertAnalyzerWarnings(q{
@@ -260,6 +283,16 @@ public:
         void foo(){final void foo(){}} // [warn]: %s
     }c.format(
         FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.func_n)
+    ), sac);
+
+    assertAnalyzerWarnings(q{
+        void foo()
+        {
+            static if (true)
+            final class A{ private: final protected void foo(){}} // [warn]: %s
+        }
+    }c.format(
+        FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_f)
     ), sac);
 
     assertAnalyzerWarnings(q{
