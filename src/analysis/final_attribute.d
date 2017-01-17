@@ -10,31 +10,29 @@ import analysis.helpers;
 import dparse.ast;
 import dparse.lexer;
 
-import std.stdio;
-
 /**
  * Checks for useless usage of the final attribute.
  *
- * There several cases where the compiler allows them even if it's a noop.
+ * There are several cases where the compiler allows them even if it's a noop.
  */
 final class FinalAttributeChecker : BaseAnalyzer
 {
 
 private:
 
-	enum string KEY = "dscanner.useless.final";
-	enum string MSGB = "Useless final attribute, %s";
+    enum string KEY = "dscanner.useless.final";
+    enum string MSGB = "Useless final attribute, %s";
 
     static struct MESSAGE
     {
-        static immutable struct_i    = "structs inherit of anything";
-        static immutable union_i     = "unions inherit of anything";
-        static immutable class_t     = "templatized class member functions are never virtual";
-        static immutable class_p     = "private class member functions are never virtual";
-        static immutable class_f     = "final class member functions are never virtual";
-        static immutable interface_t = "templatized interface functions are never virtual";
-        static immutable struct_f    = "struct member functions are never virtual";
-        static immutable union_f     = "union member functions are never virtual";
+        static immutable struct_i    = "structs cannot be subclassed";
+        static immutable union_i     = "unions cannot be subclassed";
+        static immutable class_t     = "templated functions declared within a class are never virtual";
+        static immutable class_p     = "private functions declared within a class are never virtual";
+        static immutable class_f     = "functions declared within a final class are never virtual";
+        static immutable interface_t = "templated functions declared within an interface are never virtual";
+        static immutable struct_f    = "functions declared within a struct are never virtual";
+        static immutable union_f     = "functions declared within an union are never virtual";
         static immutable func_n      = "nested functions are never virtual";
         static immutable func_g      = "global functions are never virtual";
     }
@@ -63,14 +61,14 @@ private:
 
 public:
 
-	alias visit = BaseAnalyzer.visit;
+    alias visit = BaseAnalyzer.visit;
 
-	///
-	this(string fileName, bool skipTests = false)
-	{
-		super(fileName, null, skipTests);
+    ///
+    this(string fileName, bool skipTests = false)
+    {
+        super(fileName, null, skipTests);
         _private.length = 1;
-	}
+    }
 
     override void visit(const(StructDeclaration) sd)
     {
@@ -112,10 +110,9 @@ public:
         _parent = saved;
     }
 
-	override void visit(const(Declaration) d)
-	{
+    override void visit(const(Declaration) d)
+    {
         const Parent savedParent = _parent;
-        bool privatePushed;
 
         scope(exit)
         {
@@ -131,8 +128,8 @@ public:
             !d.functionDeclaration)
                 return;
 
-        import std.algorithm.searching : find;
         import std.algorithm.iteration: filter;
+        import std.algorithm.searching : find;
         import std.range.primitives : empty;
 
         if (d.attributeDeclaration && d.attributeDeclaration.attribute)
@@ -214,10 +211,10 @@ public:
 
 @system unittest
 {
-	import std.stdio : stderr;
-	import std.format : format;
-	import analysis.config : StaticAnalysisConfig, Check;
-	import analysis.helpers : assertAnalyzerWarnings;
+    import analysis.config : StaticAnalysisConfig, Check;
+    import analysis.helpers : assertAnalyzerWarnings;
+    import std.stdio : stderr;
+    import std.format : format;
 
     StaticAnalysisConfig sac;
     sac.final_attribute_check = Check.enabled;
@@ -331,5 +328,11 @@ public:
         FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_f)
     ), sac);
 
-	stderr.writeln("Unittest for FinalAttributeChecker passed.");
+    assertAnalyzerWarnings(q{
+        private: final class Foo {public: private final void foo(){}} // [warn]: %s
+    }c.format(
+        FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
+    ), sac);
+
+    stderr.writeln("Unittest for FinalAttributeChecker passed.");
 }
