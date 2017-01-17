@@ -128,7 +128,7 @@ public:
             !d.functionDeclaration)
                 return;
 
-        import std.algorithm.iteration: filter;
+        import std.algorithm.iteration : filter;
         import std.algorithm.searching : find;
         import std.range.primitives : empty;
 
@@ -152,9 +152,7 @@ public:
             .empty;
 
         bool isPrivate;
-        if (_private[$-1] && isPrivateOnce)
-            isPrivate = true;
-        else if (!_private[$-1] && isPrivateOnce)
+        if (isPrivateOnce)
             isPrivate = true;
         else if (_private[$-1] && !changeProtectionOnce)
             isPrivate = true;
