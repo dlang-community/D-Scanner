@@ -117,6 +117,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Incorrect infinite range definitions.
 * Some assertions that check conditions that will always be true.
 * Auto functions without return statement. The compiler doesn't see an omission and it infers 'void' as return type.
+* `final` attribute is used but in this context it's a noop.
 
 #### Wishlist
 
