@@ -110,6 +110,16 @@ public:
         _parent = saved;
     }
 
+    override void visit(const(MixinTemplateDeclaration) mtd)
+    {
+        // can't really know where it'll be mixed (class |final class | struct ?)
+    }
+
+    override void visit(const(TemplateDeclaration) mtd)
+    {
+        // regular template are also mixable
+    }
+
     override void visit(const(Declaration) d)
     {
         const Parent savedParent = _parent;
@@ -263,6 +273,13 @@ public:
             {
                 protected final void _wrap_getSource() {}
             }
+        }
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        mixin template Impl()
+        {
+            protected final void mixin_template_can() {}
         }
     }, sac);
 
