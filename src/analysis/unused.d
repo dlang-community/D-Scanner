@@ -262,6 +262,26 @@ class UnusedVariableCheck : BaseAnalyzer
 		variableDeclaration.accept(this);
 	}
 
+	override void visit(const Type2 tp)
+	{
+		if (tp.symbol && tp.symbol.identifierOrTemplateChain &&
+			tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances)
+		{
+			const IdentifierOrTemplateInstance idt = tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+			if (idt.identifier != tok!"")
+				variableUsed(idt.identifier.text);
+			else if (idt.templateInstance)
+			{
+				const TemplateInstance ti = idt.templateInstance;
+				if (ti.identifier != tok!"")
+					variableUsed(idt.templateInstance.identifier.text);
+				if (ti.templateArguments && ti.templateArguments.templateSingleArgument)
+					variableUsed(ti.templateArguments.templateSingleArgument.token.text);
+			}
+		}
+		tp.accept(this);
+	}
+
 	override void visit(const AutoDeclaration autoDeclaration)
 	{
 		foreach (t; autoDeclaration.parts.map!(a => a.identifier))
@@ -451,6 +471,22 @@ unittest
 	void doStuff(int a, int b) // [warn]: Parameter b is never used.
 	{
 		return a;
+	}
+
+	// Issue 364
+	void test364_1()
+	{
+		enum s = 8;
+		immutable t = 2;
+		int[s][t] a;
+		a[0][0] = 1;
+	}
+
+	void test364_2()
+	{
+		enum s = 8;
+		alias a = e!s;
+		a = 1;
 	}
 
 	}c, sac);
