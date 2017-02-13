@@ -238,7 +238,7 @@ private:
 		import std.algorithm : canFind, map, filter;
 
 		return !dec.attributes.map!(a => a.attribute)
-			.filter!(a => a == cast(IdType) tok!"immutable" || a == cast(IdType) tok!"const").empty;
+			.filter!(a => a == tok!"immutable" || a == tok!"const").empty;
 	}
 
 	bool canFindImmutable(const VariableDeclaration dec)
@@ -257,8 +257,15 @@ private:
 		}
 		if (dec.type !is null)
 		{
-			if (dec.type.typeConstructors.canFind(cast(IdType) tok!"immutable"))
-				return true;
+			foreach (tk; dec.type.typeConstructors)
+				if (tk == tok!"immutable" || tk == tok!"const")
+					return true;
+			if (dec.type.type2)
+			{
+				const tk = dec.type.type2.typeConstructor;
+				if (tk == tok!"immutable" || tk == tok!"const")
+					return true;
+			}
 		}
 		return false;
 	}
@@ -276,7 +283,7 @@ private:
 		foreach (vi; tree[$ - 1])
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
-				~ " is never modified and could have been declared const" ~ " or immutable.";
+				~ " is never modified and could have been declared const or immutable.";
 			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.unmodified", errorMessage);
 		}
 		tree = tree[0 .. $ - 1];
@@ -305,4 +312,30 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 	if (type.type2 is null)
 		return false;
 	return type.type2.builtinType != tok!"" && type.typeSuffixes.length == 0;
+}
+
+@system unittest
+{
+    import analysis.config : StaticAnalysisConfig, Check;
+    import analysis.helpers : assertAnalyzerWarnings;
+    import std.stdio : stderr;
+    import std.format : format;
+
+    StaticAnalysisConfig sac;
+    sac.could_be_immutable_check = Check.enabled;
+
+    // pass
+
+    assertAnalyzerWarnings(q{
+        void foo(){const(int) i;}
+    }, sac);
+
+	assertAnalyzerWarnings(q{
+        void foo(){immutable(int)* i;}
+    }, sac);
+
+	assertAnalyzerWarnings(q{
+        void foo(){enum i = 1;}
+    }, sac);
+
 }
