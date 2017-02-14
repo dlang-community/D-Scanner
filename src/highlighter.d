@@ -24,7 +24,7 @@ void highlight(R)(ref R tokens, string fileName)
 html  { background-color: #fdf6e3; color: #002b36; }
 .kwrd { color: #b58900; font-weight: bold;  }
 .com  { color: #93a1a1; font-style: italic; }
-.num  { color: #dc322f; font-weigth: bold;  }
+.num  { color: #dc322f; font-weight: bold;  }
 .str  { color: #2aa198; font-style: italic; }
 .op   { color: #586e75; font-weight: bold;  }
 .type { color: #268bd2; font-weight: bold;  }
