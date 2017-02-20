@@ -62,6 +62,7 @@ import analysis.lambda_return_check;
 import analysis.auto_function;
 import analysis.imports_sortedness;
 import analysis.explicitly_annotated_unittests;
+import analysis.properly_documented_public_functions;
 import analysis.final_attribute;
 
 import dsymbol.string_interning : internString;
@@ -369,6 +370,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (analysisConfig.explicitly_annotated_unittests != Check.disabled)
 		checks ~= new ExplicitlyAnnotatedUnittestCheck(fileName,
 		analysisConfig.explicitly_annotated_unittests == Check.skipTests && !ut);
+
+	if (analysisConfig.properly_documented_public_functions != Check.disabled)
+		checks ~= new ProperlyDocumentedPublicFunctions(fileName,
+		analysisConfig.properly_documented_public_functions == Check.skipTests && !ut);
 
 	if (analysisConfig.final_attribute_check != Check.disabled)
 		checks ~= new FinalAttributeChecker(fileName,

@@ -11,3 +11,6 @@
 [submodule "dsymbol"]
 	path = dsymbol
 	url = https://github.com/Hackerpilot/dsymbol.git
+[submodule "libddoc"]
+	path = libddoc
+	url = https://github.com/economicmodeling/libddoc
