@@ -370,6 +370,15 @@ unittest
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
 	), sac);
+
+	assertAnalyzerWarnings(q{
+		/**
+		Some text
+		*/
+		auto foo(){} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
+	), sac);
 }
 
 // ignore private
