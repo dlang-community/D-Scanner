@@ -23,15 +23,15 @@ import std.stdio;
 class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 {
 	enum string MISSING_PARAMS_KEY = "dscanner.style.doc_missing_params";
-	enum string MISSING_PARAMS_MESSAGE = "Parameter %s isn't documented in the `Params` section";
+	enum string MISSING_PARAMS_MESSAGE = "Parameter %s isn't documented in the `Params` section.";
 	enum string MISSING_TEMPLATE_PARAMS_MESSAGE
-		= "Template parameters %s isn't documented in the `Params` section";
+		= "Template parameters %s isn't documented in the `Params` section.";
 
 	enum string NON_EXISTENT_PARAMS_KEY = "dscanner.style.doc_non_existing_params";
-	enum string NON_EXISTENT_PARAMS_MESSAGE = "Ddoced parameter %s isn't a function parameter";
+	enum string NON_EXISTENT_PARAMS_MESSAGE = "Documented parameter %s isn't a function parameter.";
 
 	enum string MISSING_RETURNS_KEY = "dscanner.style.doc_missing_returns";
-	enum string MISSING_RETURNS_MESSAGE = "A public function needs to contain a `Returns` section";
+	enum string MISSING_RETURNS_MESSAGE = "A public function needs to contain a `Returns` section.";
 
 	///
 	this(string fileName, bool skipTests = false)
