@@ -50,6 +50,13 @@ class LabelVarNameCheck : BaseAnalyzer
 			--conditionalDepth;
 	}
 
+	override void visit(const VersionCondition condition)
+	{
+		++conditionalDepth;
+		condition.accept(this);
+		--conditionalDepth;
+	}
+
 	alias visit = BaseAnalyzer.visit;
 
 private:
@@ -166,6 +173,21 @@ void main(string[] args)
 	for (int a = 0; a < 10; a++)
 		things(a);
 	int b;
+}
+
+unittest
+{
+	version (Windows)
+		int c = 10;
+	else
+		int c = 20;
+	int c; // [warn]: Variable "c" has the same name as a variable defined on line 51.
+}
+
+unittest
+{
+    version(LittleEndian) { enum string NAME = "UTF-16LE"; }
+	else version(BigEndian)    { enum string NAME = "UTF-16BE"; }
 }
 
 }c, sac);
