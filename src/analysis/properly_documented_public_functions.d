@@ -85,6 +85,9 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	{
 		setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
 		checkDdocParams(decl.name.line, decl.name.column, decl.templateParameters);
+
+		withinTemplate = true;
+		scope(exit) withinTemplate = false;
 		decl.accept(this);
 	}
 
@@ -120,8 +123,9 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		checkDdocParams(decl.name.line, decl.name.column, decl.templateParameters);
 
 		enum voidType = tok!"void";
+
 		if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
-			if (!(comment.isDitto || comment.sections.any!(s => s.name == "Returns")))
+			if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
 				addErrorMessage(decl.name.line, decl.name.column, MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
 	}
 
@@ -129,6 +133,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 private:
 	bool islastSeenVisibilityLabelPublic;
+	bool withinTemplate;
 
 	static struct Function
 	{
@@ -161,7 +166,7 @@ private:
 		import std.array : array;
 
 		const comment = parseComment(commentText, null);
-		if (!comment.isDitto)
+		if (!comment.isDitto && !withinTemplate)
 		{
 			// check old function for invalid ddoc params
 			if (lastSeenFun.active)
@@ -675,4 +680,30 @@ template bar(string val){}
 	}c, sac);
 
 	stderr.writeln("Unittest for ProperlyDocumentedPublicFunctions passed.");
+}
+
+unittest
+{
+	assertAnalyzerWarnings(q{
+/**
+ * Ddoc for the inner function appears here.
+ * This function is declared this way to allow for multiple variable-length
+ * template argument lists.
+ * ---
+ * abcde!("a", "b", "c")(100, x, y, z);
+ * ---
+ * Params:
+ *    Args = foo
+ *    U = bar
+ *    T = barr
+ *    varargs = foobar
+ *    t = foo
+ * Returns: bar
+ */
+template abcde(Args ...) {
+    auto abcde(T, U...)(T t, U varargs) {
+        /// ....
+    }
+}
+	}c, sac);
 }
