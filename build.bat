@@ -22,7 +22,8 @@ for %%x in (dsymbol\src\dsymbol\builtin\*.d) do set DSYMBOL=!DSYMBOL! %%x
 for %%x in (dsymbol\src\dsymbol\conversion\*.d) do set DSYMBOL=!DSYMBOL! %%x
 for %%x in (containers\src\containers\*.d) do set CONTAINERS=!CONTAINERS! %%x
 for %%x in (containers\src\containers\internal\*.d) do set CONTAINERS=!CONTAINERS! %%x
+for %%x in (libddoc\src\ddoc\*.d) do set DDOC=!DDOC! %%x
 
 @echo on
-dmd %CORE% %STD% %LIBDPARSE% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -ofdscanner.exe
+dmd %CORE% %STD% %LIBDPARSE% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% %DDOC% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -ofdscanner.exe
 
