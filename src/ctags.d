@@ -33,11 +33,37 @@ void printCtags(File output, string[] fileNames)
 	foreach (fileName; fileNames)
 	{
 		RollbackAllocator rba;
-		File f = fileName == "stdin" ? std.stdio.stdin : File(fileName);
-		if (f.size == 0)
-			continue;
-		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
-		f.rawRead(bytes);
+
+		ubyte[] bytes;
+
+		if (fileName == "stdin")
+		{
+			File f = std.stdio.stdin;
+			immutable stepSize = 4096;
+			ubyte[] buffer = uninitializedArray!(ubyte[])(stepSize);
+
+			while (true)
+			{
+				auto dataRead = f.rawRead(buffer[$ - stepSize .. $]);
+				if (dataRead.length < stepSize)
+				{
+					bytes = buffer[0 .. $ - (stepSize - dataRead.length)];
+					break;
+				}
+				buffer.length += stepSize;
+			}
+		}
+		else
+		{
+			File f = File(fileName);
+
+			if (f.size == 0)
+				continue;
+
+			bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
+			f.rawRead(bytes);
+		}
+
 		auto tokens = getTokensForParser(bytes, config, &cache);
 		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
 
