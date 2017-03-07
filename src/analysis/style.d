@@ -16,7 +16,7 @@ import analysis.helpers;
 import analysis.base;
 import dsymbol.scope_ : Scope;
 
-class StyleChecker : BaseAnalyzer
+final class StyleChecker : BaseAnalyzer
 {
 	alias visit = ASTVisitor.visit;
 
@@ -40,6 +40,34 @@ class StyleChecker : BaseAnalyzer
 		}
 	}
 
+	// "extern (Windows) {}" : push visit pop
+	override void visit(const Declaration dec)
+	{
+		bool p;
+		if (dec.attributes)
+			foreach (attrib; dec.attributes)
+				if (const LinkageAttribute la = attrib.linkageAttribute)
+		{
+			p = true;
+			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
+		}
+
+		dec.accept(this);
+
+		if (p)
+			popWinStyle;
+	}
+
+	// "extern (Windows) :" : overwrite current
+	override void visit(const AttributeDeclaration dec)
+	{
+		if (dec.attribute && dec.attribute.linkageAttribute)
+		{
+			const LinkageAttribute la = dec.attribute.linkageAttribute;
+			_winStyles[$-1] = la.identifier.text.length && la.identifier.text == "Windows";
+		}
+	}
+
 	override void visit(const VariableDeclaration vd)
 	{
 		import std.algorithm.iteration : filter;
@@ -58,7 +86,21 @@ class StyleChecker : BaseAnalyzer
 
 	override void visit(const FunctionDeclaration dec)
 	{
-		checkLowercaseName("Function", dec.name);
+		// "extern(Windows) Name();" push visit pop
+		bool p;
+		if (dec.attributes)
+			foreach (attrib; dec.attributes)
+				if (const LinkageAttribute la = attrib.linkageAttribute)
+		{
+			p = true;
+			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
+		}
+
+		if (dec.functionBody || (!dec.functionBody && !winStyle()))
+			checkLowercaseName("Function", dec.name);
+
+		if (p)
+			popWinStyle;
 	}
 
 	void checkLowercaseName(string type, ref const Token name)
@@ -102,6 +144,24 @@ class StyleChecker : BaseAnalyzer
 	}
 
 	bool varIsEnum;
+
+	bool[] _winStyles = [false];
+
+	bool winStyle()
+	{
+		return _winStyles[$-1];
+	}
+
+	void pushWinStyle(const bool value)
+	{
+		_winStyles.length += 1;
+		_winStyles[$-1] = value;
+	}
+
+	void popWinStyle()
+	{
+		_winStyles.length -= 1;
+	}
 }
 
 unittest
@@ -124,6 +184,45 @@ unittest
 		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
 		enum racoon { a } // [warn]: Enum name 'racoon' does not match style guidelines.
 		enum bool Something = false;
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		extern(Windows)
+		{
+			bool Fun0();
+			extern(Windows) bool Fun1();
+		}
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		extern(Windows)
+		{
+			extern(D) bool Fun2(); // [warn]: Function name 'Fun2' does not match style guidelines.
+			bool Fun3();
+		}
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		extern(Windows)
+		{
+			extern(C):
+				extern(D) bool Fun4(); // [warn]: Function name 'Fun4' does not match style guidelines.
+				bool Fun5(); // [warn]: Function name 'Fun5' does not match style guidelines.
+		}
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		extern(Windows):
+			bool Fun6();
+			bool Fun7();
+		extern(D):
+			void okOkay();
+			void NotReallyOkay(); // [warn]: Function name 'NotReallyOkay' does not match style guidelines.
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		extern(Windows):
+			bool WinButWithBody(){} // [warn]: Function name 'WinButWithBody' does not match style guidelines.
 	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");
