@@ -331,7 +331,7 @@ Options:
         specified, input is read from stdin. Combine with "-I" arguments to
         resolve import locations.
 
-    --recursive-imports <file>
+    --recursiveImports <file>
         Similar to "--imports", but lists imports of imports recursively.
 
     --syntaxCheck <file>, -s <file>
