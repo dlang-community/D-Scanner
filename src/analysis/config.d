@@ -159,4 +159,7 @@ struct StaticAnalysisConfig
 
     @INI("Check for useless usage of the final attribute")
     string final_attribute_check = Check.disabled;
+
+    @INI("Check for virtual calls in the class constructors")
+    string vcall_in_ctor = Check.disabled;
 }
