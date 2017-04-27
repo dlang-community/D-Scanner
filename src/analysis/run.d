@@ -64,6 +64,7 @@ import analysis.imports_sortedness;
 import analysis.explicitly_annotated_unittests;
 import analysis.properly_documented_public_functions;
 import analysis.final_attribute;
+import analysis.vcall_in_ctor;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -378,6 +379,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (analysisConfig.final_attribute_check != Check.disabled)
 		checks ~= new FinalAttributeChecker(fileName,
 		analysisConfig.final_attribute_check == Check.skipTests && !ut);
+
+	if (analysisConfig.vcall_in_ctor != Check.disabled)
+		checks ~= new VcallCtorChecker(fileName,
+		analysisConfig.vcall_in_ctor == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
