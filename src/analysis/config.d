@@ -7,146 +7,160 @@ module analysis.config;
 
 import inifiled;
 
+/// Returns: A default configuration.
 StaticAnalysisConfig defaultStaticAnalysisConfig()
 {
 	StaticAnalysisConfig config;
-	config.fillConfig!(Check.enabled);
 	return config;
 }
 
+/// Describes how a check is operated.
 enum Check: string
 {
+    /// Check is disabled.
     disabled    = "disabled",
+    /// Check is enabled.
     enabled     = "enabled",
+    /// Check is enabled but not operated in the unittests.
     skipTests   = "skip-unittest"
 }
 
-void fillConfig(string check)(ref StaticAnalysisConfig config)
+/// Applies the --skipTests switch, allowing to call Dscanner without config
+/// and less noise related to the unittests.
+void enabled2SkipTests(ref StaticAnalysisConfig config)
 {
     foreach (mem; __traits(allMembers, StaticAnalysisConfig))
     {
         static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
             static if (is(typeof(__traits(getMember, config, mem)) == string))
-                __traits(getMember, config, mem) = check;
+        {
+            if (__traits(getMember, config, mem) == Check.enabled)
+                __traits(getMember, config, mem) = Check.skipTests;
+
+        }
     }
 }
 
-unittest
+/// Returns a config with all the checks disabled.
+StaticAnalysisConfig disabledConfig()
 {
-    StaticAnalysisConfig c;
-    c.fillConfig!(Check.enabled);
-    assert(c.enum_array_literal_check == Check.enabled);
-    fillConfig!(Check.skipTests)(c);
-    assert(c.alias_syntax_check == Check.skipTests);
+    StaticAnalysisConfig config;
+    foreach (mem; __traits(allMembers, StaticAnalysisConfig))
+    {
+        static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
+            static if (is(typeof(__traits(getMember, config, mem)) == string))
+                __traits(getMember, config, mem) = Check.disabled;
+    }
+    return config;
 }
 
 @INI("Configure which static analysis checks are enabled")
 struct StaticAnalysisConfig
 {
 	@INI("Check variable, class, struct, interface, union, and function names against the Phobos style guide")
-	string style_check = Check.disabled;
+	string style_check = Check.enabled;
 
 	@INI("Check for array literals that cause unnecessary allocation")
-	string enum_array_literal_check = Check.disabled;
+	string enum_array_literal_check = Check.enabled;
 
 	@INI("Check for poor exception handling practices")
-	string exception_check = Check.disabled;
+	string exception_check = Check.enabled;
 
 	@INI("Check for use of the deprecated 'delete' keyword")
-	string delete_check = Check.disabled;
+	string delete_check = Check.enabled;
 
 	@INI("Check for use of the deprecated floating point operators")
-	string float_operator_check = Check.disabled;
+	string float_operator_check = Check.enabled;
 
 	@INI("Check number literals for readability")
-	string number_style_check = Check.disabled;
+	string number_style_check = Check.enabled;
 
 	@INI("Checks that opEquals, opCmp, toHash, and toString are either const, immutable, or inout.")
-	string object_const_check = Check.disabled;
+	string object_const_check = Check.enabled;
 
 	@INI("Checks for .. expressions where the left side is larger than the right.")
-	string backwards_range_check = Check.disabled;
+	string backwards_range_check = Check.enabled;
 
 	@INI("Checks for if statements whose 'then' block is the same as the 'else' block")
-	string if_else_same_check = Check.disabled;
+	string if_else_same_check = Check.enabled;
 
 	@INI("Checks for some problems with constructors")
-	string constructor_check = Check.disabled;
+	string constructor_check = Check.enabled;
 
 	@INI("Checks for unused variables and function parameters")
-	string unused_variable_check = Check.disabled;
+	string unused_variable_check = Check.enabled;
 
 	@INI("Checks for unused labels")
-	string unused_label_check = Check.disabled;
+	string unused_label_check = Check.enabled;
 
 	@INI("Checks for duplicate attributes")
-	string duplicate_attribute = Check.disabled;
+	string duplicate_attribute = Check.enabled;
 
 	@INI("Checks that opEquals and toHash are both defined or neither are defined")
-	string opequals_tohash_check = Check.disabled;
+	string opequals_tohash_check = Check.enabled;
 
 	@INI("Checks for subtraction from .length properties")
-	string length_subtraction_check = Check.disabled;
+	string length_subtraction_check = Check.enabled;
 
 	@INI("Checks for methods or properties whose names conflict with built-in properties")
-	string builtin_property_names_check = Check.disabled;
+	string builtin_property_names_check = Check.enabled;
 
 	@INI("Checks for confusing code in inline asm statements")
-	string asm_style_check = Check.disabled;
+	string asm_style_check = Check.enabled;
 
 	@INI("Checks for confusing logical operator precedence")
-	string logical_precedence_check = Check.disabled;
+	string logical_precedence_check = Check.enabled;
 
 	@INI("Checks for undocumented public declarations")
-	string undocumented_declaration_check = Check.disabled;
+	string undocumented_declaration_check = Check.enabled;
 
 	@INI("Checks for poor placement of function attributes")
-	string function_attribute_check = Check.disabled;
+	string function_attribute_check = Check.enabled;
 
 	@INI("Checks for use of the comma operator")
-	string comma_expression_check = Check.disabled;
+	string comma_expression_check = Check.enabled;
 
 	@INI("Checks for local imports that are too broad")
-	string local_import_check = Check.disabled;
+	string local_import_check = Check.enabled;
 
 	@INI("Checks for variables that could be declared immutable")
-	string could_be_immutable_check = Check.disabled; // disabled by default for now
+	string could_be_immutable_check = Check.enabled;
 
 	@INI("Checks for redundant expressions in if statements")
-	string redundant_if_check = Check.disabled;
+	string redundant_if_check = Check.enabled;
 
 	@INI("Checks for redundant parenthesis")
-	string redundant_parens_check = Check.disabled;
+	string redundant_parens_check = Check.enabled;
 
 	@INI("Checks for mismatched argument and parameter names")
-	string mismatched_args_check = Check.disabled;
+	string mismatched_args_check = Check.enabled;
 
 	@INI("Checks for labels with the same name as variables")
-	string label_var_same_name_check = Check.disabled;
+	string label_var_same_name_check = Check.enabled;
 
 	@INI("Checks for lines longer than 120 characters")
-	string long_line_check = Check.disabled;
+	string long_line_check = Check.enabled;
 
 	@INI("Checks for assignment to auto-ref function parameters")
-	string auto_ref_assignment_check = Check.disabled;
+	string auto_ref_assignment_check = Check.enabled;
 
 	@INI("Checks for incorrect infinite range definitions")
-	string incorrect_infinite_range_check = Check.disabled;
+	string incorrect_infinite_range_check = Check.enabled;
 
 	@INI("Checks for asserts that are always true")
-	string useless_assert_check = Check.disabled;
+	string useless_assert_check = Check.enabled;
 
 	@INI("Check for uses of the old-style alias syntax")
-	string alias_syntax_check = Check.disabled;
+	string alias_syntax_check = Check.enabled;
 
 	@INI("Checks for else if that should be else static if")
-	string static_if_else_check = Check.disabled;
+	string static_if_else_check = Check.enabled;
 
 	@INI("Check for unclear lambda syntax")
-	string lambda_return_check = Check.disabled;
+	string lambda_return_check = Check.enabled;
 
 	@INI("Check for auto function without return statement")
-	string auto_function_check = Check.disabled;
+	string auto_function_check = Check.enabled;
 
 	@INI("Check for sortedness of imports")
 	string imports_sortedness = Check.disabled;

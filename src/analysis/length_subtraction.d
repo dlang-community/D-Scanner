@@ -58,9 +58,9 @@ class LengthSubtractionCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.length_subtraction_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testSizeT()

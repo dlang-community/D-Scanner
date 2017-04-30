@@ -96,10 +96,10 @@ private:
 unittest
 {
 	import std.stdio : stderr;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.format : format;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.useless_assert_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 unittest

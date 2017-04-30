@@ -71,9 +71,9 @@ class ObjectConstCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.object_const_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testConsts()

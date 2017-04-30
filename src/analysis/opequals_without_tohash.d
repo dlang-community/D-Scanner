@@ -89,9 +89,9 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.opequals_tohash_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		// Success because it has opEquals and toHash

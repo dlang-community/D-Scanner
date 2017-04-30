@@ -56,10 +56,10 @@ unittest
 {
 	import std.stdio : stderr;
 	import std.format : format;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.explicitly_annotated_unittests = Check.enabled;
 
 	assertAnalyzerWarnings(q{

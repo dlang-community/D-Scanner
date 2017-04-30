@@ -49,9 +49,9 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.number_style_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testNumbers()

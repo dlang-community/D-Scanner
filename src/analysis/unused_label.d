@@ -165,10 +165,10 @@ private:
 
 unittest
 {
-	import analysis.config : Check, StaticAnalysisConfig;
+	import analysis.config : Check, StaticAnalysisConfig, disabledConfig;
 	import std.stdio : stderr;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.unused_label_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		int testUnusedLabel()

@@ -85,11 +85,11 @@ private:
 
 @system unittest
 {
-	import analysis.config : Check, StaticAnalysisConfig;
+	import analysis.config : Check, StaticAnalysisConfig, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
 	import std.stdio : stderr;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.long_line_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 Window window = Platform.instance.createWindow("Дистанционное управление сварочным оборудованием", null);

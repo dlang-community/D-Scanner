@@ -42,9 +42,9 @@ class FloatOperatorCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.float_operator_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testFish()

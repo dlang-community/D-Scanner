@@ -84,9 +84,9 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.local_import_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testLocalImport()
