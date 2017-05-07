@@ -1,4 +1,4 @@
-# D-Scanner [![CI status](https://travis-ci.org/Hackerpilot/Dscanner.svg?branch=master)](https://travis-ci.org/Hackerpilot/Dscanner/)
+# D-Scanner [![CI status](https://travis-ci.org/dlang-community/D-Scanner.svg?branch=master)](https://travis-ci.org/Hackerpilot/Dscanner/)
 D-Scanner is a tool for analyzing D source code
 
 ### Building and installing
