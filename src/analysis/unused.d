@@ -299,18 +299,15 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Parameter parameter)
 	{
-		import std.algorithm : canFind;
+		import std.algorithm : among;
 		import std.algorithm.iteration : filter;
 		import std.range : empty;
 		import std.array : array;
 
 		if (parameter.name != tok!"")
 		{
-			immutable bool isRef =
-				canFind(parameter.parameterAttributes, cast(IdType) tok!"ref") ||
-				canFind(parameter.parameterAttributes, cast(IdType) tok!"in") ||
-				canFind(parameter.parameterAttributes, cast(IdType) tok!"out");
-
+			immutable bool isRef = !parameter.parameterAttributes
+				.filter!(a => a.among(tok!"ref", tok!"out")).empty;
 			immutable bool isPtr = parameter.type && !parameter.type
 				.typeSuffixes.filter!(a => a.star != tok!"").empty;
 
@@ -460,6 +457,8 @@ private:
 	{
 		int a; // [warn]: Variable a is never used.
 	}
+
+	void inPSC(in int a){} // [warn]: Parameter a is never used.
 
 	// Issue 380
 	int templatedEnum()
