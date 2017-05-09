@@ -63,7 +63,6 @@ public:
             bool isStr, isSzInt;
 
             if (decl.type.type2.symbol && decl.type.type2.symbol.identifierOrTemplateChain &&
-                decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances &&
                 decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length == 1)
             {
                 const IdentifierOrTemplateInstance idt =
