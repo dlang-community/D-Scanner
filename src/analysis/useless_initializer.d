@@ -1,3 +1,7 @@
+//          Copyright Basile Burg 2017.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
 module analysis.useless_initializer;
 
 import analysis.base;
@@ -41,8 +45,7 @@ public:
         {
             if (!decl.type || !decl.type.type2)
                 continue;
-            if (!declarator.initializer || !declarator.initializer.nonVoidInitializer ||
-                !declarator.initializer.nonVoidInitializer)
+            if (!declarator.initializer || !declarator.initializer.nonVoidInitializer)
                 continue;
 
             enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column, key, msg);};
