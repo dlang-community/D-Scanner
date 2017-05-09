@@ -9,8 +9,10 @@ import dparse.ast;
 import dparse.lexer;
 import std.stdio;
 
-//TODO-cUselessInitializerChecker: handle expressions like BasicType.init
-//TODO-cUselessInitializerChecker: handle expressions like S s = S();
+/*
+Limitations:
+    - Stuff = Stuff.init doesnot work with type with * []
+*/
 
 /**
  * Check that detects the initializers that are
@@ -26,7 +28,7 @@ private:
     version(unittest)
         enum msg = "X";
     else
-        enum msg = "variable would be initialized to the same value without initializer";
+        enum msg = `Variable %s initializer is useless because it does not differ from the default value`;
 
     static immutable strDefs = [`""`, `""c`, `""w`, `""d`, "``", "``c", "``w", "``d", "q{}"];
     static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
@@ -48,11 +50,18 @@ public:
             if (!declarator.initializer || !declarator.initializer.nonVoidInitializer)
                 continue;
 
-            enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column, key, msg);};
+            import std.format : format;
+
+            version(unittest)
+                enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
+                    key, msg);};
+            else
+                enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
+                    key, msg.format(declarator.name.text));};
 
             // ---  Info about the declaration type --- //
-            import std.algorithm.iteration : filter;
             import std.algorithm : among, canFind;
+            import std.algorithm.iteration : filter;
             import std.range : empty;
 
             const bool isPtr = decl.type.typeSuffixes && !decl.type.typeSuffixes
@@ -61,6 +70,7 @@ public:
                 .filter!(a => a.array).empty;
 
             bool isStr, isSzInt;
+            Token customType;
 
             if (decl.type.type2.symbol && decl.type.type2.symbol.identifierOrTemplateChain &&
                 decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length == 1)
@@ -68,8 +78,9 @@ public:
                 const IdentifierOrTemplateInstance idt =
                     decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
 
-                isStr = idt.identifier.text.among("string", "wstring", "dstring") != 0;
-                isSzInt = idt.identifier.text.among("size_t", "ptrdiff_t") != 0;
+                customType = idt.identifier;
+                isStr = customType.text.among("string", "wstring", "dstring") != 0;
+                isSzInt = customType.text.among("size_t", "ptrdiff_t") != 0;
             }
 
             // --- 'BasicType/Symbol AssignExpression' ---//
@@ -79,13 +90,11 @@ public:
             {
                 const Token value = ue.primaryExpression.primary;
 
-                if (value == tok!"")
-                    continue;
-
                 if (!isPtr && !isArr && !isStr && decl.type.type2.builtinType != tok!"")
                 {
                     switch(decl.type.type2.builtinType)
                     {
+                    // check for common cases of default values
                     case tok!"byte",    tok!"ubyte":
                     case tok!"short",   tok!"ushort":
                     case tok!"int",     tok!"uint":
@@ -93,9 +102,13 @@ public:
                     case tok!"cent",    tok!"ucent":
                         if (intDefs.canFind(value.text))
                             mixin(warn);
-                        break;
+                        goto default;
                     default:
-                        break;
+                    // check for BasicType.init
+                        if (ue.primaryExpression.basicType.type == decl.type.type2.builtinType &&
+                            ue.primaryExpression.primary.text == "init" &&
+                            !ue.primaryExpression.expression)
+                            mixin(warn);
                     }
                 }
                 else if (isSzInt)
@@ -134,6 +147,15 @@ public:
                         mixin(warn);
                 }
             }
+
+            // Symbol s = Symbol.init
+            else if (ue && customType != tok!"" && ue.unaryExpression && ue.unaryExpression.primaryExpression &&
+                ue.unaryExpression.primaryExpression.identifierOrTemplateInstance &&
+                ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType)
+            {
+                mixin(warn);
+            }
+
             // 'Symbol ArrayInitializer' : assumes Symbol is an array b/c of the Init
             else if (nvi.arrayInitializer && (isArr || isStr))
             {
@@ -157,6 +179,7 @@ public:
 
     // fails
     assertAnalyzerWarnings(q{
+        ubyte a = 0x0;      // [warn]: X
         int a = 0;          // [warn]: X
         ulong a = 0;        // [warn]: X
         int* a = null;      // [warn]: X
@@ -166,15 +189,20 @@ public:
         string a = "";      // [warn]: X
         string a = ""c;     // [warn]: X
         wstring a = ""w;    // [warn]: X
+        dstring a = ""d;    // [warn]: X
         string a = q{};     // [warn]: X
         size_t a = 0;       // [warn]: X
         ptrdiff_t a = 0;    // [warn]: X
         string a = [];      // [warn]: X
         char[] a = "";      // [warn]: X
+        int a = int.init;   // [warn]: X
+        char a = char.init; // [warn]: X
+        S s = S.init;       // [warn]: X
     }, sac);
 
     // passes
     assertAnalyzerWarnings(q{
+        ubyte a = 0xFE;
         int a = 1;
         ulong a = 1;
         int* a = &a;
@@ -184,11 +212,14 @@ public:
         string a = "sdf";
         string a = "sdg"c;
         wstring a = "sdg"w;
+        dstring a = "fgh"d;
         string a = q{int a;};
         size_t a = 1;
         ptrdiff_t a = 1;
         string a = ['a'];
         char[] a = "ze";
+        S s = S(0,1);
+        S s = s.call();
     }, sac);
 
     stderr.writeln("Unittest for UselessInitializerChecker passed.");
