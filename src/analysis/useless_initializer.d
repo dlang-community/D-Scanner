@@ -151,7 +151,8 @@ public:
             // Symbol s = Symbol.init
             else if (ue && customType != tok!"" && ue.unaryExpression && ue.unaryExpression.primaryExpression &&
                 ue.unaryExpression.primaryExpression.identifierOrTemplateInstance &&
-                ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType)
+                ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType &&
+                ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
             {
                 mixin(warn);
             }
