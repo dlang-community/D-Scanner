@@ -1,5 +1,11 @@
 sudo: false
 language: d
-script:
-    - git submodule update --init --recursive
-    - make test
+d:
+  - dmd-beta
+  - dmd
+  - ldc
+os:
+  - linux
+  - osx
+
+script: ./.travis.sh
