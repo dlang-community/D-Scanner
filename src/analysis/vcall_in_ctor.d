@@ -135,7 +135,10 @@ private:
             foreach (vm; _virtualMethods[$-1])
         {
             if (call == vm)
+            {
                 addErrorMessage(call.line, call.column, KEY, MSG);
+                break;
+            }
         }
     }
 
