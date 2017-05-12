@@ -122,6 +122,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Check for explicitly annotated unittests (_@system_ or _@safe_). Initially implemented to lint Phobos. By default disabled.
 * Check for that imports are sorted. Initially implemented to lint Phobos. By default disabled.
 * Virtual calls inside classes constructors.
+* Useless initializers.
 
 #### Wishlist
 

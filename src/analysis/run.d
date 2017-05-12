@@ -65,6 +65,7 @@ import analysis.explicitly_annotated_unittests;
 import analysis.properly_documented_public_functions;
 import analysis.final_attribute;
 import analysis.vcall_in_ctor;
+import analysis.useless_initializer;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -383,6 +384,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (analysisConfig.vcall_in_ctor != Check.disabled)
 		checks ~= new VcallCtorChecker(fileName,
 		analysisConfig.vcall_in_ctor == Check.skipTests && !ut);
+
+	if (analysisConfig.useless_initializer != Check.disabled)
+		checks ~= new UselessInitializerChecker(fileName,
+		analysisConfig.useless_initializer == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
