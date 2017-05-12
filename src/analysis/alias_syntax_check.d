@@ -40,10 +40,10 @@ private:
 unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.alias_syntax_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		alias int abcde; // [warn]: Prefer the new "'alias' identifier '=' type ';'" syntax to the  old "'alias' type identifier ';'" syntax.

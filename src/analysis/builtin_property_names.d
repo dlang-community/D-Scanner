@@ -102,9 +102,9 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.builtin_property_names_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 class SomeClass

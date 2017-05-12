@@ -125,10 +125,10 @@ private:
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.label_var_same_name_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 unittest

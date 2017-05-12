@@ -286,15 +286,16 @@ version(unittest)
 {
 	import std.stdio : stderr;
 	import std.format : format;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
-
-	StaticAnalysisConfig sac = {properly_documented_public_functions: Check.enabled};
 }
 
 // missing params
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
@@ -367,6 +368,9 @@ unittest
 // missing returns (only functions)
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
@@ -389,6 +393,9 @@ unittest
 // ignore private
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
@@ -442,10 +449,12 @@ unittest
 	), sac);
 }
 
-
 // test parameter names
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 /**
  * Description.
@@ -557,6 +566,9 @@ struct foo(int foo, int bar){}
 // support ditto
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 /**
  * Description.
@@ -651,6 +663,9 @@ int bar(int bar){}
  // check correct ddoc headers
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 /++
     Counts elements in the given
@@ -684,6 +699,9 @@ template bar(string val){}
 
 unittest
 {
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
 	assertAnalyzerWarnings(q{
 /**
  * Ddoc for the inner function appears here.

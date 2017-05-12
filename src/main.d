@@ -229,7 +229,7 @@ else
 		if (s.exists())
 			readINIFile(config, s);
         if (skipTests)
-            config.fillConfig!(Check.skipTests);
+            config.enabled2SkipTests;
 		if (report)
 			generateReport(expandArgs(args), config, cache, moduleCache);
 		else

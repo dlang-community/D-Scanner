@@ -113,10 +113,10 @@ unittest
 {
 	import std.stdio : stderr;
 	import std.format : format;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.auto_ref_assignment_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		int doStuff(T)(auto ref int a)

@@ -33,10 +33,10 @@ class DeleteCheck : BaseAnalyzer
 
 unittest
 {
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.delete_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testDelete()

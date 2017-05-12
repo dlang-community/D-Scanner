@@ -219,12 +219,12 @@ public:
 
 @system unittest
 {
-    import analysis.config : StaticAnalysisConfig, Check;
+    import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
     import analysis.helpers : assertAnalyzerWarnings;
     import std.stdio : stderr;
     import std.format : format;
 
-    StaticAnalysisConfig sac;
+    StaticAnalysisConfig sac = disabledConfig();
     sac.final_attribute_check = Check.enabled;
 
     // pass

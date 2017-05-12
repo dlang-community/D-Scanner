@@ -104,10 +104,10 @@ unittest
 {
 	import std.stdio : stderr;
 	import std.format : format;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.imports_sortedness = Check.enabled;
 
 	assertAnalyzerWarnings(q{

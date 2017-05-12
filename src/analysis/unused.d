@@ -435,10 +435,10 @@ private:
 unittest
 {
 	import std.stdio : stderr;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import analysis.helpers : assertAnalyzerWarnings;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.unused_variable_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 

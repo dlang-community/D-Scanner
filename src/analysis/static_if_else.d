@@ -66,10 +66,10 @@ class StaticIfElse : BaseAnalyzer
 unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;
-	import analysis.config : StaticAnalysisConfig, Check;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
-	StaticAnalysisConfig sac;
+	StaticAnalysisConfig sac = disabledConfig();
 	sac.static_if_else_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void foo() {
