@@ -172,8 +172,8 @@ struct StaticAnalysisConfig
 	string properly_documented_public_functions = Check.disabled;
 
     @INI("Check for useless usage of the final attribute")
-    string final_attribute_check = Check.disabled;
+    string final_attribute_check = Check.enabled;
 
     @INI("Check for virtual calls in the class constructors")
-    string vcall_in_ctor = Check.disabled;
+    string vcall_in_ctor = Check.enabled;
 }
