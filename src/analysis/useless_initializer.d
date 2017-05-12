@@ -171,11 +171,11 @@ public:
 
 @system unittest
 {
-    import analysis.config : Check, StaticAnalysisConfig;
+    import analysis.config : Check, disabledConfig, StaticAnalysisConfig;
     import analysis.helpers: assertAnalyzerWarnings;
     import std.stdio : stderr;
 
-    StaticAnalysisConfig sac;
+    StaticAnalysisConfig sac = disabledConfig;
     sac.useless_initializer = Check.enabled;
 
     // fails
