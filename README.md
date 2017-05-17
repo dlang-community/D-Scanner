@@ -12,6 +12,12 @@ makefile has "ldc" and "gdc" targets if you'd prefer to compile with one of thes
 compilers instead of DMD. To install, simply place the generated binary (in the
 "bin" folder) somewhere on your $PATH.
 
+### Installing with DUB
+
+```sh
+> dub fetch dscanner && dub run dscanner
+```
+
 # Usage
 The following examples assume that we are analyzing a simple file called helloworld.d
 
