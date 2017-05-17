@@ -176,4 +176,7 @@ struct StaticAnalysisConfig
 
     @INI("Check for virtual calls in the class constructors")
     string vcall_in_ctor = Check.enabled;
+
+    @INI("Check for useless user defined initializers")
+    string useless_initializer = Check.enabled;
 }
