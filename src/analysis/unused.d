@@ -299,17 +299,21 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Parameter parameter)
 	{
-		import std.algorithm : canFind;
+		import std.algorithm : among;
+		import std.algorithm.iteration : filter;
+		import std.range : empty;
 		import std.array : array;
 
 		if (parameter.name != tok!"")
 		{
-			immutable bool isRef = canFind(parameter.parameterAttributes, cast(IdType) tok!"ref")
-				|| canFind(parameter.parameterAttributes,
-						cast(IdType) tok!"in") || canFind(parameter.parameterAttributes,
-						cast(IdType) tok!"out");
+			immutable bool isRef = !parameter.parameterAttributes
+				.filter!(a => a.among(tok!"ref", tok!"out")).empty;
+			immutable bool isPtr = parameter.type && !parameter.type
+				.typeSuffixes.filter!(a => a.star != tok!"").empty;
+
 			variableDeclared(parameter.name.text, parameter.name.line,
-					parameter.name.column, true, isRef);
+					parameter.name.column, true, isRef | isPtr);
+
 			if (parameter.default_ !is null)
 			{
 				interestDepth++;
@@ -432,7 +436,7 @@ private:
 	Regex!char re;
 }
 
-unittest
+@system unittest
 {
 	import std.stdio : stderr;
 	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
@@ -453,6 +457,8 @@ unittest
 	{
 		int a; // [warn]: Variable a is never used.
 	}
+
+	void inPSC(in int a){} // [warn]: Parameter a is never used.
 
 	// Issue 380
 	int templatedEnum()
@@ -489,6 +495,18 @@ unittest
 		a = 1;
 	}
 
+	// Issue 352
+	void test352_1()
+	{
+		void f(int *x) {*x = 1;}
+	}
+
+	void test352_2()
+	{
+		void f(Bat** bat) {*bat = bats.ptr + 8;}
+	}
+
 	}c, sac);
 	stderr.writeln("Unittest for UnusedVariableCheck passed.");
 }
+
