@@ -9,5 +9,8 @@ d:
 os:
   - linux
   - osx
+env:
+  - BUILD=
+  - BUILD=dub
 
 script: ./.travis.sh

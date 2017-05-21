@@ -5,7 +5,10 @@
 	"authors": ["Brian Schott"],
 	"license" : "Boost Software License - Version 1.0",
 	"targetType": "executable",
-	"versions": ["built_with_dub"],
+	"versions": [
+		"built_with_dub",
+		"StdLoggerDisableWarning"
+	],
 	"dependencies": {
 		"libdparse": "~>0.7.0",
 		"dsymbol": "~>0.2.0",

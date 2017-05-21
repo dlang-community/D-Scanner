@@ -2,11 +2,12 @@
 
 set -e
 
-dub build --build=release
-git submodule update --init --recursive
-
-if [ $DC = ldc2 ]; then
+if [[ $BUILD == dub ]]; then
+    dub test
+elif [[ $DC == ldc2 ]]; then
+    git submodule update --init --recursive
     make test DC=ldmd2
 else
+    git submodule update --init --recursive
     make test
 fi
