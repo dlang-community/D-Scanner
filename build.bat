@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+IF "%DC%"=="" SET DC="dmd"
+IF "%DC%"=="ldc2" SET DC="ldmd2"
+
 set DFLAGS=-O -release -inline -version=StdLoggerDisableWarning
 set TESTFLAGS=-g -w -version=StdLoggerDisableWarning
 set CORE=
@@ -27,14 +30,14 @@ for %%x in (containers\src\containers\internal\*.d) do set CONTAINERS=!CONTAINER
 if "%1" == "test" goto test_cmd
 
 @echo on
-dmd %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -ofbin\dscanner.exe
+%DC% %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -ofbin\dscanner.exe
 goto eof
 
 :test_cmd
 @echo on
 set TESTNAME="bin\dscanner-unittest"
-dmd %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -lib %TESTFLAGS% -of%TESTNAME%.lib
-if exist %TESTNAME%.lib dmd %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -unittest %TESTFLAGS% -of%TESTNAME%.exe
+%DC% %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -lib %TESTFLAGS% -of%TESTNAME%.lib
+if exist %TESTNAME%.lib %DC% %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -unittest %TESTFLAGS% -of%TESTNAME%.exe
 if exist %TESTNAME%.exe %TESTNAME%.exe
 
 if exist %TESTNAME%.obj del %TESTNAME%.obj
