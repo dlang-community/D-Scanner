@@ -129,6 +129,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Check for that imports are sorted. Initially implemented to lint Phobos. By default disabled.
 * Virtual calls inside classes constructors.
 * Useless initializers.
+* Allman brace style
 
 #### Wishlist
 
