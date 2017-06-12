@@ -32,7 +32,7 @@ class LineLengthCheck : BaseAnalyzer
 		{
 			immutable info = tokenLength(token, i > 0 ? tokens[i - 1].line : 0);
 			if (info[1])
-				endColumn = info[0] + token.column;
+				endColumn = info[0] + token.column - 1;
 			else
 			{
 				immutable wsChange = i > 0
@@ -93,6 +93,10 @@ private:
 	sac.long_line_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 Window window = Platform.instance.createWindow("Дистанционное управление сварочным оборудованием", null);
+unittest {
+    assert("foo" == "fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo");
+    assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"); // [warn]: Line is longer than 120 characters
+}
 	}c, sac);
 
 	stderr.writeln("Unittest for LineLengthCheck passed.");
