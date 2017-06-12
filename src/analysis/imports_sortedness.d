@@ -347,5 +347,14 @@ unittest
 		import foo.barbar;
 	}, sac);
 
+	// issue 422 - sorted imports with :
+	assertAnalyzerWarnings(q{
+		import foo;
+		import foo.bar;
+		import fooa;
+        import std.range : Take;
+        import std.range.primitives : isInputRange, walkLength;
+	}, sac);
+
 	stderr.writeln("Unittest for ImportSortednessCheck passed.");
 }
