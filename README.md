@@ -130,6 +130,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Virtual calls inside classes constructors.
 * Useless initializers.
 * Allman brace style
+* Redundant visibility attributes
 
 #### Wishlist
 

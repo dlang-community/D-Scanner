@@ -182,4 +182,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check allman brace style")
 	string allman_braces_check = Check.disabled;
+
+	@INI("Check for redundant attributes")
+	string redundant_attributes_check = Check.enabled;
 }
