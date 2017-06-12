@@ -179,4 +179,7 @@ struct StaticAnalysisConfig
 
     @INI("Check for useless user defined initializers")
     string useless_initializer = Check.enabled;
+
+	@INI("Check allman brace style")
+	string allman_braces_check = Check.disabled;
 }
