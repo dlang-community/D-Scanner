@@ -140,6 +140,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Redundant visibility attributes
 * Public declarations without a documented unittest. By default disabled.
 * Asserts without an explanatory message. By default disabled.
+* Indentation of if constraints
 
 #### Wishlist
 

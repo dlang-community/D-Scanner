@@ -71,6 +71,7 @@ import dscanner.analysis.allman;
 import dscanner.analysis.redundant_attributes;
 import dscanner.analysis.has_public_example;
 import dscanner.analysis.assert_without_msg;
+import dscanner.analysis.if_constraints_indent;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -505,6 +506,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"assert_without_msg"(analysisConfig))
 		checks ~= new AssertWithoutMessageCheck(fileName, moduleScope,
 		analysisConfig.assert_without_msg == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!"if_constraints_indent"(analysisConfig))
+		checks ~= new IfConstraintsIndentCheck(fileName, tokens,
+		analysisConfig.if_constraints_indent == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!"redundant_if_check"(analysisConfig))
