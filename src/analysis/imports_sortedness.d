@@ -24,32 +24,17 @@ class ImportSortednessCheck : BaseAnalyzer
 		super(fileName, null, skipTests);
 	}
 
-	override void visit(const Module mod)
+	mixin ScopedVisit!Module;
+	mixin ScopedVisit!Statement;
+	mixin ScopedVisit!BlockStatement;
+	mixin ScopedVisit!StructBody;
+	mixin ScopedVisit!IfStatement;
+	mixin ScopedVisit!TemplateDeclaration;
+	mixin ScopedVisit!ConditionalDeclaration;
+
+	override void visit(const VariableDeclaration id)
 	{
-		level = 0;
 		imports[level] = [];
-		mod.accept(this);
-	}
-
-	override void visit(const Statement decl)
-	{
-		imports[++level] = [];
-		decl.accept(this);
-		level--;
-	}
-
-	override void visit(const BlockStatement decl)
-	{
-		imports[++level] = [];
-		decl.accept(this);
-		level--;
-	}
-
-	override void visit(const StructBody decl)
-	{
-		imports[++level] = [];
-		decl.accept(this);
-		level--;
 	}
 
 	override void visit(const ImportDeclaration id)
@@ -83,6 +68,16 @@ private:
 
 	int level = 0;
 	string[][int] imports;
+
+	template ScopedVisit(NodeType)
+	{
+		override void visit(const NodeType n)
+		{
+			imports[++level] = [];
+			n.accept(this);
+			level--;
+		}
+	}
 
 	void addImport(string importModuleName, const SingleImport singleImport)
 	{
@@ -354,6 +349,37 @@ unittest
 		import fooa;
         import std.range : Take;
         import std.range.primitives : isInputRange, walkLength;
+	}, sac);
+
+	// condition declaration
+	assertAnalyzerWarnings(q{
+		import t2;
+		version(unittest)
+		{
+			import t1;
+		}
+	}, sac);
+
+	// if statements
+	assertAnalyzerWarnings(q{
+	unittest
+	{
+		import t2;
+		if (true)
+		{
+			import t1;
+		}
+	}
+	}, sac);
+
+	// intermediate imports
+	assertAnalyzerWarnings(q{
+	unittest
+	{
+		import t2;
+		int a = 1;
+		import t1;
+	}
 	}, sac);
 
 	stderr.writeln("Unittest for ImportSortednessCheck passed.");
