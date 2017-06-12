@@ -139,6 +139,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Allman brace style
 * Redundant visibility attributes
 * Public declarations without a documented unittest. By default disabled.
+* Trailing whitespace
 
 #### Wishlist
 

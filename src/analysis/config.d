@@ -188,6 +188,9 @@ struct StaticAnalysisConfig
 
 	@INI("Check public declarations without a documented unittest")
 	string has_public_example = Check.disabled;
+	
+	@INI("Check for trailing whitespace")
+	string trailing_whitespace = Check.disabled;
 
 	@INI("Module-specific filters")
 	ModuleFilters filters;

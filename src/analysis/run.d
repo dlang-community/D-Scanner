@@ -70,6 +70,7 @@ import analysis.useless_initializer;
 import analysis.allman;
 import analysis.redundant_attributes;
 import analysis.has_public_example;
+import analysis.trailing_whitespace;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -174,7 +175,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		uint warningCount;
 		const(Token)[] tokens;
 		const Module m = parseModule(fileName, code, &r, cache, false, tokens,
-				null, &errorCount, &warningCount);
+				null, &errorCount, &warningCount, &config);
 		assert(m);
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
@@ -193,13 +194,20 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 
 const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		ref StringCache cache, bool report, ref const(Token)[] tokens,
-		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
+		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null,
+		const StaticAnalysisConfig* analysisConfig = null)
 {
 	import stats : isLineOfCode;
 
 	LexerConfig config;
 	config.fileName = fileName;
 	config.stringBehavior = StringBehavior.source;
+	if (analysisConfig !is null && analysisConfig.trailing_whitespace != Check.disabled)
+	{
+		import std.stdio;
+		writeln("Include whitespace");
+		config.whitespaceBehavior = WhitespaceBehavior.include;
+	}
 	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
@@ -478,6 +486,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"redundant_attributes_check"(analysisConfig))
 		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
 		analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
+
+	if (analysisConfig.trailing_whitespace != Check.disabled)
+		checks ~= new TrailingWhitespaceCheck(fileName, tokens,
+		analysisConfig.useless_initializer == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"has_public_example"(analysisConfig))
 		checks ~= new HasPublicExampleCheck(fileName, moduleScope,

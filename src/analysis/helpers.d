@@ -41,11 +41,9 @@ S after(S)(S value, S separator) if (isSomeString!S)
 }
 
 /**
- * This assert function will analyze the passed in code, get the warnings,
- * and make sure they match the warnings in the comments. Warnings are
- * marked like so: // [warn]: Failed to do somethings.
- */
-void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
+* Get analzer warnings for the given code
+*/
+MessageSet getAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 		string file = __FILE__, size_t line = __LINE__)
 {
 	import analysis.run : parseModule;
@@ -55,12 +53,26 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	RollbackAllocator r;
 	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, cache, false, tokens);
+	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, cache, false, tokens,
+			null, null, null, &config);
 
 	auto moduleCache = ModuleCache(new CAllocatorImpl!Mallocator);
 
 	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);
+	return analyze("test", m, config, moduleCache, tokens);
+}
+
+/**
+ * This assert function will analyze the passed in code, get the warnings,
+ * and make sure they match the warnings in the comments. Warnings are
+ * marked like so: // [warn]: Failed to do somethings.
+ */
+void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
+		string file = __FILE__, size_t line = __LINE__)
+{
+	import std.ascii : newline;
+
+	MessageSet rawWarnings = getAnalyzerWarnings(code, config, file, line);
 	string[] codeLines = code.split(newline);
 
 	// Get the warnings ordered by line
