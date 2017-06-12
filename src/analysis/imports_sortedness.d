@@ -32,6 +32,11 @@ class ImportSortednessCheck : BaseAnalyzer
 	mixin ScopedVisit!TemplateDeclaration;
 	mixin ScopedVisit!ConditionalDeclaration;
 
+	override void visit(const VariableDeclaration id)
+	{
+		imports[level] = [];
+	}
+
 	override void visit(const ImportDeclaration id)
 	{
 		import std.algorithm.iteration : map;
@@ -364,6 +369,16 @@ unittest
 		{
 			import t1;
 		}
+	}
+	}, sac);
+
+	// intermediate imports
+	assertAnalyzerWarnings(q{
+	unittest
+	{
+		import t2;
+		int a = 1;
+		import t1;
 	}
 	}, sac);
 
