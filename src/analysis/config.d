@@ -185,4 +185,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check for redundant attributes")
 	string redundant_attributes_check = Check.enabled;
+
+	@INI("Check for two or more consecutive empty lines")
+	string consecutive_empty_lines = Check.disabled;
 }

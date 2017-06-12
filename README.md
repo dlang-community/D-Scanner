@@ -131,6 +131,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Useless initializers.
 * Allman brace style
 * Redundant visibility attributes
+* Two or more consecutive empty lines
 
 #### Wishlist
 

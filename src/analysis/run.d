@@ -68,6 +68,7 @@ import analysis.vcall_in_ctor;
 import analysis.useless_initializer;
 import analysis.allman;
 import analysis.redundant_attributes;
+import analysis.consecutive_empty_lines;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -198,6 +199,7 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	LexerConfig config;
 	config.fileName = fileName;
 	config.stringBehavior = StringBehavior.source;
+	config.commentBehavior = CommentBehavior.intern;
 	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
@@ -398,6 +400,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (analysisConfig.redundant_attributes_check != Check.disabled)
 		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
 		analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
+
+	if (analysisConfig.consecutive_empty_lines != Check.disabled)
+		checks ~= new ConsecutiveEmptyLinesCheck(fileName, tokens,
+		analysisConfig.consecutive_empty_lines == Check.skip && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
