@@ -72,7 +72,7 @@ class ImportSortednessCheck : BaseAnalyzer
 
 			foreach (importBind; id.importBindings.importBinds)
 			{
-				addImport(importModuleName ~ "_" ~ importBind.left.text, id.importBindings.singleImport);
+				addImport(importModuleName ~ "-" ~ importBind.left.text, id.importBindings.singleImport);
 			}
 		}
 	}
@@ -340,6 +340,12 @@ unittest
 		ImportSortednessCheck.MESSAGE,
 		ImportSortednessCheck.MESSAGE,
 	), sac);
+
+	// issue 422 - sorted imports with :
+	assertAnalyzerWarnings(q{
+		import foo.bar : bar;
+		import foo.barbar;
+	}, sac);
 
 	stderr.writeln("Unittest for ImportSortednessCheck passed.");
 }
