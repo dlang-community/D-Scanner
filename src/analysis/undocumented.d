@@ -294,3 +294,44 @@ private immutable string[] ignoredFunctionNames = [
 ];
 
 private enum getSetRe = ctRegex!`^(?:get|set)(?:\p{Lu}|_).*`;
+
+unittest
+{
+	import std.stdio : stderr;
+	import std.format : format;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import analysis.helpers : assertAnalyzerWarnings;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.undocumented_declaration_check = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+		class C{} // [warn]: Public declaration 'C' is undocumented.
+		interface I{} // [warn]: Public declaration 'I' is undocumented.
+		enum e = 0; // [warn]: Public declaration 'e' is undocumented.
+		void f(){} // [warn]: Public declaration 'f' is undocumented.
+		struct S{} // [warn]: Public declaration 'S' is undocumented.
+		template T(){} // [warn]: Public declaration 'T' is undocumented.
+		union U{} // [warn]: Public declaration 'U' is undocumented.
+	}, sac);
+
+	assertAnalyzerWarnings(q{
+		/// C
+		class C{}
+		/// I
+		interface I{}
+		/// e
+		enum e = 0;
+		/// f
+		void f(){}
+		/// S
+		struct S{}
+		/// T
+		template T(){}
+		/// U
+		union U{}
+	}, sac);
+
+	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
+}
+
