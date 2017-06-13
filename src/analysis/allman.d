@@ -40,12 +40,18 @@ class AllManCheck : BaseAnalyzer
 				// ignore struct initialization
 				if (tokens[i-1].type == tok!"=")
 					continue;
+				// ignore duplicate braces
+				if (tokens[i-1].type == tok!"{" && tokens[i - 2].line != curLine)
+					continue;
 				// ignore inline { } braces
 				if (curLine != tokens[i + 1].line)
 					addErrorMessage(tokens[i].line, tokens[i].column, KEY, MESSAGE);
 			}
 			if (tokens[i].type == tok!"}" && curLine == prevTokenLine)
 			{
+				// ignore duplicate braces
+				if (tokens[i-1].type == tok!"}" && tokens[i - 2].line != curLine)
+					continue;
 				// ignore inline { } braces
 				if (!tokens[0 .. i].retro.until!(t => t.line != curLine).canFind!(t => t.type == tok!"{"))
 					addErrorMessage(tokens[i].line, tokens[i].column, KEY, MESSAGE);
@@ -128,6 +134,14 @@ unittest
 	};
 }
 	}, sac);
+
+	// allow duplicate braces
+	assertAnalyzerWarnings(q{
+unittest
+{{
+}}
+	}, sac);
+
 
 	stderr.writeln("Unittest for Allman passed.");
 }
