@@ -12,6 +12,14 @@ import dparse.lexer;
 
 import std.stdio;
 
+auto filterChars(string chars, S)(S str)
+{
+	import std.algorithm.comparison : among;
+    import std.algorithm.iteration : filter;
+    import std.meta : aliasSeqOf;
+	return str.filter!(c => !c.among(aliasSeqOf!chars));
+}
+
 /**
  * Checks for asserts that always succeed
  */
@@ -28,7 +36,6 @@ class UselessAssertCheck : BaseAnalyzer
 	override void visit(const AssertExpression ae)
 	{
 		import std.conv : to;
-		import std.string : removechars;
 
 		UnaryExpression unary = cast(UnaryExpression) ae.assertion;
 		if (unary is null)
@@ -42,11 +49,11 @@ class UselessAssertCheck : BaseAnalyzer
 		if (!skipSwitch) switch (token.type)
 		{
 		case tok!"doubleLiteral":
-			if (!token.text.removechars("Ll").to!double)
+			if (!token.text.filterChars!"Ll".to!double)
 				return;
 			break;
 		case tok!"floatLiteral":
-			if (!token.text.removechars("Ff").to!float)
+			if (!token.text.filterChars!"Ff".to!float)
 				return;
 			break;
 		case tok!"idoubleLiteral":
@@ -58,7 +65,7 @@ class UselessAssertCheck : BaseAnalyzer
 				return;
 			break;
 		case tok!"longLiteral":
-			if (!token.text.removechars("Ll").to!long)
+			if (!token.text.filterChars!"Ll".to!long)
 				return;
 			break;
 		case tok!"realLiteral":
@@ -66,11 +73,11 @@ class UselessAssertCheck : BaseAnalyzer
 				return;
 			break;
 		case tok!"uintLiteral":
-			if (!token.text.removechars("Uu").to!uint)
+			if (!token.text.filterChars!"Uu".to!uint)
 				return;
 			break;
 		case tok!"ulongLiteral":
-			if (!token.text.removechars("UuLl").to!ulong)
+			if (!token.text.filterChars!"UuLl".to!ulong)
 				return;
 			break;
 		case tok!"characterLiteral":
