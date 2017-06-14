@@ -5,6 +5,7 @@
 
 module analysis.helpers;
 
+import core.exception : AssertError;
 import std.string;
 import std.traits;
 import std.stdio;
@@ -107,14 +108,14 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 		{
 			immutable string errors = "Expected warning:\n%s\nFrom source code at (%s:?):\n%s".format(messages[lineNo],
 					lineNo, codeLines[lineNo - line]);
-			throw new core.exception.AssertError(errors, file, lineNo);
+			throw new AssertError(errors, file, lineNo);
 		}
 		// Different warning
 		else if (warnings[lineNo] != messages[lineNo])
 		{
 			immutable string errors = "Expected warning:\n%s\nBut was:\n%s\nFrom source code at (%s:?):\n%s".format(
 					messages[lineNo], warnings[lineNo], lineNo, codeLines[lineNo - line]);
-			throw new core.exception.AssertError(errors, file, lineNo);
+			throw new AssertError(errors, file, lineNo);
 		}
 	}
 
@@ -132,6 +133,6 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	if (unexpectedWarnings.length)
 	{
 		immutable string message = "Unexpected warnings:\n" ~ unexpectedWarnings.join("\n");
-		throw new core.exception.AssertError(message, file, line);
+		throw new AssertError(message, file, line);
 	}
 }
