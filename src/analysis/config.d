@@ -185,4 +185,25 @@ struct StaticAnalysisConfig
 
 	@INI("Check for redundant attributes")
 	string redundant_attributes_check = Check.enabled;
+
+	@INI("Module-specific filters")
+	ModuleFilters filters;
+}
+
+private template ModuleFiltersMixin(A)
+{
+	const string ModuleFiltersMixin = () {
+		string s;
+		foreach (mem; __traits(allMembers, StaticAnalysisConfig))
+			static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem)) == string))
+				s ~= `@INI("Exclude/Import modules") string[] ` ~ mem ~ ";\n";
+
+    	return s;
+	}();
+}
+
+@INI("ModuleFilters. +std.,-std.internal")
+struct ModuleFilters
+{
+	mixin(ModuleFiltersMixin!int);
 }

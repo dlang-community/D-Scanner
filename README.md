@@ -296,3 +296,31 @@ For more readable output, pipe the command through [xmllint](http://xmlsoft.org/
 using its formatting switch.
 
 	$ dscanner --ast helloworld.d | xmllint --format -
+
+Selecting modules for a specific check
+--------------------------------------
+
+It is possible to create a new section `analysis.config.ModuleFilters` in the `.dscanner.ini`.
+In this optional section a comma-separated list of inclusion and exclusion selectors can
+be specified for every check on which selective filtering should be applied.
+These given selectors match on the module name and partial matches (`std.` or `.foo.`) are possible.
+Morover, every selectors must begin with either `+` (inclusion) or `-` (exclusion).
+Exclusion selectors take precedence over all inclusion operators.
+Of course, for every check a different selector set can given:
+
+```ini
+[analysis.config.ModuleFilters]
+final_attribute_check = "+std.foo,+std.bar"
+useless_initializer = "-std."
+;pseudo variable (workaround against an inifiled bug)
+foo=""
+```
+
+A few examples:
+
+- `+std.`: Includes all modules matching `std.`
+- `+std.bitmanip,+std.json`: Applies the check only for these two modules
+- `-std.bitmanip,-std.json`: Applies the check for all modules, but these two
+- `+.bar`: Includes all modules matching `.bar` (e.g. `foo.bar`, `a.b.c.barros`)
+- `-etc.`: Excludes all modules from `.etc`
+- `+std,-std.internal`: Includes entire `std`, except for the internal modules
