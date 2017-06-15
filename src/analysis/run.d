@@ -67,6 +67,7 @@ import analysis.final_attribute;
 import analysis.vcall_in_ctor;
 import analysis.useless_initializer;
 import analysis.allman;
+import analysis.redundant_attributes;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -393,6 +394,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (analysisConfig.allman_braces_check != Check.disabled)
 		checks ~= new AllManCheck(fileName, tokens,
 		analysisConfig.allman_braces_check == Check.skipTests && !ut);
+
+	if (analysisConfig.redundant_attributes_check != Check.disabled)
+		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
+		analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
 
 	version (none)
 		if (analysisConfig.redundant_if_check != Check.disabled)
