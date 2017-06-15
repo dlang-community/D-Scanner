@@ -14,10 +14,10 @@ import std.stdio;
 
 auto filterChars(string chars, S)(S str)
 {
-	import std.algorithm.comparison : among;
+    import std.algorithm.comparison : among;
     import std.algorithm.iteration : filter;
     import std.meta : aliasSeqOf;
-	return str.filter!(c => !c.among(aliasSeqOf!chars));
+    return str.filter!(c => !c.among(aliasSeqOf!chars));
 }
 
 /**
