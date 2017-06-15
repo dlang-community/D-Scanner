@@ -5,6 +5,8 @@ DMD := $(DC)
 GDC := gdc
 LDC := ldc2
 OBJ_DIR := obj
+# Exclusion of treemap is due to https://issues.dlang.org/show_bug.cgi?id=17506
+# More details: https://github.com/dlang-community/D-Scanner/issues/461
 SRC := \
 	$(shell find containers/src -name "*.d" -not -name 'treemap.d')\
 	$(shell find dsymbol/src -name "*.d")\
