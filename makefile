@@ -6,7 +6,7 @@ GDC := gdc
 LDC := ldc2
 OBJ_DIR := obj
 SRC := \
-	$(shell find containers/src -name "*.d")\
+	$(shell find containers/src -name "*.d" -not -name 'treemap.d')\
 	$(shell find dsymbol/src -name "*.d")\
 	$(shell find inifiled/source/ -name "*.d")\
 	$(shell find libdparse/src/std/experimental/ -name "*.d")\
