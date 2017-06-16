@@ -169,7 +169,7 @@ else
 
 	immutable usingStdin = args.length == 1;
 
-	StringCache cache = StringCache(StringCache.defaultBucketCount);
+	StringCache cache = StringCache(0xFFFF);
 	if (defaultConfig)
 	{
 		string s = getConfigurationLocation();
