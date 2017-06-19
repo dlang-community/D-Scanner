@@ -26,25 +26,24 @@ class LineLengthCheck : BaseAnalyzer
 
 	override void visit(const Module)
 	{
-		ulong lastErrorLine = ulong.max;
 		size_t endColumn = 0;
+		lastErrorLine = ulong.max;
 		foreach (i, token; tokens)
 		{
 			immutable info = tokenLength(token, i > 0 ? tokens[i - 1].line : 0);
-			if (info[1])
-				endColumn = info[0] + token.column - 1;
+			if (info.multiLine)
+				endColumn = checkMultiLineToken(token, endColumn);
+			else if (info.newLine)
+				endColumn = info.length + token.column - 1;
 			else
 			{
 				immutable wsChange = i > 0
 						? token.column - (tokens[i - 1].column + tokenByteLength(tokens[i - 1]))
 						: 0;
-				endColumn += wsChange + info[0];
+				endColumn += wsChange + info.length;
 			}
-			if (endColumn > MAX_LINE_LENGTH && token.line != lastErrorLine)
-			{
-				addErrorMessage(token.line, token.column, KEY, MESSAGE);
-				lastErrorLine = token.line;
-			}
+			if (endColumn > MAX_LINE_LENGTH)
+				triggerError(token);
 		}
 	}
 
@@ -52,27 +51,106 @@ class LineLengthCheck : BaseAnalyzer
 
 private:
 
-	static size_t tokenByteLength(ref const Token tok)
+	ulong lastErrorLine = ulong.max;
+
+	void triggerError(ref const Token tok)
+	{
+		if (tok.line != lastErrorLine)
+		{
+			addErrorMessage(tok.line, tok.column, KEY, MESSAGE);
+			lastErrorLine = tok.line;
+		}
+	}
+
+	static bool isLineSeparator(dchar c)
+	{
+		import std.uni : lineSep, paraSep;
+		return c == lineSep || c == '\n' || c == '\v' || c == '\r' || c == paraSep;
+	}
+
+	size_t checkMultiLineToken()(auto ref const Token tok, size_t startColumn = 0)
+	{
+		import std.utf : byDchar;
+
+		auto col = startColumn;
+		foreach (c; tok.text.byDchar)
+		{
+			if (isLineSeparator(c))
+			{
+				if (col > MAX_LINE_LENGTH)
+					triggerError(tok);
+				col = 1;
+			}
+			else
+				col += getEditorLength(c);
+		}
+		return col;
+	}
+
+	unittest
+	{
+		import std.stdio;
+		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
+		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
+		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
+	}
+
+	static size_t tokenByteLength()(auto ref const Token tok)
 	{
 		return tok.text is null ? str(tok.type).length : tok.text.length;
 	}
 
-	static Tuple!(size_t, bool) tokenLength(ref const Token tok, size_t prevLine)
+	unittest
 	{
-		import std.uni : lineSep, paraSep;
+		assert(tokenByteLength(Token(tok!"stringLiteral", "aaa", 0, 0, 0)) == 3);
+		assert(tokenByteLength(Token(tok!"stringLiteral", "Дистан", 0, 0, 0)) == 12);
+		// tabs and whitespace
+		assert(tokenByteLength(Token(tok!"stringLiteral", "	", 0, 0, 0)) == 1);
+		assert(tokenByteLength(Token(tok!"stringLiteral", "    ", 0, 0, 0)) == 4);
+	}
 
-		size_t endColumn = 0;
-		if (tok.text is null)
-			endColumn += str(tok.type).length;
+	// D Style defines tabs to have a width of four spaces
+	static size_t getEditorLength(C)(C c)
+	{
+		if (c == '\t')
+			return 4;
 		else
-			foreach (dchar c; tok.text)
+			return 1;
+	}
+
+	alias TokenLength = Tuple!(size_t, "length", bool, "newLine", bool, "multiLine");
+	static TokenLength tokenLength()(auto ref const Token tok, size_t prevLine)
+	{
+		import std.utf : byDchar;
+
+		size_t length = 0;
+		bool newLine = tok.line > prevLine;
+		bool multiLine;
+
+		if (tok.text is null)
+			length += str(tok.type).length;
+		else
+			foreach (c; tok.text.byDchar)
 			{
-				if (c == lineSep || c == '\n' || c == '\v' || c == '\r' || c == paraSep)
-					endColumn = 0;
+				if (isLineSeparator(c))
+				{
+					length = 1;
+					multiLine = true;
+				}
 				else
-					endColumn++;
+					length += getEditorLength(c);
 			}
-		return tuple(endColumn, tok.line > prevLine);
+
+		return TokenLength(length, newLine, multiLine);
+	}
+
+	unittest
+	{
+		assert(tokenLength(Token(tok!"stringLiteral", "aaa", 0, 0, 0), 0).length == 3);
+		assert(tokenLength(Token(tok!"stringLiteral", "Дистан", 0, 0, 0), 0).length == 6);
+		// tabs and whitespace
+		assert(tokenLength(Token(tok!"stringLiteral", "	", 0, 0, 0), 0).length == 4);
+		assert(tokenLength(Token(tok!"stringLiteral", "    ", 0, 0, 0), 0).length == 4);
 	}
 
 	import std.conv : to;
@@ -91,12 +169,36 @@ private:
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.long_line_check = Check.enabled;
+
 	assertAnalyzerWarnings(q{
-Window window = Platform.instance.createWindow("Дистанционное управление сварочным оборудованием", null);
+Window window = Platform.instance.createWindow("Дистанционное управление сварочным оборудованием			   ", null);
+Window window = Platform.instance.createWindow("Дистанционное управление сварочным оборудованием				", null); // [warn]: Line is longer than 120 characters
 unittest {
-    assert("foo" == "fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo");
-    assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"); // [warn]: Line is longer than 120 characters
+// with tabs
+assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo1");
+assert("foo" == "fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo2"); // [warn]: Line is longer than 120 characters
+// with whitespace (don't overwrite)
+    assert("foo" == "boooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo3");
+    assert("foo" == "booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo4"); // [warn]: Line is longer than 120 characters
 }
+	}c, sac);
+
+// TODO: libdparse counts columns bytewise
+	//assert("foo" == "boooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo5");
+	//assert("foo" == "booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo6"); // [warn]: Line is longer than 120 characters
+
+	// reduced from std/regex/internal/thompson.d
+	assertAnalyzerWarnings(q{
+			// whitespace on purpose, do not remove!
+            mixin(`case IR.`~e~`:
+                    opCacheTrue[pc] = &Ops!(true).op!(IR.`~e~`);
+                    opCacheBackTrue[pc] = &BackOps!(true).op!(IR.`~e~`);
+                `);
+                                                                               mixin(`case IR.`~e~`:
+                                                                            opCacheTrue[pc] = &Ops!(true).op!(IR.`~e~`);
+                                                                            opCacheTrue[pc] = &Ops!(true).op!(IR.`~e~`);
+                                                                     opCacheBackTrue[pc] = &BackOps!(true).op!(IR.`~e~`); // [warn]: Line is longer than 120 characters
+                `);
 	}c, sac);
 
 	stderr.writeln("Unittest for LineLengthCheck passed.");
