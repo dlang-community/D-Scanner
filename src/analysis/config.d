@@ -185,4 +185,7 @@ struct StaticAnalysisConfig
 
 	@INI("Check for redundant attributes")
 	string redundant_attributes_check = Check.enabled;
+
+	@INI("Check public declarations without a documented unittest")
+	string has_public_example = Check.disabled;
 }
