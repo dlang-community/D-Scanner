@@ -312,7 +312,7 @@ It is possible to create a new section `analysis.config.ModuleFilters` in the `.
 In this optional section a comma-separated list of inclusion and exclusion selectors can
 be specified for every check on which selective filtering should be applied.
 These given selectors match on the module name and partial matches (`std.` or `.foo.`) are possible.
-Morover, every selectors must begin with either `+` (inclusion) or `-` (exclusion).
+Moreover, every selectors must begin with either `+` (inclusion) or `-` (exclusion).
 Exclusion selectors take precedence over all inclusion operators.
 Of course, for every check a different selector set can given:
 
@@ -320,8 +320,6 @@ Of course, for every check a different selector set can given:
 [analysis.config.ModuleFilters]
 final_attribute_check = "+std.foo,+std.bar"
 useless_initializer = "-std."
-;pseudo variable (workaround against an inifiled bug)
-foo=""
 ```
 
 A few examples:
