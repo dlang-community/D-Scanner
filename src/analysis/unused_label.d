@@ -143,8 +143,11 @@ private:
 	{
 		foreach (label; current.byValue())
 		{
-			assert(label.line != size_t.max && label.column != size_t.max);
-			if (!label.used)
+			if (label.line == size_t.max || label.column == size_t.max)
+			{
+				// TODO: handle unknown labels
+			}
+			else if (!label.used)
 			{
 				addErrorMessage(label.line, label.column, "dscanner.suspicious.unused_label",
 						"Label \"" ~ label.name ~ "\" is not used.");
@@ -222,6 +225,25 @@ unittest
 		{
 			asm { mov RAX,1;}
 			lbl: // [warn]: Label "lbl" is not used.
+		}
+	}c, sac);
+
+	// from std.math
+	assertAnalyzerWarnings(q{
+		real polyImpl() {
+			asm {
+				jecxz return_ST;
+		    }
+		}
+	}c, sac);
+
+	// a label might be hard to find, e.g. in a mixin
+	assertAnalyzerWarnings(q{
+		real polyImpl() {
+			mixin("return_ST: return 1;");
+			asm {
+				jecxz return_ST;
+		    }
 		}
 	}c, sac);
 
