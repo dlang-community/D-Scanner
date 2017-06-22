@@ -5,14 +5,15 @@ DMD := $(DC)
 GDC := gdc
 LDC := ldc2
 OBJ_DIR := obj
-SRC := \
+LIB_SRC := \
 	$(shell find containers/src -name "*.d")\
 	$(shell find dsymbol/src -name "*.d")\
 	$(shell find inifiled/source/ -name "*.d")\
 	$(shell find libdparse/src/std/experimental/ -name "*.d")\
 	$(shell find libdparse/src/dparse/ -name "*.d")\
-	$(shell find libddoc/src -name "*.d")\
-	$(shell find src/ -name "*.d")
+	$(shell find libddoc/src -name "*.d")
+PROJECT_SRC := $(shell find src/ -name "*.d")
+SRC := $(LIB_SRC) $(PROJECT_SRC)
 INCLUDE_PATHS = \
 	-Iinifiled/source -Isrc\
 	-Ilibdparse/src\
@@ -21,7 +22,7 @@ INCLUDE_PATHS = \
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
 DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
-DMD_TEST_FLAGS = -w -g -unittest -J.
+DMD_TEST_FLAGS = -w -g -J. -version=StdLoggerDisableWarning
 
 all: dmdbuild
 ldc: ldcbuild
@@ -46,8 +47,12 @@ ldcbuild: githash
 	mkdir -p bin
 	${LDC} -O5 -release -oq -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
-test: githash
-	${DC} -w -g -J. -unittest ${INCLUDE_PATHS} ${SRC} -ofbin/dscanner-unittest -version=StdLoggerDisableWarning
+# compile the dependencies separately, s.t. their unittests don't get executed
+bin/dscanner-unittest-lib.a: ${LIB_SRC}
+	${DC} ${DMD_TEST_FLAGS} -c ${INCLUDE_PATHS} ${LIB_SRC} -of$@
+
+test: bin/dscanner-unittest-lib.a githash
+	${DC} ${DMD_TEST_FLAGS} -unittest ${INCLUDE_PATHS} bin/dscanner-unittest-lib.a ${PROJECT_SRC} -ofbin/dscanner-unittest
 	./bin/dscanner-unittest
 	rm -f bin/dscanner-unittest
 
