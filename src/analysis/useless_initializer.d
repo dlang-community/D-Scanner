@@ -50,15 +50,20 @@ public:
         import std.algorithm.iteration : filter;
         import std.range : empty;
 
+
+
         if (!decl.type || !decl.type.type2 ||
+            // initializer has to appear clearly in generated ddoc
+            decl.comment !is null ||
             // issue 474, manifest constants HAVE to be initialized.
             !decl.storageClasses.filter!(a => a.token == tok!"enum").empty)
-            return;
+                return;
 
         foreach (declarator; decl.declarators)
         {
-            if (!declarator.initializer || !declarator.initializer.nonVoidInitializer)
-                continue;
+            if (!declarator.initializer || !declarator.initializer.nonVoidInitializer ||
+                declarator.comment !is null)
+                    continue;
 
             version(unittest)
                 enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
