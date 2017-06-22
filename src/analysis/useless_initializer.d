@@ -5,8 +5,13 @@
 module analysis.useless_initializer;
 
 import analysis.base;
+import containers.dynamicarray;
+import containers.hashmap;
 import dparse.ast;
 import dparse.lexer;
+import std.algorithm : among, canFind;
+import std.algorithm.iteration : filter;
+import std.range : empty;
 import std.stdio;
 
 /*
@@ -33,12 +38,40 @@ private:
     static immutable strDefs = [`""`, `""c`, `""w`, `""d`, "``", "``c", "``w", "``d", "q{}"];
     static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
 
+    HashMap!(string, bool) _knownStructs;
+    DynamicArray!(const(Token)*) _nestedStructs;
+    DynamicArray!(bool) _inStruct;
+
 public:
 
     ///
     this(string fileName, bool skipTests = false)
     {
         super(fileName, null, skipTests);
+        _inStruct.insert(false);
+    }
+
+    override void visit(const(StructDeclaration) decl)
+    {
+        _nestedStructs.insert(&decl.name);
+        _knownStructs[decl.name.text] = false;
+        decl.accept(this);
+        _nestedStructs.removeBack();
+    }
+
+    override void visit(const(Declaration) decl)
+    {
+        _inStruct.insert(decl.structDeclaration !is null);
+        decl.accept(this);
+        if (_inStruct[$-2] && decl.constructor &&
+            (decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0 ||
+            !decl.constructor.parameters))
+        {
+            _knownStructs[_nestedStructs.back().text] = !decl.attributes
+                .filter!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable")
+                .empty;
+        }
+        _inStruct.removeBack();
     }
 
     // issue 473, prevent to visit delegate that contain duck type checkers.
@@ -46,12 +79,6 @@ public:
 
     override void visit(const(VariableDeclaration) decl)
     {
-        import std.algorithm : among, canFind;
-        import std.algorithm.iteration : filter;
-        import std.range : empty;
-
-
-
         if (!decl.type || !decl.type.type2 ||
             // initializer has to appear clearly in generated ddoc
             decl.comment !is null ||
@@ -167,7 +194,11 @@ public:
                 ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType &&
                 ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
             {
-                mixin(warn);
+                if (customType.text in _knownStructs)
+                {
+                    if  (!_knownStructs[customType.text])
+                        mixin(warn);
+                }
             }
 
             // 'Symbol ArrayInitializer' : assumes Symbol is an array b/c of the Init
@@ -193,6 +224,7 @@ public:
 
     // fails
     assertAnalyzerWarnings(q{
+        struct S {}
         ubyte a = 0x0;      // [warn]: X
         int a = 0;          // [warn]: X
         ulong a = 0;        // [warn]: X
@@ -217,6 +249,7 @@ public:
 
     // passes
     assertAnalyzerWarnings(q{
+        struct D {@disable this();}
         ubyte a = 0xFE;
         int a = 1;
         ulong a = 1;
@@ -239,6 +272,8 @@ public:
         enum ubyte a = 0;
         static assert(is(typeof((){T t = T.init;})));
         bool a;
+        D d = D.init;
+        NotKnown nk = NotKnown.init;
     }, sac);
 
     stderr.writeln("Unittest for UselessInitializerChecker passed.");
