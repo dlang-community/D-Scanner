@@ -41,29 +41,36 @@ public:
         super(fileName, null, skipTests);
     }
 
+    // issue 473, prevent to visit delegate that contain duck type checkers.
+    override void visit(const(TypeofExpression)) {}
+
     override void visit(const(VariableDeclaration) decl)
     {
+        import std.algorithm : among, canFind;
+        import std.algorithm.iteration : filter;
+        import std.range : empty;
+
+        if (!decl.type || !decl.type.type2 ||
+            // issue 474, manifest constants HAVE to be initialized.
+            !decl.storageClasses.filter!(a => a.token == tok!"enum").empty)
+            return;
+
         foreach (declarator; decl.declarators)
         {
-            if (!decl.type || !decl.type.type2)
-                continue;
             if (!declarator.initializer || !declarator.initializer.nonVoidInitializer)
                 continue;
-
-            import std.format : format;
 
             version(unittest)
                 enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
                     key, msg);};
             else
+            {
+                import std.format : format;
                 enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
                     key, msg.format(declarator.name.text));};
+            }
 
             // ---  Info about the declaration type --- //
-            import std.algorithm : among, canFind;
-            import std.algorithm.iteration : filter;
-            import std.range : empty;
-
             const bool isPtr = decl.type.typeSuffixes && !decl.type.typeSuffixes
                 .filter!(a => a.star != tok!"").empty;
             const bool isArr = decl.type.typeSuffixes && !decl.type.typeSuffixes
@@ -100,7 +107,8 @@ public:
                     case tok!"int",     tok!"uint":
                     case tok!"long",    tok!"ulong":
                     case tok!"cent",    tok!"ucent":
-                        if (intDefs.canFind(value.text))
+                    case tok!"bool":
+                        if (intDefs.canFind(value.text) || value == tok!"false")
                             mixin(warn);
                         goto default;
                     default:
@@ -199,6 +207,7 @@ public:
         int a = int.init;   // [warn]: X
         char a = char.init; // [warn]: X
         S s = S.init;       // [warn]: X
+        bool a = false;     // [warn]: X
     }, sac);
 
     // passes
@@ -221,6 +230,10 @@ public:
         char[] a = "ze";
         S s = S(0,1);
         S s = s.call();
+        enum {a}
+        enum ubyte a = 0;
+        static assert(is(typeof((){T t = T.init;})));
+        bool a;
     }, sac);
 
     stderr.writeln("Unittest for UselessInitializerChecker passed.");
