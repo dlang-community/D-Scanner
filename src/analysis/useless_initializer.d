@@ -38,9 +38,10 @@ private:
     static immutable strDefs = [`""`, `""c`, `""w`, `""d`, "``", "``c", "``w", "``d", "q{}"];
     static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
 
-    HashMap!(string, bool) _knownStructs;
-    DynamicArray!(const(Token)*) _nestedStructs;
+    HashMap!(string, bool) _structCanBeInit;
+    DynamicArray!(string) _structStack;
     DynamicArray!(bool) _inStruct;
+    DynamicArray!(bool) _atDisabled;
 
 public:
 
@@ -53,25 +54,41 @@ public:
 
     override void visit(const(StructDeclaration) decl)
     {
-        _nestedStructs.insert(&decl.name);
-        _knownStructs[decl.name.text] = false;
+        _structStack.insert(decl.name.text);
+        _structCanBeInit[decl.name.text] = false;
+        _atDisabled.insert(false);
         decl.accept(this);
-        _nestedStructs.removeBack();
+        _structStack.removeBack();
+        _atDisabled.removeBack();
     }
 
     override void visit(const(Declaration) decl)
     {
         _inStruct.insert(decl.structDeclaration !is null);
         decl.accept(this);
-        if (_inStruct[$-2] && decl.constructor &&
+        if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
             (decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0 ||
             !decl.constructor.parameters))
         {
-            _knownStructs[_nestedStructs.back().text] = !decl.attributes
+            _atDisabled[$-1] = !decl.attributes
                 .filter!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable")
                 .empty;
         }
         _inStruct.removeBack();
+    }
+
+    override void visit(const(Constructor) decl)
+    {
+        if (_inStruct.length > 1 && _inStruct[$-2] &&
+            (decl.parameters && decl.parameters.parameters.length == 0 || !decl.parameters))
+        {
+            _structCanBeInit[_structStack.back()] = !_atDisabled[$-1];
+            if (!_structCanBeInit[_structStack.back()])
+                _structCanBeInit[_structStack.back()] = !decl.memberFunctionAttributes
+                    .filter!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable")
+                    .empty;
+        }
+        decl.accept(this);
     }
 
     // issue 473, prevent to visit delegate that contain duck type checkers.
@@ -194,9 +211,9 @@ public:
                 ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType &&
                 ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
             {
-                if (customType.text in _knownStructs)
+                if (customType.text in _structCanBeInit)
                 {
-                    if  (!_knownStructs[customType.text])
+                    if  (!_structCanBeInit[customType.text])
                         mixin(warn);
                 }
             }
@@ -250,6 +267,7 @@ public:
     // passes
     assertAnalyzerWarnings(q{
         struct D {@disable this();}
+        struct E {this() @disable;}
         ubyte a = 0xFE;
         int a = 1;
         ulong a = 1;
@@ -273,6 +291,7 @@ public:
         static assert(is(typeof((){T t = T.init;})));
         bool a;
         D d = D.init;
+        E e = E.init;
         NotKnown nk = NotKnown.init;
     }, sac);
 
