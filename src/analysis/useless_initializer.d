@@ -16,7 +16,8 @@ import std.stdio;
 
 /*
 Limitations:
-    - Stuff = Stuff.init doesnot work with type with * []
+    - Stuff = Stuff.init does not work with type with postfixes`*` `[]`.
+    - Stuff = Stuff.init is only detected for struct within the module.
 */
 
 /**
@@ -42,6 +43,7 @@ private:
     DynamicArray!(string) _structStack;
     DynamicArray!(bool) _inStruct;
     DynamicArray!(bool) _atDisabled;
+    DynamicArray!(bool) _inTest;
 
 public:
 
@@ -50,10 +52,21 @@ public:
     {
         super(fileName, null, skipTests);
         _inStruct.insert(false);
+        _inTest.insert(false);
+    }
+
+    override void visit(const(Unittest) test)
+    {
+        _inTest.insert(true);
+        test.accept(this);
+        _inTest.removeBack();
     }
 
     override void visit(const(StructDeclaration) decl)
     {
+        if (_inTest.back())
+            return;
+
         _structStack.insert(decl.name.text);
         _structCanBeInit[decl.name.text] = false;
         _atDisabled.insert(false);
@@ -67,7 +80,7 @@ public:
         _inStruct.insert(decl.structDeclaration !is null);
         decl.accept(this);
         if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
-            (decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0 ||
+            ((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||
             !decl.constructor.parameters))
         {
             _atDisabled[$-1] = !decl.attributes
@@ -80,7 +93,7 @@ public:
     override void visit(const(Constructor) decl)
     {
         if (_inStruct.length > 1 && _inStruct[$-2] &&
-            (decl.parameters && decl.parameters.parameters.length == 0 || !decl.parameters))
+            ((decl.parameters && decl.parameters.parameters.length == 0) || !decl.parameters))
         {
             _structCanBeInit[_structStack.back()] = !_atDisabled[$-1];
             if (!_structCanBeInit[_structStack.back()])
