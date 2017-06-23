@@ -16,8 +16,9 @@ import std.stdio;
 
 /*
 Limitations:
-    - Stuff = Stuff.init does not work with type with postfixes`*` `[]`.
-    - Stuff = Stuff.init is only detected for struct within the module.
+    - Stuff s = Stuff.init does not work with type with postfixes`*` `[]`.
+    - Stuff s = Stuff.init is only detected for struct within the module.
+    - BasicType b = BasicType(v), default init used in BasicType ctor, e.g int(8).
 */
 
 /**
@@ -31,10 +32,15 @@ final class UselessInitializerChecker : BaseAnalyzer
 private:
 
     enum key = "dscanner.useless-initializer";
+
     version(unittest)
+    {
         enum msg = "X";
+    }
     else
+    {
         enum msg = `Variable %s initializer is useless because it does not differ from the default value`;
+    }
 
     static immutable strDefs = [`""`, `""c`, `""w`, `""d`, "``", "``c", "``w", "``d", "q{}"];
     static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
@@ -104,8 +110,21 @@ public:
         decl.accept(this);
     }
 
-    // issue 473, prevent to visit delegate that contain duck type checkers.
+    // issue 473, prevent to visit delegates that contain duck type checkers.
     override void visit(const(TypeofExpression)) {}
+
+    // issue 473, prevent to check expressions in __traits(compiles, ...)
+    override void visit(const(TraitsExpression) e)
+    {
+        if (e.identifier.text == "compiles")
+        {
+            return;
+        }
+        else
+        {
+            e.accept(this);
+        }
+    }
 
     override void visit(const(VariableDeclaration) decl)
     {
@@ -123,8 +142,10 @@ public:
                     continue;
 
             version(unittest)
+            {
                 enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
                     key, msg);};
+            }
             else
             {
                 import std.format : format;
@@ -302,6 +323,7 @@ public:
         enum {a}
         enum ubyte a = 0;
         static assert(is(typeof((){T t = T.init;})));
+        void foo(){__traits(compiles, (){int a = 0;}).writeln;}
         bool a;
         D d = D.init;
         E e = E.init;
