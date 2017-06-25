@@ -52,7 +52,7 @@ test: githash
 	rm -f bin/dscanner-unittest
 
 lint: dmdbuild
-	./dsc --config .dscanner.ini --styleCheck src
+	./bin/dscanner --config .dscanner.ini --styleCheck src
 
 clean:
 	rm -rf dsc
