@@ -33,8 +33,8 @@ class AllManCheck : BaseAnalyzer
 		super(fileName, null, skipTests);
 		foreach (i; 1 .. tokens.length - 1)
 		{
-			auto curLine = tokens[i].line;
-			auto prevTokenLine = tokens[i-1].line;
+			const curLine = tokens[i].line;
+			const prevTokenLine = tokens[i-1].line;
 			if (tokens[i].type == tok!"{" && curLine == prevTokenLine)
 			{
 				// ignore struct initialization

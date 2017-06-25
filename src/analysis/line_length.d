@@ -26,7 +26,7 @@ class LineLengthCheck : BaseAnalyzer
 
 	override void visit(const Module)
 	{
-		size_t endColumn = 0;
+		size_t endColumn;
 		lastErrorLine = ulong.max;
 		foreach (i, token; tokens)
 		{
@@ -89,7 +89,6 @@ private:
 
 	unittest
 	{
-		import std.stdio;
 		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
 		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
 		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
@@ -123,8 +122,8 @@ private:
 	{
 		import std.utf : byDchar;
 
-		size_t length = 0;
-		bool newLine = tok.line > prevLine;
+		size_t length;
+		const newLine = tok.line > prevLine;
 		bool multiLine;
 
 		if (tok.text is null)

@@ -117,6 +117,17 @@ private struct ExpressionInfo
 			return 0;
 		return -1;
 	}
+	bool opEquals(ref const ExpressionInfo other) const nothrow
+	{
+		return formatted == other.formatted
+			&& line == other.line
+			&& column == other.column
+			&& depth == other.depth;
+	}
+	size_t toHash() const nothrow
+	{
+		return line * 100_000 + column * 100 + depth;
+	}
 
 	string formatted;
 	size_t line;

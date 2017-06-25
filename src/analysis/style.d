@@ -20,9 +20,9 @@ final class StyleChecker : BaseAnalyzer
 {
 	alias visit = ASTVisitor.visit;
 
-	enum string varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
-	enum string aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
-	enum string moduleNameRegex = `^[\p{Ll}_\d]+$`;
+	enum string VarFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
+	enum string AggregateNameRegex = `^\p{Lu}[\w\d]*$`;
+	enum string ModuleNameRegex = `^[\p{Ll}_\d]+$`;
 	enum string KEY = "dscanner.style.phobos_naming_convention";
 
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
@@ -34,7 +34,7 @@ final class StyleChecker : BaseAnalyzer
 	{
 		foreach (part; dec.moduleName.identifiers)
 		{
-			if (part.text.matchFirst(moduleNameRegex).length == 0)
+			if (part.text.matchFirst(ModuleNameRegex).length == 0)
 				addErrorMessage(part.line, part.column, KEY,
 						"Module/package name '" ~ part.text ~ "' does not match style guidelines.");
 		}
@@ -105,7 +105,7 @@ final class StyleChecker : BaseAnalyzer
 
 	void checkLowercaseName(string type, ref const Token name)
 	{
-		if (name.text.length > 0 && name.text.matchFirst(varFunNameRegex).length == 0)
+		if (name.text.length > 0 && name.text.matchFirst(VarFunNameRegex).length == 0)
 			addErrorMessage(name.line, name.column, KEY,
 					type ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
@@ -138,7 +138,7 @@ final class StyleChecker : BaseAnalyzer
 
 	void checkAggregateName(string aggregateType, ref const Token name)
 	{
-		if (name.text.length > 0 && name.text.matchFirst(aggregateNameRegex).length == 0)
+		if (name.text.length > 0 && name.text.matchFirst(AggregateNameRegex).length == 0)
 			addErrorMessage(name.line, name.column, KEY,
 					aggregateType ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}

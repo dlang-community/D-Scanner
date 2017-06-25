@@ -168,8 +168,8 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		if (code.length == 0)
 			continue;
 		RollbackAllocator r;
-		uint errorCount = 0;
-		uint warningCount = 0;
+		uint errorCount;
+		uint warningCount;
 		const(Token)[] tokens;
 		const Module m = parseModule(fileName, code, &r, cache, false, tokens,
 				null, &errorCount, &warningCount);

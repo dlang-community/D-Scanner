@@ -71,7 +71,7 @@ private:
 	{
 		override void visit(const T thing)
 		{
-			auto b = interesting;
+			const b = interesting;
 			interesting = true;
 			thing.accept(this);
 			interesting = b;

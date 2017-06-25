@@ -198,7 +198,7 @@ private:
 		auto vi = VariableInfo(name);
 		if (guaranteeUse == 0)
 		{
-			auto r = tree[index].equalRange(&vi);
+			const r = tree[index].equalRange(&vi);
 			if (!r.empty && r.front.isValueType && !inAsm)
 				return;
 		}
