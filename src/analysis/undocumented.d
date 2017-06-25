@@ -51,10 +51,10 @@ class UndocumentedDeclarationCheck : BaseAnalyzer
 		immutable bool prevOverride = getOverride();
 		immutable bool prevDisabled = getDisabled();
 		immutable bool prevDeprecated = getDeprecated();
-		bool dis = false;
-		bool dep = false;
-		bool ovr = false;
-		bool pushed = false;
+		bool dis;
+		bool dep;
+		bool ovr;
+		bool pushed;
 		foreach (attribute; dec.attributes)
 		{
 			if (isProtection(attribute.attribute.type))

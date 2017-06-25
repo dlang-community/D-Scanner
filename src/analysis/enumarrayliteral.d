@@ -24,7 +24,7 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 		super(fileName, sc, skipTests);
 	}
 
-	bool looking = false;
+	bool looking;
 
 	mixin visitTemplate!ClassDeclaration;
 	mixin visitTemplate!InterfaceDeclaration;

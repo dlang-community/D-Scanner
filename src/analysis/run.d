@@ -160,7 +160,7 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
 {
-	bool hasErrors = false;
+	bool hasErrors;
 	foreach (fileName; fileNames)
 	{
 		auto code = readFile(fileName);

@@ -39,9 +39,9 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 
 	private void actualCheck(const Token name, const StructBody structBody)
 	{
-		bool hasOpEquals = false;
-		bool hasToHash = false;
-		bool hasOpCmp = false;
+		bool hasOpEquals;
+		bool hasToHash;
+		bool hasOpCmp;
 
 		// Just return if missing children
 		if (!structBody || !structBody.declarations || name is Token.init)
