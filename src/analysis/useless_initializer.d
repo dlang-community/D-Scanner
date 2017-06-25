@@ -9,8 +9,7 @@ import containers.dynamicarray;
 import containers.hashmap;
 import dparse.ast;
 import dparse.lexer;
-import std.algorithm : among, canFind;
-import std.algorithm.iteration : filter;
+import std.algorithm;
 import std.range : empty;
 import std.stdio;
 
@@ -73,8 +72,14 @@ public:
         if (_inTest.back())
             return;
 
-        _structStack.insert(decl.name.text);
-        _structCanBeInit[decl.name.text] = false;
+        assert(_inStruct.length > 1);
+
+        const string structName = _inStruct[$-2] ?
+            _structStack.back() ~ "." ~ decl.name.text :
+          decl.name.text;
+
+        _structStack.insert(structName);
+        _structCanBeInit[structName] = false;
         _atDisabled.insert(false);
         decl.accept(this);
         _structStack.removeBack();
@@ -89,9 +94,8 @@ public:
             ((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||
             !decl.constructor.parameters))
         {
-            _atDisabled[$-1] = !decl.attributes
-                .filter!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable")
-                .empty;
+            _atDisabled[$-1] = decl.attributes
+                .canFind!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
         }
         _inStruct.removeBack();
     }
@@ -101,11 +105,11 @@ public:
         if (_inStruct.length > 1 && _inStruct[$-2] &&
             ((decl.parameters && decl.parameters.parameters.length == 0) || !decl.parameters))
         {
-            _structCanBeInit[_structStack.back()] = !_atDisabled[$-1];
-            if (!_structCanBeInit[_structStack.back()])
+            const bool canBeInit = !_atDisabled[$-1];
+            _structCanBeInit[_structStack.back()] = canBeInit;
+            if (!canBeInit)
                 _structCanBeInit[_structStack.back()] = !decl.memberFunctionAttributes
-                    .filter!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable")
-                    .empty;
+                    .canFind!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
         }
         decl.accept(this);
     }
@@ -132,32 +136,37 @@ public:
             // initializer has to appear clearly in generated ddoc
             decl.comment !is null ||
             // issue 474, manifest constants HAVE to be initialized.
-            !decl.storageClasses.filter!(a => a.token == tok!"enum").empty)
-                return;
+            decl.storageClasses.canFind!(a => a.token == tok!"enum"))
+        {
+            return;
+        }
 
         foreach (declarator; decl.declarators)
         {
-            if (!declarator.initializer || !declarator.initializer.nonVoidInitializer ||
+            if (!declarator.initializer ||
+                !declarator.initializer.nonVoidInitializer ||
                 declarator.comment !is null)
+            {
                     continue;
+            }
 
             version(unittest)
             {
-                enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
-                    key, msg);};
+                enum warn = q{addErrorMessage(declarator.name.line,
+                    declarator.name.column, key, msg);};
             }
             else
             {
                 import std.format : format;
-                enum warn = q{addErrorMessage(declarator.name.line, declarator.name.column,
-                    key, msg.format(declarator.name.text));};
+                enum warn = q{addErrorMessage(declarator.name.line,
+                declarator.name.column, key, msg.format(declarator.name.text));};
             }
 
             // ---  Info about the declaration type --- //
-            const bool isPtr = decl.type.typeSuffixes && !decl.type.typeSuffixes
-                .filter!(a => a.star != tok!"").empty;
-            const bool isArr = decl.type.typeSuffixes && !decl.type.typeSuffixes
-                .filter!(a => a.array).empty;
+            const bool isPtr = decl.type.typeSuffixes && decl.type.typeSuffixes
+                .canFind!(a => a.star != tok!"");
+            const bool isArr = decl.type.typeSuffixes && decl.type.typeSuffixes
+                .canFind!(a => a.array);
 
             bool isStr, isSzInt;
             Token customType;
@@ -315,7 +324,16 @@ public:
         dstring a = "fgh"d;
         string a = q{int a;};
         size_t a = 1;
-        ptrdiff_t a = 1;
+        ptrdiff_t a;
+        ubyte a;
+        int a;
+        ulong a;
+        int* a;
+        Foo* a;
+        int[] a;
+        string a;
+        wstring a;
+        dstring a;
         string a = ['a'];
         char[] a = "ze";
         S s = S(0,1);
