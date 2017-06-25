@@ -10,4 +10,5 @@ elif [[ $DC == ldc2 ]]; then
 else
     git submodule update --init --recursive
     make test
+    make lint
 fi

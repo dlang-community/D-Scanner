@@ -32,7 +32,7 @@ class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const InterfaceDeclaration dec)
 	{
-		auto t = inInterface;
+		const t = inInterface;
 		inInterface = true;
 		dec.accept(this);
 		inInterface = t;
@@ -40,7 +40,7 @@ class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const ClassDeclaration dec)
 	{
-		auto t = inInterface;
+		const t = inInterface;
 		inInterface = false;
 		dec.accept(this);
 		inInterface = t;

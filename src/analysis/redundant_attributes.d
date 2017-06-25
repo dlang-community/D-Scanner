@@ -43,7 +43,7 @@ class RedundantAttributesCheck : BaseAnalyzer
 			// new scope: private { }
 			if (decl.declarations.length > 0)
 			{
-				auto prev = currentAttributes[];
+				const prev = currentAttributes[];
 				// append to current scope and reset once block is left
 				foreach (attr; attributes)
 					addAttribute(attr);
@@ -113,7 +113,7 @@ private:
 	void removeOverwrite(const Attribute attr)
 	{
 		import std.array : array;
-		auto group = getAttributeGroup(attr);
+		const group = getAttributeGroup(attr);
 		if (currentAttributes.filter!(a => getAttributeGroup(a) == group
 					&& !isIdenticalAttribute(a, attr)).walkLength > 0)
 		{
@@ -172,7 +172,6 @@ private:
 		stack.length--;
 	}
 
-private:
 	enum string KEY = "dscanner.suspicious.redundant_attributes";
 }
 
