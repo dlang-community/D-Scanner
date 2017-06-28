@@ -234,11 +234,16 @@ class UnusedVariableCheck : BaseAnalyzer
 			{
 				foreach (part; matchAll(primary.primary.text, re))
 				{
-					immutable size_t treeIndex = tree.length - 1;
-					auto uu = UnUsed(part.hit);
-					auto r = tree[treeIndex].equalRange(&uu);
-					if (!r.empty)
-						r.front.uncertain = true;
+					void checkTree(in size_t treeIndex)
+					{
+						auto uu = UnUsed(part.hit);
+						auto r = tree[treeIndex].equalRange(&uu);
+						if (!r.empty)
+							r.front.uncertain = true;
+					}
+					checkTree(tree.length - 1);
+					if (tree.length >= 2)
+						checkTree(tree.length - 2);
 				}
 			}
 		}
@@ -525,6 +530,11 @@ private:
 		cb1(3);
 		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
 		cb2(3);
+	}
+	
+	bool hasDittos(int decl)
+	{
+		mixin("decl++;");
 	}
 
 	}c, sac);
