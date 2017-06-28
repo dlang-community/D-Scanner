@@ -35,8 +35,8 @@ class DuplicateAttributeCheck : BaseAnalyzer
 	void checkAttributes(const Declaration node)
 	{
 		bool hasProperty;
-		bool hasSafe ;
-		bool hasTrusted ;
+		bool hasSafe;
+		bool hasTrusted;
 		bool hasSystem;
 		bool hasPure;
 		bool hasNoThrow;

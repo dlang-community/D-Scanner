@@ -48,7 +48,7 @@ private:
     DynamicArray!(string) _structStack;
     DynamicArray!(bool) _inStruct;
     DynamicArray!(bool) _atDisabled;
-    DynamicArray!(bool) _inTest;
+    bool _inTest;
 
 public:
 
@@ -57,19 +57,20 @@ public:
     {
         super(fileName, null, skipTests);
         _inStruct.insert(false);
-        _inTest.insert(false);
     }
 
     override void visit(const(Unittest) test)
     {
-        _inTest.insert(true);
+        if (skipTests)
+            return;
+        _inTest = true;
         test.accept(this);
-        _inTest.removeBack();
+        _inTest = false;
     }
 
     override void visit(const(StructDeclaration) decl)
     {
-        if (_inTest.back())
+        if (_inTest)
             return;
 
         assert(_inStruct.length > 1);
