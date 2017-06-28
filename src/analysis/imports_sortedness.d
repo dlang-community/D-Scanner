@@ -66,7 +66,7 @@ class ImportSortednessCheck : BaseAnalyzer
 
 private:
 
-	int level = 0;
+	int level;
 	string[][int] imports;
 
 	template ScopedVisit(NodeType)

@@ -97,7 +97,7 @@ final class EtagsPrinter : ASTVisitor
 	override void visit(const ModuleDeclaration dec)
 	{
 		auto tok0 = dec.moduleName.identifiers[0];
-		auto was = context;
+		const was = context;
 		context = "";
 		maketag(moduleName, tok0.index, tok0.line);
 		context = was;
@@ -115,7 +115,7 @@ final class EtagsPrinter : ASTVisitor
 
 		// visibility needs to be restored to what it was when changed by
 		// attribute.
-		auto was = visibility;
+		const was = visibility;
 		foreach (attr; dec.attributes)
 		{
 			updateVisibility(attr.attribute.type);
@@ -217,7 +217,7 @@ final class EtagsPrinter : ASTVisitor
 
 	override void visit(const Unittest dec)
 	{
-		bool was = inUnittest;
+		const was = inUnittest;
 		inUnittest = true;
 		dec.accept(this);
 		inUnittest = was;
@@ -287,7 +287,7 @@ private:
 	void acceptInContext(const ASTNode dec, string name)
 	{
 		// nest context before journeying on
-		auto c = context;
+		const c = context;
 		context ~= name ~ ".";
 		dec.accept(this);
 		context = c;

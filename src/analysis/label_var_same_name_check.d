@@ -78,7 +78,7 @@ private:
 		import std.conv : to;
 		import std.range : retro;
 
-		size_t i = 0;
+		size_t i;
 		foreach (s; retro(stack))
 		{
 			const(Thing)* thing = name.text in s;
