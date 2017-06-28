@@ -412,6 +412,8 @@ private:
 		{
 			if (!uu.isRef && tree.length > 1)
 			{
+			    if (uu.uncertain)
+			        continue;
 				immutable string certainty = uu.uncertain ? " might not be used."
 					: " is never used.";
 				immutable string errorMessage = (uu.isParameter ? "Parameter " : "Variable ")
