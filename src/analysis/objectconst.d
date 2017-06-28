@@ -65,7 +65,7 @@ class ObjectConstCheck : BaseAnalyzer
 			|| name == "toString" || name == "opCast";
 	}
 
-	private bool looking = false;
+	private bool looking;
 
 }
 

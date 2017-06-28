@@ -59,8 +59,8 @@ class FunctionAttributeCheck : BaseAnalyzer
 	{
 		if (dec.parameters.parameters.length == 0)
 		{
-			bool foundConst = false;
-			bool foundProperty = false;
+			bool foundConst;
+			bool foundProperty;
 			foreach (attribute; dec.attributes)
 				foundConst = foundConst || attribute.attribute.type == tok!"const"
 					|| attribute.attribute.type == tok!"immutable"

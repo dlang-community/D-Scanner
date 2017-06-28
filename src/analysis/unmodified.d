@@ -223,7 +223,7 @@ private:
 				castExpression.accept(this);
 			}
 
-			bool foundCast = false;
+			bool foundCast;
 		}
 
 		if (initializer is null)
