@@ -67,7 +67,7 @@ class PokemonExceptionCheck : BaseAnalyzer
 		{
 			return;
 		}
-		auto identOrTemplate = type2.symbol.identifierOrTemplateChain
+		const identOrTemplate = type2.symbol.identifierOrTemplateChain
 			.identifiersOrTemplateInstances[0];
 		if (identOrTemplate.templateInstance !is null)
 		{

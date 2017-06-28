@@ -21,11 +21,13 @@ compilers instead of DMD. To install, simply place the generated binary (in the
 # Usage
 The following examples assume that we are analyzing a simple file called helloworld.d
 
-	import std.stdio;
-	void main(string[] args)
-	{
-		writeln("Hello World");
-	}
+```d
+import std.stdio;
+void main(string[] args)
+{
+	writeln("Hello World");
+}
+```
 
 ### Token Count
 The "--tokenCount" or "-t" option prints the number of tokens in the given file
@@ -131,6 +133,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Useless initializers.
 * Allman brace style
 * Redundant visibility attributes
+* Public declarations without a documented unittest. By default disabled.
 
 #### Wishlist
 
@@ -214,83 +217,88 @@ If a `dscanner.ini` file is locate in the working directory or any of it's paren
 The "--ast" or "--xml" options will dump the complete abstract syntax tree of
 the given source file to standard output in XML format.
 
-	$ dscanner --ast helloworld.d
-	<module>
-	<declaration>
-	<importDeclaration>
-	<singleImport>
-	<identifierChain>
-	<identifier>std</identifier>
-	<identifier>stdio</identifier>
-	</identifierChain>
-	</singleImport>
-	</importDeclaration>
-	</declaration>
-	<declaration>
-	<functionDeclaration line="3">
-	<name>main</name>
-	<type pretty="void">
-	<type2>
-	void
-	</type2>
-	</type>
-	<parameters>
-	<parameter>
-	<name>args</name>
-	<type pretty="string[]">
-	<type2>
-	<symbol>
-	<identifierOrTemplateChain>
-	<identifierOrTemplateInstance>
-	<identifier>string</identifier>
-	</identifierOrTemplateInstance>
-	</identifierOrTemplateChain>
-	</symbol>
-	</type2>
-	<typeSuffix type="[]"/>
-	</type>
-	<identifier>args</identifier>
-	</parameter>
-	</parameters>
-	<functionBody>
-	<blockStatement>
-	<declarationsAndStatements>
-	<declarationOrStatement>
-	<statement>
-	<statementNoCaseNoDefault>
-	<expressionStatement>
-	<expression>
-	<assignExpression>
-	<functionCallExpression>
-	<unaryExpression>
-	<primaryExpression>
-	<identifierOrTemplateInstance>
-	<identifier>writeln</identifier>
-	</identifierOrTemplateInstance>
-	</primaryExpression>
-	</unaryExpression>
-	<arguments>
-	<argumentList>
-	<assignExpression>
-	<primaryExpression>
-	<stringLiteral>Hello World</stringLiteral>
-	</primaryExpression>
-	</assignExpression>
-	</argumentList>
-	</arguments>
-	</functionCallExpression>
-	</assignExpression>
-	</expression>
-	</expressionStatement>
-	</statementNoCaseNoDefault>
-	</statement>
-	</declarationOrStatement>
-	</declarationsAndStatements>
-	</blockStatement>
-	</functionBody>
-	</functionDeclaration>
-	</declaration>
-	</module>
+```sh
+$ dscanner --ast helloworld.d
+```
+	
+```xml
+<module>
+<declaration>
+<importDeclaration>
+<singleImport>
+<identifierChain>
+<identifier>std</identifier>
+<identifier>stdio</identifier>
+</identifierChain>
+</singleImport>
+</importDeclaration>
+</declaration>
+<declaration>
+<functionDeclaration line="3">
+<name>main</name>
+<type pretty="void">
+<type2>
+void
+</type2>
+</type>
+<parameters>
+<parameter>
+<name>args</name>
+<type pretty="string[]">
+<type2>
+<symbol>
+<identifierOrTemplateChain>
+<identifierOrTemplateInstance>
+<identifier>string</identifier>
+</identifierOrTemplateInstance>
+</identifierOrTemplateChain>
+</symbol>
+</type2>
+<typeSuffix type="[]"/>
+</type>
+<identifier>args</identifier>
+</parameter>
+</parameters>
+<functionBody>
+<blockStatement>
+<declarationsAndStatements>
+<declarationOrStatement>
+<statement>
+<statementNoCaseNoDefault>
+<expressionStatement>
+<expression>
+<assignExpression>
+<functionCallExpression>
+<unaryExpression>
+<primaryExpression>
+<identifierOrTemplateInstance>
+<identifier>writeln</identifier>
+</identifierOrTemplateInstance>
+</primaryExpression>
+</unaryExpression>
+<arguments>
+<argumentList>
+<assignExpression>
+<primaryExpression>
+<stringLiteral>Hello World</stringLiteral>
+</primaryExpression>
+</assignExpression>
+</argumentList>
+</arguments>
+</functionCallExpression>
+</assignExpression>
+</expression>
+</expressionStatement>
+</statementNoCaseNoDefault>
+</statement>
+</declarationOrStatement>
+</declarationsAndStatements>
+</blockStatement>
+</functionBody>
+</functionDeclaration>
+</declaration>
+</module>
+```
 
 For more readable output, pipe the command through [xmllint](http://xmlsoft.org/xmllint.html)
 using its formatting switch.

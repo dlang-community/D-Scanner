@@ -93,10 +93,10 @@ private:
 	{
 		import std.algorithm : canFind;
 
-		return builtinProperties.canFind(name);
+		return BuiltinProperties.canFind(name);
 	}
 
-	enum string[] builtinProperties = ["init", "sizeof", "mangleof", "alignof", "stringof"];
+	enum string[] BuiltinProperties = ["init", "sizeof", "mangleof", "alignof", "stringof"];
 	int depth;
 }
 

@@ -68,6 +68,7 @@ import analysis.vcall_in_ctor;
 import analysis.useless_initializer;
 import analysis.allman;
 import analysis.redundant_attributes;
+import analysis.has_public_example;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -168,8 +169,8 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		if (code.length == 0)
 			continue;
 		RollbackAllocator r;
-		uint errorCount = 0;
-		uint warningCount = 0;
+		uint errorCount;
+		uint warningCount;
 		const(Token)[] tokens;
 		const Module m = parseModule(fileName, code, &r, cache, false, tokens,
 				null, &errorCount, &warningCount);
@@ -475,6 +476,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"redundant_attributes_check"(analysisConfig))
 		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
 		analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
+
+	if (analysisConfig.has_public_example!= Check.disabled)
+		checks ~= new HasPublicExampleCheck(fileName, moduleScope,
+		analysisConfig.has_public_example == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!"redundant_if_check"(analysisConfig))
