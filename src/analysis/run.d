@@ -477,7 +477,7 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
 		analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
 
-	if (analysisConfig.has_public_example!= Check.disabled)
+	if (moduleName.shouldRun!"has_public_example"(analysisConfig))
 		checks ~= new HasPublicExampleCheck(fileName, moduleScope,
 		analysisConfig.has_public_example == Check.skipTests && !ut);
 
