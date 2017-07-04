@@ -26,5 +26,5 @@ for %%x in (containers\src\containers\*.d) do set CONTAINERS=!CONTAINERS! %%x
 for %%x in (containers\src\containers\internal\*.d) do set CONTAINERS=!CONTAINERS! %%x
 
 @echo on
-dmd %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src"  -I"libddoc\src" -ofdscanner.exe
+dmd %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src"  -I"libddoc\src" -ofbin\dscanner.exe
 
