@@ -189,6 +189,9 @@ struct StaticAnalysisConfig
 	@INI("Check public declarations without a documented unittest")
 	string has_public_example = Check.disabled;
 
+	@INI("Check for asserts without an explanatory message")
+	string assert_without_msg = Check.disabled;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }
