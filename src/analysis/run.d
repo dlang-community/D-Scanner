@@ -69,6 +69,7 @@ import analysis.useless_initializer;
 import analysis.allman;
 import analysis.redundant_attributes;
 import analysis.has_public_example;
+import analysis.assert_without_msg;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -480,6 +481,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"has_public_example"(analysisConfig))
 		checks ~= new HasPublicExampleCheck(fileName, moduleScope,
 		analysisConfig.has_public_example == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!"assert_without_msg"(analysisConfig))
+		checks ~= new AssertWithoutMessageCheck(fileName, moduleScope,
+		analysisConfig.assert_without_msg == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!"redundant_if_check"(analysisConfig))
