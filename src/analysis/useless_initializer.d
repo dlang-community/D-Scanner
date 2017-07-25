@@ -41,7 +41,6 @@ private:
 		enum msg = `Variable %s initializer is useless because it does not differ from the default value`;
 	}
 
-	static immutable strDefs = [`""`, `""c`, `""w`, `""d`, "``", "``c", "``w", "``d", "q{}"];
 	static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
 
 	HashMap!(string, bool) _structCanBeInit;
@@ -217,7 +216,7 @@ public:
 					if (intDefs.canFind(value.text))
 						mixin(warn);
 				}
-				else if (isPtr)
+				else if (isPtr || isStr)
 				{
 					if (str(value.type) == "null")
 						mixin(warn);
@@ -225,24 +224,6 @@ public:
 				else if (isArr)
 				{
 					if (str(value.type) == "null")
-						mixin(warn);
-					else if (nvi.arrayInitializer && nvi.arrayInitializer.arrayMemberInitializations.length == 0)
-						mixin(warn);
-					else if (decl.type.type2.builtinType != tok!"")
-					{
-						switch(decl.type.type2.builtinType)
-						{
-						case tok!"char", tok!"wchar", tok!"dchar":
-							if (strDefs.canFind(value.text))
-								mixin(warn);
-							break;
-						default:
-						}
-					}
-				}
-				else if (isStr)
-				{
-					if (strDefs.canFind(value.text))
 						mixin(warn);
 					else if (nvi.arrayInitializer && nvi.arrayInitializer.arrayMemberInitializations.length == 0)
 						mixin(warn);
@@ -293,15 +274,14 @@ public:
 		Foo* a = null;      // [warn]: X
 		int[] a = null;     // [warn]: X
 		int[] a = [];       // [warn]: X
-		string a = "";      // [warn]: X
-		string a = ""c;     // [warn]: X
-		wstring a = ""w;    // [warn]: X
-		dstring a = ""d;    // [warn]: X
-		string a = q{};     // [warn]: X
+		string a = null;    // [warn]: X
+		string a = null;    // [warn]: X
+		wstring a = null;   // [warn]: X
+		dstring a = null;   // [warn]: X
 		size_t a = 0;       // [warn]: X
 		ptrdiff_t a = 0;    // [warn]: X
 		string a = [];      // [warn]: X
-		char[] a = "";      // [warn]: X
+		char[] a = null;    // [warn]: X
 		int a = int.init;   // [warn]: X
 		char a = char.init; // [warn]: X
 		S s = S.init;       // [warn]: X
@@ -336,6 +316,11 @@ public:
 		wstring a;
 		dstring a;
 		string a = ['a'];
+		string a = "";
+		string a = ""c;
+		wstring a = ""w;
+		dstring a = ""d;
+		string a = q{};
 		char[] a = "ze";
 		S s = S(0,1);
 		S s = s.call();
