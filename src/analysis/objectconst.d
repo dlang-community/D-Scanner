@@ -21,6 +21,7 @@ class ObjectConstCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);
@@ -31,24 +32,40 @@ class ObjectConstCheck : BaseAnalyzer
 	mixin visitTemplate!UnionDeclaration;
 	mixin visitTemplate!StructDeclaration;
 
+	override void visit(const AttributeDeclaration d)
+	{
+		if (d.attribute.attribute == tok!"const" && inAggregate)
+		{
+			constColon = true;
+		}
+		d.accept(this);
+	}
+
 	override void visit(const Declaration d)
 	{
-		if (inAggregate && d.functionDeclaration !is null
-				&& isInteresting(d.functionDeclaration.name.text) && (!hasConst(d.attributes)
-					&& !hasConst(d.functionDeclaration.memberFunctionAttributes)))
+		import std.algorithm : any;
+		bool setConstBlock;
+		if (inAggregate && d.attributes && d.attributes.any!(a => a.attribute == tok!"const"))
+		{
+			setConstBlock = true;
+			constBlock = true;
+		}
+
+		if (inAggregate && d.functionDeclaration !is null && !constColon && !constBlock
+				&& isInteresting(d.functionDeclaration.name.text)
+				&& !hasConst(d.functionDeclaration.memberFunctionAttributes))
 		{
 			addErrorMessage(d.functionDeclaration.name.line,
 					d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
 					"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
 		}
+
 		d.accept(this);
-	}
 
-	private static bool hasConst(const Attribute[] attributes)
-	{
-		import std.algorithm : any;
-
-		return attributes.any!(a => a.attribute == tok!"const");
+		if (!inAggregate)
+			constColon = false;
+		if (setConstBlock)
+			constBlock = false;
 	}
 
 	private static bool hasConst(const MemberFunctionAttribute[] attributes)
@@ -65,7 +82,8 @@ class ObjectConstCheck : BaseAnalyzer
 			|| name == "toString" || name == "opCast";
 	}
 
-	private bool looking;
+	private bool constBlock;
+	private bool constColon;
 
 }
 
@@ -100,6 +118,16 @@ unittest
 				{
 					return "Cat";
 				}
+			}
+
+			class Bat
+			{
+          		const: override string toString() { return "foo"; } // ok
+			}
+
+			class Fox
+			{
+          		const{ override string toString() { return "foo"; }} // ok
 			}
 
 			// Will warn, because none are const
