@@ -13,9 +13,9 @@ compilers instead of DMD. To install, simply place the generated binary (in the
 "bin" folder) somewhere on your $PATH.
 
 ### Testing
-Testing doe not work with DUB.
-Under linux or OSX run `make test`.
-Under Windows run `build.bat test`.
+Testing does not work with DUB.
+Under linux or OSX run the tests with `make test`.
+Under Windows run the tests with `build.bat test`.
 
 ### Installing with DUB
 
