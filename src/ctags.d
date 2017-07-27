@@ -17,6 +17,7 @@ import std.conv;
 import std.typecons;
 import containers.ttree;
 import std.string;
+import std.functional : toDelegate;
 
 /**
  * Prints CTAGS information to the given file.
@@ -65,7 +66,7 @@ void printCtags(File output, string[] fileNames)
 		}
 
 		auto tokens = getTokensForParser(bytes, config, &cache);
-		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
+		Module m = parseModule(tokens.array, fileName, &rba, toDelegate(&doNothing));
 
 		auto printer = new CTagsPrinter(&tags);
 		printer.fileName = fileName;
