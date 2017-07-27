@@ -44,6 +44,7 @@ private:
     enum KEY = "dscanner.confusing.lambda_returns_lambda";
 }
 
+version(Windows) {/*because of newline in code*/} else
 unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;

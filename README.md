@@ -12,6 +12,11 @@ makefile has "ldc" and "gdc" targets if you'd prefer to compile with one of thes
 compilers instead of DMD. To install, simply place the generated binary (in the
 "bin" folder) somewhere on your $PATH.
 
+### Testing
+Testing doe not work with DUB.
+Under linux or OSX run `make test`.
+Under Windows run `build.bat test`.
+
 ### Installing with DUB
 
 ```sh
