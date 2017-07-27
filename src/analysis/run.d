@@ -11,6 +11,7 @@ import std.conv;
 import std.algorithm;
 import std.range;
 import std.array;
+import std.functional : toDelegate;
 import dparse.lexer;
 import dparse.parser;
 import dparse.ast;
@@ -202,8 +203,9 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
-	return dparse.parser.parseModule(tokens, fileName, p, report
-			? &messageFunctionJSON : &messageFunction, errorCount, warningCount);
+	return dparse.parser.parseModule(tokens, fileName, p,
+		report ? toDelegate(&messageFunctionJSON) : toDelegate(&messageFunction),
+		errorCount, warningCount);
 }
 
 /**

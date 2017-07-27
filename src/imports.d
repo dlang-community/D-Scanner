@@ -11,6 +11,7 @@ import dparse.parser;
 import dparse.rollback_allocator;
 import std.stdio;
 import std.container.rbtree;
+import std.functional : toDelegate;
 import readers;
 
 /**
@@ -63,7 +64,7 @@ private void visitFile(bool usingStdin, string fileName, RedBlackTree!string imp
 	config.stringBehavior = StringBehavior.source;
 	auto visitor = new ImportPrinter;
 	auto tokens = getTokensForParser(usingStdin ? readStdin() : readFile(fileName), config, cache);
-	auto mod = parseModule(tokens, fileName, &rba, &doNothing);
+	auto mod = parseModule(tokens, fileName, &rba, toDelegate(&doNothing));
 	visitor.visit(mod);
 	importedModules.insert(visitor.imports[]);
 }

@@ -12,6 +12,7 @@ import dparse.ast;
 import dparse.rollback_allocator;
 import std.stdio;
 import std.file : isFile;
+import std.functional : toDelegate;
 
 void findDeclarationOf(File output, string symbolName, string[] fileNames)
 {
@@ -31,7 +32,7 @@ void findDeclarationOf(File output, string symbolName, string[] fileNames)
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
 		RollbackAllocator rba;
-		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
+		Module m = parseModule(tokens.array, fileName, &rba, toDelegate(&doNothing));
 		visitor.fileName = fileName;
 		visitor.visit(m);
 	}
