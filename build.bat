@@ -34,7 +34,7 @@ goto eof
 @echo on
 set TESTNAME="bin\dscanner-unittest"
 dmd %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -lib %TESTFLAGS% -of%TESTNAME%.lib
-if exist %TESTNAME%.lib dmd %CORE% %ANALYSIS% bin\dscanner-unittest.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -unittest %TESTFLAGS% -of%TESTNAME%.exe
+if exist %TESTNAME%.lib dmd %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -unittest %TESTFLAGS% -of%TESTNAME%.exe
 if exist %TESTNAME%.exe %TESTNAME%.exe
 
 if exist %TESTNAME%.obj del %TESTNAME%.obj
