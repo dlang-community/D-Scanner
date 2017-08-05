@@ -265,6 +265,12 @@ unittest
 	}
 }
 
+unittest
+{
+    int aa;
+    struct a { int a; }
+}
+
 }c, sac);
 	stderr.writeln("Unittest for LabelVarNameCheck passed.");
 }
