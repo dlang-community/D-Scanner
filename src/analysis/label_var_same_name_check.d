@@ -153,7 +153,7 @@ private:
 	void updateAggregateText()
 	{
 		import std.algorithm : map;
-		import std.array : array, join;
+		import std.array : join;
 
 		if (parentAggregates.length)
 			parentAggregateText = parentAggregates.map!(a => a.text).join(".") ~ ".";
