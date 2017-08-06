@@ -11,6 +11,7 @@ import std.container;
 import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
 import std.algorithm.iteration : map;
+import std.algorithm : all;
 
 /**
  * Checks for unused variables.
@@ -372,7 +373,7 @@ private:
 
 	void variableDeclared(string name, size_t line, size_t column, bool isParameter, bool isRef)
 	{
-		if (inAggregateScope)
+		if (inAggregateScope || name.all!(a => a == '_'))
 			return;
 		tree[$ - 1].insert(new UnUsed(name, line, column, isParameter, isRef));
 	}
@@ -504,6 +505,15 @@ private:
 	void test352_2()
 	{
 		void f(Bat** bat) {*bat = bats.ptr + 8;}
+	}
+
+	// Issue 490
+	void test490()
+	{
+		auto cb1 = delegate(size_t _) {};
+		cb1(3);
+		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
+		cb2(3);
 	}
 
 	}c, sac);
