@@ -16,7 +16,8 @@ import std.functional : toDelegate;
 
 void findDeclarationOf(File output, string symbolName, string[] fileNames)
 {
-	findDeclarationOf((string fileName, size_t line, size_t column) {
+	findDeclarationOf((string fileName, size_t line, size_t column)
+	{
 		output.writefln("%s(%d:%d)", fileName, line, column);
 	}, symbolName, fileNames);
 }
