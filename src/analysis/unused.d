@@ -132,7 +132,8 @@ class UnusedVariableCheck : BaseAnalyzer
 			ifStatement.expression.accept(this);
 			interestDepth--;
 		}
-		ifStatement.thenStatement.accept(this);
+		if (ifStatement.thenStatement !is null)
+			ifStatement.thenStatement.accept(this);
 		if (ifStatement.elseStatement !is null)
 			ifStatement.elseStatement.accept(this);
 	}
