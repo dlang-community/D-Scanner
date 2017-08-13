@@ -91,18 +91,26 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const WhileStatement whileStatement)
 	{
-		interestDepth++;
-		whileStatement.expression.accept(this);
-		interestDepth--;
-		whileStatement.declarationOrStatement.accept(this);
+		if (whileStatement.expression !is null)
+		{
+			interestDepth++;
+			whileStatement.expression.accept(this);
+			interestDepth--;
+		}
+		if (whileStatement.declarationOrStatement !is null)
+			whileStatement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const DoStatement doStatement)
 	{
-		interestDepth++;
-		doStatement.expression.accept(this);
-		interestDepth--;
-		doStatement.statementNoCaseNoDefault.accept(this);
+		if (doStatement.expression !is null)
+		{
+			interestDepth++;
+			doStatement.expression.accept(this);
+			interestDepth--;
+		}
+		if (doStatement.statementNoCaseNoDefault !is null)
+			doStatement.statementNoCaseNoDefault.accept(this);
 	}
 
 	override void visit(const ForStatement forStatement)
@@ -121,7 +129,8 @@ class UnusedVariableCheck : BaseAnalyzer
 			forStatement.increment.accept(this);
 			interestDepth--;
 		}
-		forStatement.declarationOrStatement.accept(this);
+		if (forStatement.declarationOrStatement !is null)
+			forStatement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const IfStatement ifStatement)
@@ -157,7 +166,8 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const AssignExpression assignExp)
 	{
-		assignExp.ternaryExpression.accept(this);
+		if (assignExp.ternaryExpression !is null)
+			assignExp.ternaryExpression.accept(this);
 		if (assignExp.expression !is null)
 		{
 			interestDepth++;
