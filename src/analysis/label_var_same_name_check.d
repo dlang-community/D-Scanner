@@ -28,6 +28,11 @@ class LabelVarNameCheck : BaseAnalyzer
 	mixin ScopedVisit!IfStatement;
 	mixin ScopedVisit!TemplateDeclaration;
 
+	mixin AggregateVisit!ClassDeclaration;
+	mixin AggregateVisit!StructDeclaration;
+	mixin AggregateVisit!InterfaceDeclaration;
+	mixin AggregateVisit!UnionDeclaration;
+
 	override void visit(const VariableDeclaration var)
 	{
 		foreach (dec; var.declarators)
@@ -63,6 +68,16 @@ private:
 
 	Thing[string][] stack;
 
+	template AggregateVisit(NodeType)
+	{
+		override void visit(const NodeType n)
+		{
+			pushAggregateName(n.name);
+			n.accept(this);
+			popAggregateName();
+		}
+	}
+
 	template ScopedVisit(NodeType)
 	{
 		override void visit(const NodeType n)
@@ -81,15 +96,16 @@ private:
 		size_t i;
 		foreach (s; retro(stack))
 		{
-			const(Thing)* thing = name.text in s;
+			string fqn = parentAggregateText ~ name.text;
+			const(Thing)* thing = fqn in s;
 			if (thing is null)
-				currentScope[name.text] = Thing(name.text, name.line, name.column, !fromLabel /+, isConditional+/ );
+				currentScope[fqn] = Thing(fqn, name.line, name.column, !fromLabel /+, isConditional+/ );
 			else if (i != 0 || !isConditional)
 			{
 				immutable thisKind = fromLabel ? "Label" : "Variable";
 				immutable otherKind = thing.isVar ? "variable" : "label";
 				addErrorMessage(name.line, name.column, "dscanner.suspicious.label_var_same_name",
-						thisKind ~ " \"" ~ name.text ~ "\" has the same name as a "
+						thisKind ~ " \"" ~ fqn ~ "\" has the same name as a "
 						~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
 			}
 			++i;
@@ -121,6 +137,32 @@ private:
 	}
 
 	int conditionalDepth;
+
+	void pushAggregateName(Token name)
+	{
+		parentAggregates ~= name;
+		updateAggregateText();
+	}
+
+	void popAggregateName()
+	{
+		parentAggregates.length -= 1;
+		updateAggregateText();
+	}
+
+	void updateAggregateText()
+	{
+		import std.algorithm : map;
+		import std.array : join;
+
+		if (parentAggregates.length)
+			parentAggregateText = parentAggregates.map!(a => a.text).join(".") ~ ".";
+		else
+			parentAggregateText = "";
+	}
+
+	Token[] parentAggregates;
+	string parentAggregateText;
 }
 
 unittest
@@ -188,6 +230,45 @@ unittest
 {
     version(LittleEndian) { enum string NAME = "UTF-16LE"; }
 	else version(BigEndian)    { enum string NAME = "UTF-16BE"; }
+}
+
+unittest
+{
+	int a;
+	struct A {int a;}
+}
+
+unittest
+{
+	int a;
+	struct A { struct A {int a;}}
+}
+
+unittest
+{
+	int a;
+	class A { class A {int a;}}
+}
+
+unittest
+{
+	int a;
+	interface A { interface A {int a;}}
+}
+
+unittest
+{
+	interface A
+	{
+		int a;
+		int a; // [warn]: Variable "A.a" has the same name as a variable defined on line 89.
+	}
+}
+
+unittest
+{
+    int aa;
+    struct a { int a; }
 }
 
 }c, sac);

@@ -160,7 +160,8 @@ class UnmodifiedFinder : BaseAnalyzer
 			foreachStatement.low.accept(this);
 			interest--;
 		}
-		foreachStatement.declarationOrStatement.accept(this);
+		if (foreachStatement.declarationOrStatement !is null)
+			foreachStatement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const TraitsExpression)
@@ -223,7 +224,7 @@ private:
 				castExpression.accept(this);
 			}
 
-			bool foundCast = false;
+			bool foundCast;
 		}
 
 		if (initializer is null)

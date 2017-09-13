@@ -15,6 +15,7 @@ import std.stdio;
 import std.range;
 import std.experimental.lexer;
 import std.typecons : scoped;
+import std.functional : toDelegate;
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
@@ -283,7 +284,7 @@ else
 			config.stringBehavior = StringBehavior.source;
 			auto tokens = getTokensForParser(usingStdin ? readStdin()
 					: readFile(args[1]), config, &cache);
-			auto mod = parseModule(tokens, fileName, &rba, &doNothing);
+			auto mod = parseModule(tokens, fileName, &rba, toDelegate(&doNothing));
 
 			if (ast)
 			{

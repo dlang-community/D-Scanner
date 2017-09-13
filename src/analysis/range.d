@@ -141,9 +141,10 @@ private:
 	long parseNumber(string te)
 	{
 		import std.conv : to;
-		import std.string : removechars;
+		import std.regex : ctRegex, replaceAll;
 
-		string t = te.removechars("_uUlL");
+		enum re = ctRegex!("[_uUlL]", "");
+		string t = te.replaceAll(re, "");
 		if (t.length > 2)
 		{
 			if (t[1] == 'x' || t[1] == 'X')

@@ -125,7 +125,6 @@ private:
 		size_t length;
 		const newLine = tok.line > prevLine;
 		bool multiLine;
-
 		if (tok.text is null)
 			length += str(tok.type).length;
 		else

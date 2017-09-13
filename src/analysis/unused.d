@@ -11,6 +11,7 @@ import std.container;
 import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
 import std.algorithm.iteration : map;
+import std.algorithm : all;
 
 /**
  * Checks for unused variables.
@@ -90,18 +91,26 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const WhileStatement whileStatement)
 	{
-		interestDepth++;
-		whileStatement.expression.accept(this);
-		interestDepth--;
-		whileStatement.declarationOrStatement.accept(this);
+		if (whileStatement.expression !is null)
+		{
+			interestDepth++;
+			whileStatement.expression.accept(this);
+			interestDepth--;
+		}
+		if (whileStatement.declarationOrStatement !is null)
+			whileStatement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const DoStatement doStatement)
 	{
-		interestDepth++;
-		doStatement.expression.accept(this);
-		interestDepth--;
-		doStatement.statementNoCaseNoDefault.accept(this);
+		if (doStatement.expression !is null)
+		{
+			interestDepth++;
+			doStatement.expression.accept(this);
+			interestDepth--;
+		}
+		if (doStatement.statementNoCaseNoDefault !is null)
+			doStatement.statementNoCaseNoDefault.accept(this);
 	}
 
 	override void visit(const ForStatement forStatement)
@@ -120,7 +129,8 @@ class UnusedVariableCheck : BaseAnalyzer
 			forStatement.increment.accept(this);
 			interestDepth--;
 		}
-		forStatement.declarationOrStatement.accept(this);
+		if (forStatement.declarationOrStatement !is null)
+			forStatement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const IfStatement ifStatement)
@@ -131,7 +141,8 @@ class UnusedVariableCheck : BaseAnalyzer
 			ifStatement.expression.accept(this);
 			interestDepth--;
 		}
-		ifStatement.thenStatement.accept(this);
+		if (ifStatement.thenStatement !is null)
+			ifStatement.thenStatement.accept(this);
 		if (ifStatement.elseStatement !is null)
 			ifStatement.elseStatement.accept(this);
 	}
@@ -155,7 +166,8 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const AssignExpression assignExp)
 	{
-		assignExp.ternaryExpression.accept(this);
+		if (assignExp.ternaryExpression !is null)
+			assignExp.ternaryExpression.accept(this);
 		if (assignExp.expression !is null)
 		{
 			interestDepth++;
@@ -372,7 +384,7 @@ private:
 
 	void variableDeclared(string name, size_t line, size_t column, bool isParameter, bool isRef)
 	{
-		if (inAggregateScope)
+		if (inAggregateScope || name.all!(a => a == '_'))
 			return;
 		tree[$ - 1].insert(new UnUsed(name, line, column, isParameter, isRef));
 	}
@@ -504,6 +516,15 @@ private:
 	void test352_2()
 	{
 		void f(Bat** bat) {*bat = bats.ptr + 8;}
+	}
+
+	// Issue 490
+	void test490()
+	{
+		auto cb1 = delegate(size_t _) {};
+		cb1(3);
+		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
+		cb2(3);
 	}
 
 	}c, sac);
