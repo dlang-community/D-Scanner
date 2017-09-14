@@ -17,6 +17,7 @@ import std.path;
 import std.array;
 import std.conv;
 import std.string;
+import std.functional : toDelegate;
 
 // Prefix tags with their module name.	Seems like correct behavior, but just
 // in case, make it an option.
@@ -48,7 +49,7 @@ void printEtags(File output, bool tagAll, string[] fileNames)
 		auto bytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
-		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
+		Module m = parseModule(tokens.array, fileName, &rba, toDelegate(&doNothing));
 
 		auto printer = new EtagsPrinter;
 		printer.moduleName = m.moduleFullName(fileName);

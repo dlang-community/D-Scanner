@@ -34,12 +34,12 @@ class DuplicateAttributeCheck : BaseAnalyzer
 
 	void checkAttributes(const Declaration node)
 	{
-		bool hasProperty = false;
-		bool hasSafe = false;
-		bool hasTrusted = false;
-		bool hasSystem = false;
-		bool hasPure = false;
-		bool hasNoThrow = false;
+		bool hasProperty;
+		bool hasSafe;
+		bool hasTrusted;
+		bool hasSystem;
+		bool hasPure;
+		bool hasNoThrow;
 
 		// Check the attributes
 		foreach (attribute; node.attributes)

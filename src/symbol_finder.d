@@ -12,8 +12,25 @@ import dparse.ast;
 import dparse.rollback_allocator;
 import std.stdio;
 import std.file : isFile;
+import std.functional : toDelegate;
 
 void findDeclarationOf(File output, string symbolName, string[] fileNames)
+{
+	findDeclarationOf((string fileName, size_t line, size_t column)
+	{
+		output.writefln("%s(%d:%d)", fileName, line, column);
+	}, symbolName, fileNames);
+}
+
+/// Delegate that gets called every time a declaration gets found
+alias OutputHandler = void delegate(string fileName, size_t line, size_t column);
+
+/// Finds all declarations of a symbol in the given fileNames and calls a handler on every occurence.
+/// Params:
+///   output = Callback which gets called when a declaration is found
+///   symbolName = Symbol name to search for
+///   fileNames = An array of file names which might contain stdin to read from stdin
+void findDeclarationOf(scope OutputHandler output, string symbolName, string[] fileNames)
 {
 	import std.array : uninitializedArray, array;
 	import std.conv : to;
@@ -31,7 +48,7 @@ void findDeclarationOf(File output, string symbolName, string[] fileNames)
 		f.rawRead(bytes);
 		auto tokens = getTokensForParser(bytes, config, &cache);
 		RollbackAllocator rba;
-		Module m = parseModule(tokens.array, fileName, &rba, &doNothing);
+		Module m = parseModule(tokens.array, fileName, &rba, toDelegate(&doNothing));
 		visitor.fileName = fileName;
 		visitor.visit(m);
 	}
@@ -45,7 +62,7 @@ void doNothing(string, size_t, size_t, string, bool)
 
 class FinderVisitor : ASTVisitor
 {
-	this(File output, string symbolName)
+	this(OutputHandler output, string symbolName)
 	{
 		this.output = output;
 		this.symbolName = symbolName;
@@ -61,19 +78,19 @@ class FinderVisitor : ASTVisitor
 	override void visit(const EnumDeclaration dec)
 	{
 		if (dec.name.text == symbolName)
-			output.writefln("%s(%d:%d)", fileName, dec.name.line, dec.name.column);
+			output(fileName, dec.name.line, dec.name.column);
 	}
 
 	override void visit(const AnonymousEnumMember member)
 	{
 		if (member.name.text == symbolName)
-			output.writefln("%s(%d:%d)", fileName, member.name.line, member.name.column);
+			output(fileName, member.name.line, member.name.column);
 	}
 
 	override void visit(const EnumMember member)
 	{
 		if (member.name.text == symbolName)
-			output.writefln("%s(%d:%d)", fileName, member.name.line, member.name.column);
+			output(fileName, member.name.line, member.name.column);
 	}
 
 	override void visit(const AliasDeclaration dec)
@@ -83,13 +100,13 @@ class FinderVisitor : ASTVisitor
 			foreach (ident; dec.identifierList.identifiers)
 			{
 				if (ident.text == symbolName)
-					output.writefln("%s(%d:%d)", fileName, ident.line, ident.column);
+					output(fileName, ident.line, ident.column);
 			}
 		}
 		foreach (initializer; dec.initializers)
 		{
 			if (initializer.name.text == symbolName)
-				output.writefln("%s(%d:%d)", fileName, initializer.name.line,
+				output(fileName, initializer.name.line,
 						initializer.name.column);
 		}
 	}
@@ -97,7 +114,7 @@ class FinderVisitor : ASTVisitor
 	override void visit(const Declarator dec)
 	{
 		if (dec.name.text == symbolName)
-			output.writefln("%s(%d:%d)", fileName, dec.name.line, dec.name.column);
+			output(fileName, dec.name.line, dec.name.column);
 	}
 
 	override void visit(const AutoDeclaration ad)
@@ -105,7 +122,7 @@ class FinderVisitor : ASTVisitor
 		foreach (part; ad.parts)
 		{
 			if (part.identifier.text == symbolName)
-				output.writefln("%s(%d:%d)", fileName, part.identifier.line, part.identifier.column);
+				output(fileName, part.identifier.line, part.identifier.column);
 		}
 	}
 
@@ -118,14 +135,14 @@ class FinderVisitor : ASTVisitor
 		override void visit(const T t)
 		{
 			if (t.name.text == symbolName)
-				output.writefln("%s(%d:%d)", fileName, t.name.line, t.name.column);
+				output(fileName, t.name.line, t.name.column);
 			t.accept(this);
 		}
 	}
 
 	alias visit = ASTVisitor.visit;
 
-	File output;
+	OutputHandler output;
 	string symbolName;
 	string fileName;
 }

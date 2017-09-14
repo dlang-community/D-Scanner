@@ -56,7 +56,7 @@ public:
 
 protected:
 
-	bool inAggregate = false;
+	bool inAggregate;
     bool skipTests;
 
 	template visitTemplate(T)

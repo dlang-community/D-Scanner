@@ -12,6 +12,11 @@ makefile has "ldc" and "gdc" targets if you'd prefer to compile with one of thes
 compilers instead of DMD. To install, simply place the generated binary (in the
 "bin" folder) somewhere on your $PATH.
 
+### Testing
+Testing does not work with DUB.
+Under linux or OSX run the tests with `make test`.
+Under Windows run the tests with `build.bat test`.
+
 ### Installing with DUB
 
 ```sh
@@ -313,7 +318,7 @@ It is possible to create a new section `analysis.config.ModuleFilters` in the `.
 In this optional section a comma-separated list of inclusion and exclusion selectors can
 be specified for every check on which selective filtering should be applied.
 These given selectors match on the module name and partial matches (`std.` or `.foo.`) are possible.
-Morover, every selectors must begin with either `+` (inclusion) or `-` (exclusion).
+Moreover, every selectors must begin with either `+` (inclusion) or `-` (exclusion).
 Exclusion selectors take precedence over all inclusion operators.
 Of course, for every check a different selector set can given:
 
@@ -321,8 +326,6 @@ Of course, for every check a different selector set can given:
 [analysis.config.ModuleFilters]
 final_attribute_check = "+std.foo,+std.bar"
 useless_initializer = "-std."
-;pseudo variable (workaround against an inifiled bug)
-foo=""
 ```
 
 A few examples:
@@ -331,5 +334,7 @@ A few examples:
 - `+std.bitmanip,+std.json`: Applies the check only for these two modules
 - `-std.bitmanip,-std.json`: Applies the check for all modules, but these two
 - `+.bar`: Includes all modules matching `.bar` (e.g. `foo.bar`, `a.b.c.barros`)
+- `-etc.`: Excludes all modules from `.etc`
+- `+std,-std.internal`: Includes entire `std`, except for the internal modules
 - `-etc.`: Excludes all modules from `.etc`
 - `+std,-std.internal`: Includes entire `std`, except for the internal modules

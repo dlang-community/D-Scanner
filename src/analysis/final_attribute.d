@@ -30,6 +30,7 @@ private:
         static immutable class_t     = "templated functions declared within a class are never virtual";
         static immutable class_p     = "private functions declared within a class are never virtual";
         static immutable class_f     = "functions declared within a final class are never virtual";
+        static immutable class_s     = "static functions are never virtual";
         static immutable interface_t = "templated functions declared within an interface are never virtual";
         static immutable struct_f    = "functions declared within a struct are never virtual";
         static immutable union_f     = "functions declared within an union are never virtual";
@@ -49,6 +50,8 @@ private:
 
     bool[] _private;
     bool _finalAggregate;
+    bool _alwaysStatic;
+    bool _blockStatic;
     Parent _parent = Parent.module_;
 
     void addError(T)(T t, string msg)
@@ -75,6 +78,7 @@ public:
         const Parent saved = _parent;
         _parent = Parent.struct_;
         _private.length += 1;
+        _alwaysStatic = false;
         sd.accept(this);
         _private.length -= 1;
         _parent = saved;
@@ -85,6 +89,7 @@ public:
         const Parent saved = _parent;
         _parent = Parent.interface_;
         _private.length += 1;
+        _alwaysStatic = false;
         id.accept(this);
         _private.length -= 1;
         _parent = saved;
@@ -95,6 +100,7 @@ public:
         const Parent saved = _parent;
         _parent = Parent.union_;
         _private.length += 1;
+        _alwaysStatic = false;
         ud.accept(this);
         _private.length -= 1;
         _parent = saved;
@@ -105,6 +111,7 @@ public:
         const Parent saved = _parent;
         _parent = Parent.class_;
         _private.length += 1;
+        _alwaysStatic = false;
         cd.accept(this);
         _private.length -= 1;
         _parent = saved;
@@ -120,14 +127,34 @@ public:
         // regular template are also mixable
     }
 
+    override void visit(const(AttributeDeclaration) decl)
+    {
+        if (_parent == Parent.class_ && decl.attribute &&
+            decl.attribute.attribute == tok!"static")
+                _alwaysStatic = true;
+    }
+
     override void visit(const(Declaration) d)
     {
+        import std.algorithm.iteration : filter;
+        import std.algorithm.searching : canFind;
+
         const Parent savedParent = _parent;
+
+        bool undoBlockStatic;
+        if (_parent == Parent.class_ && d.attributes &&
+            d.attributes.canFind!(a => a.attribute == tok!"static"))
+        {
+            _blockStatic = true;
+            undoBlockStatic = true;
+        }
 
         scope(exit)
         {
             d.accept(this);
             _parent = savedParent;
+            if (undoBlockStatic)
+                _blockStatic = false;
         }
 
         if (!d.attributeDeclaration &&
@@ -138,30 +165,27 @@ public:
             !d.functionDeclaration)
                 return;
 
-        import std.algorithm.iteration : filter;
-        import std.algorithm.searching : find;
-        import std.range.primitives : empty;
-
         if (d.attributeDeclaration && d.attributeDeclaration.attribute)
         {
             const tp = d.attributeDeclaration.attribute.attribute.type;
             _private[$-1] = isProtection(tp) & (tp == tok!"private");
         }
 
-        const bool isFinal = !d.attributes
-            .find!(a => a.attribute.type == tok!"final")
-            .empty;
+        const bool isFinal = d.attributes
+            .canFind!(a => a.attribute.type == tok!"final");
+
+        const bool isStaticOnce = d.attributes
+            .canFind!(a => a.attribute.type == tok!"static");
 
         // determine if private
-        const bool changeProtectionOnce = !d.attributes
-            .filter!(a => a.attribute.type.isProtection)
-            .empty;
+        const bool changeProtectionOnce = d.attributes
+            .canFind!(a => a.attribute.type.isProtection);
 
-        const bool isPrivateOnce = !d.attributes
-            .find!(a => a.attribute.type == tok!"private")
-            .empty;
+        const bool isPrivateOnce = d.attributes
+            .canFind!(a => a.attribute.type == tok!"private");
 
         bool isPrivate;
+
         if (isPrivateOnce)
             isPrivate = true;
         else if (_private[$-1] && !changeProtectionOnce)
@@ -194,6 +218,8 @@ public:
                 addError(fd, MESSAGE.class_t);
             if (isPrivate)
                 addError(fd, MESSAGE.class_p);
+            else if (isStaticOnce || _alwaysStatic || _blockStatic)
+                addError(fd, MESSAGE.class_s);
             else if (_finalAggregate)
                 addError(fd, MESSAGE.class_f);
             break;
@@ -347,6 +373,33 @@ public:
         private: final class Foo {public: private final void foo(){}} // [warn]: %s
     }c.format(
         FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
+    ), sac);
+
+    assertAnalyzerWarnings(q{
+        class Foo {final static void foo(){}} // [warn]: %s
+    }c.format(
+        FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
+    ), sac);
+
+    assertAnalyzerWarnings(q{
+        class Foo
+        {
+            void foo(){}
+            static: final void foo(){} // [warn]: %s
+        }
+    }c.format(
+        FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
+    ), sac);
+
+    assertAnalyzerWarnings(q{
+        class Foo
+        {
+            void foo(){}
+            static{ final void foo(){}} // [warn]: %s
+            void foo(){}
+        }
+    }c.format(
+        FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
     ), sac);
 
     stderr.writeln("Unittest for FinalAttributeChecker passed.");
