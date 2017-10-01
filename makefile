@@ -21,7 +21,7 @@ INCLUDE_PATHS = \
 	-Ilibddoc/src
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
-DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
+DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning -fPIC
 DMD_TEST_FLAGS = -w -g -J. -version=StdLoggerDisableWarning
 
 all: dmdbuild
@@ -32,7 +32,7 @@ githash:
 	git log -1 --format="%H" > githash.txt
 
 debug:
-	${DC} -w -g -J. -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DC} -fPIC -w -g -J. -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild: githash $(SRC)
 	mkdir -p bin
