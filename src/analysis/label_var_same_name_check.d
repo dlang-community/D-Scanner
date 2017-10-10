@@ -105,8 +105,8 @@ private:
 				immutable thisKind = fromLabel ? "Label" : "Variable";
 				immutable otherKind = thing.isVar ? "variable" : "label";
 				addErrorMessage(name.line, name.column, "dscanner.suspicious.label_var_same_name",
-						thisKind ~ " \"" ~ fqn ~ "\" has the same name as a "
-						~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
+						thisKind ~ " \"" ~ fqn ~ "\" has the same name as a " ~ otherKind ~ " defined on line " ~ to!string(
+							thing.line) ~ ".");
 			}
 			++i;
 		}

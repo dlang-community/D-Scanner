@@ -44,6 +44,7 @@ class ObjectConstCheck : BaseAnalyzer
 	override void visit(const Declaration d)
 	{
 		import std.algorithm : any;
+
 		bool setConstBlock;
 		if (inAggregate && d.attributes && d.attributes.any!(a => a.attribute == tok!"const"))
 		{

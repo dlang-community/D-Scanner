@@ -56,7 +56,8 @@ private:
 	bool ignore = true;
 }
 
-private void visitFile(bool usingStdin, string fileName, RedBlackTree!string importedModules, StringCache* cache)
+private void visitFile(bool usingStdin, string fileName,
+		RedBlackTree!string importedModules, StringCache* cache)
 {
 	RollbackAllocator rba;
 	LexerConfig config;
@@ -73,7 +74,8 @@ private void doNothing(string, size_t, size_t, string, bool)
 {
 }
 
-void printImports(bool usingStdin, string[] args, string[] importPaths, StringCache* cache, bool recursive)
+void printImports(bool usingStdin, string[] args, string[] importPaths,
+		StringCache* cache, bool recursive)
 {
 	string[] fileNames = usingStdin ? ["stdin"] : expandArgs(args);
 	import std.path : buildPath, dirSeparator;

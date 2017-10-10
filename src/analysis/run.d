@@ -203,9 +203,9 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
-	return dparse.parser.parseModule(tokens, fileName, p,
-		report ? toDelegate(&messageFunctionJSON) : toDelegate(&messageFunction),
-		errorCount, warningCount);
+	return dparse.parser.parseModule(tokens, fileName, p, report
+			? toDelegate(&messageFunctionJSON) : toDelegate(&messageFunction),
+			errorCount, warningCount);
 }
 
 /**
@@ -230,8 +230,8 @@ bool shouldRun(string a)(string moduleName, const ref StaticAnalysisConfig confi
 	if (filters.length == 0 || filters[0].length == 0)
 		return true;
 
-	auto includers = filters.filter!(f => f[0] == '+').map!(f => f[1..$]);
-	auto excluders = filters.filter!(f => f[0] == '-').map!(f => f[1..$]);
+	auto includers = filters.filter!(f => f[0] == '+').map!(f => f[1 .. $]);
+	auto excluders = filters.filter!(f => f[0] == '-').map!(f => f[1 .. $]);
 
 	// exclusion has preference over inclusion
 	if (!excluders.empty && excluders.any!(s => moduleName.canFind(s)))
@@ -294,9 +294,8 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		enum ut = false;
 
 	string moduleName;
-	if (m !is null && m.moduleDeclaration !is null &&
-		  m.moduleDeclaration.moduleName !is null &&
-		  m.moduleDeclaration.moduleName.identifiers !is null)
+	if (m !is null && m.moduleDeclaration !is null && m.moduleDeclaration.moduleName !is null
+			&& m.moduleDeclaration.moduleName.identifiers !is null)
 		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
 
 	auto first = scoped!FirstPass(m, internString(fileName), symbolAllocator,
@@ -305,188 +304,191 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 
 	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
 	auto moduleScope = first.moduleScope;
-	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
-	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
-	scope(exit) typeid(Scope).destroy(first.moduleScope);
+	scope (exit)
+		typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
+	scope (exit)
+		typeid(SemanticSymbol).destroy(first.rootSymbol);
+	scope (exit)
+		typeid(Scope).destroy(first.moduleScope);
 	BaseAnalyzer[] checks;
 
-	with(analysisConfig)
-	if (moduleName.shouldRun!"asm_style_check"(analysisConfig))
-		checks ~= new AsmStyleCheck(fileName, moduleScope,
-		asm_style_check == Check.skipTests && !ut);
+	with (analysisConfig)
+		if (moduleName.shouldRun!"asm_style_check"(analysisConfig))
+			checks ~= new AsmStyleCheck(fileName, moduleScope,
+					asm_style_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"backwards_range_check"(analysisConfig))
 		checks ~= new BackwardsRangeCheck(fileName, moduleScope,
-		analysisConfig.backwards_range_check == Check.skipTests && !ut);
+				analysisConfig.backwards_range_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"builtin_property_names_check"(analysisConfig))
 		checks ~= new BuiltinPropertyNameCheck(fileName, moduleScope,
-		analysisConfig.builtin_property_names_check == Check.skipTests && !ut);
+				analysisConfig.builtin_property_names_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"comma_expression_check"(analysisConfig))
 		checks ~= new CommaExpressionCheck(fileName, moduleScope,
-		analysisConfig.comma_expression_check == Check.skipTests && !ut);
+				analysisConfig.comma_expression_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"constructor_check"(analysisConfig))
 		checks ~= new ConstructorCheck(fileName, moduleScope,
-		analysisConfig.constructor_check == Check.skipTests && !ut);
+				analysisConfig.constructor_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"could_be_immutable_check"(analysisConfig))
 		checks ~= new UnmodifiedFinder(fileName, moduleScope,
-		analysisConfig.could_be_immutable_check == Check.skipTests && !ut);
+				analysisConfig.could_be_immutable_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"delete_check"(analysisConfig))
 		checks ~= new DeleteCheck(fileName, moduleScope,
-		analysisConfig.delete_check == Check.skipTests && !ut);
+				analysisConfig.delete_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"duplicate_attribute"(analysisConfig))
 		checks ~= new DuplicateAttributeCheck(fileName, moduleScope,
-		analysisConfig.duplicate_attribute == Check.skipTests && !ut);
+				analysisConfig.duplicate_attribute == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"enum_array_literal_check"(analysisConfig))
 		checks ~= new EnumArrayLiteralCheck(fileName, moduleScope,
-		analysisConfig.enum_array_literal_check == Check.skipTests && !ut);
+				analysisConfig.enum_array_literal_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"exception_check"(analysisConfig))
 		checks ~= new PokemonExceptionCheck(fileName, moduleScope,
-		analysisConfig.exception_check == Check.skipTests && !ut);
+				analysisConfig.exception_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"float_operator_check"(analysisConfig))
 		checks ~= new FloatOperatorCheck(fileName, moduleScope,
-		analysisConfig.float_operator_check == Check.skipTests && !ut);
+				analysisConfig.float_operator_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"function_attribute_check"(analysisConfig))
 		checks ~= new FunctionAttributeCheck(fileName, moduleScope,
-		analysisConfig.function_attribute_check == Check.skipTests && !ut);
+				analysisConfig.function_attribute_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"if_else_same_check"(analysisConfig))
 		checks ~= new IfElseSameCheck(fileName, moduleScope,
-		analysisConfig.if_else_same_check == Check.skipTests&& !ut);
+				analysisConfig.if_else_same_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"label_var_same_name_check"(analysisConfig))
 		checks ~= new LabelVarNameCheck(fileName, moduleScope,
-		analysisConfig.label_var_same_name_check == Check.skipTests && !ut);
+				analysisConfig.label_var_same_name_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"length_subtraction_check"(analysisConfig))
 		checks ~= new LengthSubtractionCheck(fileName, moduleScope,
-		analysisConfig.length_subtraction_check == Check.skipTests && !ut);
+				analysisConfig.length_subtraction_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"local_import_check"(analysisConfig))
 		checks ~= new LocalImportCheck(fileName, moduleScope,
-		analysisConfig.local_import_check == Check.skipTests && !ut);
+				analysisConfig.local_import_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"logical_precedence_check"(analysisConfig))
 		checks ~= new LogicPrecedenceCheck(fileName, moduleScope,
-		analysisConfig.logical_precedence_check == Check.skipTests && !ut);
+				analysisConfig.logical_precedence_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"mismatched_args_check"(analysisConfig))
 		checks ~= new MismatchedArgumentCheck(fileName, moduleScope,
-		analysisConfig.mismatched_args_check == Check.skipTests && !ut);
+				analysisConfig.mismatched_args_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"number_style_check"(analysisConfig))
 		checks ~= new NumberStyleCheck(fileName, moduleScope,
-		analysisConfig.number_style_check == Check.skipTests && !ut);
+				analysisConfig.number_style_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"object_const_check"(analysisConfig))
 		checks ~= new ObjectConstCheck(fileName, moduleScope,
-		analysisConfig.object_const_check == Check.skipTests && !ut);
+				analysisConfig.object_const_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"opequals_tohash_check"(analysisConfig))
 		checks ~= new OpEqualsWithoutToHashCheck(fileName, moduleScope,
-		analysisConfig.opequals_tohash_check == Check.skipTests && !ut);
+				analysisConfig.opequals_tohash_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"redundant_parens_check"(analysisConfig))
 		checks ~= new RedundantParenCheck(fileName, moduleScope,
-		analysisConfig.redundant_parens_check == Check.skipTests && !ut);
+				analysisConfig.redundant_parens_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"style_check"(analysisConfig))
 		checks ~= new StyleChecker(fileName, moduleScope,
-		analysisConfig.style_check == Check.skipTests && !ut);
+				analysisConfig.style_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"undocumented_declaration_check"(analysisConfig))
 		checks ~= new UndocumentedDeclarationCheck(fileName, moduleScope,
-		analysisConfig.undocumented_declaration_check == Check.skipTests && !ut);
+				analysisConfig.undocumented_declaration_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"unused_label_check"(analysisConfig))
 		checks ~= new UnusedLabelCheck(fileName, moduleScope,
-		analysisConfig.unused_label_check == Check.skipTests && !ut);
+				analysisConfig.unused_label_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"unused_variable_check"(analysisConfig))
 		checks ~= new UnusedVariableCheck(fileName, moduleScope,
-		analysisConfig.unused_variable_check == Check.skipTests && !ut);
+				analysisConfig.unused_variable_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"long_line_check"(analysisConfig))
 		checks ~= new LineLengthCheck(fileName, tokens,
-		analysisConfig.long_line_check == Check.skipTests && !ut);
+				analysisConfig.long_line_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"auto_ref_assignment_check"(analysisConfig))
 		checks ~= new AutoRefAssignmentCheck(fileName,
-		analysisConfig.auto_ref_assignment_check == Check.skipTests && !ut);
+				analysisConfig.auto_ref_assignment_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"incorrect_infinite_range_check"(analysisConfig))
 		checks ~= new IncorrectInfiniteRangeCheck(fileName,
-		analysisConfig.incorrect_infinite_range_check == Check.skipTests && !ut);
+				analysisConfig.incorrect_infinite_range_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"useless_assert_check"(analysisConfig))
 		checks ~= new UselessAssertCheck(fileName,
-		analysisConfig.useless_assert_check == Check.skipTests && !ut);
+				analysisConfig.useless_assert_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"alias_syntax_check"(analysisConfig))
 		checks ~= new AliasSyntaxCheck(fileName,
-		analysisConfig.alias_syntax_check == Check.skipTests && !ut);
+				analysisConfig.alias_syntax_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"static_if_else_check"(analysisConfig))
 		checks ~= new StaticIfElse(fileName,
-		analysisConfig.static_if_else_check == Check.skipTests && !ut);
+				analysisConfig.static_if_else_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"lambda_return_check"(analysisConfig))
 		checks ~= new LambdaReturnCheck(fileName,
-		analysisConfig.lambda_return_check == Check.skipTests && !ut);
+				analysisConfig.lambda_return_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"auto_function_check"(analysisConfig))
 		checks ~= new AutoFunctionChecker(fileName,
-		analysisConfig.auto_function_check == Check.skipTests && !ut);
+				analysisConfig.auto_function_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"imports_sortedness"(analysisConfig))
 		checks ~= new ImportSortednessCheck(fileName,
-		analysisConfig.imports_sortedness == Check.skipTests && !ut);
+				analysisConfig.imports_sortedness == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"explicitly_annotated_unittests"(analysisConfig))
 		checks ~= new ExplicitlyAnnotatedUnittestCheck(fileName,
-		analysisConfig.explicitly_annotated_unittests == Check.skipTests && !ut);
+				analysisConfig.explicitly_annotated_unittests == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"properly_documented_public_functions"(analysisConfig))
 		checks ~= new ProperlyDocumentedPublicFunctions(fileName,
-		analysisConfig.properly_documented_public_functions == Check.skipTests && !ut);
+				analysisConfig.properly_documented_public_functions == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"final_attribute_check"(analysisConfig))
 		checks ~= new FinalAttributeChecker(fileName,
-		analysisConfig.final_attribute_check == Check.skipTests && !ut);
+				analysisConfig.final_attribute_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"vcall_in_ctor"(analysisConfig))
 		checks ~= new VcallCtorChecker(fileName,
-		analysisConfig.vcall_in_ctor == Check.skipTests && !ut);
+				analysisConfig.vcall_in_ctor == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"useless_initializer"(analysisConfig))
 		checks ~= new UselessInitializerChecker(fileName,
-		analysisConfig.useless_initializer == Check.skipTests && !ut);
+				analysisConfig.useless_initializer == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"allman_braces_check"(analysisConfig))
 		checks ~= new AllManCheck(fileName, tokens,
-		analysisConfig.allman_braces_check == Check.skipTests && !ut);
+				analysisConfig.allman_braces_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"redundant_attributes_check"(analysisConfig))
 		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
-		analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
+				analysisConfig.redundant_attributes_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"has_public_example"(analysisConfig))
 		checks ~= new HasPublicExampleCheck(fileName, moduleScope,
-		analysisConfig.has_public_example == Check.skipTests && !ut);
+				analysisConfig.has_public_example == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!"redundant_if_check"(analysisConfig))
 			checks ~= new IfStatementCheck(fileName, moduleScope,
-			analysisConfig.redundant_if_check == Check.skipTests && !ut);
+					analysisConfig.redundant_if_check == Check.skipTests && !ut);
 
 	foreach (check; checks)
 	{
@@ -499,4 +501,3 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 			set.insert(message);
 	return set;
 }
-

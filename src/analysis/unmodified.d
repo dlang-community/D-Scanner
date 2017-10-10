@@ -317,17 +317,17 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 
 @system unittest
 {
-    import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-    import analysis.helpers : assertAnalyzerWarnings;
-    import std.stdio : stderr;
-    import std.format : format;
+	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import analysis.helpers : assertAnalyzerWarnings;
+	import std.stdio : stderr;
+	import std.format : format;
 
-    StaticAnalysisConfig sac = disabledConfig();
-    sac.could_be_immutable_check = Check.enabled;
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.could_be_immutable_check = Check.enabled;
 
-    // pass
+	// pass
 
-    assertAnalyzerWarnings(q{
+	assertAnalyzerWarnings(q{
         void foo(){const(int) i;}
     }, sac);
 

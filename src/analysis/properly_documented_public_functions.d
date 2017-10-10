@@ -24,8 +24,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 {
 	enum string MISSING_PARAMS_KEY = "dscanner.style.doc_missing_params";
 	enum string MISSING_PARAMS_MESSAGE = "Parameter %s isn't documented in the `Params` section.";
-	enum string MISSING_TEMPLATE_PARAMS_MESSAGE
-		= "Template parameters %s isn't documented in the `Params` section.";
+	enum string MISSING_TEMPLATE_PARAMS_MESSAGE = "Template parameters %s isn't documented in the `Params` section.";
 
 	enum string NON_EXISTENT_PARAMS_KEY = "dscanner.style.doc_non_existing_params";
 	enum string NON_EXISTENT_PARAMS_MESSAGE = "Documented parameter %s isn't a function parameter.";
@@ -52,16 +51,13 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		import std.algorithm.iteration : map;
 
 		// skip private symbols
-		enum tokPrivate = tok!"private",
-			 tokProtected = tok!"protected",
-			 tokPackage = tok!"package",
-			 tokPublic = tok!"public";
+		enum tokPrivate = tok!"private", tokProtected = tok!"protected",
+				tokPackage = tok!"package", tokPublic = tok!"public";
 
 		if (decl.attributes.length > 0)
 		{
-			const bool isPublic = !decl.attributes.map!`a.attribute`.any!(x => x == tokPrivate ||
-																			   x == tokProtected ||
-																			   x == tokPackage);
+			const bool isPublic = !decl.attributes.map!`a.attribute`.any!(x => x == tokPrivate
+					|| x == tokProtected || x == tokPackage);
 			// recognize label blocks
 			if (!hasDeclaration(decl))
 				islastSeenVisibilityLabelPublic = isPublic;
@@ -70,14 +66,13 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 				return;
 		}
 
-		if (islastSeenVisibilityLabelPublic || decl.attributes.map!`a.attribute`.any!(x => x == tokPublic))
+		if (islastSeenVisibilityLabelPublic
+				|| decl.attributes.map!`a.attribute`.any!(x => x == tokPublic))
 		{
-			if (decl.functionDeclaration !is null ||
-				decl.templateDeclaration !is null ||
-				decl.mixinTemplateDeclaration !is null ||
-				decl.classDeclaration !is null ||
-				decl.structDeclaration !is null)
-					decl.accept(this);
+			if (decl.functionDeclaration !is null || decl.templateDeclaration !is null
+					|| decl.mixinTemplateDeclaration !is null
+					|| decl.classDeclaration !is null || decl.structDeclaration !is null)
+				decl.accept(this);
 		}
 	}
 
@@ -87,7 +82,8 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		checkDdocParams(decl.name.line, decl.name.column, decl.templateParameters);
 
 		withinTemplate = true;
-		scope(exit) withinTemplate = false;
+		scope (exit)
+			withinTemplate = false;
 		decl.accept(this);
 	}
 
@@ -125,8 +121,10 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		enum voidType = tok!"void";
 
 		if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
-			if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
-				addErrorMessage(decl.name.line, decl.name.column, MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+			if (!(comment.isDitto || withinTemplate
+					|| comment.sections.any!(s => s.name == "Returns")))
+				addErrorMessage(decl.name.line, decl.name.column,
+						MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -142,6 +140,7 @@ private:
 		const(string)[] ddocParams;
 		bool[string] params;
 	}
+
 	Function lastSeenFun;
 
 	// find invalid ddoc parameters (i.e. they don't occur in a function declaration)
@@ -150,10 +149,10 @@ private:
 		import std.format : format;
 
 		if (lastSeenFun.active)
-		foreach (p; lastSeenFun.ddocParams)
-			if (p !in lastSeenFun.params)
-				addErrorMessage(lastSeenFun.line, lastSeenFun.column, NON_EXISTENT_PARAMS_KEY,
-					NON_EXISTENT_PARAMS_MESSAGE.format(p));
+			foreach (p; lastSeenFun.ddocParams)
+				if (p !in lastSeenFun.params)
+					addErrorMessage(lastSeenFun.line, lastSeenFun.column,
+							NON_EXISTENT_PARAMS_KEY, NON_EXISTENT_PARAMS_MESSAGE.format(p));
 
 		lastSeenFun.active = false;
 	}
@@ -196,7 +195,7 @@ private:
 			{
 				if (!lastSeenFun.ddocParams.canFind(p.name.text))
 					addErrorMessage(line, column, MISSING_PARAMS_KEY,
-						format(MISSING_PARAMS_MESSAGE, p.name.text));
+							format(MISSING_PARAMS_MESSAGE, p.name.text));
 				else
 					lastSeenFun.params[p.name.text] = true;
 			}
@@ -206,14 +205,15 @@ private:
 	{
 		import std.algorithm.searching : canFind;
 
-		if (lastSeenFun.active && templateParams !is null && templateParams.templateParameterList !is null)
+		if (lastSeenFun.active && templateParams !is null
+				&& templateParams.templateParameterList !is null)
 			foreach (p; templateParams.templateParameterList.items)
 			{
 				auto name = templateParamName(p);
 				assert(name, "Invalid template parameter name."); // this shouldn't happen
 				if (!lastSeenFun.ddocParams.canFind(name))
 					addErrorMessage(line, column, MISSING_PARAMS_KEY,
-						format(MISSING_TEMPLATE_PARAMS_MESSAGE, name));
+							format(MISSING_TEMPLATE_PARAMS_MESSAGE, name));
 				else
 					lastSeenFun.params[name] = true;
 			}
@@ -223,13 +223,13 @@ private:
 	{
 		if (p.templateTypeParameter)
 			return p.templateTypeParameter.identifier.text;
-   		if (p.templateValueParameter)
+		if (p.templateValueParameter)
 			return p.templateValueParameter.identifier.text;
-   		if (p.templateAliasParameter)
+		if (p.templateAliasParameter)
 			return p.templateAliasParameter.identifier.text;
-   		if (p.templateTupleParameter)
+		if (p.templateTupleParameter)
 			return p.templateTupleParameter.identifier.text;
-   		if (p.templateThisParameter)
+		if (p.templateThisParameter)
 			return p.templateThisParameter.templateTypeParameter.identifier.text;
 
 		return null;
@@ -238,38 +238,18 @@ private:
 	bool hasDeclaration(const Declaration decl)
 	{
 		import std.meta : AliasSeq;
-		alias properties = AliasSeq!(
-			"aliasDeclaration",
-		 	"aliasThisDeclaration",
-		 	"anonymousEnumDeclaration",
-		 	"attributeDeclaration",
-		 	"classDeclaration",
-		 	"conditionalDeclaration",
-		 	"constructor",
-		 	"debugSpecification",
-		 	"destructor",
-		 	"enumDeclaration",
-		 	"eponymousTemplateDeclaration",
-		 	"functionDeclaration",
-		 	"importDeclaration",
-		 	"interfaceDeclaration",
-		 	"invariant_",
-		 	"mixinDeclaration",
-		 	"mixinTemplateDeclaration",
-		 	"postblit",
-		 	"pragmaDeclaration",
-		 	"sharedStaticConstructor",
-		 	"sharedStaticDestructor",
-		 	"staticAssertDeclaration",
-		 	"staticConstructor",
-		 	"staticDestructor",
-		 	"structDeclaration",
-		 	"templateDeclaration",
-		 	"unionDeclaration",
-		 	"unittest_",
-		 	"variableDeclaration",
-		 	"versionSpecification",
-		);
+
+		alias properties = AliasSeq!("aliasDeclaration", "aliasThisDeclaration",
+				"anonymousEnumDeclaration", "attributeDeclaration", "classDeclaration",
+				"conditionalDeclaration", "constructor", "debugSpecification",
+				"destructor", "enumDeclaration", "eponymousTemplateDeclaration", "functionDeclaration",
+				"importDeclaration", "interfaceDeclaration", "invariant_",
+				"mixinDeclaration", "mixinTemplateDeclaration", "postblit",
+				"pragmaDeclaration", "sharedStaticConstructor", "sharedStaticDestructor",
+				"staticAssertDeclaration",
+				"staticConstructor",
+				"staticDestructor", "structDeclaration", "templateDeclaration",
+				"unionDeclaration", "unittest_", "variableDeclaration", "versionSpecification",);
 		if (decl.declarations !is null)
 			return false;
 
@@ -282,7 +262,7 @@ private:
 	}
 }
 
-version(unittest)
+version (unittest)
 {
 	import std.stdio : stderr;
 	import std.format : format;
@@ -302,8 +282,7 @@ unittest
 		*/
 		void foo(int k){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")), sac);
 
 	assertAnalyzerWarnings(q{
 		/**
@@ -311,8 +290,7 @@ unittest
 		*/
 		void foo(int K)(){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("K")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("K")), sac);
 
 	assertAnalyzerWarnings(q{
 		/**
@@ -320,8 +298,7 @@ unittest
 		*/
 		struct Foo(Bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")), sac);
 
 	assertAnalyzerWarnings(q{
 		/**
@@ -329,8 +306,7 @@ unittest
 		*/
 		class Foo(Bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")), sac);
 
 	assertAnalyzerWarnings(q{
 		/**
@@ -338,9 +314,7 @@ unittest
 		*/
 		template Foo(Bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
-	), sac);
-
+			ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")), sac);
 
 	// test no parameters
 	assertAnalyzerWarnings(q{
@@ -371,23 +345,21 @@ unittest
 	StaticAnalysisConfig sac = disabledConfig;
 	sac.properly_documented_public_functions = Check.enabled;
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarnings(
+			q{
 		/**
 		Some text
 		*/
 		int foo(){} // [warn]: %s
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-	), sac);
+	}c.format(ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,), sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarnings(
+			q{
 		/**
 		Some text
 		*/
 		auto foo(){} // [warn]: %s
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-	), sac);
+	}c.format(ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,), sac);
 }
 
 // ignore private
@@ -413,10 +385,8 @@ unittest
 		public int bar(){} // [warn]: %s
 	public:
 		int foobar(){} // [warn]: %s
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-	), sac);
+	}c.format(ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
+			ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,), sac);
 
 	// with block (template)
 	assertAnalyzerWarnings(q{
@@ -428,10 +398,8 @@ unittest
 		public template bar(T){} // [warn]: %s
 	public:
 		template foobar(T){} // [warn]: %s
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-	), sac);
+	}c.format(ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
+			ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),), sac);
 
 	// with block (struct)
 	assertAnalyzerWarnings(q{
@@ -443,10 +411,8 @@ unittest
 		public struct bar(T){} // [warn]: %s
 	public:
 		struct foobar(T){} // [warn]: %s
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-	), sac);
+	}c.format(ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
+			ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),), sac);
 }
 
 // test parameter names
@@ -466,8 +432,7 @@ unittest
  */
 int foo(int k){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")), sac);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -482,8 +447,7 @@ A long description.
 */
 int foo(int k){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("val")
-	), sac);
+			ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("val")), sac);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -496,8 +460,7 @@ A long description.
 */
 int foo(int k){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")), sac);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -513,8 +476,7 @@ A long description.
 */
 int foo(int foo, int foobar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("bad")
-	), sac);
+			ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("bad")), sac);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -530,8 +492,7 @@ A long description.
 */
 struct foo(int foo, int foobar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("bad")
-	), sac);
+			ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("bad")), sac);
 
 	// properly documented
 	assertAnalyzerWarnings(q{
@@ -634,8 +595,7 @@ int foo(int k){}
 /// ditto
 int bar(int bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("bar")
-	), sac);
+			ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("bar")), sac);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -656,11 +616,10 @@ int foo(int k){} // [warn]: %s
 /// ditto
 int bar(int bar){}
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("f")
-	), sac);
+			ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("f")), sac);
 }
 
- // check correct ddoc headers
+// check correct ddoc headers
 unittest
 {
 	StaticAnalysisConfig sac = disabledConfig;

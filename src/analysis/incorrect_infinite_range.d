@@ -114,7 +114,6 @@ unittest
 bool empty() { return false; }
 class C { bool empty() { return false; } } // [warn]: %1$s
 
-}c
-			.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);
+}c.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);
 	stderr.writeln("Unittest for IncorrectInfiniteRangeCheck passed.");
 }

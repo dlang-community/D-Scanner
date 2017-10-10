@@ -42,7 +42,8 @@ class StaticIfElse : BaseAnalyzer
 		{
 			return;
 		}
-		addErrorMessage(ifStmt.line, ifStmt.column, KEY, "Mismatched static if. Use 'else static if' here.");
+		addErrorMessage(ifStmt.line, ifStmt.column, KEY,
+				"Mismatched static if. Use 'else static if' here.");
 	}
 
 	const(IfStatement) getIfStatement(const ConditionalStatement cc)

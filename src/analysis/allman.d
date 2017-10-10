@@ -34,14 +34,14 @@ class AllManCheck : BaseAnalyzer
 		foreach (i; 1 .. tokens.length - 1)
 		{
 			const curLine = tokens[i].line;
-			const prevTokenLine = tokens[i-1].line;
+			const prevTokenLine = tokens[i - 1].line;
 			if (tokens[i].type == tok!"{" && curLine == prevTokenLine)
 			{
 				// ignore struct initialization
-				if (tokens[i-1].type == tok!"=")
+				if (tokens[i - 1].type == tok!"=")
 					continue;
 				// ignore duplicate braces
-				if (tokens[i-1].type == tok!"{" && tokens[i - 2].line != curLine)
+				if (tokens[i - 1].type == tok!"{" && tokens[i - 2].line != curLine)
 					continue;
 				// ignore inline { } braces
 				if (curLine != tokens[i + 1].line)
@@ -50,14 +50,15 @@ class AllManCheck : BaseAnalyzer
 			if (tokens[i].type == tok!"}" && curLine == prevTokenLine)
 			{
 				// ignore duplicate braces
-				if (tokens[i-1].type == tok!"}" && tokens[i - 2].line != curLine)
+				if (tokens[i - 1].type == tok!"}" && tokens[i - 2].line != curLine)
 					continue;
 				// ignore inline { } braces
-				if (!tokens[0 .. i].retro.until!(t => t.line != curLine).canFind!(t => t.type == tok!"{"))
+				if (!tokens[0 .. i].retro.until!(t => t.line != curLine)
+						.canFind!(t => t.type == tok!"{"))
 					addErrorMessage(tokens[i].line, tokens[i].column, KEY, MESSAGE);
 			}
 		}
-    }
+	}
 
 	enum string KEY = "dscanner.style.allman";
 	enum string MESSAGE = "Braces should be on their own line";
@@ -112,17 +113,9 @@ unittest
 				}
 			}
 		}
-	}c.format(
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-		AllManCheck.MESSAGE,
-	), sac);
+	}c.format(AllManCheck.MESSAGE, AllManCheck.MESSAGE, AllManCheck.MESSAGE,
+			AllManCheck.MESSAGE, AllManCheck.MESSAGE, AllManCheck.MESSAGE,
+			AllManCheck.MESSAGE, AllManCheck.MESSAGE, AllManCheck.MESSAGE,), sac);
 
 	// check struct initialization
 	assertAnalyzerWarnings(q{
@@ -141,7 +134,6 @@ unittest
 {{
 }}
 	}, sac);
-
 
 	stderr.writeln("Unittest for Allman passed.");
 }

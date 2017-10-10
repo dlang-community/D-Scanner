@@ -11,41 +11,44 @@ import analysis.base;
 
 class LambdaReturnCheck : BaseAnalyzer
 {
-    alias visit = BaseAnalyzer.visit;
+	alias visit = BaseAnalyzer.visit;
 
 	this(string fileName, bool skipTests = false)
 	{
 		super(fileName, null, skipTests);
 	}
 
-    override void visit(const FunctionLiteralExpression fLit)
-    {
-        if (fLit.assignExpression is null)
-            return;
-        const UnaryExpression unary = cast(const UnaryExpression) fLit.assignExpression;
-        if (unary is null)
-            return;
-        if (unary.primaryExpression is null)
-            return;
-        if (unary.primaryExpression.functionLiteralExpression is null)
-            return;
-        if (unary.primaryExpression.functionLiteralExpression.parameters !is null)
-            return;
-        if (unary.primaryExpression.functionLiteralExpression.identifier != tok!"")
-            return;
-        if (unary.primaryExpression.functionLiteralExpression.functionBody is null)
-            return;
-        if (unary.primaryExpression.functionLiteralExpression.functionBody.blockStatement is null)
-            return;
-        addErrorMessage(fLit.line, fLit.column, KEY, "This lambda returns a lambda. Add parenthesis to clarify.");
-    }
+	override void visit(const FunctionLiteralExpression fLit)
+	{
+		if (fLit.assignExpression is null)
+			return;
+		const UnaryExpression unary = cast(const UnaryExpression) fLit.assignExpression;
+		if (unary is null)
+			return;
+		if (unary.primaryExpression is null)
+			return;
+		if (unary.primaryExpression.functionLiteralExpression is null)
+			return;
+		if (unary.primaryExpression.functionLiteralExpression.parameters !is null)
+			return;
+		if (unary.primaryExpression.functionLiteralExpression.identifier != tok!"")
+			return;
+		if (unary.primaryExpression.functionLiteralExpression.functionBody is null)
+			return;
+		if (unary.primaryExpression.functionLiteralExpression.functionBody.blockStatement is null)
+			return;
+		addErrorMessage(fLit.line, fLit.column, KEY,
+				"This lambda returns a lambda. Add parenthesis to clarify.");
+	}
 
 private:
-    enum KEY = "dscanner.confusing.lambda_returns_lambda";
+	enum KEY = "dscanner.confusing.lambda_returns_lambda";
 }
 
-version(Windows) {/*because of newline in code*/} else
-unittest
+version (Windows)
+{ /*because of newline in code*/ }
+else
+	unittest
 {
 	import analysis.helpers : assertAnalyzerWarnings;
 	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;

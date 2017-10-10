@@ -38,7 +38,8 @@ class RedundantAttributesCheck : BaseAnalyzer
 		}
 
 		auto attributes = decl.attributes.filter!(a => filterAttributes(a));
-		if (attributes.walkLength > 0) {
+		if (attributes.walkLength > 0)
+		{
 
 			// new scope: private { }
 			if (decl.declarations.length > 0)
@@ -48,7 +49,8 @@ class RedundantAttributesCheck : BaseAnalyzer
 				foreach (attr; attributes)
 					addAttribute(attr);
 
-				scope(exit) currentAttributes = prev;
+				scope (exit)
+					currentAttributes = prev;
 				decl.accept(this);
 			} // declarations, e.g. private int ...
 			else
@@ -102,9 +104,8 @@ private:
 		if (!match.empty)
 		{
 			auto token = attr.attribute;
-			addErrorMessage(token.line, token.column, KEY,
-					text("same visibility attribute used as defined on line ",
-						match.front.attribute.line.to!string, "."));
+			addErrorMessage(token.line, token.column, KEY, text("same visibility attribute used as defined on line ",
+					match.front.attribute.line.to!string, "."));
 			return false;
 		}
 		return true;
@@ -113,9 +114,10 @@ private:
 	void removeOverwrite(const Attribute attr)
 	{
 		import std.array : array;
+
 		const group = getAttributeGroup(attr);
 		if (currentAttributes.filter!(a => getAttributeGroup(a) == group
-					&& !isIdenticalAttribute(a, attr)).walkLength > 0)
+				&& !isIdenticalAttribute(a, attr)).walkLength > 0)
 		{
 			currentAttributes = currentAttributes.filter!(a => getAttributeGroup(a) != group
 					|| isIdenticalAttribute(a, attr)).array;
@@ -139,7 +141,8 @@ private:
 	static bool isAccessSpecifier(const Attribute attr)
 	{
 		auto type = attr.attribute.type;
-		return type.among(tok!"private", tok!"protected", tok!"public", tok!"package", tok!"export") > 0;
+		return type.among(tok!"private", tok!"protected", tok!"public",
+				tok!"package", tok!"export") > 0;
 	}
 
 	static bool isIdenticalAttribute(const Attribute a, const Attribute b)
@@ -175,8 +178,7 @@ private:
 	enum string KEY = "dscanner.suspicious.redundant_attributes";
 }
 
-
-version(unittest)
+version (unittest)
 {
 	import analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
@@ -248,7 +250,7 @@ version(unittest)
 private int foo2;
 }}c, sac);
 
-// test scopes
+	// test scopes
 	assertAnalyzerWarnings(q{
 unittest
 {
@@ -283,7 +285,6 @@ unittest
 }
 	@safe void foo();
 }}c, sac);
-
 
 	stderr.writeln("Unittest for RedundantAttributesCheck passed.");
 }

@@ -65,8 +65,7 @@ class HasPublicExampleCheck : BaseAnalyzer
 				lastDecl = hasDdocHeader ? cast(Declaration) decl : null;
 				hasNoDdocUnittest = true;
 			}
-			else
-			// ran into variableDeclaration or something else -> reset & validate current lastDecl "stack"
+			else// ran into variableDeclaration or something else -> reset & validate current lastDecl "stack"
 				checkLastDecl;
 		}
 		checkLastDecl;
@@ -77,6 +76,7 @@ private:
 	bool hasDitto(Decl)(const Decl decl)
 	{
 		import ddoc.comments : parseComment;
+
 		if (decl is null || decl.comment is null)
 			return false;
 
@@ -100,16 +100,11 @@ private:
 	}
 
 	import std.meta : AliasSeq;
-	alias possibleDeclarations = AliasSeq!(
-		"classDeclaration",
-		"enumDeclaration",
-		"functionDeclaration",
-		"interfaceDeclaration",
-		"structDeclaration",
-		"templateDeclaration",
-		"unionDeclaration",
-		//"variableDeclaration",
-	);
+
+	alias possibleDeclarations = AliasSeq!("classDeclaration", "enumDeclaration", "functionDeclaration",
+			"interfaceDeclaration", "structDeclaration",
+			"templateDeclaration", "unionDeclaration",//"variableDeclaration",
+			);
 
 	bool hasDdocHeader(const Declaration decl)
 	{
@@ -131,7 +126,8 @@ private:
 	{
 		import dparse.lexer : tok;
 
-		enum tokPrivate = tok!"private", tokProtected = tok!"protected", tokPackage = tok!"package";
+		enum tokPrivate = tok!"private", tokProtected = tok!"protected",
+				tokPackage = tok!"package";
 
 		if (attrs.map!`a.attribute`.any!(x => x == tokPrivate || x == tokProtected || x == tokPackage))
 			return false;
@@ -299,4 +295,3 @@ unittest
 
 	stderr.writeln("Unittest for HasPublicExampleCheck passed.");
 }
-

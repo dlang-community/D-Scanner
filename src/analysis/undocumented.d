@@ -334,4 +334,3 @@ unittest
 
 	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
 }
-

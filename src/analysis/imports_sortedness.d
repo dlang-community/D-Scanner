@@ -47,17 +47,20 @@ class ImportSortednessCheck : BaseAnalyzer
 		{
 			foreach (singleImport; id.singleImports)
 			{
-				string importModuleName = singleImport.identifierChain.identifiers.map!`a.text`.join(".");
+				string importModuleName = singleImport.identifierChain.identifiers.map!`a.text`.join(
+						".");
 				addImport(importModuleName, singleImport);
 			}
 		}
 		else
 		{
-			string importModuleName = id.importBindings.singleImport.identifierChain.identifiers.map!`a.text`.join(".");
+			string importModuleName = id.importBindings.singleImport.identifierChain.identifiers.map!`a.text`.join(
+					".");
 
 			foreach (importBind; id.importBindings.importBinds)
 			{
-				addImport(importModuleName ~ "-" ~ importBind.left.text, id.importBindings.singleImport);
+				addImport(importModuleName ~ "-" ~ importBind.left.text,
+						id.importBindings.singleImport);
 			}
 		}
 	}
@@ -83,7 +86,7 @@ private:
 	{
 		import std.uni : sicmp;
 
-		if (imports[level].length > 0 && imports[level][$ -1].sicmp(importModuleName) > 0)
+		if (imports[level].length > 0 && imports[level][$ - 1].sicmp(importModuleName) > 0)
 		{
 			addErrorMessage(singleImport.identifierChain.identifiers[0].line,
 					singleImport.identifierChain.identifiers[0].column, KEY, MESSAGE);
@@ -113,9 +116,7 @@ unittest
 	assertAnalyzerWarnings(q{
 		import foo.bar;
 		import bar.foo; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,), sac);
 
 	assertAnalyzerWarnings(q{
 		import c;
@@ -123,31 +124,24 @@ unittest
 		import c.a; // [warn]: %s
 		import d.a;
 		import d; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	assertAnalyzerWarnings(q{
 		import a.b, a.c, a.d;
 		import a.b, a.d, a.c; // [warn]: %s
 		import a.c, a.b, a.c; // [warn]: %s
 		import foo.bar, bar.foo; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE, ImportSortednessCheck.MESSAGE,), sac);
 
 	// multiple items out of order
 	assertAnalyzerWarnings(q{
 		import foo.bar;
 		import bar.foo; // [warn]: %s
 		import bar.bar.foo; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	assertAnalyzerWarnings(q{
 		import test : bar;
@@ -158,26 +152,20 @@ unittest
 	assertAnalyzerWarnings(q{
 		import test : foo;
 		import test : bar; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,), sac);
 
 	// selective imports
 	assertAnalyzerWarnings(q{
 		import test : foo, bar; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,), sac);
 
 	assertAnalyzerWarnings(q{
 		import b;
 		import c : foo;
 		import c : bar; // [warn]: %s
 		import a; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	assertAnalyzerWarnings(q{
 		import c;
@@ -185,10 +173,8 @@ unittest
 		import d : bar;
 		import d; // [warn]: %s
 		import a : bar; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	assertAnalyzerWarnings(q{
 		import t0;
@@ -200,10 +186,8 @@ unittest
 		import t1 : a, b = foo;
 		import t1 : b, a = foo; // [warn]: %s
 		import t0 : a, b = foo; // [warn]: %s
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	// local imports in functions
 	assertAnalyzerWarnings(q{
@@ -220,10 +204,8 @@ unittest
 			import f1;
 			import f2;
 		}
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	// local imports in scopes
 	assertAnalyzerWarnings(q{
@@ -245,11 +227,8 @@ unittest
 				import f3;
 			}
 		}
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE, ImportSortednessCheck.MESSAGE,), sac);
 
 	// local imports in functions
 	assertAnalyzerWarnings(q{
@@ -276,12 +255,8 @@ unittest
 				import f3;
 			}
 		}
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE, ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE, ImportSortednessCheck.MESSAGE,), sac);
 
 	// nested scopes
 	assertAnalyzerWarnings(q{
@@ -308,13 +283,9 @@ unittest
 				}
 			}
 		}
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE, ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE, ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	// local imports in functions
 	assertAnalyzerWarnings(q{
@@ -331,10 +302,8 @@ unittest
 			import f1;
 			import f2;
 		}
-	}c.format(
-		ImportSortednessCheck.MESSAGE,
-		ImportSortednessCheck.MESSAGE,
-	), sac);
+	}c.format(ImportSortednessCheck.MESSAGE,
+			ImportSortednessCheck.MESSAGE,), sac);
 
 	// issue 422 - sorted imports with :
 	assertAnalyzerWarnings(q{
