@@ -15,7 +15,7 @@
 .svn/
 
 # D Scanner binaries
-dscanner
+/dscanner
 dscanner.o
 
 # Static analysis reports
