@@ -47,10 +47,10 @@ final class StyleChecker : BaseAnalyzer
 		if (dec.attributes)
 			foreach (attrib; dec.attributes)
 				if (const LinkageAttribute la = attrib.linkageAttribute)
-		{
-			p = true;
-			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
-		}
+				{
+					p = true;
+					pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
+				}
 
 		dec.accept(this);
 
@@ -64,7 +64,7 @@ final class StyleChecker : BaseAnalyzer
 		if (dec.attribute && dec.attribute.linkageAttribute)
 		{
 			const LinkageAttribute la = dec.attribute.linkageAttribute;
-			_winStyles[$-1] = la.identifier.text.length && la.identifier.text == "Windows";
+			_winStyles[$ - 1] = la.identifier.text.length && la.identifier.text == "Windows";
 		}
 	}
 
@@ -85,10 +85,10 @@ final class StyleChecker : BaseAnalyzer
 		if (dec.attributes)
 			foreach (attrib; dec.attributes)
 				if (const LinkageAttribute la = attrib.linkageAttribute)
-		{
-			p = true;
-			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
-		}
+				{
+					p = true;
+					pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
+				}
 
 		if (dec.functionBody || (!dec.functionBody && !winStyle()))
 			checkLowercaseName("Function", dec.name);
@@ -141,13 +141,13 @@ final class StyleChecker : BaseAnalyzer
 
 	bool winStyle()
 	{
-		return _winStyles[$-1];
+		return _winStyles[$ - 1];
 	}
 
 	void pushWinStyle(const bool value)
 	{
 		_winStyles.length += 1;
-		_winStyles[$-1] = value;
+		_winStyles[$ - 1] = value;
 	}
 
 	void popWinStyle()

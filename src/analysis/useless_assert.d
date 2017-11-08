@@ -17,6 +17,7 @@ auto filterChars(string chars, S)(S str)
 	import std.algorithm.comparison : among;
 	import std.algorithm.iteration : filter;
 	import std.meta : aliasSeqOf;
+
 	return str.filter!(c => !c.among(aliasSeqOf!chars));
 }
 
@@ -119,7 +120,6 @@ unittest
 	assert(0.0L);
 }
 
-}c
-			.format(UselessAssertCheck.MESSAGE), sac);
+}c.format(UselessAssertCheck.MESSAGE), sac);
 	stderr.writeln("Unittest for UselessAssertCheck passed.");
 }

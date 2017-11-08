@@ -198,14 +198,9 @@ else
 					"text                    \tblank\tindex\tline\tcolumn\ttype\tcomment\ttrailingComment");
 			foreach (token; tokens)
 			{
-				writefln("<<%20s>>\t%b\t%d\t%d\t%d\t%d\t%s\t%s",
-						token.text is null ? str(token.type) : token.text,
-						token.text is null,
-						token.index,
-						token.line,
-						token.column,
-						token.type,
-						token.comment,
+				writefln("<<%20s>>\t%b\t%d\t%d\t%d\t%d\t%s\t%s", token.text is null
+						? str(token.type) : token.text, token.text is null, token.index,
+						token.line, token.column, token.type, token.comment,
 						token.trailingComment);
 			}
 			return 0;
@@ -229,8 +224,8 @@ else
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
 			readINIFile(config, s);
-        if (skipTests)
-            config.enabled2SkipTests;
+		if (skipTests)
+			config.enabled2SkipTests;
 		if (report)
 			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
@@ -384,7 +379,7 @@ Options:
     --skipTests
         Does not analyze in the unittests. Only works if --styleCheck.`,
 
-    programName);
+			programName);
 }
 
 private void doNothing(string, size_t, size_t, string, bool)

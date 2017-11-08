@@ -32,7 +32,7 @@ private:
 
 	enum key = "dscanner.useless-initializer";
 
-	version(unittest)
+	version (unittest)
 	{
 		enum msg = "X";
 	}
@@ -74,9 +74,8 @@ public:
 
 		assert(_inStruct.length > 1);
 
-		const string structName = _inStruct[$-2] ?
-			_structStack.back() ~ "." ~ decl.name.text :
-		  decl.name.text;
+		const string structName = _inStruct[$ - 2] ? _structStack.back() ~ "." ~ decl.name.text
+			: decl.name.text;
 
 		_structStack.insert(structName);
 		_structCanBeInit[structName] = false;
@@ -90,32 +89,35 @@ public:
 	{
 		_inStruct.insert(decl.structDeclaration !is null);
 		decl.accept(this);
-		if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
-			((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||
-			!decl.constructor.parameters))
+		if (_inStruct.length > 1 && _inStruct[$ - 2] && decl.constructor
+				&& ((decl.constructor.parameters
+					&& decl.constructor.parameters.parameters.length == 0)
+					|| !decl.constructor.parameters))
 		{
-			_atDisabled[$-1] = decl.attributes
-				.canFind!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
+			_atDisabled[$ - 1] = decl.attributes.canFind!(a => a.atAttribute !is null
+					&& a.atAttribute.identifier.text == "disable");
 		}
 		_inStruct.removeBack();
 	}
 
 	override void visit(const(Constructor) decl)
 	{
-		if (_inStruct.length > 1 && _inStruct[$-2] &&
-			((decl.parameters && decl.parameters.parameters.length == 0) || !decl.parameters))
+		if (_inStruct.length > 1 && _inStruct[$ - 2] && ((decl.parameters
+				&& decl.parameters.parameters.length == 0) || !decl.parameters))
 		{
-			const bool canBeInit = !_atDisabled[$-1];
+			const bool canBeInit = !_atDisabled[$ - 1];
 			_structCanBeInit[_structStack.back()] = canBeInit;
 			if (!canBeInit)
-				_structCanBeInit[_structStack.back()] = !decl.memberFunctionAttributes
-					.canFind!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
+				_structCanBeInit[_structStack.back()] = !decl.memberFunctionAttributes.canFind!(
+						a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
 		}
 		decl.accept(this);
 	}
 
 	// issue 473, prevent to visit delegates that contain duck type checkers.
-	override void visit(const(TypeofExpression)) {}
+	override void visit(const(TypeofExpression))
+	{
+	}
 
 	// issue 473, prevent to check expressions in __traits(compiles, ...)
 	override void visit(const(TraitsExpression) e)
@@ -132,25 +134,23 @@ public:
 
 	override void visit(const(VariableDeclaration) decl)
 	{
-		if (!decl.type || !decl.type.type2 ||
-			// initializer has to appear clearly in generated ddoc
-			decl.comment !is null ||
-			// issue 474, manifest constants HAVE to be initialized.
-			decl.storageClasses.canFind!(a => a.token == tok!"enum"))
+		if (!decl.type || !decl.type.type2 || // initializer has to appear clearly in generated ddoc
+				decl.comment !is null
+				|| // issue 474, manifest constants HAVE to be initialized.
+				decl.storageClasses.canFind!(a => a.token == tok!"enum"))
 		{
 			return;
 		}
 
 		foreach (declarator; decl.declarators)
 		{
-			if (!declarator.initializer ||
-				!declarator.initializer.nonVoidInitializer ||
-				declarator.comment !is null)
+			if (!declarator.initializer
+					|| !declarator.initializer.nonVoidInitializer || declarator.comment !is null)
 			{
-					continue;
+				continue;
 			}
 
-			version(unittest)
+			version (unittest)
 			{
 				enum warn = q{addErrorMessage(declarator.name.line,
 					declarator.name.column, key, msg);};
@@ -158,24 +158,26 @@ public:
 			else
 			{
 				import std.format : format;
+
 				enum warn = q{addErrorMessage(declarator.name.line,
 				declarator.name.column, key, msg.format(declarator.name.text));};
 			}
 
 			// ---  Info about the declaration type --- //
-			const bool isPtr = decl.type.typeSuffixes && decl.type.typeSuffixes
-				.canFind!(a => a.star != tok!"");
-			const bool isArr = decl.type.typeSuffixes && decl.type.typeSuffixes
-				.canFind!(a => a.array);
+			const bool isPtr = decl.type.typeSuffixes
+				&& decl.type.typeSuffixes.canFind!(a => a.star != tok!"");
+			const bool isArr = decl.type.typeSuffixes
+				&& decl.type.typeSuffixes.canFind!(a => a.array);
 
 			bool isStr, isSzInt;
 			Token customType;
 
-			if (decl.type.type2.symbol && decl.type.type2.symbol.identifierOrTemplateChain &&
-				decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length == 1)
+			if (decl.type.type2.symbol && decl.type.type2.symbol.identifierOrTemplateChain
+					&& decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length
+					== 1)
 			{
-				const IdentifierOrTemplateInstance idt =
-					decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+				const IdentifierOrTemplateInstance idt = decl.type.type2.symbol
+					.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
 
 				customType = idt.identifier;
 				isStr = customType.text.among("string", "wstring", "dstring") != 0;
@@ -191,23 +193,23 @@ public:
 
 				if (!isPtr && !isArr && !isStr && decl.type.type2.builtinType != tok!"")
 				{
-					switch(decl.type.type2.builtinType)
+					switch (decl.type.type2.builtinType)
 					{
-					// check for common cases of default values
-					case tok!"byte",    tok!"ubyte":
-					case tok!"short",   tok!"ushort":
-					case tok!"int",     tok!"uint":
-					case tok!"long",    tok!"ulong":
-					case tok!"cent",    tok!"ucent":
+						// check for common cases of default values
+					case tok!"byte", tok!"ubyte":
+					case tok!"short", tok!"ushort":
+					case tok!"int", tok!"uint":
+					case tok!"long", tok!"ulong":
+					case tok!"cent", tok!"ucent":
 					case tok!"bool":
 						if (intDefs.canFind(value.text) || value == tok!"false")
 							mixin(warn);
 						goto default;
 					default:
-					// check for BasicType.init
-						if (ue.primaryExpression.basicType.type == decl.type.type2.builtinType &&
-							ue.primaryExpression.primary.text == "init" &&
-							!ue.primaryExpression.expression)
+						// check for BasicType.init
+						if (ue.primaryExpression.basicType.type == decl.type.type2.builtinType
+								&& ue.primaryExpression.primary.text == "init"
+								&& !ue.primaryExpression.expression)
 							mixin(warn);
 					}
 				}
@@ -225,20 +227,22 @@ public:
 				{
 					if (str(value.type) == "null")
 						mixin(warn);
-					else if (nvi.arrayInitializer && nvi.arrayInitializer.arrayMemberInitializations.length == 0)
+					else if (nvi.arrayInitializer
+							&& nvi.arrayInitializer.arrayMemberInitializations.length == 0)
 						mixin(warn);
 				}
 			}
 
 			// Symbol s = Symbol.init
-			else if (ue && customType != tok!"" && ue.unaryExpression && ue.unaryExpression.primaryExpression &&
-				ue.unaryExpression.primaryExpression.identifierOrTemplateInstance &&
-				ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType &&
-				ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
+			else if (ue && customType != tok!"" && ue.unaryExpression && ue.unaryExpression.primaryExpression
+					&& ue.unaryExpression.primaryExpression.identifierOrTemplateInstance
+					&& ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType
+					&& ue.identifierOrTemplateInstance
+					&& ue.identifierOrTemplateInstance.identifier.text == "init")
 			{
 				if (customType.text in _structCanBeInit)
 				{
-					if  (!_structCanBeInit[customType.text])
+					if (!_structCanBeInit[customType.text])
 						mixin(warn);
 				}
 			}
@@ -258,7 +262,7 @@ public:
 @system unittest
 {
 	import analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import analysis.helpers: assertAnalyzerWarnings;
+	import analysis.helpers : assertAnalyzerWarnings;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig;
@@ -336,4 +340,3 @@ public:
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
 }
-

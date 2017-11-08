@@ -30,18 +30,18 @@ class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 		{
 			bool isSafeOrSystem;
 			if (decl.attributes !is null)
-			foreach (attribute; decl.attributes)
-			{
-				if (attribute.atAttribute !is null)
+				foreach (attribute; decl.attributes)
 				{
-					const token = attribute.atAttribute.identifier.text;
-					if (token == "safe" || token == "system")
+					if (attribute.atAttribute !is null)
 					{
-						isSafeOrSystem = true;
-						break;
+						const token = attribute.atAttribute.identifier.text;
+						if (token == "safe" || token == "system")
+						{
+							isSafeOrSystem = true;
+							break;
+						}
 					}
 				}
-			}
 			if (!isSafeOrSystem)
 				addErrorMessage(decl.unittest_.line, decl.unittest_.column, KEY, MESSAGE);
 		}
@@ -69,10 +69,8 @@ unittest
 
 		unittest {} // [warn]: %s
 		pure nothrow @nogc unittest {} // [warn]: %s
-	}c.format(
-		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
-		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
-	), sac);
+	}c.format(ExplicitlyAnnotatedUnittestCheck.MESSAGE,
+			ExplicitlyAnnotatedUnittestCheck.MESSAGE,), sac);
 
 	// nested
 	assertAnalyzerWarnings(q{
@@ -84,10 +82,8 @@ unittest
 			unittest {} // [warn]: %s
 			pure nothrow @nogc unittest {} // [warn]: %s
 		}
-	}c.format(
-		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
-		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
-	), sac);
+	}c.format(ExplicitlyAnnotatedUnittestCheck.MESSAGE,
+			ExplicitlyAnnotatedUnittestCheck.MESSAGE,), sac);
 
 	stderr.writeln("Unittest for ExplicitlyAnnotatedUnittestCheck passed.");
 }

@@ -58,7 +58,8 @@ class LocalImportCheck : BaseAnalyzer
 				{
 					addErrorMessage(singleImport.identifierChain.identifiers[0].line,
 							singleImport.identifierChain.identifiers[0].column,
-							"dscanner.suspicious.local_imports", "Local imports should specify"
+							"dscanner.suspicious.local_imports",
+							"Local imports should specify"
 							~ " the symbols being imported to avoid hiding local symbols.");
 				}
 			}

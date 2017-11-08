@@ -79,8 +79,8 @@ void doNothing(string, size_t, size_t, string, bool)
 ubyte[] sansBOM(ubyte[] bytes)
 {
 	// At least handle UTF-8 since there is some in druntime/phobos
-	return (bytes.length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf)
-		? bytes[3 .. $] : bytes;
+	return (bytes.length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf) ? bytes[3
+		.. $] : bytes;
 }
 
 string moduleFullName(Module m, string fileName)

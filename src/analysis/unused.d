@@ -276,10 +276,11 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Type2 tp)
 	{
-		if (tp.symbol && tp.symbol.identifierOrTemplateChain &&
-			tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances)
+		if (tp.symbol && tp.symbol.identifierOrTemplateChain
+				&& tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances)
 		{
-			const IdentifierOrTemplateInstance idt = tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+			const IdentifierOrTemplateInstance idt = tp.symbol
+				.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
 			if (idt.identifier != tok!"")
 				variableUsed(idt.identifier.text);
 			else if (idt.templateInstance)
@@ -318,10 +319,10 @@ class UnusedVariableCheck : BaseAnalyzer
 
 		if (parameter.name != tok!"")
 		{
-			immutable bool isRef = !parameter.parameterAttributes
-				.filter!(a => a.among(tok!"ref", tok!"out")).empty;
-			immutable bool isPtr = parameter.type && !parameter.type
-				.typeSuffixes.filter!(a => a.star != tok!"").empty;
+			immutable bool isRef = !parameter.parameterAttributes.filter!(a => a.among(tok!"ref",
+					tok!"out")).empty;
+			immutable bool isPtr = parameter.type
+				&& !parameter.type.typeSuffixes.filter!(a => a.star != tok!"").empty;
 
 			variableDeclared(parameter.name.text, parameter.name.line,
 					parameter.name.column, true, isRef | isPtr);
@@ -530,4 +531,3 @@ private:
 	}c, sac);
 	stderr.writeln("Unittest for UnusedVariableCheck passed.");
 }
-

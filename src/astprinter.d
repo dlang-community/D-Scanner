@@ -175,7 +175,8 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<autoDeclarationPart>");
 
 		output.writeln("<item>");
-		output.writeln("<name line=\"", part.identifier.line, "\">", part.identifier.text, "</name>");
+		output.writeln("<name line=\"", part.identifier.line, "\">",
+				part.identifier.text, "</name>");
 		visit(part.initializer);
 		output.writeln("</item>");
 		output.writeln("</autoDeclarationPart>");
@@ -605,7 +606,8 @@ class XMLPrinter : ASTVisitor
 		if (linkageAttribute.hasPlusPlus)
 		{
 			output.write("<linkageAttribute linkage=\"C++\"");
-			if (linkageAttribute.identifierChain !is null && linkageAttribute.identifierChain.identifiers.length > 0)
+			if (linkageAttribute.identifierChain !is null
+					&& linkageAttribute.identifierChain.identifiers.length > 0)
 			{
 				output.write(" namespace=\"");
 				format(output.lockingTextWriter, linkageAttribute.identifierChain);

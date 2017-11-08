@@ -37,9 +37,8 @@ class LineLengthCheck : BaseAnalyzer
 				endColumn = info.length + token.column - 1;
 			else
 			{
-				immutable wsChange = i > 0
-						? token.column - (tokens[i - 1].column + tokenByteLength(tokens[i - 1]))
-						: 0;
+				immutable wsChange = i > 0 ? token.column - (
+						tokens[i - 1].column + tokenByteLength(tokens[i - 1])) : 0;
 				endColumn += wsChange + info.length;
 			}
 			if (endColumn > MAX_LINE_LENGTH)
@@ -65,6 +64,7 @@ private:
 	static bool isLineSeparator(dchar c)
 	{
 		import std.uni : lineSep, paraSep;
+
 		return c == lineSep || c == '\n' || c == '\v' || c == '\r' || c == paraSep;
 	}
 
@@ -89,9 +89,12 @@ private:
 
 	unittest
 	{
-		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
-		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
-		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
+		assert(new LineLengthCheck(null, null)
+				.checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
+		assert(new LineLengthCheck(null, null)
+				.checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
+		assert(new LineLengthCheck(null, null)
+				.checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
 	}
 
 	static size_t tokenByteLength()(auto ref const Token tok)
@@ -181,7 +184,7 @@ assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 }
 	}c, sac);
 
-// TODO: libdparse counts columns bytewise
+	// TODO: libdparse counts columns bytewise
 	//assert("foo" == "boooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo5");
 	//assert("foo" == "booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo6"); // [warn]: Line is longer than 120 characters
 

@@ -16,8 +16,7 @@ import std.functional : toDelegate;
 
 void findDeclarationOf(File output, string symbolName, string[] fileNames)
 {
-	findDeclarationOf((string fileName, size_t line, size_t column)
-	{
+	findDeclarationOf((string fileName, size_t line, size_t column) {
 		output.writefln("%s(%d:%d)", fileName, line, column);
 	}, symbolName, fileNames);
 }
@@ -106,8 +105,7 @@ class FinderVisitor : ASTVisitor
 		foreach (initializer; dec.initializers)
 		{
 			if (initializer.name.text == symbolName)
-				output(fileName, initializer.name.line,
-						initializer.name.column);
+				output(fileName, initializer.name.line, initializer.name.column);
 		}
 	}
 

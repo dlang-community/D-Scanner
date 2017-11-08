@@ -46,8 +46,7 @@ class EnumArrayLiteralCheck : BaseAnalyzer
 				addErrorMessage(part.identifier.line, part.identifier.column,
 						"dscanner.performance.enum_array_literal",
 						"This enum may lead to unnecessary allocation at run-time."
-						~ " Use 'static immutable "
-						~ part.identifier.text ~ " = [ ...' instead.");
+						~ " Use 'static immutable " ~ part.identifier.text ~ " = [ ...' instead.");
 			}
 		}
 		autoDec.accept(this);
