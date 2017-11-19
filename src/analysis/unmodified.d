@@ -217,7 +217,7 @@ private:
 
 	bool initializedFromNew(const Initializer initializer)
 	{
-		if (initializer.nonVoidInitializer &&
+		if (initializer && initializer.nonVoidInitializer &&
 			initializer.nonVoidInitializer.assignExpression &&
 			cast(UnaryExpression) initializer.nonVoidInitializer.assignExpression)
 		{
