@@ -225,7 +225,7 @@ private:
 				cast(UnaryExpression) initializer.nonVoidInitializer.assignExpression;
 			return ue.newExpression !is null;
 		}
-		else return false;
+		return false;
 	}
 
 	bool initializedFromCast(const Initializer initializer)
