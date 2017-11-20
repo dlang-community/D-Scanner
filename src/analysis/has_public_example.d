@@ -42,8 +42,14 @@ class HasPublicExampleCheck : BaseAnalyzer
 		}
 
 		// check all public top-level declarations
-		foreach (decl; mod.declarations.filter!(decl => isPublic(decl.attributes)))
+		foreach (decl; mod.declarations)
 		{
+			if (!isPublic(decl.attributes))
+			{
+				checkLastDecl();
+				continue;
+			}
+
 			const bool hasDdocHeader = hasDdocHeader(decl);
 
 			// check the documentation of a unittest declaration
@@ -281,18 +287,31 @@ unittest
 		unittest {}
 	}, sac);
 
-	/// check intermediate private declarations and ditto-ed declarations
-	assertAnalyzerWarnings(q{
+	// check intermediate private declarations
+	// removed for issue #500
+	/*assertAnalyzerWarnings(q{
 		/// C
 		class C{}
 		private void foo(){}
 		///
 		unittest {}
+	}, sac);*/
 
+	// check intermediate ditto-ed declarations
+	assertAnalyzerWarnings(q{
 		/// I
 		interface I{}
 		/// ditto
 		void f(){}
+		///
+		unittest {}
+	}, sac);
+
+	// test reset on private symbols (#500)
+	assertAnalyzerWarnings(q{
+		///
+		void dirName(C)(C[] path) {} // [warn]: Public declaration 'dirName' has no documented example.
+		private void _dirName(R)(R path) {}
 		///
 		unittest {}
 	}, sac);
