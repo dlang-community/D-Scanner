@@ -1,16 +1,30 @@
 sudo: false
 language: d
 d:
-  - dmd-nightly
-  - dmd-beta
-  - dmd
-  - ldc-beta
-  - ldc
+- dmd-nightly
+- dmd-beta
+- dmd
+- ldc-beta
+- ldc
 os:
-  - linux
-  - osx
+- linux
+- osx
 env:
-  - BUILD=
-  - BUILD=dub
-
-script: ./.travis.sh
+- BUILD=
+- BUILD=dub
+script: "./.travis.sh"
+jobs:
+  include:
+  - stage: GitHub Release
+    d: ldc
+    os: linux
+    script: echo "Deploying to GitHub releases ..." && make ldcbuild
+    deploy:
+      provider: releases
+      api_key:
+        secure: pbrrm6E0SPfVwt9g+e/ZFQfrmRuGBNA6KwMMLUhI+2+kbRzNquxvrYAUC7YcRX7xiRL/gugKHmOXEi1Dv9IEdSQ732M06H7ikZT9T9oQWYbsZzmVICBWgIovyM8XIPpVAwP8D7jq0JgMiBicqfEZfoz2SIJjo6aYbyQbCASCu8U=
+      file: bin/dscanner
+      skip_cleanup: true
+      on:
+        repo: dlang-community/D-Scanner
+        tags: true
