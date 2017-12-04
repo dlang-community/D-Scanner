@@ -1,8 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
-IF "%DC%"=="" SET DC="dmd"
-IF "%DC%"=="ldc2" SET DC="ldmd2"
+if "%DC%"=="" set DC="dmd"
+if "%DC%"=="ldc2" set DC="ldmd2"
 
 set DFLAGS=-O -release -inline -version=StdLoggerDisableWarning
 set TESTFLAGS=-g -w -version=StdLoggerDisableWarning
