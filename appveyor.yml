@@ -121,3 +121,17 @@ test_script:
  - dub test --arch=%Darch% --compiler=%DC%
  - git submodule update --init --recursive
  - build.bat test
+ - build.bat
+
+deploy:
+  release: dscanner-v$(appveyor_build_version)
+  description: 'DScanner release'
+  provider: GitHub
+  auth_token:
+    secure: FhQH4pdE0v2jKANNhX5wlm1oKBfizXyArWUskWfL/bmxaTaLjeyduTzotBTzNQ4p
+  artifact: bin\dscanner.exe            # upload D-Scanner binary
+  draft: false
+  prerelease: true
+  on:
+    branch: master                 # release from master branch only
+    appveyor_repo_tag: true        # deploy on tag push only
