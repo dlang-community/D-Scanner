@@ -31,6 +31,9 @@ branches:
   only:
     - master
 
+init:
+  - git config --global core.autocrlf true
+
 install:
   - ps: function ResolveLatestDMD
         {
