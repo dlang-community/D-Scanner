@@ -61,7 +61,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 
 	// Run the code and get any warnings
 	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);
-	string[] codeLines = code.split(newline);
+	string[] codeLines = code.splitLines();
 
 	// Get the warnings ordered by line
 	string[size_t] warnings;
