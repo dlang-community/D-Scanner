@@ -50,7 +50,6 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 {
 	import analysis.run : parseModule;
 	import dparse.lexer : StringCache, Token;
-	import std.ascii : newline;
 
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	RollbackAllocator r;
