@@ -66,7 +66,7 @@ install:
                 $latest = $version;
                 $url = "https://github.com/ldc-developers/ldc/releases/download/v$($version)/ldc2-$($version)-win64-msvc.zip";
             }
-            $env:PATH += ";C:\ldc2-$($latest)-win64-msvc\bin";
+            $env:PATH += ";C:\ldc2-$($latest)-windows-x64\bin";
             $env:DC = "ldc2";
             return $url;
         }
