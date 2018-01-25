@@ -13,6 +13,8 @@ import std.conv;
 
 class Outliner : ASTVisitor
 {
+	alias visit = ASTVisitor.visit;
+
 	this(File output)
 	{
 		this.output = output;
@@ -171,8 +173,6 @@ private:
 	}
 
 	int indentLevel;
-
-	alias visit = ASTVisitor.visit;
 
 	File output;
 }
