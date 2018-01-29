@@ -23,12 +23,12 @@ class AliasSyntaxCheck : BaseAnalyzer
 
 	override void visit(const AliasDeclaration ad)
 	{
-		if (ad.identifierList is null)
+		if (ad.declaratorIdentifierList is null)
 			return;
-		assert(ad.identifierList.identifiers.length > 0,
+		assert(ad.declaratorIdentifierList.identifiers.length > 0,
 				"Identifier list length is zero, libdparse has a bug");
-		addErrorMessage(ad.identifierList.identifiers[0].line,
-				ad.identifierList.identifiers[0].column, KEY,
+		addErrorMessage(ad.declaratorIdentifierList.identifiers[0].line,
+				ad.declaratorIdentifierList.identifiers[0].column, KEY,
 				"Prefer the new \"'alias' identifier '=' type ';'\" syntax"
 				~ " to the  old \"'alias' type identifier ';'\" syntax.");
 	}
