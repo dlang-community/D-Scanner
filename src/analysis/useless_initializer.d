@@ -171,7 +171,7 @@ public:
 			bool isStr, isSzInt;
 			Token customType;
 
-			if (decl.type.type2.typeIdentifierPart && decl.type.type2.typeIdentifierPart &&
+			if (decl.type.type2.typeIdentifierPart &&
 				decl.type.type2.typeIdentifierPart.typeIdentifierPart is null)
 			{
 				const IdentifierOrTemplateInstance idt =

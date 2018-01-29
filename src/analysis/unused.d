@@ -276,7 +276,7 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Type2 tp)
 	{
-		if (tp.typeIdentifierPart && tp.typeIdentifierPart &&
+		if (tp.typeIdentifierPart &&
 			tp.typeIdentifierPart.identifierOrTemplateInstance)
 		{
 			const IdentifierOrTemplateInstance idt = tp.typeIdentifierPart.identifierOrTemplateInstance;
