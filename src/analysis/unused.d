@@ -276,10 +276,10 @@ class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const Type2 tp)
 	{
-		if (tp.symbol && tp.symbol.identifierOrTemplateChain &&
-			tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances)
+		if (tp.typeIdentifierPart &&
+			tp.typeIdentifierPart.identifierOrTemplateInstance)
 		{
-			const IdentifierOrTemplateInstance idt = tp.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+			const IdentifierOrTemplateInstance idt = tp.typeIdentifierPart.identifierOrTemplateInstance;
 			if (idt.identifier != tok!"")
 				variableUsed(idt.identifier.text);
 			else if (idt.templateInstance)

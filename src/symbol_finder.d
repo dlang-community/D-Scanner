@@ -95,9 +95,9 @@ class FinderVisitor : ASTVisitor
 
 	override void visit(const AliasDeclaration dec)
 	{
-		if (dec.identifierList !is null)
+		if (dec.declaratorIdentifierList !is null)
 		{
-			foreach (ident; dec.identifierList.identifiers)
+			foreach (ident; dec.declaratorIdentifierList.identifiers)
 			{
 				if (ident.text == symbolName)
 					output(fileName, ident.line, ident.column);

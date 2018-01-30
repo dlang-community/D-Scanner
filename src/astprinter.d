@@ -605,10 +605,10 @@ class XMLPrinter : ASTVisitor
 		if (linkageAttribute.hasPlusPlus)
 		{
 			output.write("<linkageAttribute linkage=\"C++\"");
-			if (linkageAttribute.identifierChain !is null && linkageAttribute.identifierChain.identifiers.length > 0)
+			if (linkageAttribute.typeIdentifierPart !is null && linkageAttribute.typeIdentifierPart.typeIdentifierPart !is null)
 			{
 				output.write(" namespace=\"");
-				format(output.lockingTextWriter, linkageAttribute.identifierChain);
+				format(output.lockingTextWriter, linkageAttribute.typeIdentifierPart);
 				output.writeln("\"/>");
 			}
 			else if (linkageAttribute.classOrStruct == tok!"class")
@@ -894,8 +894,8 @@ class XMLPrinter : ASTVisitor
 		if (type2.builtinType != tok!"")
 		{
 			output.writeln("<type2>", str(type2.builtinType), "</type2>");
-			if (type2.identifierOrTemplateChain !is null)
-				visit(type2.identifierOrTemplateChain);
+			if (type2.typeIdentifierPart !is null)
+				visit(type2.typeIdentifierPart);
 		}
 		else
 		{
@@ -1077,6 +1077,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const Declaration declaration) { mixin (tagAndAccept!"declaration"); }
 	override void visit(const DeclarationOrStatement declarationOrStatement) { mixin (tagAndAccept!"declarationOrStatement"); }
 	override void visit(const DeclarationsAndStatements declarationsAndStatements) { mixin (tagAndAccept!"declarationsAndStatements"); }
+	override void visit(const DeclaratorIdentifierList declaratorIdentifierList) { mixin (tagAndAccept!"declaratorIdentifierList"); }
 	override void visit(const DefaultStatement defaultStatement) { mixin (tagAndAccept!"defaultStatement"); }
 	override void visit(const DeleteExpression deleteExpression) { mixin (tagAndAccept!"deleteExpression"); }
 	override void visit(const DeleteStatement deleteStatement) { mixin (tagAndAccept!"deleteStatement"); }
@@ -1092,7 +1093,6 @@ class XMLPrinter : ASTVisitor
 	override void visit(const FunctionBody functionBody) { mixin (tagAndAccept!"functionBody"); }
 	override void visit(const FunctionCallExpression functionCallExpression) { mixin (tagAndAccept!"functionCallExpression"); }
 	override void visit(const IdentifierChain identifierChain) { mixin (tagAndAccept!"identifierChain"); }
-	override void visit(const IdentifierList identifierList) { mixin (tagAndAccept!"identifierList"); }
 	override void visit(const IdentifierOrTemplateChain identifierOrTemplateChain) { mixin (tagAndAccept!"identifierOrTemplateChain"); }
 	override void visit(const IdentifierOrTemplateInstance identifierOrTemplateInstance) { mixin (tagAndAccept!"identifierOrTemplateInstance"); }
 	override void visit(const ImportBindings importBindings) { mixin (tagAndAccept!"importBindings"); }
@@ -1148,6 +1148,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const TemplateValueParameterDefault templateValueParameterDefault) { mixin (tagAndAccept!"templateValueParameterDefault"); }
 	override void visit(const TemplateValueParameter templateValueParameter) { mixin (tagAndAccept!"templateValueParameter"); }
 	override void visit(const TernaryExpression ternaryExpression) { mixin (tagAndAccept!"ternaryExpression"); }
+	override void visit(const TypeIdentifierPart typeIdentifierPart) { mixin (tagAndAccept!"typeIdentifierPart"); }
 	override void visit(const ThrowStatement throwStatement) { mixin (tagAndAccept!"throwStatement"); }
 	override void visit(const TryStatement tryStatement) { mixin (tagAndAccept!"tryStatement"); } override void visit(const TemplateInstance templateInstance) { mixin (tagAndAccept!"templateInstance"); }
 	override void visit(const TypeofExpression typeofExpression) { mixin (tagAndAccept!"typeofExpression"); } override void visit(const TypeSpecialization typeSpecialization) { mixin (tagAndAccept!"typeSpecialization"); } override void visit(const TraitsExpression traitsExpression) { mixin (tagAndAccept!"traitsExpression"); }
