@@ -16,7 +16,7 @@
     "dsymbol" : "~>0.3.0-alpha.1",
     "inifiled" : ">=1.0.2",
     "emsi_containers" : "~>0.6.0",
-    "libddoc" : "~>0.2.0"
+    "libddoc" : "~>0.3.0-beta.1"
   },
   "targetPath" : "bin"
 }
