@@ -63,12 +63,11 @@ class PokemonExceptionCheck : BaseAnalyzer
 			return;
 		}
 
-		if (type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length != 1)
+		if (type2.typeIdentifierPart.typeIdentifierPart !is null)
 		{
 			return;
 		}
-		const identOrTemplate = type2.symbol.identifierOrTemplateChain
-			.identifiersOrTemplateInstances[0];
+		const identOrTemplate = type2.typeIdentifierPart.identifierOrTemplateInstance;
 		if (identOrTemplate.templateInstance !is null)
 		{
 			return;
