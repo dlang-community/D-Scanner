@@ -45,7 +45,8 @@ class IncorrectInfiniteRangeCheck : BaseAnalyzer
 		if (fb.bodyStatement !is null)
 			visit(fb.bodyStatement.blockStatement);
 		else
-			visit(fb.blockStatement);
+			if (fb.blockStatement !is null)
+				visit(fb.blockStatement);
 	}
 
 	override void visit(const BlockStatement bs)
@@ -109,6 +110,12 @@ unittest
 	{
 		return false;
 	}
+
+	// https://issues.dlang.org/show_bug.cgi?id=18409
+	struct Foo
+	{
+		~this() nothrow @nogc;
+	}
 }
 
 bool empty() { return false; }
@@ -116,5 +123,6 @@ class C { bool empty() { return false; } } // [warn]: %1$s
 
 }c
 			.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);
+
 	stderr.writeln("Unittest for IncorrectInfiniteRangeCheck passed.");
 }
