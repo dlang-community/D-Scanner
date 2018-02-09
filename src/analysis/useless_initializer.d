@@ -171,11 +171,11 @@ public:
 			bool isStr, isSzInt;
 			Token customType;
 
-			if (decl.type.type2.symbol && decl.type.type2.symbol.identifierOrTemplateChain &&
-				decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances.length == 1)
+			if (decl.type.type2.typeIdentifierPart &&
+				decl.type.type2.typeIdentifierPart.typeIdentifierPart is null)
 			{
 				const IdentifierOrTemplateInstance idt =
-					decl.type.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[0];
+					decl.type.type2.typeIdentifierPart.identifierOrTemplateInstance;
 
 				customType = idt.identifier;
 				isStr = customType.text.among("string", "wstring", "dstring") != 0;
