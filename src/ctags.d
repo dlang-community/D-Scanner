@@ -322,9 +322,9 @@ final class CTagsPrinter : ASTVisitor
 	override void visit(const AliasDeclaration dec)
 	{
 		// Old style alias
-		if (dec.identifierList)
+		if (dec.declaratorIdentifierList)
 		{
-			foreach (i; dec.identifierList.identifiers)
+			foreach (i; dec.declaratorIdentifierList.identifiers)
 			{
 				tagLines.insert("%s\t%s\t%d;\"\ta\tline:%d%s%s\n".format(i.text,
 						fileName, i.line, i.line, context.c, context.access));

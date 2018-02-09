@@ -245,9 +245,9 @@ final class EtagsPrinter : ASTVisitor
 	override void visit(const AliasDeclaration dec)
 	{
 		// Old style alias
-		if (dec.identifierList)
+		if (dec.declaratorIdentifierList)
 		{
-			foreach (i; dec.identifierList.identifiers)
+			foreach (i; dec.declaratorIdentifierList.identifiers)
 				maketag(i);
 		}
 		dec.accept(this);
