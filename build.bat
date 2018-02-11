@@ -15,6 +15,7 @@ set DSYMBOL=
 set CONTAINERS=
 set LIBDDOC=
 set STDXALLOCATOR=
+set STDXALLOCATORBLOCKS=
 
 for %%x in (src\*.d) do set CORE=!CORE! %%x
 for %%x in (src\analysis\*.d) do set ANALYSIS=!ANALYSIS! %%x
@@ -28,18 +29,18 @@ for %%x in (dsymbol\src\dsymbol\conversion\*.d) do set DSYMBOL=!DSYMBOL! %%x
 for %%x in (containers\src\containers\*.d) do set CONTAINERS=!CONTAINERS! %%x
 for %%x in (containers\src\containers\internal\*.d) do set CONTAINERS=!CONTAINERS! %%x
 for %%x in (stdx-allocator\source\stdx\allocator\*.d) do set STDXALLOCATOR=!STDXALLOCATOR! %%x
-for %%x in (stdx-allocator\source\stdx\allocator\building_blocks\*.d) do set STDXALLOCATOR=!STDXALLOCATOR! %%x
+for %%x in (stdx-allocator\source\stdx\allocator\building_blocks\*.d) do set STDXALLOCATORBLOCKS=!STDXALLOCATORBLOCKS! %%x
 
 if "%1" == "test" goto test_cmd
 
 @echo on
-%DC% %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -ofbin\dscanner.exe
+%DC% %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %STDXALLOCATORBLOCKS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -ofbin\dscanner.exe
 goto eof
 
 :test_cmd
 @echo on
 set TESTNAME="bin\dscanner-unittest"
-%DC% %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -lib %TESTFLAGS% -of%TESTNAME%.lib
+%DC% %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %STDXALLOCATORBLOCKS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -lib %TESTFLAGS% -of%TESTNAME%.lib
 if exist %TESTNAME%.lib %DC% %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -unittest %TESTFLAGS% -of%TESTNAME%.exe
 if exist %TESTNAME%.exe %TESTNAME%.exe
 
