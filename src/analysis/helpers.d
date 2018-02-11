@@ -16,8 +16,8 @@ import dsymbol.modulecache : ModuleCache;
 import analysis.config;
 import analysis.run;
 import analysis.base;
-import std.experimental.allocator.mallocator;
-import std.experimental.allocator;
+import stdx.allocator.mallocator;
+import stdx.allocator;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {

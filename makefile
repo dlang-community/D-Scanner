@@ -11,14 +11,18 @@ LIB_SRC := \
 	$(shell find inifiled/source/ -name "*.d")\
 	$(shell find libdparse/src/std/experimental/ -name "*.d")\
 	$(shell find libdparse/src/dparse/ -name "*.d")\
-	$(shell find libddoc/src -name "*.d")
+	$(shell find libddoc/src -name "*.d") \
+	$(shell find stdx-allocator/source -name "*.d")
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
 INCLUDE_PATHS = \
-	-Iinifiled/source -Isrc\
-	-Ilibdparse/src\
-	-Idsymbol/src -Icontainers/src\
-	-Ilibddoc/src
+	-Isrc \
+	-Iinifiled/source \
+	-Ilibdparse/src \
+	-Idsymbol/src \
+	-Icontainers/src \
+	-Ilibddoc/src \
+	-Istdx-allocator/source
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
 DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning

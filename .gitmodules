@@ -14,3 +14,6 @@
 [submodule "libddoc"]
 	path = libddoc
 	url = https://github.com/economicmodeling/libddoc
+[submodule "stdx-allocator"]
+	path = stdx-allocator
+	url = https://github.com/dlang-community/stdx-allocator
