@@ -18,10 +18,10 @@ import dparse.ast;
 import dparse.rollback_allocator;
 import std.typecons : scoped;
 
-import std.experimental.allocator : CAllocatorImpl;
-import std.experimental.allocator.mallocator : Mallocator;
-import std.experimental.allocator.building_blocks.region : Region;
-import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
+import stdx.allocator : CAllocatorImpl;
+import stdx.allocator.mallocator : Mallocator;
+import stdx.allocator.building_blocks.region : Region;
+import stdx.allocator.building_blocks.allocator_list : AllocatorList;
 
 import analysis.config;
 import analysis.base;
