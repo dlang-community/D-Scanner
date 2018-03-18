@@ -87,9 +87,24 @@ bool first = true;
 private alias ASTAllocator = CAllocatorImpl!(
 		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
 
+immutable string defaultErrorFormat = "{filepath}({line}:{column})[{type}]: {message}";
+
+void messageFunctionFormat(string format, string fileName, size_t line, size_t column, string message, bool isError)
+{
+	auto s = format;
+
+	s = s.replace("{filepath}", fileName);
+	s = s.replace("{line}", to!string(line));
+	s = s.replace("{column}", to!string(column));
+	s = s.replace("{type}", isError ? "error" : "warn");
+	s = s.replace("{message}", message);
+
+	writefln("%s", s);
+}
+
 void messageFunction(string fileName, size_t line, size_t column, string message, bool isError)
 {
-	writefln("%s(%d:%d)[%s]: %s", fileName, line, column, isError ? "error" : "warn", message);
+    messageFunctionFormat(defaultErrorFormat, fileName, line, column, message, isError);
 }
 
 void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
@@ -112,10 +127,10 @@ void writeJSON(string key, string fileName, size_t line, size_t column, string m
 	write("    }");
 }
 
-bool syntaxCheck(string[] fileNames, ref StringCache stringCache, ref ModuleCache moduleCache)
+bool syntaxCheck(string[] fileNames, string errorFormat, ref StringCache stringCache, ref ModuleCache moduleCache)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	return analyze(fileNames, config, stringCache, moduleCache, false);
+	return analyze(fileNames, config, errorFormat, stringCache, moduleCache, false);
 }
 
 void generateReport(string[] fileNames, const StaticAnalysisConfig config,
@@ -160,7 +175,7 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
  *
  * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
  */
-bool analyze(string[] fileNames, const StaticAnalysisConfig config,
+bool analyze(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
 		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
 {
 	bool hasErrors;
@@ -185,8 +200,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config,
 		foreach (result; results[])
 		{
 			hasErrors = true;
-			writefln("%s(%d:%d)[warn]: %s", result.fileName, result.line,
-					result.column, result.message);
+			messageFunctionFormat(errorFormat, result.fileName, result.line, result.column, result.message, false);
 		}
 	}
 	return hasErrors;
