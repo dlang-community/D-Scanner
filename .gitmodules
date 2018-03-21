@@ -2,9 +2,6 @@
 	path = libdparse
 	url = https://github.com/dlang-community/libdparse.git
 	branch = master
-[submodule "inifiled"]
-	path = inifiled
-	url = https://github.com/burner/inifiled.git
 [submodule "containers"]
 	path = containers
 	url = https://github.com/dlang-community/containers.git
@@ -17,3 +14,6 @@
 [submodule "stdx-allocator"]
 	path = stdx-allocator
 	url = https://github.com/dlang-community/stdx-allocator
+[submodule "inifiled"]
+	path = inifiled
+	url = https://github.com/wilzbach/inifiled
