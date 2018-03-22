@@ -17,8 +17,8 @@ set LIBDDOC=
 set STDXALLOCATOR=
 set STDXALLOCATORBLOCKS=
 
-for %%x in (src\*.d) do set CORE=!CORE! %%x
-for %%x in (src\analysis\*.d) do set ANALYSIS=!ANALYSIS! %%x
+for %%x in (src\dscanner\*.d) do set CORE=!CORE! %%x
+for %%x in (src\dscanner\analysis\*.d) do set ANALYSIS=!ANALYSIS! %%x
 for %%x in (libdparse\src\dparse\*.d) do set LIBDPARSE=!LIBDPARSE! %%x
 for %%x in (libdparse\src\std\experimental\*.d) do set LIBDPARSE=!LIBDPARSE! %%x
 for %%x in (libddoc\src\ddoc\*.d) do set LIBDDOC=!LIBDDOC! %%x
