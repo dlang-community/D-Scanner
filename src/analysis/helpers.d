@@ -54,7 +54,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	RollbackAllocator r;
 	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, cache, false, tokens);
+	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, defaultErrorFormat, cache, false, tokens);
 
 	auto moduleCache = ModuleCache(new CAllocatorImpl!Mallocator);
 

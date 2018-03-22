@@ -67,6 +67,7 @@ else
 	string[] importPaths;
 	bool printVersion;
 	bool explore;
+	string errorFormat;
 
 	try
 	{
@@ -94,7 +95,8 @@ else
 				"version", &printVersion,
 				"muffinButton", &muffin,
 				"explore", &explore,
-				"skipTests", &skipTests);
+				"skipTests", &skipTests,
+				"errorFormat|f", &errorFormat);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -140,6 +142,9 @@ else
 			write(DSCANNER_VERSION, " ", GIT_HASH);
 		return 0;
 	}
+
+    if (!errorFormat.length)
+        errorFormat = defaultErrorFormat;
 
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
@@ -234,11 +239,11 @@ else
 		if (report)
 			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
-			return analyze(expandArgs(args), config, cache, moduleCache, true) ? 1 : 0;
+			return analyze(expandArgs(args), config, errorFormat, cache, moduleCache, true) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(usingStdin ? ["stdin"] : expandArgs(args), cache, moduleCache) ? 1 : 0;
+		return .syntaxCheck(usingStdin ? ["stdin"] : expandArgs(args), errorFormat, cache, moduleCache) ? 1 : 0;
 	}
 	else
 	{
