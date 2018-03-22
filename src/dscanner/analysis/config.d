@@ -192,6 +192,9 @@ struct StaticAnalysisConfig
 	@INI("Check for asserts without an explanatory message")
 	string assert_without_msg = Check.disabled;
 
+	@INI("Check indent of if constraints")
+	string if_constraints_indent = Check.disabled;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }
