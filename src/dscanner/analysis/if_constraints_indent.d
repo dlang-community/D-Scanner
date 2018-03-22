@@ -117,7 +117,7 @@ private:
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings;
 	import std.format : format;
 	import std.stdio : stderr;
 
