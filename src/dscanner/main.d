@@ -395,8 +395,8 @@ Options:
     --skipTests
         Does not analyze in the unittests. Only works if --styleCheck.,
 
-	--patchConfig
-		Patches the configuration file passed as parameter for v0.5.0.`,
+    --patchConfig
+        Patches the configuration file passed as parameter for v0.5.0.`,
 
     programName);
 }
