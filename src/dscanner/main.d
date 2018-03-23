@@ -68,6 +68,7 @@ else
 	bool printVersion;
 	bool explore;
 	string errorFormat;
+	bool patchConfig;
 
 	try
 	{
@@ -96,7 +97,8 @@ else
 				"muffinButton", &muffin,
 				"explore", &explore,
 				"skipTests", &skipTests,
-				"errorFormat|f", &errorFormat);
+				"errorFormat|f", &errorFormat,
+				"patchConfig", &patchConfig);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -233,7 +235,11 @@ else
 		StaticAnalysisConfig config = defaultStaticAnalysisConfig();
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
+		{
+			if (hasWrongIniFileSection(s, patchConfig))
+				return 0;
 			readINIFile(config, s);
+		}
         if (skipTests)
             config.enabled2SkipTests;
 		if (report)
@@ -387,7 +393,10 @@ Options:
         Generates a default configuration file for the static analysis checks,
 
     --skipTests
-        Does not analyze in the unittests. Only works if --styleCheck.`,
+        Does not analyze in the unittests. Only works if --styleCheck.,
+
+	--patchConfig
+		Patches the configuration file passed as parameter for v0.5.0.`,
 
     programName);
 }
@@ -462,4 +471,42 @@ string getConfigurationLocation()
 		return config;
 
 	return getDefaultConfigurationLocation();
+}
+
+
+/// Patch the INI file to v0.5.0 format.
+//TODO: remove this from v0.6.0
+bool hasWrongIniFileSection(string confiFilename, bool patch)
+{
+	import std.string : indexOf;
+	import std.array : replace;
+
+	bool result;
+
+	static immutable v1 = "analysis.config.StaticAnalysisConfig";
+	static immutable v2 = "dscanner.analysis.config.StaticAnalysisConfig";
+
+	char[] c = cast(char[]) readFile(confiFilename);
+	try if (const ptrdiff_t i = c.indexOf(v1))
+	{
+		if (!patch)
+		{
+			writeln("warning, the configuration file `", confiFilename, "` contains an outdated property");
+			writeln("change manually [", v1, "] to [", v2, "]" );
+			writeln("or restart D-Scanner with the `--patchConfig` option");
+			result = true;
+		}
+		else
+		{
+			c = replace(c, v1, v2);
+			std.file.write(confiFilename, c);
+			writeln("the configuration file `", confiFilename, "` has been updated correctly");
+		}
+	}
+	catch(Exception e)
+	{
+		stderr.writeln("error encountered when trying to verify the INI file compatibility");
+		throw e;
+	}
+	return result;
 }
