@@ -16,4 +16,4 @@
 	url = https://github.com/dlang-community/stdx-allocator
 [submodule "inifiled"]
 	path = inifiled
-	url = https://github.com/wilzbach/inifiled
+	url = https://github.com/burner/inifiled
