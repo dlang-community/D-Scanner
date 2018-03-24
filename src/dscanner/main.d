@@ -487,7 +487,7 @@ bool hasWrongIniFileSection(string confiFilename, bool patch)
 	static immutable v2 = "dscanner.analysis.config.StaticAnalysisConfig";
 
 	char[] c = cast(char[]) readFile(confiFilename);
-	try if (const ptrdiff_t i = c.indexOf(v1))
+	try if (c.indexOf(v2) < 0)
 	{
 		if (!patch)
 		{
