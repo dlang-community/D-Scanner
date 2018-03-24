@@ -476,7 +476,7 @@ string getConfigurationLocation()
 
 /// Patch the INI file to v0.5.0 format.
 //TODO: remove this from v0.6.0
-bool hasWrongIniFileSection(string confiFilename, bool patch)
+bool hasWrongIniFileSection(string configFilename, bool patch)
 {
 	import std.string : indexOf;
 	import std.array : replace;
@@ -486,12 +486,12 @@ bool hasWrongIniFileSection(string confiFilename, bool patch)
 	static immutable v1 = "analysis.config.StaticAnalysisConfig";
 	static immutable v2 = "dscanner.analysis.config.StaticAnalysisConfig";
 
-	char[] c = cast(char[]) readFile(confiFilename);
-	try if (const ptrdiff_t i = c.indexOf(v1))
+	char[] c = cast(char[]) readFile(configFilename);
+	try if (c.indexOf(v2) < 0)
 	{
 		if (!patch)
 		{
-			writeln("warning, the configuration file `", confiFilename, "` contains an outdated property");
+			writeln("warning, the configuration file `", configFilename, "` contains an outdated property");
 			writeln("change manually [", v1, "] to [", v2, "]" );
 			writeln("or restart D-Scanner with the `--patchConfig` option");
 			result = true;
@@ -499,8 +499,8 @@ bool hasWrongIniFileSection(string confiFilename, bool patch)
 		else
 		{
 			c = replace(c, v1, v2);
-			std.file.write(confiFilename, c);
-			writeln("the configuration file `", confiFilename, "` has been updated correctly");
+			std.file.write(configFilename, c);
+			writeln("the configuration file `", configFilename, "` has been updated correctly");
 		}
 	}
 	catch(Exception e)
