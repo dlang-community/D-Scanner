@@ -119,8 +119,8 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 			return;
 
 		auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
-		checkDdocParams(decl.name.line, decl.name.column, decl.parameters);
-		checkDdocParams(decl.name.line, decl.name.column, decl.templateParameters);
+
+		checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
 
 		enum voidType = tok!"void";
 
@@ -187,36 +187,76 @@ private:
 		return comment;
 	}
 
-	void checkDdocParams(size_t line, size_t column, const Parameters params)
+	void checkDdocParams(size_t line, size_t column, const Parameters params,
+					     const TemplateParameters templateParameters = null)
 	{
-		import std.algorithm.searching : canFind;
+		import std.array : array;
+		import std.algorithm.searching : canFind, countUntil;
+		import std.algorithm.iteration : map;
+		import std.algorithm.mutation : remove;
+		import std.range : indexed, iota;
+
+		// convert templateParameters into a string[] for faster access
+		const(TemplateParameter)[] templateList;
+		if (const tp = templateParameters)
+		if (const tpl = tp.templateParameterList)
+			templateList = tpl.items;
+		string[] tlList = templateList.map!(a => templateParamName(a)).array;
+
+		// make a copy of all parameters and remove the seen ones later during the loop
+		size_t[] unseenTemplates = templateList.length.iota.array;
 
 		if (lastSeenFun.active && params !is null)
 			foreach (p; params.parameters)
 			{
+				string templateName;
+				if (const t = p.type)
+				if (const t2 = t.type2)
+				if (const tip = t2.typeIdentifierPart)
+				if (const iot = tip.identifierOrTemplateInstance)
+					templateName = iot.identifier.text;
+
+				const idx = tlList.countUntil(templateName);
+				if (idx >= 0)
+				{
+					unseenTemplates = unseenTemplates.remove(idx);
+					tlList = tlList.remove(idx);
+					// documenting template parameter should be allowed
+					lastSeenFun.params[templateName] = true;
+				}
+
 				if (!lastSeenFun.ddocParams.canFind(p.name.text))
 					addErrorMessage(line, column, MISSING_PARAMS_KEY,
 						format(MISSING_PARAMS_MESSAGE, p.name.text));
 				else
 					lastSeenFun.params[p.name.text] = true;
 			}
+
+		// now check the remaining, not used template parameters
+		auto unseenTemplatesArr = templateList.indexed(unseenTemplates).array;
+		checkDdocParams(line, column, unseenTemplatesArr);
 	}
 
 	void checkDdocParams(size_t line, size_t column, const TemplateParameters templateParams)
 	{
-		import std.algorithm.searching : canFind;
 
 		if (lastSeenFun.active && templateParams !is null && templateParams.templateParameterList !is null)
-			foreach (p; templateParams.templateParameterList.items)
-			{
-				auto name = templateParamName(p);
-				assert(name, "Invalid template parameter name."); // this shouldn't happen
-				if (!lastSeenFun.ddocParams.canFind(name))
-					addErrorMessage(line, column, MISSING_PARAMS_KEY,
-						format(MISSING_TEMPLATE_PARAMS_MESSAGE, name));
-				else
-					lastSeenFun.params[name] = true;
-			}
+			checkDdocParams(line, column, templateParams.templateParameterList.items);
+	}
+
+	void checkDdocParams(size_t line, size_t column, const TemplateParameter[] templateParams)
+	{
+		import std.algorithm.searching : canFind;
+		foreach (p; templateParams)
+		{
+			const name = templateParamName(p);
+			assert(name, "Invalid template parameter name."); // this shouldn't happen
+			if (!lastSeenFun.ddocParams.canFind(name))
+				addErrorMessage(line, column, MISSING_PARAMS_KEY,
+					format(MISSING_TEMPLATE_PARAMS_MESSAGE, name));
+			else
+				lastSeenFun.params[name] = true;
+		}
 	}
 
 	static string templateParamName(const TemplateParameter p)
@@ -694,7 +734,6 @@ string bar(string val){}
 template bar(string val){}
 	}c, sac);
 
-	stderr.writeln("Unittest for ProperlyDocumentedPublicFunctions passed.");
 }
 
 unittest
@@ -724,4 +763,39 @@ template abcde(Args ...) {
     }
 }
 	}c, sac);
+}
+
+// Don't force the documentation of the template parameter if it's a used type in the parameter list
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+An awesome description.
+
+Params:
+	r =  an input range.
+
+Returns: Awesome values.
++/
+string bar(R)(R r){}
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+/++
+An awesome description.
+
+Params:
+	r =  an input range.
+
+Returns: Awesome values.
++/
+string bar(P, R)(R r){}// [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("P")
+	), sac);
+
+	stderr.writeln("Unittest for ProperlyDocumentedPublicFunctions passed.");
 }
