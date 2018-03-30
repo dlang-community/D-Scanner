@@ -44,6 +44,12 @@ class HasPublicExampleCheck : BaseAnalyzer
 		// check all public top-level declarations
 		foreach (decl; mod.declarations)
 		{
+			if (decl.attributes.any!(a => a.deprecated_ !is null))
+			{
+				lastDecl = null;
+				continue;
+			}
+
 			if (!isPublic(decl.attributes))
 			{
 				checkLastDecl();
@@ -314,6 +320,12 @@ unittest
 		private void _dirName(R)(R path) {}
 		///
 		unittest {}
+	}, sac);
+
+	// deprecated symbols shouldn't require a test
+	assertAnalyzerWarnings(q{
+		///
+		deprecated void dirName(C)(C[] path) {}
 	}, sac);
 
 	stderr.writeln("Unittest for HasPublicExampleCheck passed.");
