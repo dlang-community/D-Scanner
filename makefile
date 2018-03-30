@@ -27,6 +27,7 @@ VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
 DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
 DMD_TEST_FLAGS = -w -g -J. -version=StdLoggerDisableWarning
+SHELL:=/bin/bash
 
 all: dmdbuild
 ldc: ldcbuild
