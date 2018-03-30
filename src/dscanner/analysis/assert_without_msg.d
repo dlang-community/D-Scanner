@@ -5,6 +5,7 @@
 module dscanner.analysis.assert_without_msg;
 
 import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.utils : safeAccess;
 import dsymbol.scope_ : Scope;
 import dparse.lexer;
 import dparse.ast;
@@ -37,11 +38,10 @@ class AssertWithoutMessageCheck : BaseAnalyzer
 		if (!isStdExceptionImported)
 			return;
 
-		if (expr.unaryExpression !is null &&
-			expr.unaryExpression.primaryExpression !is null &&
-			expr.unaryExpression.primaryExpression.identifierOrTemplateInstance !is null)
+		if (const IdentifierOrTemplateInstance iot = safeAccess(expr)
+			.unaryExpression.primaryExpression.identifierOrTemplateInstance)
 		{
-			auto ident = expr.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier;
+			auto ident = iot.identifier;
 			if (ident.text == "enforce" && expr.arguments !is null && expr.arguments.argumentList !is null &&
 					expr.arguments.argumentList.items.length < 2)
 				addErrorMessage(ident.line, ident.column, KEY, MESSAGE);

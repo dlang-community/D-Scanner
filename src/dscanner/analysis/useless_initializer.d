@@ -5,6 +5,7 @@
 module dscanner.analysis.useless_initializer;
 
 import dscanner.analysis.base;
+import dscanner.utils : safeAccess;
 import containers.dynamicarray;
 import containers.hashmap;
 import dparse.ast;
@@ -147,7 +148,7 @@ public:
 				!declarator.initializer.nonVoidInitializer ||
 				declarator.comment !is null)
 			{
-					continue;
+				continue;
 			}
 
 			version(unittest)
@@ -171,15 +172,14 @@ public:
 			bool isStr, isSzInt;
 			Token customType;
 
-			if (decl.type.type2.typeIdentifierPart &&
-				decl.type.type2.typeIdentifierPart.typeIdentifierPart is null)
+			if (const TypeIdentifierPart tip = safeAccess(decl).type.type2.typeIdentifierPart)
 			{
-				const IdentifierOrTemplateInstance idt =
-					decl.type.type2.typeIdentifierPart.identifierOrTemplateInstance;
-
-				customType = idt.identifier;
-				isStr = customType.text.among("string", "wstring", "dstring") != 0;
-				isSzInt = customType.text.among("size_t", "ptrdiff_t") != 0;
+				if (!tip.typeIdentifierPart)
+				{
+					customType = tip.identifierOrTemplateInstance.identifier;
+					isStr = customType.text.among("string", "wstring", "dstring") != 0;
+					isSzInt = customType.text.among("size_t", "ptrdiff_t") != 0;
+				}
 			}
 
 			// --- 'BasicType/Symbol AssignExpression' ---//
@@ -230,16 +230,18 @@ public:
 				}
 			}
 
-			// Symbol s = Symbol.init
-			else if (ue && customType != tok!"" && ue.unaryExpression && ue.unaryExpression.primaryExpression &&
-				ue.unaryExpression.primaryExpression.identifierOrTemplateInstance &&
-				ue.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier == customType &&
-				ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
+			else if (const IdentifierOrTemplateInstance iot = safeAccess(ue)
+				.unaryExpression.primaryExpression.identifierOrTemplateInstance)
 			{
-				if (customType.text in _structCanBeInit)
+				// Symbol s = Symbol.init
+				if (ue && customType != tok!"" && iot.identifier == customType &&
+					ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
 				{
-					if  (!_structCanBeInit[customType.text])
-						mixin(warn);
+					if (customType.text in _structCanBeInit)
+					{
+						if  (!_structCanBeInit[customType.text])
+							mixin(warn);
+					}
 				}
 			}
 

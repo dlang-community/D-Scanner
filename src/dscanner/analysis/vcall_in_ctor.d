@@ -5,6 +5,7 @@
 module dscanner.analysis.vcall_in_ctor;
 
 import dscanner.analysis.base;
+import dscanner.utils;
 import dparse.ast, dparse.lexer;
 import std.algorithm: among;
 import std.algorithm.iteration : filter;
@@ -220,16 +221,12 @@ public:
 
     override void visit(const(UnaryExpression) exp)
     {
+        if (isInCtor)
         // get function identifier for a call, only for this member (so no ident chain)
-        if (isInCtor && exp.functionCallExpression &&
-            exp.functionCallExpression.unaryExpression &&
-            exp.functionCallExpression.unaryExpression.primaryExpression &&
-            exp.functionCallExpression.unaryExpression.primaryExpression
-                .identifierOrTemplateInstance)
+        if (const IdentifierOrTemplateInstance iot = safeAccess(exp)
+            .functionCallExpression.unaryExpression.primaryExpression.identifierOrTemplateInstance)
         {
-            const Token t = exp.functionCallExpression.unaryExpression
-                .primaryExpression.identifierOrTemplateInstance.identifier;
-
+            const Token t = iot.identifier;
             if (t != tok!"")
             {
                 _ctorCalls[$-1] ~= t;
