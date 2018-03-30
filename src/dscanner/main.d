@@ -387,10 +387,7 @@ Options:
         Generates a default configuration file for the static analysis checks,
 
     --skipTests
-        Does not analyze in the unittests. Only works if --styleCheck.,
-
-    --patchConfig
-        Patches the configuration file passed as parameter for v0.5.0.`,
+        Does not analyze in the unittests. Only works if --styleCheck.`,
 
     programName);
 }
