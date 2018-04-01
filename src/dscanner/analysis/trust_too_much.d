@@ -48,9 +48,9 @@ public:
 	override void visit(const MemberFunctionAttribute d)
 	{
 		const oldCheckAtAttribute = checkAtAttribute;
-		scope(exit) checkAtAttribute = oldCheckAtAttribute;
 		checkAtAttribute = false;
 		d.accept(this);
+		checkAtAttribute = oldCheckAtAttribute;
 	}
 
 	// handles `@trusted{}` and old style, leading, atAttribute for single funcs
@@ -93,6 +93,14 @@ unittest
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
+	@safe {
+		@trusted @nogc { // [warn]: %s
+		void test();
+		void test();
+	}}
+	}c.format(msg), sac);
+
+	assertAnalyzerWarnings(q{
 	@nogc @trusted { // [warn]: %s
 		void test();
 		void test();
@@ -112,6 +120,11 @@ unittest
 	assertAnalyzerWarnings(q{
 	@trusted void test();
 	}c, sac);
+
+	assertAnalyzerWarnings(q{
+	@nogc template foo(){
+	}
+	}c , sac);
 
 	stderr.writeln("Unittest for TrustTooMuchCheck passed.");
 }

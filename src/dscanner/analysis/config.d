@@ -32,7 +32,7 @@ void enabled2SkipTests(ref StaticAnalysisConfig config)
 	foreach (mem; __traits(allMembers, StaticAnalysisConfig))
 	{
 		static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
-		static if (is(typeof(__traits(getMember, config, mem)) == string))
+			static if (is(typeof(__traits(getMember, config, mem)) == string))
 		{
 			if (__traits(getMember, config, mem) == Check.enabled)
 				__traits(getMember, config, mem) = Check.skipTests;
