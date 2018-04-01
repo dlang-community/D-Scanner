@@ -20,7 +20,7 @@ private:
 
 	static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
 		"`@trusted` should only be attached to a single function";
-	static immutable string KEY = "dscanner.suspicious.catch_em_all";
+	static immutable string KEY = "dscanner.trust_too_much";
 
 	bool checkAtAttribute = true;
 
