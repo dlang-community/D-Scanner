@@ -127,8 +127,7 @@ final class ArgVisitor : ASTVisitor
 	{
 		import dsymbol.string_interning : internString;
 
-		if (const IdentifierOrTemplateInstance iot = safeAccess(unary)
-			.primaryExpression.identifierOrTemplateInstance)
+		if (auto iot = unary.safeAccess.primaryExpression.identifierOrTemplateInstance.unwrap)
 		{
 			if (iot.identifier == tok!"")
 				return;
