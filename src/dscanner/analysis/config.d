@@ -17,41 +17,40 @@ StaticAnalysisConfig defaultStaticAnalysisConfig()
 /// Describes how a check is operated.
 enum Check: string
 {
-    /// Check is disabled.
-    disabled    = "disabled",
-    /// Check is enabled.
-    enabled     = "enabled",
-    /// Check is enabled but not operated in the unittests.
-    skipTests   = "skip-unittest"
+	/// Check is disabled.
+	disabled    = "disabled",
+	/// Check is enabled.
+	enabled     = "enabled",
+	/// Check is enabled but not operated in the unittests.
+	skipTests   = "skip-unittest"
 }
 
 /// Applies the --skipTests switch, allowing to call Dscanner without config
 /// and less noise related to the unittests.
 void enabled2SkipTests(ref StaticAnalysisConfig config)
 {
-    foreach (mem; __traits(allMembers, StaticAnalysisConfig))
-    {
-        static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
-            static if (is(typeof(__traits(getMember, config, mem)) == string))
-        {
-            if (__traits(getMember, config, mem) == Check.enabled)
-                __traits(getMember, config, mem) = Check.skipTests;
-
-        }
-    }
+	foreach (mem; __traits(allMembers, StaticAnalysisConfig))
+	{
+		static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
+			static if (is(typeof(__traits(getMember, config, mem)) == string))
+		{
+			if (__traits(getMember, config, mem) == Check.enabled)
+				__traits(getMember, config, mem) = Check.skipTests;
+		}
+	}
 }
 
 /// Returns a config with all the checks disabled.
 StaticAnalysisConfig disabledConfig()
 {
-    StaticAnalysisConfig config;
-    foreach (mem; __traits(allMembers, StaticAnalysisConfig))
-    {
-        static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
-            static if (is(typeof(__traits(getMember, config, mem)) == string))
-                __traits(getMember, config, mem) = Check.disabled;
-    }
-    return config;
+	StaticAnalysisConfig config;
+	foreach (mem; __traits(allMembers, StaticAnalysisConfig))
+	{
+		static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem))))
+		static if (is(typeof(__traits(getMember, config, mem)) == string))
+			__traits(getMember, config, mem) = Check.disabled;
+	}
+	return config;
 }
 
 @INI("Configure which static analysis checks are enabled", "analysis.config.StaticAnalysisConfig")
@@ -171,14 +170,14 @@ struct StaticAnalysisConfig
 	@INI("Check for properly documented public functions (Returns, Params)")
 	string properly_documented_public_functions = Check.disabled;
 
-    @INI("Check for useless usage of the final attribute")
-    string final_attribute_check = Check.enabled;
+	@INI("Check for useless usage of the final attribute")
+	string final_attribute_check = Check.enabled;
 
-    @INI("Check for virtual calls in the class constructors")
-    string vcall_in_ctor = Check.enabled;
+	@INI("Check for virtual calls in the class constructors")
+	string vcall_in_ctor = Check.enabled;
 
-    @INI("Check for useless user defined initializers")
-    string useless_initializer = Check.enabled;
+	@INI("Check for useless user defined initializers")
+	string useless_initializer = Check.enabled;
 
 	@INI("Check allman brace style")
 	string allman_braces_check = Check.disabled;
@@ -195,6 +194,9 @@ struct StaticAnalysisConfig
 	@INI("Check indent of if constraints")
 	string if_constraints_indent = Check.disabled;
 
+	@INI("Check for @trusted applied to a bigger scope than a single function")
+	string trust_too_much = Check.enabled;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }
@@ -207,7 +209,7 @@ private template ModuleFiltersMixin(A)
 			static if (is(typeof(__traits(getMember, StaticAnalysisConfig, mem)) == string))
 				s ~= `@INI("Exclude/Import modules") string[] ` ~ mem ~ ";\n";
 
-    	return s;
+		return s;
 	}();
 }
 

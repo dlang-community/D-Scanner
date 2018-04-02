@@ -72,6 +72,7 @@ import dscanner.analysis.redundant_attributes;
 import dscanner.analysis.has_public_example;
 import dscanner.analysis.assert_without_msg;
 import dscanner.analysis.if_constraints_indent;
+import dscanner.analysis.trust_too_much;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -510,6 +511,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"if_constraints_indent"(analysisConfig))
 		checks ~= new IfConstraintsIndentCheck(fileName, tokens,
 		analysisConfig.if_constraints_indent == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!"trust_too_much"(analysisConfig))
+		checks ~= new TrustTooMuchCheck(fileName,
+		analysisConfig.trust_too_much == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!"redundant_if_check"(analysisConfig))
