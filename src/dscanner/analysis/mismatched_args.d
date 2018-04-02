@@ -1,6 +1,7 @@
 module dscanner.analysis.mismatched_args;
 
 import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.utils : safeAccess;
 import dsymbol.scope_;
 import dsymbol.symbol;
 import dparse.ast;
@@ -126,16 +127,15 @@ final class ArgVisitor : ASTVisitor
 	{
 		import dsymbol.string_interning : internString;
 
-		if (unary.primaryExpression is null)
-			return;
-		if (unary.primaryExpression.identifierOrTemplateInstance is null)
-			return;
-		if (unary.primaryExpression.identifierOrTemplateInstance.identifier == tok!"")
-			return;
-		immutable t = unary.primaryExpression.identifierOrTemplateInstance.identifier;
-		lines ~= t.line;
-		columns ~= t.column;
-		args ~= internString(t.text);
+		if (auto iot = unary.safeAccess.primaryExpression.identifierOrTemplateInstance.unwrap)
+		{
+			if (iot.identifier == tok!"")
+				return;
+			immutable t = iot.identifier;
+			lines ~= t.line;
+			columns ~= t.column;
+			args ~= internString(t.text);
+		}
 	}
 
 	alias visit = ASTVisitor.visit;

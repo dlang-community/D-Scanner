@@ -82,7 +82,7 @@ import dsymbol.conversion.first;
 import dsymbol.conversion.second;
 import dsymbol.modulecache : ModuleCache;
 
-import dscanner.readers;
+import dscanner.utils;
 
 bool first = true;
 

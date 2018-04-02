@@ -12,7 +12,7 @@ import dparse.rollback_allocator;
 import std.stdio;
 import std.container.rbtree;
 import std.functional : toDelegate;
-import dscanner.readers;
+import dscanner.utils;
 
 /**
  * AST visitor that collects modules imported to an R-B tree.

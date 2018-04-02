@@ -8,6 +8,7 @@ module dscanner.analysis.static_if_else;
 import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
+import dscanner.utils : safeAccess;
 
 /**
  * Checks for potentially mistaken static if / else if.
@@ -47,17 +48,7 @@ class StaticIfElse : BaseAnalyzer
 
 	const(IfStatement) getIfStatement(const ConditionalStatement cc)
 	{
-		if (cc.falseStatement.statement)
-		{
-			if (cc.falseStatement.statement.statementNoCaseNoDefault)
-			{
-				if (cc.falseStatement.statement.statementNoCaseNoDefault.ifStatement)
-				{
-					return cc.falseStatement.statement.statementNoCaseNoDefault.ifStatement;
-				}
-			}
-		}
-		return null;
+		return safeAccess(cc).falseStatement.statement.statementNoCaseNoDefault.ifStatement;
 	}
 
 	enum KEY = "dscanner.suspicious.static_if_else";

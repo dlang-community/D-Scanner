@@ -31,7 +31,7 @@ import dscanner.symbol_finder;
 import dscanner.analysis.run;
 import dscanner.analysis.config;
 import dscanner.dscanner_version;
-import dscanner.readers;
+import dscanner.utils;
 
 import inifiled;
 
