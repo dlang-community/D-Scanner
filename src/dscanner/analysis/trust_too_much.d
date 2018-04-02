@@ -111,6 +111,12 @@ unittest
 	@trusted template foo(){ // [warn]: %s
 	}
 	}c.format(msg), sac);
+
+	assertAnalyzerWarnings(q{
+	struct foo{
+	@trusted:  // [warn]: %s
+	}
+	}c.format(msg), sac);
 	//--- pass cases ---//
 
 	assertAnalyzerWarnings(q{
