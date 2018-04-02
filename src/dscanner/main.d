@@ -407,24 +407,28 @@ version (OSX) version = useXDG;
  */
 string getDefaultConfigurationLocation()
 {
+	import std.process : environment;
+	import std.exception : enforce;
 	version (useXDG)
 	{
-		import std.process : environment;
-
 		string configDir = environment.get("XDG_CONFIG_HOME", null);
 		if (configDir is null)
 		{
 			configDir = environment.get("HOME", null);
-			if (configDir is null)
-				throw new Exception("Both $XDG_CONFIG_HOME and $HOME are unset");
+			enforce(configDir !is null, "Both $XDG_CONFIG_HOME and $HOME are unset");
 			configDir = buildPath(configDir, ".config", "dscanner", CONFIG_FILE_NAME);
 		}
 		else
 			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
 		return configDir;
 	}
-	else version (Windows)
-		return CONFIG_FILE_NAME;
+    else version(Windows)
+    {
+        string configDir = environment.get("APPDATA", null);
+        enforce(configDir !is null, "%APPDATA% is unset");
+        configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
+        return configDir;
+    }
 }
 
 /**
