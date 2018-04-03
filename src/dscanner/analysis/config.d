@@ -213,7 +213,7 @@ private template ModuleFiltersMixin(A)
 	}();
 }
 
-@INI("ModuleFilters. +std.,-std.internal")
+@INI("ModuleFilters for selectively enabling (+std) and disabling (-std.internal) individual checks", "analysis.config.ModuleFilters")
 struct ModuleFilters
 {
 	mixin(ModuleFiltersMixin!int);
