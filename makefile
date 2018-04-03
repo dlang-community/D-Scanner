@@ -27,6 +27,8 @@ VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
 DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
 DMD_TEST_FLAGS = -w -g -J. -version=StdLoggerDisableWarning
+override LDC_FLAGS += -O5 -release -oq
+override GDC_FLAGS += -O3 -frelease
 SHELL:=/bin/bash
 
 all: dmdbuild
@@ -46,11 +48,11 @@ dmdbuild: githash $(SRC)
 
 gdcbuild: githash
 	mkdir -p bin
-	${GDC} -O3 -frelease -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${GDC} ${GDC_FLAGS} -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
 ldcbuild: githash
 	mkdir -p bin
-	${LDC} -O5 -release -oq -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${LDC} ${LDC_FLAGS} -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
 
 # compile the dependencies separately, s.t. their unittests don't get executed
 bin/dscanner-unittest-lib.a: ${LIB_SRC}
@@ -95,5 +97,5 @@ release:
 	archiveName="dscanner-$$VERSION-$$OS-$$ARCH_SUFFIX.tar.gz"
 
 	echo "Building $$archiveName"
-	${MAKE} ldcbuild
+	${MAKE} ldcbuild LDC_FLAGS="-flto=full"
 	tar cvfz "bin/$$archiveName" -C bin dscanner
