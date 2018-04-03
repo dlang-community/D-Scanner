@@ -166,8 +166,11 @@ private:
 		import std.array : array;
 
 		const comment = parseComment(commentText, null);
-		if (!comment.isDitto && !withinTemplate)
-		{
+		if (withinTemplate) {
+			const paramSection = comment.sections.find!(s => s.name == "Params");
+			if (!paramSection.empty)
+				lastSeenFun.ddocParams ~= paramSection[0].mapping.map!(a => a[0]).array;
+		} else if (!comment.isDitto) {
 			// check old function for invalid ddoc params
 			if (lastSeenFun.active)
 				postCheckSeenDdocParams();
@@ -188,7 +191,7 @@ private:
 	}
 
 	void checkDdocParams(size_t line, size_t column, const Parameters params,
-					     const TemplateParameters templateParameters = null)
+						 const TemplateParameters templateParameters = null)
 	{
 		import std.array : array;
 		import std.algorithm.searching : canFind, countUntil;
@@ -263,13 +266,13 @@ private:
 	{
 		if (p.templateTypeParameter)
 			return p.templateTypeParameter.identifier.text;
-   		if (p.templateValueParameter)
+		if (p.templateValueParameter)
 			return p.templateValueParameter.identifier.text;
-   		if (p.templateAliasParameter)
+		if (p.templateAliasParameter)
 			return p.templateAliasParameter.identifier.text;
-   		if (p.templateTupleParameter)
+		if (p.templateTupleParameter)
 			return p.templateTupleParameter.identifier.text;
-   		if (p.templateThisParameter)
+		if (p.templateThisParameter)
 			return p.templateThisParameter.templateTypeParameter.identifier.text;
 
 		return null;
@@ -280,35 +283,35 @@ private:
 		import std.meta : AliasSeq;
 		alias properties = AliasSeq!(
 			"aliasDeclaration",
-		 	"aliasThisDeclaration",
-		 	"anonymousEnumDeclaration",
-		 	"attributeDeclaration",
-		 	"classDeclaration",
-		 	"conditionalDeclaration",
-		 	"constructor",
-		 	"debugSpecification",
-		 	"destructor",
-		 	"enumDeclaration",
-		 	"eponymousTemplateDeclaration",
-		 	"functionDeclaration",
-		 	"importDeclaration",
-		 	"interfaceDeclaration",
-		 	"invariant_",
-		 	"mixinDeclaration",
-		 	"mixinTemplateDeclaration",
-		 	"postblit",
-		 	"pragmaDeclaration",
-		 	"sharedStaticConstructor",
-		 	"sharedStaticDestructor",
-		 	"staticAssertDeclaration",
-		 	"staticConstructor",
-		 	"staticDestructor",
-		 	"structDeclaration",
-		 	"templateDeclaration",
-		 	"unionDeclaration",
-		 	"unittest_",
-		 	"variableDeclaration",
-		 	"versionSpecification",
+			"aliasThisDeclaration",
+			"anonymousEnumDeclaration",
+			"attributeDeclaration",
+			"classDeclaration",
+			"conditionalDeclaration",
+			"constructor",
+			"debugSpecification",
+			"destructor",
+			"enumDeclaration",
+			"eponymousTemplateDeclaration",
+			"functionDeclaration",
+			"importDeclaration",
+			"interfaceDeclaration",
+			"invariant_",
+			"mixinDeclaration",
+			"mixinTemplateDeclaration",
+			"postblit",
+			"pragmaDeclaration",
+			"sharedStaticConstructor",
+			"sharedStaticDestructor",
+			"staticAssertDeclaration",
+			"staticConstructor",
+			"staticDestructor",
+			"structDeclaration",
+			"templateDeclaration",
+			"unionDeclaration",
+			"unittest_",
+			"variableDeclaration",
+			"versionSpecification",
 		);
 		if (decl.declarations !is null)
 			return false;
@@ -795,6 +798,40 @@ Returns: Awesome values.
 string bar(P, R)(R r){}// [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("P")
+	), sac);
+}
+
+// https://github.com/dlang-community/D-Scanner/issues/583
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+	/++
+	Implements the homonym function (also known as `accumulate`)
+
+	Returns:
+	    the accumulated `result`
+
+	Params:
+	    fun = one or more functions
+	+/
+	template reduce(fun...)
+	if (fun.length >= 1)
+	{
+		/++
+		No-seed version. The first element of `r` is used as the seed's value.
+
+		Params:
+			r = an iterable value as defined by `isIterable`
+
+		Returns:
+			the final result of the accumulator applied to the iterable
+		+/
+		auto reduce(R)(R r){}
+	}
+	}c.format(
 	), sac);
 
 	stderr.writeln("Unittest for ProperlyDocumentedPublicFunctions passed.");
