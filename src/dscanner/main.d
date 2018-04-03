@@ -31,7 +31,7 @@ import dscanner.symbol_finder;
 import dscanner.analysis.run;
 import dscanner.analysis.config;
 import dscanner.dscanner_version;
-import dscanner.readers;
+import dscanner.utils;
 
 import inifiled;
 
@@ -68,7 +68,6 @@ else
 	bool printVersion;
 	bool explore;
 	string errorFormat;
-	bool patchConfig;
 
 	try
 	{
@@ -97,8 +96,7 @@ else
 				"muffinButton", &muffin,
 				"explore", &explore,
 				"skipTests", &skipTests,
-				"errorFormat|f", &errorFormat,
-				"patchConfig", &patchConfig);
+				"errorFormat|f", &errorFormat);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -235,11 +233,7 @@ else
 		StaticAnalysisConfig config = defaultStaticAnalysisConfig();
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
-		{
-			if (hasWrongIniFileSection(s, patchConfig))
-				return 0;
 			readINIFile(config, s);
-		}
         if (skipTests)
             config.enabled2SkipTests;
 		if (report)
@@ -393,10 +387,7 @@ Options:
         Generates a default configuration file for the static analysis checks,
 
     --skipTests
-        Does not analyze in the unittests. Only works if --styleCheck.,
-
-    --patchConfig
-        Patches the configuration file passed as parameter for v0.5.0.`,
+        Does not analyze in the unittests. Only works if --styleCheck.`,
 
     programName);
 }
@@ -416,24 +407,28 @@ version (OSX) version = useXDG;
  */
 string getDefaultConfigurationLocation()
 {
+	import std.process : environment;
+	import std.exception : enforce;
 	version (useXDG)
 	{
-		import std.process : environment;
-
 		string configDir = environment.get("XDG_CONFIG_HOME", null);
 		if (configDir is null)
 		{
 			configDir = environment.get("HOME", null);
-			if (configDir is null)
-				throw new Exception("Both $XDG_CONFIG_HOME and $HOME are unset");
+			enforce(configDir !is null, "Both $XDG_CONFIG_HOME and $HOME are unset");
 			configDir = buildPath(configDir, ".config", "dscanner", CONFIG_FILE_NAME);
 		}
 		else
 			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
 		return configDir;
 	}
-	else version (Windows)
-		return CONFIG_FILE_NAME;
+    else version(Windows)
+    {
+        string configDir = environment.get("APPDATA", null);
+        enforce(configDir !is null, "%APPDATA% is unset");
+        configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
+        return configDir;
+    }
 }
 
 /**
@@ -471,42 +466,4 @@ string getConfigurationLocation()
 		return config;
 
 	return getDefaultConfigurationLocation();
-}
-
-
-/// Patch the INI file to v0.5.0 format.
-//TODO: remove this from v0.6.0
-bool hasWrongIniFileSection(string configFilename, bool patch)
-{
-	import std.string : indexOf;
-	import std.array : replace;
-
-	bool result;
-
-	static immutable v1 = "analysis.config.StaticAnalysisConfig";
-	static immutable v2 = "dscanner.analysis.config.StaticAnalysisConfig";
-
-	char[] c = cast(char[]) readFile(configFilename);
-	try if (c.indexOf(v2) < 0)
-	{
-		if (!patch)
-		{
-			writeln("warning, the configuration file `", configFilename, "` contains an outdated property");
-			writeln("change manually [", v1, "] to [", v2, "]" );
-			writeln("or restart D-Scanner with the `--patchConfig` option");
-			result = true;
-		}
-		else
-		{
-			c = replace(c, v1, v2);
-			std.file.write(configFilename, c);
-			writeln("the configuration file `", configFilename, "` has been updated correctly");
-		}
-	}
-	catch(Exception e)
-	{
-		stderr.writeln("error encountered when trying to verify the INI file compatibility");
-		throw e;
-	}
-	return result;
 }

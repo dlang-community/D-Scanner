@@ -5,6 +5,7 @@
 module dscanner.analysis.unmodified;
 
 import dscanner.analysis.base;
+import dscanner.utils : safeAccess;
 import dsymbol.scope_ : Scope;
 import std.container;
 import dparse.ast;
@@ -217,12 +218,9 @@ private:
 
 	bool initializedFromNew(const Initializer initializer)
 	{
-		if (initializer && initializer.nonVoidInitializer &&
-			initializer.nonVoidInitializer.assignExpression &&
-			cast(UnaryExpression) initializer.nonVoidInitializer.assignExpression)
+		if (const UnaryExpression ue = cast(UnaryExpression) safeAccess(initializer)
+			.nonVoidInitializer.assignExpression)
 		{
-			const UnaryExpression ue =
-				cast(UnaryExpression) initializer.nonVoidInitializer.assignExpression;
 			return ue.newExpression !is null;
 		}
 		return false;
