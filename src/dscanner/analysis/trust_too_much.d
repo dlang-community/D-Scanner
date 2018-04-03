@@ -61,6 +61,15 @@ public:
 		d.accept(this);
 		checkAtAttribute = oldCheckAtAttribute;
 	}
+
+	// issue #588
+	override void visit(const AliasDeclaration d)
+	{
+		const oldCheckAtAttribute = checkAtAttribute;
+		checkAtAttribute = false;
+		d.accept(this);
+		checkAtAttribute = oldCheckAtAttribute;
+	}
 }
 
 unittest
@@ -130,6 +139,10 @@ unittest
 	assertAnalyzerWarnings(q{
 	@nogc template foo(){
 	}
+	}c , sac);
+
+	assertAnalyzerWarnings(q{
+	alias nothrow @trusted uint F4();
 	}c , sac);
 
 	stderr.writeln("Unittest for TrustTooMuchCheck passed.");
