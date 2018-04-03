@@ -197,6 +197,9 @@ struct StaticAnalysisConfig
 	@INI("Check for @trusted applied to a bigger scope than a single function")
 	string trust_too_much = Check.enabled;
 
+	@INI("Check for documented, but not public symbols")
+	string documented_non_public = Check.enabled;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }

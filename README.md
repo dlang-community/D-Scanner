@@ -142,6 +142,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Asserts without an explanatory message. By default disabled.
 * Indentation of if constraints
 * Check that `@trusted` is not applied to a whole scope. Trusting a whole scope can be a problem when new declarations are added and if they are not verified manually to be trustable.
+* Documented symbols are public
 
 #### Wishlist
 
@@ -228,7 +229,7 @@ the given source file to standard output in XML format.
 ```sh
 $ dscanner --ast helloworld.d
 ```
-	
+
 ```xml
 <module>
 <declaration>

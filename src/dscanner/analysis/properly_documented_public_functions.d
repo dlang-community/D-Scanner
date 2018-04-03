@@ -7,6 +7,7 @@ module dscanner.analysis.properly_documented_public_functions;
 import dparse.lexer;
 import dparse.ast;
 import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.common;
 
 import std.format : format;
 import std.range.primitives;
@@ -63,7 +64,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 																			   x == tokProtected ||
 																			   x == tokPackage);
 			// recognize label blocks
-			if (!hasDeclaration(decl))
+			if (isLabel(decl))
 				islastSeenVisibilityLabelPublic = isPublic;
 
 			if (!isPublic)
@@ -276,52 +277,6 @@ private:
 			return p.templateThisParameter.templateTypeParameter.identifier.text;
 
 		return null;
-	}
-
-	bool hasDeclaration(const Declaration decl)
-	{
-		import std.meta : AliasSeq;
-		alias properties = AliasSeq!(
-			"aliasDeclaration",
-			"aliasThisDeclaration",
-			"anonymousEnumDeclaration",
-			"attributeDeclaration",
-			"classDeclaration",
-			"conditionalDeclaration",
-			"constructor",
-			"debugSpecification",
-			"destructor",
-			"enumDeclaration",
-			"eponymousTemplateDeclaration",
-			"functionDeclaration",
-			"importDeclaration",
-			"interfaceDeclaration",
-			"invariant_",
-			"mixinDeclaration",
-			"mixinTemplateDeclaration",
-			"postblit",
-			"pragmaDeclaration",
-			"sharedStaticConstructor",
-			"sharedStaticDestructor",
-			"staticAssertDeclaration",
-			"staticConstructor",
-			"staticDestructor",
-			"structDeclaration",
-			"templateDeclaration",
-			"unionDeclaration",
-			"unittest_",
-			"variableDeclaration",
-			"versionSpecification",
-		);
-		if (decl.declarations !is null)
-			return false;
-
-		auto isNull = true;
-		foreach (property; properties)
-			if (mixin("decl." ~ property ~ " !is null"))
-				isNull = false;
-
-		return !isNull;
 	}
 }
 
