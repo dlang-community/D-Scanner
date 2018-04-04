@@ -104,6 +104,11 @@ else
 		stderr.writeln(e.msg);
 		return 1;
 	}
+	catch (GetOptException e)
+	{
+		stderr.writeln(e.msg);
+		return 1;
+	}
 
 	if (muffin)
 	{
