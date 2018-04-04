@@ -143,8 +143,8 @@ else
 		return 0;
 	}
 
-    if (!errorFormat.length)
-        errorFormat = defaultErrorFormat;
+	if (!errorFormat.length)
+		errorFormat = defaultErrorFormat;
 
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
@@ -234,8 +234,8 @@ else
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
 		if (s.exists())
 			readINIFile(config, s);
-        if (skipTests)
-            config.enabled2SkipTests;
+		if (skipTests)
+			config.enabled2SkipTests;
 		if (report)
 			generateReport(expandArgs(args), config, cache, moduleCache);
 		else
@@ -422,13 +422,13 @@ string getDefaultConfigurationLocation()
 			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
 		return configDir;
 	}
-    else version(Windows)
-    {
-        string configDir = environment.get("APPDATA", null);
-        enforce(configDir !is null, "%APPDATA% is unset");
-        configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
-        return configDir;
-    }
+	else version(Windows)
+	{
+		string configDir = environment.get("APPDATA", null);
+		enforce(configDir !is null, "%APPDATA% is unset");
+		configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
+		return configDir;
+	}
 }
 
 /**
