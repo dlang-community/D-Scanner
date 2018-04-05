@@ -76,12 +76,6 @@ class OpEqualsWithoutToHashCheck : BaseAnalyzer
 			string message = "'" ~ name.text ~ "' has method 'toHash', but not 'opEquals'.";
 			addErrorMessage(name.line, name.column, KEY, message);
 		}
-
-		if (hasOpCmp && !hasOpEquals)
-		{
-			addErrorMessage(name.line, name.column, KEY,
-					"'" ~ name.text ~ "' has method 'opCmp', but not 'opEquals'.");
-		}
 	}
 
 	enum string KEY = "dscanner.suspicious.incomplete_operator_overloading";
@@ -105,6 +99,15 @@ unittest
 			const override hash_t toHash()
 			{
 				return 0;
+			}
+		}
+
+		// AA would use default equal and default toHash
+		struct Bee
+		{
+			int opCmp(Bee) const
+			{
+				return true;
 			}
 		}
 
