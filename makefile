@@ -76,26 +76,5 @@ report: all
 	dscanner --report src > src/dscanner-report.json
 	sonar-runner
 
-.ONESHELL:
 release:
-	@set -eux -o pipefail
-	VERSION=$$(git describe --abbrev=0 --tags)
-	ARCH="$${ARCH:-64}"
-	unameOut="$$(uname -s)"
-	case "$$unameOut" in
-	    Linux*) OS=linux; ;;
-	    Darwin*) OS=osx; ;;
-	    *) echo "Unknown OS: $$unameOut"; exit 1
-	esac
-
-	case "$$ARCH" in
-	    64) ARCH_SUFFIX="x86_64";;
-	    32) ARCH_SUFFIX="x86";;
-	    *) echo "Unknown ARCH: $$ARCH"; exit 1
-	esac
-
-	archiveName="dscanner-$$VERSION-$$OS-$$ARCH_SUFFIX.tar.gz"
-
-	echo "Building $$archiveName"
-	${MAKE} ldcbuild LDC_FLAGS="-flto=full"
-	tar cvfz "bin/$$archiveName" -C bin dscanner
+	./release.sh
