@@ -3,7 +3,43 @@ module dscanner.utils;
 import std.array : appender, uninitializedArray;
 import std.stdio : stdin, stderr, File;
 import std.conv : to;
-import std.file : exists;
+import std.encoding : BOM, BOMSeq, EncodingException, getBOM;
+import std.format : format;
+import std.file : exists, read;
+
+private void processBOM(ubyte[] sourceCode, string fname)
+{
+	enum spec = "D-Scanner does not support %s-encoded files (%s)";
+	const BOMSeq bs = sourceCode.getBOM;
+	with(BOM) switch (bs.schema)
+	{
+	case none, utf8:
+		break;
+	default:
+		throw new EncodingException(spec.format(bs.schema, fname));
+	}
+	sourceCode = sourceCode[bs.sequence.length .. $];
+}
+
+unittest
+{
+	import std.exception : assertThrown, assertNotThrown;
+	import std.encoding : bomTable;
+	import std.traits : EnumMembers;
+
+	foreach(m ; EnumMembers!BOM)
+	{
+		auto sc = bomTable[m].sequence.dup;
+		if (m != BOM.none && m != BOM.utf8)
+		{
+			assertThrown!(EncodingException)(processBOM(sc, ""));
+		}
+		else
+		{
+			assertNotThrown!(EncodingException)(processBOM(sc, ""));
+		}
+	}
+}
 
 ubyte[] readStdin()
 {
@@ -16,6 +52,7 @@ ubyte[] readStdin()
 			break;
 		sourceCode.put(b);
 	}
+	sourceCode.data.processBOM("stdin");
 	return sourceCode.data;
 }
 
@@ -29,10 +66,9 @@ ubyte[] readFile(string fileName)
 		return [];
 	}
 	File f = File(fileName);
-	if (f.size == 0)
-		return [];
-	ubyte[] sourceCode = uninitializedArray!(ubyte[])(to!size_t(f.size));
-	f.rawRead(sourceCode);
+	ubyte[] sourceCode;
+	sourceCode = cast(ubyte[]) fileName.read();
+	sourceCode.processBOM(fileName);
 	return sourceCode;
 }
 
