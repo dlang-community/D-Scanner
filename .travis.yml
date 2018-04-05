@@ -43,3 +43,6 @@ jobs:
         on:
           repo: dlang-community/D-Scanner
           tags: true
+stages:
+  - name: test
+    if: type = pull_request or (type = push and branch = master)
