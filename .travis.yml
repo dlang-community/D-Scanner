@@ -16,10 +16,10 @@ script: "./.travis.sh"
 jobs:
   include:
     - stage: GitHub Release
-      if: tag IS present
-      d: ldc
+      #if: tag IS present
+      d: ldc-1.8.0
       os: linux
-      script: echo "Deploying to GitHub releases ..." && make release
+      script: echo "Deploying to GitHub releases ..." && ./release.sh
       deploy:
         provider: releases
         api_key: $GH_REPO_TOKEN
@@ -30,10 +30,10 @@ jobs:
           repo: dlang-community/D-Scanner
           tags: true
     - stage: GitHub Release
-      if: tag IS present
-      d: ldc
+      #if: tag IS present
+      d: ldc-1.8.0
       os: osx
-      script: echo "Deploying to GitHub releases ..." && make release
+      script: echo "Deploying to GitHub releases ..." && ./release.sh
       deploy:
         provider: releases
         api_key: $GH_REPO_TOKEN
@@ -43,3 +43,6 @@ jobs:
         on:
           repo: dlang-community/D-Scanner
           tags: true
+stages:
+  - name: test
+    if: type = pull_request or (type = push and branch = master)

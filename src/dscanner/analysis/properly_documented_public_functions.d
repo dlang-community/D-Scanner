@@ -72,12 +72,13 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 		if (islastSeenVisibilityLabelPublic || decl.attributes.map!`a.attribute`.any!(x => x == tokPublic))
 		{
-			if (decl.functionDeclaration !is null ||
-				decl.templateDeclaration !is null ||
+			// Don't complain about non-documented function declarations
+			if ((decl.functionDeclaration !is null && decl.functionDeclaration.comment.ptr !is null) ||
+				(decl.templateDeclaration !is null && decl.templateDeclaration.comment.ptr !is null) ||
 				decl.mixinTemplateDeclaration !is null ||
-				decl.classDeclaration !is null ||
-				decl.structDeclaration !is null)
-					decl.accept(this);
+				(decl.classDeclaration !is null && decl.classDeclaration.comment.ptr !is null) ||
+				(decl.structDeclaration !is null && decl.structDeclaration.comment.ptr !is null))
+				decl.accept(this);
 		}
 	}
 
@@ -112,7 +113,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 	override void visit(const FunctionDeclaration decl)
 	{
-		import std.algorithm.searching : any;
+		import std.algorithm.searching : all, any;
 
 		// ignore header declaration for now
 		if (decl.functionBody is null)
@@ -453,8 +454,10 @@ unittest
 		Some text
 		*/
 		private void foo(int k){}
+		///
 		public int bar(){} // [warn]: %s
 	public:
+		///
 		int foobar(){} // [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
@@ -468,8 +471,10 @@ unittest
 		Some text
 		*/
 		private template foo(int k){}
+		///
 		public template bar(T){} // [warn]: %s
 	public:
+		///
 		template foobar(T){} // [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
@@ -483,8 +488,10 @@ unittest
 		Some text
 		*/
 		private struct foo(int k){}
+		///
 		public struct bar(T){} // [warn]: %s
 	public:
+		///
 		struct foobar(T){} // [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
@@ -761,9 +768,10 @@ unittest
  * Returns: bar
  */
 template abcde(Args ...) {
-    auto abcde(T, U...)(T t, U varargs) {
-        /// ....
-    }
+	///
+	auto abcde(T, U...)(T t, U varargs) {
+		/// ....
+	}
 }
 	}c, sac);
 }
@@ -799,6 +807,21 @@ string bar(P, R)(R r){}// [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("P")
 	), sac);
+}
+
+// https://github.com/dlang-community/D-Scanner/issues/601
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+	void put(Range)(Range items) if (canPutConstRange!Range)
+	{
+		alias p = put!(Unqual!Range);
+		p(items);
+	}
+	}, sac);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/583
