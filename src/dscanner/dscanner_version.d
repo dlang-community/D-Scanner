@@ -10,10 +10,11 @@ module dscanner.dscanner_version;
  */
 enum DSCANNER_VERSION = "v0.4.0";
 
-version (Windows)
+version (built_with_dub)
 {
+	enum GIT_HASH = import("dubhash.txt");
 }
-else version (built_with_dub)
+else version (Windows)
 {
 }
 else

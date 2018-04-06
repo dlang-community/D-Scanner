@@ -19,5 +19,9 @@
     "libddoc" : "~>0.3.0-beta.1",
     "stdx-allocator" : "~>2.77.0"
   },
-  "targetPath" : "bin"
+  "targetPath" : "bin",
+  "stringImportPaths": ["bin"],
+  "preGenerateCommands": [
+    "rdmd --eval='auto dir=environment.get(`DUB_PACKAGE_DIR`); dir.buildPath(`bin`).mkdirRecurse; auto gitVer = (`git -C `~dir~` describe --tags`).executeShell; (gitVer.status == 0 ? gitVer.output : dir.dirName.baseName.findSplitAfter(environment.get(`DUB_ROOT_PACKAGE`)~`-`)[1]).ifThrown(`0.0.0`).toFile(dir.buildPath(`bin`, `dubhash.txt`));'",
+  ]
 }
