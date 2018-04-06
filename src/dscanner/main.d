@@ -139,12 +139,7 @@ else
 
 	if (printVersion)
 	{
-		version (Windows)
-			writeln(DSCANNER_VERSION);
-		else version (built_with_dub)
-			writeln(DSCANNER_VERSION);
-		else
-			write(DSCANNER_VERSION, " ", GIT_HASH);
+		write(DSCANNER_VERSION);
 		return 0;
 	}
 
