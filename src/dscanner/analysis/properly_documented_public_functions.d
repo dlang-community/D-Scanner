@@ -6,6 +6,7 @@ module dscanner.analysis.properly_documented_public_functions;
 
 import dparse.lexer;
 import dparse.ast;
+import dparse.formatter : astFmt = format;
 import dscanner.analysis.base : BaseAnalyzer;
 
 import std.format : format;
@@ -32,6 +33,9 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 	enum string MISSING_RETURNS_KEY = "dscanner.style.doc_missing_returns";
 	enum string MISSING_RETURNS_MESSAGE = "A public function needs to contain a `Returns` section.";
+
+	enum string MISSING_THROW_KEY = "dscanner.style.doc_missing_throw";
+	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section'";
 
 	///
 	this(string fileName, bool skipTests = false)
@@ -114,20 +118,63 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	override void visit(const FunctionDeclaration decl)
 	{
 		import std.algorithm.searching : all, any;
+		import std.array : Appender;
 
 		// ignore header declaration for now
 		if (decl.functionBody is null)
 			return;
 
-		auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
+		thrown.length = 0;
 
-		checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
+		maybeNestedFunc = true;
+		decl.accept(this);
+		maybeNestedFunc = false;
 
-		enum voidType = tok!"void";
+		if (!hasThrowSection(decl.comment))
+			foreach(t; thrown)
+		{
+			Appender!(char[]) app;
+			astFmt(&app, t);
+			addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
+				MISSING_THROW_MESSAGE.format(app.data));
+		}
 
-		if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
-			if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
-				addErrorMessage(decl.name.line, decl.name.column, MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		if (!maybeNestedFunc)
+		{
+			auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
+			checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
+			enum voidType = tok!"void";
+			if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
+				if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
+					addErrorMessage(decl.name.line, decl.name.column,
+						MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		}
+	}
+
+	// remove thrown Type that are caught
+	override void visit(const TryStatement ts)
+	{
+		import std.algorithm.iteration : filter;
+		import std.algorithm.searching : canFind;
+		import std.array : array;
+
+		ts.accept(this);
+
+		if (ts.catches)
+			thrown =  thrown.filter!(a => !ts.catches.catches
+						   	.canFind!(b => b.type == a))
+							.array;
+	}
+
+	override void visit(const ThrowStatement ts)
+	{
+		ts.accept(this);
+		if (ts.expression && ts.expression.items.length == 1)
+			if (const UnaryExpression ue = cast(UnaryExpression) ts.expression.items[0])
+		{
+			if (ue.newExpression && ue.newExpression.type)
+		        thrown ~= ue.newExpression.type;
+		}
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -135,6 +182,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 private:
 	bool islastSeenVisibilityLabelPublic;
 	bool withinTemplate;
+	bool maybeNestedFunc;
 
 	static struct Function
 	{
@@ -144,6 +192,8 @@ private:
 		bool[string] params;
 	}
 	Function lastSeenFun;
+
+	const(Type)[] thrown;
 
 	// find invalid ddoc parameters (i.e. they don't occur in a function declaration)
 	void postCheckSeenDdocParams()
@@ -157,6 +207,15 @@ private:
 					NON_EXISTENT_PARAMS_MESSAGE.format(p));
 
 		lastSeenFun.active = false;
+	}
+
+	bool hasThrowSection(string commentText)
+	{
+		import std.algorithm.searching : canFind;
+		import ddoc.comments : parseComment;
+
+		const comment = parseComment(commentText, null);
+		return comment.isDitto || comment.sections.canFind!(s => s.name == "Throws");
 	}
 
 	auto setLastDdocParams(size_t line, size_t column, string commentText)
@@ -822,6 +881,49 @@ unittest
 		p(items);
 	}
 	}, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Throw but likely catched.
++/
+void bar(){try{throw new Exception("bla");throw new Error("bla");} catch(Exception){} catch(Error){}}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Simple case
++/
+void bar(){throw new Exception("bla");} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception"))
+	, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+rethrow
++/
+void bar(){try throw new Exception("bla"); catch(Exception) throw new Error();} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Error"))
+	, sac);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/583
