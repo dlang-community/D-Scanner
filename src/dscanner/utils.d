@@ -186,7 +186,7 @@ if (is(M == class))
 					__traits(getMember, m, member) = a;
 			}
 		}
-    }
+	}
 }
 /// General usage
 @safe unittest

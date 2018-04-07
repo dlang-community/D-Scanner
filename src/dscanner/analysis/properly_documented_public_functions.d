@@ -718,28 +718,28 @@ unittest
 
 	assertAnalyzerWarnings(q{
 /++
-    Counts elements in the given
-    $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
-    until the given predicate is true for one of the given $(D needles).
+	Counts elements in the given
+	$(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+	until the given predicate is true for one of the given $(D needles).
 
-    Params:
+	Params:
 		val  =  A stupid parameter
 
-    Returns: Awesome values.
+	Returns: Awesome values.
   +/
 string bar(string val){}
 	}c, sac);
 
 	assertAnalyzerWarnings(q{
 /++
-    Counts elements in the given
-    $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
-    until the given predicate is true for one of the given $(D needles).
+	Counts elements in the given
+	$(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+	until the given predicate is true for one of the given $(D needles).
 
-    Params:
+	Params:
 		val  =  A stupid parameter
 
-    Returns: Awesome values.
+	Returns: Awesome values.
   +/
 template bar(string val){}
 	}c, sac);
@@ -835,10 +835,10 @@ unittest
 	Implements the homonym function (also known as `accumulate`)
 
 	Returns:
-	    the accumulated `result`
+		the accumulated `result`
 
 	Params:
-	    fun = one or more functions
+		fun = one or more functions
 	+/
 	template reduce(fun...)
 	if (fun.length >= 1)

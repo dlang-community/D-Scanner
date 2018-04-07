@@ -57,7 +57,7 @@ class AllManCheck : BaseAnalyzer
 					addErrorMessage(tokens[i].line, tokens[i].column, KEY, MESSAGE);
 			}
 		}
-    }
+	}
 
 	enum string KEY = "dscanner.style.allman";
 	enum string MESSAGE = "Braces should be on their own line";

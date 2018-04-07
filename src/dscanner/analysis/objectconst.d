@@ -122,12 +122,12 @@ unittest
 
 			class Bat
 			{
-          		const: override string toString() { return "foo"; } // ok
+				const: override string toString() { return "foo"; } // ok
 			}
 
 			class Fox
 			{
-          		const{ override string toString() { return "foo"; }} // ok
+				const{ override string toString() { return "foo"; }} // ok
 			}
 
 			// Will warn, because none are const
