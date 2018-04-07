@@ -347,8 +347,8 @@ unittest
 		import foo;
 		import foo.bar;
 		import fooa;
-        import std.range : Take;
-        import std.range.primitives : isInputRange, walkLength;
+		import std.range : Take;
+		import std.range.primitives : isInputRange, walkLength;
 	}, sac);
 
 	// condition declaration

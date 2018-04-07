@@ -174,13 +174,13 @@ if (R == int) // [warn]: %s
 	assertAnalyzerWarnings(q{
 Num abs(Num)(Num x) @safe pure nothrow
 if (is(typeof(Num.init >= 0)) && is(typeof(-Num.init)) &&
-    !(is(Num* : const(ifloat*)) || is(Num* : const(idouble*))
-    || is(Num* : const(ireal*))))
+	!(is(Num* : const(ifloat*)) || is(Num* : const(idouble*))
+	|| is(Num* : const(ireal*))))
 {
-    static if (isFloatingPoint!(Num))
-        return fabs(x);
-    else
-        return x >= 0 ? x : -x;
+	static if (isFloatingPoint!(Num))
+		return fabs(x);
+	else
+		return x >= 0 ? x : -x;
 }
 	}, sac);
 
