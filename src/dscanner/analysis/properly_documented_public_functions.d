@@ -61,6 +61,24 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 			 tokPackage = tok!"package",
 			 tokPublic = tok!"public";
 
+		// Nested funcs for `Throws`
+		bool decNestedFunc;
+		if (decl.functionDeclaration)
+		{
+			nestedFuncs++;
+			decNestedFunc = true;
+		}
+		scope(exit)
+		{
+			if (decNestedFunc)
+				nestedFuncs--;
+		}
+		if (nestedFuncs > 1)
+		{
+			decl.accept(this);
+			return;
+		}
+
 		if (decl.attributes.length > 0)
 		{
 			const bool isPublic = !decl.attributes.map!`a.attribute`.any!(x => x == tokPrivate ||
@@ -124,22 +142,23 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		if (decl.functionBody is null)
 			return;
 
-		thrown.length = 0;
-
-		maybeNestedFunc = true;
-		decl.accept(this);
-		maybeNestedFunc = false;
-
-		if (!hasThrowSection(decl.comment))
-			foreach(t; thrown)
+		if (nestedFuncs == 1)
+			thrown.length = 0;
+		// detect ThrowStatement only if not nothrow
+		if (!decl.attributes.any!(a => a.attribute.text == "nothrow"))
 		{
-			Appender!(char[]) app;
-			astFmt(&app, t);
-			addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
-				MISSING_THROW_MESSAGE.format(app.data));
+		    decl.accept(this);
+		    if (nestedFuncs == 1 && !hasThrowSection(decl.comment))
+			    foreach(t; thrown)
+		    {
+			    Appender!(char[]) app;
+			    astFmt(&app, t);
+			    addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
+				    MISSING_THROW_MESSAGE.format(app.data));
+			}
 		}
 
-		if (!maybeNestedFunc)
+		if (nestedFuncs == 1)
 		{
 			auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
 			checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
@@ -182,7 +201,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 private:
 	bool islastSeenVisibilityLabelPublic;
 	bool withinTemplate;
-	bool maybeNestedFunc;
+	size_t nestedFuncs;
 
 	static struct Function
 	{
@@ -226,11 +245,14 @@ private:
 		import std.array : array;
 
 		const comment = parseComment(commentText, null);
-		if (withinTemplate) {
+		if (withinTemplate)
+		{
 			const paramSection = comment.sections.find!(s => s.name == "Params");
 			if (!paramSection.empty)
 				lastSeenFun.ddocParams ~= paramSection[0].mapping.map!(a => a[0]).array;
-		} else if (!comment.isDitto) {
+		}
+		else if (!comment.isDitto)
+		{
 			// check old function for invalid ddoc params
 			if (lastSeenFun.active)
 				postCheckSeenDdocParams();
@@ -302,8 +324,8 @@ private:
 
 	void checkDdocParams(size_t line, size_t column, const TemplateParameters templateParams)
 	{
-
-		if (lastSeenFun.active && templateParams !is null && templateParams.templateParameterList !is null)
+		if (lastSeenFun.active && templateParams !is null &&
+			templateParams.templateParameterList !is null)
 			checkDdocParams(line, column, templateParams.templateParameterList.items);
 	}
 
@@ -892,7 +914,9 @@ unittest
 /++
 Throw but likely catched.
 +/
-void bar(){try{throw new Exception("bla");throw new Error("bla");} catch(Exception){} catch(Error){}}
+void bar(){
+	try{throw new Exception("bla");throw new Error("bla");}
+	catch(Exception){} catch(Error){}}
 	}c, sac);
 }
 
@@ -907,8 +931,8 @@ Simple case
 +/
 void bar(){throw new Exception("bla");} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception"))
-	, sac);
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
+	), sac);
 }
 
 unittest
@@ -922,8 +946,78 @@ rethrow
 +/
 void bar(){try throw new Exception("bla"); catch(Exception) throw new Error();} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Error"))
-	, sac);
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Error")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+trust nothrow before everything
++/
+void bar() nothrow {try throw new Exception("bla"); catch(Exception) assert(0);}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of throw in nested func
++/
+void bar() // [warn]: %s
+{
+	void foo(){throw new AssertError("bla");}
+	foo();
+}
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of throw in nested func but caught
++/
+void bar()
+{
+	void foo(){throw new AssertError("bla");}
+	try foo();
+	catch (AssertError){}
+}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of double throw in nested func but only 1 caught
++/
+void bar() // [warn]: %s
+{
+	void foo(){throw new AssertError("bla");throw new Error("bla");}
+	try foo();
+	catch (Error){}
+}
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+	), sac);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/583
