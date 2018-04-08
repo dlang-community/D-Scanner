@@ -35,7 +35,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	enum string MISSING_RETURNS_MESSAGE = "A public function needs to contain a `Returns` section.";
 
 	enum string MISSING_THROW_KEY = "dscanner.style.doc_missing_throw";
-	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section'";
+	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section";
 
 	///
 	this(string fileName, bool skipTests = false)
