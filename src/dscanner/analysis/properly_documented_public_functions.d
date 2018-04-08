@@ -187,12 +187,17 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 	override void visit(const ThrowStatement ts)
 	{
+		import std.algorithm.searching : canFind;
+
 		ts.accept(this);
 		if (ts.expression && ts.expression.items.length == 1)
 			if (const UnaryExpression ue = cast(UnaryExpression) ts.expression.items[0])
 		{
-			if (ue.newExpression && ue.newExpression.type)
+			if (ue.newExpression && ue.newExpression.type &&
+				!thrown.canFind!(a => a == ue.newExpression.type))
+			{
 				thrown ~= ue.newExpression.type;
+			}
 		}
 	}
 
