@@ -947,6 +947,22 @@ unittest
 
 	assertAnalyzerWarnings(q{
 /++
+Supposed to be documented
+
+Throws: Exception if...
++/
+void bar(){throw new Exception("bla");}
+	}c.format(
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
 rethrow
 +/
 void bar(){try throw new Exception("bla"); catch(Exception) throw new Error();} // [warn]: %s
