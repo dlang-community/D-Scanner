@@ -147,14 +147,14 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		// detect ThrowStatement only if not nothrow
 		if (!decl.attributes.any!(a => a.attribute.text == "nothrow"))
 		{
-		    decl.accept(this);
-		    if (nestedFuncs == 1 && !hasThrowSection(decl.comment))
-			    foreach(t; thrown)
-		    {
-			    Appender!(char[]) app;
-			    astFmt(&app, t);
-			    addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
-				    MISSING_THROW_MESSAGE.format(app.data));
+			decl.accept(this);
+			if (nestedFuncs == 1 && !hasThrowSection(decl.comment))
+				foreach(t; thrown)
+			{
+				Appender!(char[]) app;
+				astFmt(&app, t);
+				addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
+					MISSING_THROW_MESSAGE.format(app.data));
 			}
 		}
 
@@ -181,7 +181,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 		if (ts.catches)
 			thrown =  thrown.filter!(a => !ts.catches.catches
-						   	.canFind!(b => b.type == a))
+							.canFind!(b => b.type == a))
 							.array;
 	}
 
@@ -192,7 +192,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 			if (const UnaryExpression ue = cast(UnaryExpression) ts.expression.items[0])
 		{
 			if (ue.newExpression && ue.newExpression.type)
-		        thrown ~= ue.newExpression.type;
+				thrown ~= ue.newExpression.type;
 		}
 	}
 
