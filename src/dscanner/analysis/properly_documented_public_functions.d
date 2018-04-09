@@ -6,6 +6,7 @@ module dscanner.analysis.properly_documented_public_functions;
 
 import dparse.lexer;
 import dparse.ast;
+import dparse.formatter : astFmt = format;
 import dscanner.analysis.base : BaseAnalyzer;
 
 import std.format : format;
@@ -33,6 +34,9 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	enum string MISSING_RETURNS_KEY = "dscanner.style.doc_missing_returns";
 	enum string MISSING_RETURNS_MESSAGE = "A public function needs to contain a `Returns` section.";
 
+	enum string MISSING_THROW_KEY = "dscanner.style.doc_missing_throw";
+	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section";
+
 	///
 	this(string fileName, bool skipTests = false)
 	{
@@ -56,6 +60,24 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 			 tokProtected = tok!"protected",
 			 tokPackage = tok!"package",
 			 tokPublic = tok!"public";
+
+		// Nested funcs for `Throws`
+		bool decNestedFunc;
+		if (decl.functionDeclaration)
+		{
+			nestedFuncs++;
+			decNestedFunc = true;
+		}
+		scope(exit)
+		{
+			if (decNestedFunc)
+				nestedFuncs--;
+		}
+		if (nestedFuncs > 1)
+		{
+			decl.accept(this);
+			return;
+		}
 
 		if (decl.attributes.length > 0)
 		{
@@ -114,20 +136,69 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	override void visit(const FunctionDeclaration decl)
 	{
 		import std.algorithm.searching : all, any;
+		import std.array : Appender;
 
 		// ignore header declaration for now
 		if (decl.functionBody is null)
 			return;
 
-		auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
+		if (nestedFuncs == 1)
+			thrown.length = 0;
+		// detect ThrowStatement only if not nothrow
+		if (!decl.attributes.any!(a => a.attribute.text == "nothrow"))
+		{
+			decl.accept(this);
+			if (nestedFuncs == 1 && !hasThrowSection(decl.comment))
+				foreach(t; thrown)
+			{
+				Appender!(char[]) app;
+				astFmt(&app, t);
+				addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
+					MISSING_THROW_MESSAGE.format(app.data));
+			}
+		}
 
-		checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
+		if (nestedFuncs == 1)
+		{
+			auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
+			checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
+			enum voidType = tok!"void";
+			if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
+				if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
+					addErrorMessage(decl.name.line, decl.name.column,
+						MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		}
+	}
 
-		enum voidType = tok!"void";
+	// remove thrown Type that are caught
+	override void visit(const TryStatement ts)
+	{
+		import std.algorithm.iteration : filter;
+		import std.algorithm.searching : canFind;
+		import std.array : array;
 
-		if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
-			if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
-				addErrorMessage(decl.name.line, decl.name.column, MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		ts.accept(this);
+
+		if (ts.catches)
+			thrown =  thrown.filter!(a => !ts.catches.catches
+							.canFind!(b => b.type == a))
+							.array;
+	}
+
+	override void visit(const ThrowStatement ts)
+	{
+		import std.algorithm.searching : canFind;
+
+		ts.accept(this);
+		if (ts.expression && ts.expression.items.length == 1)
+			if (const UnaryExpression ue = cast(UnaryExpression) ts.expression.items[0])
+		{
+			if (ue.newExpression && ue.newExpression.type &&
+				!thrown.canFind!(a => a == ue.newExpression.type))
+			{
+				thrown ~= ue.newExpression.type;
+			}
+		}
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -135,6 +206,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 private:
 	bool islastSeenVisibilityLabelPublic;
 	bool withinTemplate;
+	size_t nestedFuncs;
 
 	static struct Function
 	{
@@ -144,6 +216,8 @@ private:
 		bool[string] params;
 	}
 	Function lastSeenFun;
+
+	const(Type)[] thrown;
 
 	// find invalid ddoc parameters (i.e. they don't occur in a function declaration)
 	void postCheckSeenDdocParams()
@@ -159,6 +233,15 @@ private:
 		lastSeenFun.active = false;
 	}
 
+	bool hasThrowSection(string commentText)
+	{
+		import std.algorithm.searching : canFind;
+		import ddoc.comments : parseComment;
+
+		const comment = parseComment(commentText, null);
+		return comment.isDitto || comment.sections.canFind!(s => s.name == "Throws");
+	}
+
 	auto setLastDdocParams(size_t line, size_t column, string commentText)
 	{
 		import ddoc.comments : parseComment;
@@ -167,11 +250,14 @@ private:
 		import std.array : array;
 
 		const comment = parseComment(commentText, null);
-		if (withinTemplate) {
+		if (withinTemplate)
+		{
 			const paramSection = comment.sections.find!(s => s.name == "Params");
 			if (!paramSection.empty)
 				lastSeenFun.ddocParams ~= paramSection[0].mapping.map!(a => a[0]).array;
-		} else if (!comment.isDitto) {
+		}
+		else if (!comment.isDitto)
+		{
 			// check old function for invalid ddoc params
 			if (lastSeenFun.active)
 				postCheckSeenDdocParams();
@@ -243,8 +329,8 @@ private:
 
 	void checkDdocParams(size_t line, size_t column, const TemplateParameters templateParams)
 	{
-
-		if (lastSeenFun.active && templateParams !is null && templateParams.templateParameterList !is null)
+		if (lastSeenFun.active && templateParams !is null &&
+			templateParams.templateParameterList !is null)
 			checkDdocParams(line, column, templateParams.templateParameterList.items);
 	}
 
@@ -822,6 +908,137 @@ unittest
 		p(items);
 	}
 	}, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Throw but likely catched.
++/
+void bar(){
+	try{throw new Exception("bla");throw new Error("bla");}
+	catch(Exception){} catch(Error){}}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Simple case
++/
+void bar(){throw new Exception("bla");} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Supposed to be documented
+
+Throws: Exception if...
++/
+void bar(){throw new Exception("bla");}
+	}c.format(
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+rethrow
++/
+void bar(){try throw new Exception("bla"); catch(Exception) throw new Error();} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Error")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+trust nothrow before everything
++/
+void bar() nothrow {try throw new Exception("bla"); catch(Exception) assert(0);}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of throw in nested func
++/
+void bar() // [warn]: %s
+{
+	void foo(){throw new AssertError("bla");}
+	foo();
+}
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of throw in nested func but caught
++/
+void bar()
+{
+	void foo(){throw new AssertError("bla");}
+	try foo();
+	catch (AssertError){}
+}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of double throw in nested func but only 1 caught
++/
+void bar() // [warn]: %s
+{
+	void foo(){throw new AssertError("bla");throw new Error("bla");}
+	try foo();
+	catch (Error){}
+}
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+	), sac);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/583
