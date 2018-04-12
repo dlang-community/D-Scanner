@@ -19,7 +19,7 @@ class TrustTooMuchCheck : BaseAnalyzer
 private:
 
 	static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
-		"`@trusted` should only be attached to a single function";
+		"`@trusted` should only be attached to single functions";
 	static immutable string KEY = "dscanner.trust_too_much";
 
 	bool checkAtAttribute = true;
