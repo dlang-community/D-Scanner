@@ -8,19 +8,20 @@ module dscanner.dscanner_version;
 /**
  * Human-readable version number
  */
-enum DSCANNER_VERSION = "v0.4.0";
+enum DEFAUULT_DSCANNER_VERSION = "v0.5.0";
 
 version (built_with_dub)
 {
-	enum GIT_HASH = import("dubhash.txt");
+	enum DSCANNER_VERSION = import("dubhash.txt");
 }
 else version (Windows)
 {
+	enum DSCANNER_VERSION = DEFAUULT_DSCANNER_VERSION;
 }
 else
 {
 	/**
 	 * Current build's Git commit hash
 	 */
-	enum GIT_HASH = import("githash.txt");
+	enum DSCANNER_VERSION = import("githash.txt");
 }
