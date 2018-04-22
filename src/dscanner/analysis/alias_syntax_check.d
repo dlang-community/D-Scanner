@@ -12,7 +12,7 @@ import dscanner.analysis.base;
 /**
  * Checks for uses of the old alias syntax.
  */
-class AliasSyntaxCheck : BaseAnalyzer
+final class AliasSyntaxCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

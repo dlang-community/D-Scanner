@@ -16,7 +16,7 @@ import dsymbol.scope_ : Scope;
  * Checks for confusing asm expressions.
  * See_also: $(LINK https://issues.dlang.org/show_bug.cgi?id=9738)
  */
-class AsmStyleCheck : BaseAnalyzer
+final class AsmStyleCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

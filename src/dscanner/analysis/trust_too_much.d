@@ -14,7 +14,7 @@ import dsymbol.scope_;
 /**
  * Checks that `@trusted` is only applied to a a single function
  */
-class TrustTooMuchCheck : BaseAnalyzer
+final class TrustTooMuchCheck : BaseAnalyzer
 {
 private:
 

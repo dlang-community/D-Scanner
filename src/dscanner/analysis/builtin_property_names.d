@@ -27,7 +27,7 @@ import std.algorithm : map;
  * }
  * ---
  */
-class BuiltinPropertyNameCheck : BaseAnalyzer
+final class BuiltinPropertyNameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

@@ -16,7 +16,7 @@ import dsymbol.scope_;
 /**
  * Checks for subtraction from a .length property. This is usually a bug.
  */
-class LengthSubtractionCheck : BaseAnalyzer
+final class LengthSubtractionCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

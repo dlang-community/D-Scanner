@@ -16,7 +16,7 @@ import std.stdio;
  * Checks for public declarations without a documented unittests.
  * For now, variable and enum declarations aren't checked.
  */
-class HasPublicExampleCheck : BaseAnalyzer
+final class HasPublicExampleCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

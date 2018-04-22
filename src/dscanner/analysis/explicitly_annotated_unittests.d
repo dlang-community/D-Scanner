@@ -13,7 +13,7 @@ import std.stdio;
 /**
  * Requires unittests to be explicitly annotated with either @safe or @system
  */
-class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
+final class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 {
 	enum string KEY = "dscanner.style.explicitly_annotated_unittest";
 	enum string MESSAGE = "A unittest should be annotated with at least @safe or @system";

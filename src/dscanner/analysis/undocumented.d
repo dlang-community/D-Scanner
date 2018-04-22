@@ -17,7 +17,7 @@ import std.stdio;
  * Checks for undocumented public declarations. Ignores some operator overloads,
  * main functions, and functions whose name starts with "get" or "set".
  */
-class UndocumentedDeclarationCheck : BaseAnalyzer
+final class UndocumentedDeclarationCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

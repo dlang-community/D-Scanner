@@ -19,7 +19,7 @@ import dsymbol.scope_;
  * if (a && (b || c)) // good
  * ---
  */
-class LogicPrecedenceCheck : BaseAnalyzer
+final class LogicPrecedenceCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

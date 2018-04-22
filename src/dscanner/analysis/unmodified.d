@@ -14,7 +14,7 @@ import dparse.lexer;
 /**
  * Checks for variables that could have been declared const or immutable
  */
-class UnmodifiedFinder : BaseAnalyzer
+final class UnmodifiedFinder : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

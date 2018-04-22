@@ -13,7 +13,7 @@ import dsymbol.scope_ : Scope;
 /**
  * Checks for redundant parenthesis
  */
-class RedundantParenCheck : BaseAnalyzer
+final class RedundantParenCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

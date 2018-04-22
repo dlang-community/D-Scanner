@@ -16,7 +16,7 @@ import dsymbol.scope_ : Scope;
 /**
  * Checks for redundant storage classes such immutable and __gshared, static and __gshared
  */
-class RedundantStorageClassCheck : BaseAnalyzer
+final class RedundantStorageClassCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 	enum string REDUNDANT_VARIABLE_ATTRIBUTES = "Variable declaration for `%s` has redundant attributes (%-(`%s`%|, %)).";

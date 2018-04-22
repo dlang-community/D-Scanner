@@ -16,7 +16,7 @@ import dsymbol.scope_ : Scope;
  * Checks for when a class/struct has the method opEquals without toHash, or
  * toHash without opEquals.
  */
-class OpEqualsWithoutToHashCheck : BaseAnalyzer
+final class OpEqualsWithoutToHashCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

@@ -16,7 +16,7 @@ import dsymbol.scope_ : Scope;
 /**
  * Checks for long and hard-to-read number literals
  */
-class NumberStyleCheck : BaseAnalyzer
+final class NumberStyleCheck : BaseAnalyzer
 {
 public:
 	alias visit = BaseAnalyzer.visit;
