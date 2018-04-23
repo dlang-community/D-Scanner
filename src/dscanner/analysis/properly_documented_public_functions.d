@@ -8,6 +8,7 @@ import dparse.lexer;
 import dparse.ast;
 import dparse.formatter : astFmt = format;
 import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.utils : safeAccess;
 
 import std.format : format;
 import std.range.primitives;
@@ -300,11 +301,17 @@ private:
 			foreach (p; params.parameters)
 			{
 				string templateName;
-				if (const t = p.type)
-				if (const t2 = t.type2)
-				if (const tip = t2.typeIdentifierPart)
-				if (const iot = tip.identifierOrTemplateInstance)
+
+				if (auto iot = safeAccess(p).type.type2
+					.typeIdentifierPart.identifierOrTemplateInstance.unwrap)
+				{
 					templateName = iot.identifier.text;
+				}
+				else if (auto iot = safeAccess(p).type.type2.type.type2
+					.typeIdentifierPart.identifierOrTemplateInstance.unwrap)
+				{
+					templateName = iot.identifier.text;
+				}
 
 				const idx = tlList.countUntil(templateName);
 				if (idx >= 0)
@@ -907,6 +914,25 @@ unittest
 		alias p = put!(Unqual!Range);
 		p(items);
 	}
+	}, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+    /++
+    An awesome description.
+
+    Params:
+	    items = things to put.
+
+    Returns: Awesome values.
+    +/
+	void put(Range)(const(Range) items) if (canPutConstRange!Range)
+	{}
 	}, sac);
 }
 
