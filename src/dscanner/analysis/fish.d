@@ -15,7 +15,7 @@ import dsymbol.scope_ : Scope;
 /**
  * Checks for use of the deprecated floating point comparison operators.
  */
-class FloatOperatorCheck : BaseAnalyzer
+final class FloatOperatorCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

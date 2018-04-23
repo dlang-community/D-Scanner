@@ -17,7 +17,7 @@ import dsymbol.scope_ : Scope;
  * Checks for duplicate attributes such as @property, @safe,
  * @trusted, @system, pure, and nothrow
  */
-class DuplicateAttributeCheck : BaseAnalyzer
+final class DuplicateAttributeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

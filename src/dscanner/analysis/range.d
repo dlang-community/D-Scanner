@@ -16,7 +16,7 @@ import dsymbol.scope_ : Scope;
  * Checks for .. expressions where the left side is larger than the right. This
  * is almost always a mistake.
  */
-class BackwardsRangeCheck : BaseAnalyzer
+final class BackwardsRangeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

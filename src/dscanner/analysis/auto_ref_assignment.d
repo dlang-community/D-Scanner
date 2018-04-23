@@ -12,7 +12,7 @@ import dscanner.analysis.base;
 /**
  * Checks for assignment to auto-ref function parameters.
  */
-class AutoRefAssignmentCheck : BaseAnalyzer
+final class AutoRefAssignmentCheck : BaseAnalyzer
 {
 	///
 	this(string fileName, bool skipTests = false)

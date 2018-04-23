@@ -17,7 +17,7 @@ import dsymbol.scope_ : Scope;
  * Checks that opEquals, opCmp, toHash, 'opCast', and toString are either const,
  * immutable, or inout.
  */
-class ObjectConstCheck : BaseAnalyzer
+final class ObjectConstCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

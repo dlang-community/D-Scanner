@@ -22,7 +22,7 @@ import dscanner.utils : safeAccess;
  * 
  * However, it's more likely that this is a mistake.
  */
-class StaticIfElse : BaseAnalyzer
+final class StaticIfElse : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

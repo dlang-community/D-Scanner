@@ -13,7 +13,7 @@ import dscanner.analysis.helpers;
 /**
  * Checks for labels and variables that have the same name.
  */
-class LabelVarNameCheck : BaseAnalyzer
+final class LabelVarNameCheck : BaseAnalyzer
 {
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

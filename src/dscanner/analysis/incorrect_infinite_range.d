@@ -13,7 +13,7 @@ import dparse.lexer;
 /**
  * Checks for incorrect infinite range definitions
  */
-class IncorrectInfiniteRangeCheck : BaseAnalyzer
+final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

@@ -21,7 +21,7 @@ import std.stdio;
 		- Ddoc params entries without a parameter trigger warnings as well
 	- RETURNS: (except if it's void, only functions)
  */
-class ProperlyDocumentedPublicFunctions : BaseAnalyzer
+final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 {
 	enum string MISSING_PARAMS_KEY = "dscanner.style.doc_missing_params";
 	enum string MISSING_PARAMS_MESSAGE = "Parameter %s isn't documented in the `Params` section.";

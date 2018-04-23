@@ -15,7 +15,7 @@ import std.range;
 /**
 Checks whether all if constraints have the same indention as their declaration.
 */
-class IfConstraintsIndentCheck : BaseAnalyzer
+final class IfConstraintsIndentCheck : BaseAnalyzer
 {
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)

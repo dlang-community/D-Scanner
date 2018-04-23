@@ -25,7 +25,7 @@ if (param < 0)
 }
 ------------
 */
-class AllManCheck : BaseAnalyzer
+final class AllManCheck : BaseAnalyzer
 {
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)

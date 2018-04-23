@@ -19,7 +19,7 @@ import std.range: retro;
  * When not used carefully, virtual calls from constructors can lead to a call
  * in a derived instance that's not yet constructed.
  */
-class VcallCtorChecker : BaseAnalyzer
+final class VcallCtorChecker : BaseAnalyzer
 {
     alias visit = BaseAnalyzer.visit;
 

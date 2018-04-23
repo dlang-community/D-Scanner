@@ -17,7 +17,7 @@ import std.range : empty, front, walkLength;
 /**
  * Checks for redundant attributes. At the moment only visibility attributes.
  */
-class RedundantAttributesCheck : BaseAnalyzer
+final class RedundantAttributesCheck : BaseAnalyzer
 {
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

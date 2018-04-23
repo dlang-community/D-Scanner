@@ -16,7 +16,7 @@ import std.algorithm : all;
 /**
  * Checks for unused variables.
  */
-class UnusedVariableCheck : BaseAnalyzer
+final class UnusedVariableCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

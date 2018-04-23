@@ -23,7 +23,7 @@ auto filterChars(string chars, S)(S str)
 /**
  * Checks for asserts that always succeed
  */
-class UselessAssertCheck : BaseAnalyzer
+final class UselessAssertCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

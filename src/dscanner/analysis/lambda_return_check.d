@@ -9,7 +9,7 @@ import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
 
-class LambdaReturnCheck : BaseAnalyzer
+final class LambdaReturnCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
