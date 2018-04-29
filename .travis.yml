@@ -2,7 +2,6 @@ sudo: false
 language: d
 d:
 - dmd
-- ldc-beta
 - ldc
 os:
 - linux
@@ -50,13 +49,11 @@ jobs:
       d: dmd
       os: linux
       language: generic
-      sudo: yes
-      script: echo "Deploying to GitHub releases ..." && ./release-windows.sh
+      script: echo "Deploying to GitHub releases ..." && ./release-windows.sh && ARCH=64 ./release-windows.sh
       addons:
         apt:
           packages:
             - p7zip-full
-            - wine
         deploy:
           provider: releases
           api_key: $GH_REPO_TOKEN
