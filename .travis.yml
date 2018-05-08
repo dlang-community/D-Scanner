@@ -57,7 +57,7 @@ jobs:
           provider: releases
           api_key: $GH_REPO_TOKEN
           file_glob: true
-          file: bin/dscanner-.*.zip
+          file: bin/dscanner-*.zip
           skip_cleanup: true
           on:
             repo: dlang-community/D-Scanner
