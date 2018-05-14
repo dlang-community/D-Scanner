@@ -311,7 +311,7 @@ final class UnusedVariableCheck : BaseAnalyzer
 		interestDepth++;
 		withStatetement.expression.accept(this);
 		interestDepth--;
-		withStatetement.statementNoCaseNoDefault.accept(this);
+		withStatetement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const Parameter parameter)
