@@ -8,7 +8,7 @@ module dscanner.dscanner_version;
 /**
  * Human-readable version number
  */
-enum DEFAUULT_DSCANNER_VERSION = "v0.5.2";
+enum DEFAUULT_DSCANNER_VERSION = "v0.5.5";
 
 version (built_with_dub)
 {
