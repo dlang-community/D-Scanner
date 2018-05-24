@@ -51,6 +51,50 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		postCheckSeenDdocParams();
 	}
 
+    override void visit(const UnaryExpression decl)
+    {
+        const IdentifierOrTemplateInstance iot = safeAccess(decl)
+            .functionCallExpression.unaryExpression.primaryExpression
+            .identifierOrTemplateInstance;
+
+        // enforce(condition);
+        if (iot && iot.identifier.text == "enforce")
+        {
+            Type tt = new Type;
+            tt.type2 = new Type2;
+            tt.type2.typeIdentifierPart = new TypeIdentifierPart;
+            tt.type2.typeIdentifierPart.identifierOrTemplateInstance =
+                new IdentifierOrTemplateInstance;
+            tt.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier =
+                Token(tok!"identifier", "Exception", 0, 0, 0);
+            thrown ~= tt;
+        }
+        else if (iot && iot.templateInstance && iot.templateInstance.identifier.text == "enforce")
+        {
+            // enforce!Type(condition);
+            if (const TemplateSingleArgument tsa = safeAccess(iot.templateInstance)
+                .templateArguments.templateSingleArgument)
+            {
+                Type tt = new Type;
+                tt.type2 = new Type2;
+                tt.type2.typeIdentifierPart = new TypeIdentifierPart;
+                tt.type2.typeIdentifierPart.identifierOrTemplateInstance =
+                    new IdentifierOrTemplateInstance;
+                tt.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier =
+                    tsa.token;
+                thrown ~= tt;
+            }
+            // enforce!(Type)(condition);
+            else if (const TemplateArgumentList tal = safeAccess(iot.templateInstance)
+                .templateArguments.templateArgumentList)
+            {
+                if (tal.items.length && tal.items[0].type)
+                    thrown ~= tal.items[0].type;
+            }
+        }
+        decl.accept(this);
+    }
+
 	override void visit(const Declaration decl)
 	{
 		import std.algorithm.searching : any;
@@ -1065,6 +1109,83 @@ void bar() // [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
 	), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void bar() // [warn]: %s
+{
+    enforce(condition);
+}
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
+    ), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void bar() // [warn]: %s
+{
+    enforce!AssertError(condition);
+}
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+    ), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void bar() // [warn]: %s
+{
+    enforce!(AssertError)(condition);
+}
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+    ), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void foo() // [warn]: %s
+{
+    void bar()
+    {
+        enforce!AssertError(condition);
+    }
+    bar();
+}
+
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+    ), sac);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/583
