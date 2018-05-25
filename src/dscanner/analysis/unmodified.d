@@ -138,6 +138,7 @@ final class UnmodifiedFinder : BaseAnalyzer
 	mixin PartsMightModify!AsmPrimaryExp;
 	mixin PartsMightModify!IndexExpression;
 	mixin PartsMightModify!FunctionCallExpression;
+	mixin PartsMightModify!NewExpression;
 	mixin PartsMightModify!IdentifierOrTemplateChain;
 	mixin PartsMightModify!ReturnStatement;
 
@@ -368,4 +369,15 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 		void foo(){auto e = new E;}
 	}, sac);
 
+	assertAnalyzerWarnings(q{
+		void issue640()
+		{
+			size_t i1;
+			new Foo(i1);
+
+			size_t i2;
+			foo(i2);
+		}
+	}, sac);
 }
+
