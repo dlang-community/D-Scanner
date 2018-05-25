@@ -51,49 +51,45 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		postCheckSeenDdocParams();
 	}
 
-    override void visit(const UnaryExpression decl)
-    {
-        const IdentifierOrTemplateInstance iot = safeAccess(decl)
-            .functionCallExpression.unaryExpression.primaryExpression
-            .identifierOrTemplateInstance;
+	override void visit(const UnaryExpression decl)
+	{
+		const IdentifierOrTemplateInstance iot = safeAccess(decl)
+			.functionCallExpression.unaryExpression.primaryExpression
+			.identifierOrTemplateInstance;
 
-        // enforce(condition);
-        if (iot && iot.identifier.text == "enforce")
-        {
-            Type tt = new Type;
-            tt.type2 = new Type2;
-            tt.type2.typeIdentifierPart = new TypeIdentifierPart;
-            tt.type2.typeIdentifierPart.identifierOrTemplateInstance =
-                new IdentifierOrTemplateInstance;
-            tt.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier =
-                Token(tok!"identifier", "Exception", 0, 0, 0);
-            thrown ~= tt;
-        }
-        else if (iot && iot.templateInstance && iot.templateInstance.identifier.text == "enforce")
-        {
-            // enforce!Type(condition);
-            if (const TemplateSingleArgument tsa = safeAccess(iot.templateInstance)
-                .templateArguments.templateSingleArgument)
-            {
-                Type tt = new Type;
-                tt.type2 = new Type2;
-                tt.type2.typeIdentifierPart = new TypeIdentifierPart;
-                tt.type2.typeIdentifierPart.identifierOrTemplateInstance =
-                    new IdentifierOrTemplateInstance;
-                tt.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier =
-                    tsa.token;
-                thrown ~= tt;
-            }
-            // enforce!(Type)(condition);
-            else if (const TemplateArgumentList tal = safeAccess(iot.templateInstance)
-                .templateArguments.templateArgumentList)
-            {
-                if (tal.items.length && tal.items[0].type)
-                    thrown ~= tal.items[0].type;
-            }
-        }
-        decl.accept(this);
-    }
+		Type newNamedType(N)(N name)
+		{
+			Type t = new Type;
+			t.type2 = new Type2;
+			t.type2.typeIdentifierPart = new TypeIdentifierPart;
+			t.type2.typeIdentifierPart.identifierOrTemplateInstance = new IdentifierOrTemplateInstance;
+			t.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier = name;
+			return t;
+		}
+
+		// enforce(condition);
+		if (iot && iot.identifier.text == "enforce")
+		{
+			thrown ~= newNamedType(Token(tok!"identifier", "Exception", 0, 0, 0));
+		}
+		else if (iot && iot.templateInstance && iot.templateInstance.identifier.text == "enforce")
+		{
+			// enforce!Type(condition);
+			if (const TemplateSingleArgument tsa = safeAccess(iot.templateInstance)
+				.templateArguments.templateSingleArgument)
+			{
+				thrown ~= newNamedType(tsa.token);
+			}
+			// enforce!(Type)(condition);
+			else if (const TemplateArgumentList tal = safeAccess(iot.templateInstance)
+				.templateArguments.templateArgumentList)
+			{
+				if (tal.items.length && tal.items[0].type)
+					thrown ~= tal.items[0].type;
+			}
+		}
+		decl.accept(this);
+	}
 
 	override void visit(const Declaration decl)
 	{
