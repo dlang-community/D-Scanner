@@ -20,7 +20,7 @@ import dsymbol.scope_ : Scope;
  * $(LI == expressions where the left and right are the same)
  * )
  */
-class IfElseSameCheck : BaseAnalyzer
+final class IfElseSameCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

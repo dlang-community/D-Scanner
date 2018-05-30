@@ -16,7 +16,7 @@ import std.algorithm;
 /**
  * Check that all asserts have an explanatory message.
  */
-class AssertWithoutMessageCheck : BaseAnalyzer
+final class AssertWithoutMessageCheck : BaseAnalyzer
 {
 	enum string KEY = "dscanner.style.assert_without_msg";
 	enum string MESSAGE = "An assert should have an explanatory message";

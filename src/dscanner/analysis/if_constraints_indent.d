@@ -15,7 +15,7 @@ import std.range;
 /**
 Checks whether all if constraints have the same indention as their declaration.
 */
-class IfConstraintsIndentCheck : BaseAnalyzer
+final class IfConstraintsIndentCheck : BaseAnalyzer
 {
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)
@@ -174,13 +174,13 @@ if (R == int) // [warn]: %s
 	assertAnalyzerWarnings(q{
 Num abs(Num)(Num x) @safe pure nothrow
 if (is(typeof(Num.init >= 0)) && is(typeof(-Num.init)) &&
-    !(is(Num* : const(ifloat*)) || is(Num* : const(idouble*))
-    || is(Num* : const(ireal*))))
+	!(is(Num* : const(ifloat*)) || is(Num* : const(idouble*))
+	|| is(Num* : const(ireal*))))
 {
-    static if (isFloatingPoint!(Num))
-        return fabs(x);
-    else
-        return x >= 0 ? x : -x;
+	static if (isFloatingPoint!(Num))
+		return fabs(x);
+	else
+		return x >= 0 ? x : -x;
 }
 	}, sac);
 

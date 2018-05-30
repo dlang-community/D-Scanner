@@ -14,12 +14,12 @@ import dsymbol.scope_;
 /**
  * Checks that `@trusted` is only applied to a a single function
  */
-class TrustTooMuchCheck : BaseAnalyzer
+final class TrustTooMuchCheck : BaseAnalyzer
 {
 private:
 
 	static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
-		"`@trusted` should only be attached to a single function";
+		"`@trusted` should only be attached to the functions individually";
 	static immutable string KEY = "dscanner.trust_too_much";
 
 	bool checkAtAttribute = true;

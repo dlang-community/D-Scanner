@@ -14,7 +14,7 @@ import dparse.lexer;
 /**
  * Checks for variables that could have been declared const or immutable
  */
-class UnmodifiedFinder : BaseAnalyzer
+final class UnmodifiedFinder : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
@@ -138,6 +138,7 @@ class UnmodifiedFinder : BaseAnalyzer
 	mixin PartsMightModify!AsmPrimaryExp;
 	mixin PartsMightModify!IndexExpression;
 	mixin PartsMightModify!FunctionCallExpression;
+	mixin PartsMightModify!NewExpression;
 	mixin PartsMightModify!IdentifierOrTemplateChain;
 	mixin PartsMightModify!ReturnStatement;
 
@@ -332,40 +333,51 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 
 @system unittest
 {
-    import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-    import dscanner.analysis.helpers : assertAnalyzerWarnings;
-    import std.stdio : stderr;
-    import std.format : format;
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import std.stdio : stderr;
+	import std.format : format;
 
-    StaticAnalysisConfig sac = disabledConfig();
-    sac.could_be_immutable_check = Check.enabled;
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.could_be_immutable_check = Check.enabled;
 
 	// fails
 
 	assertAnalyzerWarnings(q{
-        void foo(){int i = 1;} // [warn]: Variable i is never modified and could have been declared const or immutable.
-    }, sac);
+		void foo(){int i = 1;} // [warn]: Variable i is never modified and could have been declared const or immutable.
+	}, sac);
 
-    // pass
-
-    assertAnalyzerWarnings(q{
-        void foo(){const(int) i;}
-    }, sac);
+	// pass
 
 	assertAnalyzerWarnings(q{
-        void foo(){immutable(int)* i;}
-    }, sac);
+		void foo(){const(int) i;}
+	}, sac);
 
 	assertAnalyzerWarnings(q{
-        void foo(){enum i = 1;}
-    }, sac);
+		void foo(){immutable(int)* i;}
+	}, sac);
 
 	assertAnalyzerWarnings(q{
-        void foo(){E e = new E;}
-    }, sac);
+		void foo(){enum i = 1;}
+	}, sac);
 
 	assertAnalyzerWarnings(q{
-        void foo(){auto e = new E;}
-    }, sac);
+		void foo(){E e = new E;}
+	}, sac);
 
+	assertAnalyzerWarnings(q{
+		void foo(){auto e = new E;}
+	}, sac);
+
+	assertAnalyzerWarnings(q{
+		void issue640()
+		{
+			size_t i1;
+			new Foo(i1);
+
+			size_t i2;
+			foo(i2);
+		}
+	}, sac);
 }
+

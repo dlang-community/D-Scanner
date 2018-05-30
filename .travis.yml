@@ -1,8 +1,6 @@
 sudo: false
 language: d
 d:
-- dmd-nightly
-- dmd-beta
 - dmd
 - ldc-beta
 - ldc
@@ -43,6 +41,27 @@ jobs:
         on:
           repo: dlang-community/D-Scanner
           tags: true
+    - stage: GitHub Release
+      #if: tag IS present
+      d: dmd
+      os: linux
+      language: generic
+      sudo: yes
+      script: echo "Deploying to GitHub releases ..." && ./release-windows.sh
+      addons:
+        apt:
+          packages:
+            - p7zip-full
+            - wine
+        deploy:
+          provider: releases
+          api_key: $GH_REPO_TOKEN
+          file_glob: true
+          file: bin/dscanner-*.zip
+          skip_cleanup: true
+          on:
+            repo: dlang-community/D-Scanner
+            tags: true
 stages:
   - name: test
     if: type = pull_request or (type = push and branch = master)

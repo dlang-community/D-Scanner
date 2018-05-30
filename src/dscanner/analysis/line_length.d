@@ -15,7 +15,7 @@ import std.typecons : tuple, Tuple;
 /**
  * Checks for lines longer than 120 characters
  */
-class LineLengthCheck : BaseAnalyzer
+final class LineLengthCheck : BaseAnalyzer
 {
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)

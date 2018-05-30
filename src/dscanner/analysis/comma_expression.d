@@ -13,7 +13,7 @@ import dsymbol.scope_;
 /**
  * Check for uses of the comma expression.
  */
-class CommaExpressionCheck : BaseAnalyzer
+final class CommaExpressionCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

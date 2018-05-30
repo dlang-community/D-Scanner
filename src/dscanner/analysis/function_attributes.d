@@ -21,7 +21,7 @@ import dsymbol.scope_;
  * const int getStuff() {}
  * ---
  */
-class FunctionAttributeCheck : BaseAnalyzer
+final class FunctionAttributeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

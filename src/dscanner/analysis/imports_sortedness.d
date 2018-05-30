@@ -13,7 +13,7 @@ import std.stdio;
 /**
  * Checks the sortedness of module imports
  */
-class ImportSortednessCheck : BaseAnalyzer
+final class ImportSortednessCheck : BaseAnalyzer
 {
 	enum string KEY = "dscanner.style.imports_sortedness";
 	enum string MESSAGE = "The imports are not sorted in alphabetical order";
@@ -347,8 +347,8 @@ unittest
 		import foo;
 		import foo.bar;
 		import fooa;
-        import std.range : Take;
-        import std.range.primitives : isInputRange, walkLength;
+		import std.range : Take;
+		import std.range.primitives : isInputRange, walkLength;
 	}, sac);
 
 	// condition declaration

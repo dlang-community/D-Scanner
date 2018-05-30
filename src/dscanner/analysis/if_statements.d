@@ -10,7 +10,7 @@ import dparse.formatter;
 import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
 
-class IfStatementCheck : BaseAnalyzer
+final class IfStatementCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 	this(string fileName, const(Scope)* sc, bool skipTests = false)

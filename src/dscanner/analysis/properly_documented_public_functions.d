@@ -6,7 +6,9 @@ module dscanner.analysis.properly_documented_public_functions;
 
 import dparse.lexer;
 import dparse.ast;
+import dparse.formatter : astFmt = format;
 import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.utils : safeAccess;
 
 import std.format : format;
 import std.range.primitives;
@@ -20,7 +22,7 @@ import std.stdio;
 		- Ddoc params entries without a parameter trigger warnings as well
 	- RETURNS: (except if it's void, only functions)
  */
-class ProperlyDocumentedPublicFunctions : BaseAnalyzer
+final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 {
 	enum string MISSING_PARAMS_KEY = "dscanner.style.doc_missing_params";
 	enum string MISSING_PARAMS_MESSAGE = "Parameter %s isn't documented in the `Params` section.";
@@ -32,6 +34,9 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 	enum string MISSING_RETURNS_KEY = "dscanner.style.doc_missing_returns";
 	enum string MISSING_RETURNS_MESSAGE = "A public function needs to contain a `Returns` section.";
+
+	enum string MISSING_THROW_KEY = "dscanner.style.doc_missing_throw";
+	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section";
 
 	///
 	this(string fileName, bool skipTests = false)
@@ -46,6 +51,46 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		postCheckSeenDdocParams();
 	}
 
+	override void visit(const UnaryExpression decl)
+	{
+		const IdentifierOrTemplateInstance iot = safeAccess(decl)
+			.functionCallExpression.unaryExpression.primaryExpression
+			.identifierOrTemplateInstance;
+
+		Type newNamedType(N)(N name)
+		{
+			Type t = new Type;
+			t.type2 = new Type2;
+			t.type2.typeIdentifierPart = new TypeIdentifierPart;
+			t.type2.typeIdentifierPart.identifierOrTemplateInstance = new IdentifierOrTemplateInstance;
+			t.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier = name;
+			return t;
+		}
+
+		// enforce(condition);
+		if (iot && iot.identifier.text == "enforce")
+		{
+			thrown ~= newNamedType(Token(tok!"identifier", "Exception", 0, 0, 0));
+		}
+		else if (iot && iot.templateInstance && iot.templateInstance.identifier.text == "enforce")
+		{
+			// enforce!Type(condition);
+			if (const TemplateSingleArgument tsa = safeAccess(iot.templateInstance)
+				.templateArguments.templateSingleArgument)
+			{
+				thrown ~= newNamedType(tsa.token);
+			}
+			// enforce!(Type)(condition);
+			else if (const TemplateArgumentList tal = safeAccess(iot.templateInstance)
+				.templateArguments.templateArgumentList)
+			{
+				if (tal.items.length && tal.items[0].type)
+					thrown ~= tal.items[0].type;
+			}
+		}
+		decl.accept(this);
+	}
+
 	override void visit(const Declaration decl)
 	{
 		import std.algorithm.searching : any;
@@ -56,6 +101,24 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 			 tokProtected = tok!"protected",
 			 tokPackage = tok!"package",
 			 tokPublic = tok!"public";
+
+		// Nested funcs for `Throws`
+		bool decNestedFunc;
+		if (decl.functionDeclaration)
+		{
+			nestedFuncs++;
+			decNestedFunc = true;
+		}
+		scope(exit)
+		{
+			if (decNestedFunc)
+				nestedFuncs--;
+		}
+		if (nestedFuncs > 1)
+		{
+			decl.accept(this);
+			return;
+		}
 
 		if (decl.attributes.length > 0)
 		{
@@ -114,20 +177,69 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	override void visit(const FunctionDeclaration decl)
 	{
 		import std.algorithm.searching : all, any;
+		import std.array : Appender;
 
 		// ignore header declaration for now
 		if (decl.functionBody is null)
 			return;
 
-		auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
+		if (nestedFuncs == 1)
+			thrown.length = 0;
+		// detect ThrowStatement only if not nothrow
+		if (!decl.attributes.any!(a => a.attribute.text == "nothrow"))
+		{
+			decl.accept(this);
+			if (nestedFuncs == 1 && !hasThrowSection(decl.comment))
+				foreach(t; thrown)
+			{
+				Appender!(char[]) app;
+				astFmt(&app, t);
+				addErrorMessage(decl.name.line, decl.name.column, MISSING_THROW_KEY,
+					MISSING_THROW_MESSAGE.format(app.data));
+			}
+		}
 
-		checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
+		if (nestedFuncs == 1)
+		{
+			auto comment = setLastDdocParams(decl.name.line, decl.name.column, decl.comment);
+			checkDdocParams(decl.name.line, decl.name.column, decl.parameters,  decl.templateParameters);
+			enum voidType = tok!"void";
+			if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
+				if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
+					addErrorMessage(decl.name.line, decl.name.column,
+						MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		}
+	}
 
-		enum voidType = tok!"void";
+	// remove thrown Type that are caught
+	override void visit(const TryStatement ts)
+	{
+		import std.algorithm.iteration : filter;
+		import std.algorithm.searching : canFind;
+		import std.array : array;
 
-		if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
-			if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
-				addErrorMessage(decl.name.line, decl.name.column, MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		ts.accept(this);
+
+		if (ts.catches)
+			thrown =  thrown.filter!(a => !ts.catches.catches
+							.canFind!(b => b.type == a))
+							.array;
+	}
+
+	override void visit(const ThrowStatement ts)
+	{
+		import std.algorithm.searching : canFind;
+
+		ts.accept(this);
+		if (ts.expression && ts.expression.items.length == 1)
+			if (const UnaryExpression ue = cast(UnaryExpression) ts.expression.items[0])
+		{
+			if (ue.newExpression && ue.newExpression.type &&
+				!thrown.canFind!(a => a == ue.newExpression.type))
+			{
+				thrown ~= ue.newExpression.type;
+			}
+		}
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -135,6 +247,7 @@ class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 private:
 	bool islastSeenVisibilityLabelPublic;
 	bool withinTemplate;
+	size_t nestedFuncs;
 
 	static struct Function
 	{
@@ -144,6 +257,8 @@ private:
 		bool[string] params;
 	}
 	Function lastSeenFun;
+
+	const(Type)[] thrown;
 
 	// find invalid ddoc parameters (i.e. they don't occur in a function declaration)
 	void postCheckSeenDdocParams()
@@ -159,6 +274,15 @@ private:
 		lastSeenFun.active = false;
 	}
 
+	bool hasThrowSection(string commentText)
+	{
+		import std.algorithm.searching : canFind;
+		import ddoc.comments : parseComment;
+
+		const comment = parseComment(commentText, null);
+		return comment.isDitto || comment.sections.canFind!(s => s.name == "Throws");
+	}
+
 	auto setLastDdocParams(size_t line, size_t column, string commentText)
 	{
 		import ddoc.comments : parseComment;
@@ -167,11 +291,14 @@ private:
 		import std.array : array;
 
 		const comment = parseComment(commentText, null);
-		if (withinTemplate) {
+		if (withinTemplate)
+		{
 			const paramSection = comment.sections.find!(s => s.name == "Params");
 			if (!paramSection.empty)
 				lastSeenFun.ddocParams ~= paramSection[0].mapping.map!(a => a[0]).array;
-		} else if (!comment.isDitto) {
+		}
+		else if (!comment.isDitto)
+		{
 			// check old function for invalid ddoc params
 			if (lastSeenFun.active)
 				postCheckSeenDdocParams();
@@ -214,11 +341,17 @@ private:
 			foreach (p; params.parameters)
 			{
 				string templateName;
-				if (const t = p.type)
-				if (const t2 = t.type2)
-				if (const tip = t2.typeIdentifierPart)
-				if (const iot = tip.identifierOrTemplateInstance)
+
+				if (auto iot = safeAccess(p).type.type2
+					.typeIdentifierPart.identifierOrTemplateInstance.unwrap)
+				{
 					templateName = iot.identifier.text;
+				}
+				else if (auto iot = safeAccess(p).type.type2.type.type2
+					.typeIdentifierPart.identifierOrTemplateInstance.unwrap)
+				{
+					templateName = iot.identifier.text;
+				}
 
 				const idx = tlList.countUntil(templateName);
 				if (idx >= 0)
@@ -243,8 +376,8 @@ private:
 
 	void checkDdocParams(size_t line, size_t column, const TemplateParameters templateParams)
 	{
-
-		if (lastSeenFun.active && templateParams !is null && templateParams.templateParameterList !is null)
+		if (lastSeenFun.active && templateParams !is null &&
+			templateParams.templateParameterList !is null)
 			checkDdocParams(line, column, templateParams.templateParameterList.items);
 	}
 
@@ -718,28 +851,28 @@ unittest
 
 	assertAnalyzerWarnings(q{
 /++
-    Counts elements in the given
-    $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
-    until the given predicate is true for one of the given $(D needles).
+	Counts elements in the given
+	$(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+	until the given predicate is true for one of the given $(D needles).
 
-    Params:
+	Params:
 		val  =  A stupid parameter
 
-    Returns: Awesome values.
+	Returns: Awesome values.
   +/
 string bar(string val){}
 	}c, sac);
 
 	assertAnalyzerWarnings(q{
 /++
-    Counts elements in the given
-    $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
-    until the given predicate is true for one of the given $(D needles).
+	Counts elements in the given
+	$(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+	until the given predicate is true for one of the given $(D needles).
 
-    Params:
+	Params:
 		val  =  A stupid parameter
 
-    Returns: Awesome values.
+	Returns: Awesome values.
   +/
 template bar(string val){}
 	}c, sac);
@@ -824,6 +957,233 @@ unittest
 	}, sac);
 }
 
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+    /++
+    An awesome description.
+
+    Params:
+	    items = things to put.
+
+    Returns: Awesome values.
+    +/
+	void put(Range)(const(Range) items) if (canPutConstRange!Range)
+	{}
+	}, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Throw but likely catched.
++/
+void bar(){
+	try{throw new Exception("bla");throw new Error("bla");}
+	catch(Exception){} catch(Error){}}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Simple case
++/
+void bar(){throw new Exception("bla");} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+Supposed to be documented
+
+Throws: Exception if...
++/
+void bar(){throw new Exception("bla");}
+	}c.format(
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+rethrow
++/
+void bar(){try throw new Exception("bla"); catch(Exception) throw new Error();} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Error")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+trust nothrow before everything
++/
+void bar() nothrow {try throw new Exception("bla"); catch(Exception) assert(0);}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of throw in nested func
++/
+void bar() // [warn]: %s
+{
+	void foo(){throw new AssertError("bla");}
+	foo();
+}
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+	), sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of throw in nested func but caught
++/
+void bar()
+{
+	void foo(){throw new AssertError("bla");}
+	try foo();
+	catch (AssertError){}
+}
+	}c, sac);
+}
+
+unittest
+{
+	StaticAnalysisConfig sac = disabledConfig;
+	sac.properly_documented_public_functions = Check.enabled;
+
+	assertAnalyzerWarnings(q{
+/++
+case of double throw in nested func but only 1 caught
++/
+void bar() // [warn]: %s
+{
+	void foo(){throw new AssertError("bla");throw new Error("bla");}
+	try foo();
+	catch (Error){}
+}
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+	), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void bar() // [warn]: %s
+{
+    enforce(condition);
+}
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
+    ), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void bar() // [warn]: %s
+{
+    enforce!AssertError(condition);
+}
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+    ), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void bar() // [warn]: %s
+{
+    enforce!(AssertError)(condition);
+}
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+    ), sac);
+}
+
+unittest
+{
+    StaticAnalysisConfig sac = disabledConfig;
+    sac.properly_documented_public_functions = Check.enabled;
+
+    assertAnalyzerWarnings(q{
+/++
+enforce
++/
+void foo() // [warn]: %s
+{
+    void bar()
+    {
+        enforce!AssertError(condition);
+    }
+    bar();
+}
+
+    }c.format(
+        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
+    ), sac);
+}
+
 // https://github.com/dlang-community/D-Scanner/issues/583
 unittest
 {
@@ -835,10 +1195,10 @@ unittest
 	Implements the homonym function (also known as `accumulate`)
 
 	Returns:
-	    the accumulated `result`
+		the accumulated `result`
 
 	Params:
-	    fun = one or more functions
+		fun = one or more functions
 	+/
 	template reduce(fun...)
 	if (fun.length >= 1)

@@ -14,7 +14,7 @@ import dsymbol.scope_;
 /**
  * Checks for use of the deprecated 'delete' keyword
  */
-class DeleteCheck : BaseAnalyzer
+final class DeleteCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

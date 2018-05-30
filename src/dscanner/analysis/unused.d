@@ -16,7 +16,7 @@ import std.algorithm : all;
 /**
  * Checks for unused variables.
  */
-class UnusedVariableCheck : BaseAnalyzer
+final class UnusedVariableCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
@@ -311,7 +311,7 @@ class UnusedVariableCheck : BaseAnalyzer
 		interestDepth++;
 		withStatetement.expression.accept(this);
 		interestDepth--;
-		withStatetement.statementNoCaseNoDefault.accept(this);
+		withStatetement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const Parameter parameter)

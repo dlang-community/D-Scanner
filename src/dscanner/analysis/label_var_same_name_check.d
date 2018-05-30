@@ -13,7 +13,7 @@ import dscanner.analysis.helpers;
 /**
  * Checks for labels and variables that have the same name.
  */
-class LabelVarNameCheck : BaseAnalyzer
+final class LabelVarNameCheck : BaseAnalyzer
 {
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
@@ -228,7 +228,7 @@ unittest
 
 unittest
 {
-    version(LittleEndian) { enum string NAME = "UTF-16LE"; }
+	version(LittleEndian) { enum string NAME = "UTF-16LE"; }
 	else version(BigEndian)    { enum string NAME = "UTF-16BE"; }
 }
 
@@ -267,8 +267,8 @@ unittest
 
 unittest
 {
-    int aa;
-    struct a { int a; }
+	int aa;
+	struct a { int a; }
 }
 
 }c, sac);

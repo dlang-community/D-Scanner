@@ -15,7 +15,7 @@ void doNothing(string, size_t, size_t, string, bool)
 {
 }
 
-class EnumArrayLiteralCheck : BaseAnalyzer
+final class EnumArrayLiteralCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 

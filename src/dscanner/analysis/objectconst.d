@@ -17,7 +17,7 @@ import dsymbol.scope_ : Scope;
  * Checks that opEquals, opCmp, toHash, 'opCast', and toString are either const,
  * immutable, or inout.
  */
-class ObjectConstCheck : BaseAnalyzer
+final class ObjectConstCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
@@ -122,12 +122,12 @@ unittest
 
 			class Bat
 			{
-          		const: override string toString() { return "foo"; } // ok
+				const: override string toString() { return "foo"; } // ok
 			}
 
 			class Fox
 			{
-          		const{ override string toString() { return "foo"; }} // ok
+				const{ override string toString() { return "foo"; }} // ok
 			}
 
 			// Will warn, because none are const

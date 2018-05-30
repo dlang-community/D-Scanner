@@ -1,12 +1,6 @@
 platform: x64
 environment:
  matrix:
-  #- DC: dmd
-    #DVersion: beta
-    #arch: x64
-  #- DC: dmd
-    #DVersion: beta
-    #arch: x86
   - DC: dmd
     DVersion: stable
     arch: x64

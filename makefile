@@ -36,7 +36,7 @@ ldc: ldcbuild
 gdc: gdcbuild
 
 githash:
-	git log -1 --format="%H" > githash.txt
+	git describe --tags > githash.txt
 
 debug:
 	${DC} -fPIC -w -g -J. -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}

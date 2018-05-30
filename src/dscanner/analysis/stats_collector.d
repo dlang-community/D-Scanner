@@ -9,7 +9,7 @@ import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
 
-class StatsCollector : BaseAnalyzer
+final class StatsCollector : BaseAnalyzer
 {
 	alias visit = ASTVisitor.visit;
 

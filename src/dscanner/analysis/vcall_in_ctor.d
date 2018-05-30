@@ -7,10 +7,7 @@ module dscanner.analysis.vcall_in_ctor;
 import dscanner.analysis.base;
 import dscanner.utils;
 import dparse.ast, dparse.lexer;
-import std.algorithm: among;
-import std.algorithm.iteration : filter;
-import std.algorithm.searching : find;
-import std.range.primitives : empty;
+import std.algorithm.searching : canFind;
 import std.range: retro;
 
 /**
@@ -19,7 +16,7 @@ import std.range: retro;
  * When not used carefully, virtual calls from constructors can lead to a call
  * in a derived instance that's not yet constructed.
  */
-class VcallCtorChecker : BaseAnalyzer
+final class VcallCtorChecker : BaseAnalyzer
 {
     alias visit = BaseAnalyzer.visit;
 
@@ -183,16 +180,21 @@ public:
         bool pop;
         scope(exit) if (pop)
             popVirtual;
+
+        const bool hasAttribs = d.attributes !is null;
+        const bool hasStatic = hasAttribs ? d.attributes.canFind!(a => a.attribute.type == tok!"static") : false;
+        const bool hasFinal = hasAttribs ? d.attributes.canFind!(a => a.attribute.type == tok!"final") : false;
+
         if (d.attributes) foreach (attr; d.attributes.retro)
         {
-            if (attr.attribute == tok!"public" || attr.attribute == tok!"protected" ||
-                attr.attribute == tok!"package")
+            if (!hasStatic &&
+               (attr.attribute == tok!"public" || attr.attribute == tok!"protected"))
             {
                 pushVirtual(true);
                 pop = true;
                 break;
             }
-            else if (attr.attribute == tok!"private")
+            else if (hasStatic || attr.attribute == tok!"private" || attr.attribute == tok!"package")
             {
                 pushVirtual(false);
                 pop = true;
@@ -201,13 +203,12 @@ public:
         }
 
         // final class... final function
-        const bool pf = !d.attributes.find!(a => a.attribute.type == tok!"final").empty;
-        if ((d.classDeclaration || d.functionDeclaration) && pf)
+        if ((d.classDeclaration || d.functionDeclaration) && hasFinal)
             pushIsFinal(true);
 
         d.accept(this);
 
-        if ((d.classDeclaration || d.functionDeclaration) && pf)
+        if ((d.classDeclaration || d.functionDeclaration) && hasFinal)
             popIsFinal;
     }
 
@@ -242,11 +243,14 @@ public:
             bool virtualOnce;
             bool notVirtualOnce;
 
+            const bool hasAttribs = d.attributes !is null;
+            const bool hasStatic = hasAttribs ? d.attributes.canFind!(a => a.attribute.type == tok!"static") : false;
+
             // handle "private", "public"... for this declaration
             if (d.attributes) foreach (attr; d.attributes.retro)
             {
-                if (attr.attribute == tok!"public" || attr.attribute ==  tok!"protected" ||
-                    attr.attribute ==  tok!"package")
+                if (!hasStatic &&
+                   (attr.attribute == tok!"public" || attr.attribute == tok!"protected"))
                 {
                     if (!isVirtual)
                     {
@@ -254,7 +258,7 @@ public:
                         break;
                     }
                 }
-                else if (attr.attribute == tok!"private")
+                else if (hasStatic || attr.attribute == tok!"private" || attr.attribute == tok!"package")
                 {
                     if (isVirtual)
                     {
@@ -379,6 +383,22 @@ unittest
             public:
             this(){foo();}
             void foo(T)(){}
+        }
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        class Foo
+        {
+            static void nonVirtual();
+            this(){nonVirtual();}
+        }
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        class Foo
+        {
+            package void nonVirtual();
+            this(){nonVirtual();}
         }
     }, sac);
 
