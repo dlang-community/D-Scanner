@@ -13,7 +13,7 @@
   ],
   "dependencies" : {
     "libdparse" : "~>0.8.6",
-    "dsymbol" : "~>0.3.7",
+    "dsymbol" : "~>0.3.8",
     "inifiled" : "~>1.3.1",
     "emsi_containers" : "~>0.8.0-alpha.7",
     "libddoc" : "~>0.3.0-beta.1",
