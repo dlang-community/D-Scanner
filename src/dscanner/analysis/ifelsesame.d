@@ -31,7 +31,7 @@ final class IfElseSameCheck : BaseAnalyzer
 
 	override void visit(const IfStatement ifStatement)
 	{
-		if (ifStatement.thenStatement == ifStatement.elseStatement)
+		if (ifStatement.thenStatement && (ifStatement.thenStatement == ifStatement.elseStatement))
 			addErrorMessage(ifStatement.line, ifStatement.column,
 					"dscanner.bugs.if_else_same", "'Else' branch is identical to 'Then' branch.");
 		ifStatement.accept(this);
@@ -95,5 +95,13 @@ unittest
 				person = "bobby"; // not same
 		}
 	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		void foo()
+		{
+			if (auto stuff = call())
+		}
+	}c, sac);
+
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }
