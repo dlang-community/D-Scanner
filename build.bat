@@ -4,7 +4,19 @@ setlocal enabledelayedexpansion
 if "%DC%"=="" set DC="dmd"
 if "%DC%"=="ldc2" set DC="ldmd2"
 
-set DFLAGS=-O -release -inline -version=StdLoggerDisableWarning
+:: git might not be installed, so we provide 0.0.0 as a fallback or use
+:: the existing githash file if existent
+git describe --tags > githash_.txt
+for /f %%i in ("githash_.txt") do set githashsize=%%~zi
+if %githashsize% == 0 (
+	if not exist "githash.txt" (
+		echo v0.0.0 > githash.txt
+	)
+) else (
+	move /y githash_.txt githash.txt
+)
+
+set DFLAGS=-O -release -inline -version=StdLoggerDisableWarning -J.
 set TESTFLAGS=-g -w -version=StdLoggerDisableWarning
 set CORE=
 set LIBDPARSE=
