@@ -23,25 +23,84 @@ final class PointlessArithmeticCheck : BaseAnalyzer
 		super(fileName, null, skipTest);
 	}
 
+	override void visit(const AssignExpression asgExp)
+	{
+		auto left = asgExp.ternaryExpression;
+		UnaryExpression right = cast(UnaryExpression) asgExp.expression;
+
+		if (left && right)
+		{
+			if (asgExp.operator == tok!"*=" &&
+				isNumberLiteral(right.primaryExpression.primary.type) &&
+				right.primaryExpression.primary.text == "1")
+			{
+				addErrorMessage(asgExp.line, asgExp.column, KEY,
+								"Any number 'x' mul 1 will be 'x'.");
+			}
+			else if (asgExp.operator == tok!"/=" &&
+					 isNumberLiteral(right.primaryExpression.primary.type) &&
+					 right.primaryExpression.primary.text == "1")
+			{
+				addErrorMessage(asgExp.line, asgExp.column, KEY,
+								"Any number 'x' div 1 will be 'x'.");
+			}
+			else if (asgExp.operator == tok!"%=" &&
+					 isNumberLiteral(right.primaryExpression.primary.type) &&
+					 right.primaryExpression.primary.text == "1")
+			{
+				addErrorMessage(asgExp.line, asgExp.column, KEY,
+								"Any number modulo 1 will be 0.");
+			}
+		}
+		asgExp.accept(this);
+	}
+
+	override void visit(const PowExpression powExp)
+	{
+		UnaryExpression left = cast(UnaryExpression) powExp.left;
+		UnaryExpression right = cast(UnaryExpression) powExp.right;
+
+		if (left && right)
+		{
+			if (isNumberLiteral(right.primaryExpression.primary.type) &&
+				right.primaryExpression.primary.text == "0")
+			{
+				addErrorMessage(powExp.line, powExp.column, KEY,
+								"Any number pow 0 will be 1.");
+			}
+		}
+		powExp.accept(this);
+	}
+
 	override void visit(const MulExpression mulExp)
 	{
 		UnaryExpression left = cast(UnaryExpression) mulExp.left;
 		UnaryExpression right = cast(UnaryExpression) mulExp.right;
 
-		if (mulExp.operator == tok!"/" &&
-			isNumberLiteral(right.primaryExpression.primary.type) &&
-			right.primaryExpression.primary.text == "1")
+		if (left && right)
 		{
-			addErrorMessage(mulExp.line, mulExp.column, KEY,
-							"Any number 'x' div 1 will be 'x'.");
-		}
-		else if (mulExp.operator == tok!"%" &&
-			isIntegerLiteral(left.primaryExpression.primary.type) &&
-			isNumberLiteral(right.primaryExpression.primary.type) &&
-			right.primaryExpression.primary.text == "1")
-		{
-			addErrorMessage(mulExp.line, mulExp.column, KEY,
-							"Any number modulo 1 will be 0.");
+			if (mulExp.operator == tok!"*" &&
+				isNumberLiteral(right.primaryExpression.primary.type) &&
+				right.primaryExpression.primary.text == "1")
+			{
+				addErrorMessage(mulExp.line, mulExp.column, KEY,
+								"Any number 'x' mul 1 will be 'x'.");
+			}
+			else if (mulExp.operator == tok!"/" &&
+				isNumberLiteral(right.primaryExpression.primary.type) &&
+				right.primaryExpression.primary.text == "1")
+			{
+				addErrorMessage(mulExp.line, mulExp.column, KEY,
+								"Any number 'x' div 1 will be 'x'.");
+			}
+			else if (mulExp.operator == tok!"%" &&
+					 isIntegerLiteral(left.primaryExpression.primary.type) &&
+					 isNumberLiteral(right.primaryExpression.primary.type) &&
+					 right.primaryExpression.primary.text == "1")
+			{
+				addErrorMessage(mulExp.line, mulExp.column, KEY,
+								"Any number modulo 1 will be 0.");
+			}
 		}
 		mulExp.accept(this);
 	}
@@ -77,15 +136,28 @@ unittest
 		void testPointlessArithmetic()
 		{
 			int a = 2;
+
+			a = a * 2;
+			a = a * 1; // [warn]: Any number 'x' mul 1 will be 'x'.
+			a *= 2;
+			a *= 1; // [warn]: Any number 'x' mul 1 will be 'x'.
+
 			a = a / 2;
 			a = a / 1; // [warn]: Any number 'x' div 1 will be 'x'.
 
+			a /= 1; // [warn]: Any number 'x' div 1 will be 'x'.
+
 			a = 10 % 2;
 			a = 10 % 1; // [warn]: Any number modulo 1 will be 0.
-			a = 10 % 1.1;
+
+			a %= 1; // [warn]: Any number modulo 1 will be 0.
+
+			a = a ^^ 0; // [warn]: Any number pow 0 will be 1.
 
 			float b = 1.1;
+			b = b * 1; // [warn]: Any number 'x' mul 1 will be 'x'.
 			b = b / 1; // [warn]: Any number 'x' div 1 will be 'x'.
+			b /= 1; // [warn]: Any number 'x' div 1 will be 'x'.
 		}
 	}c, sac);
 
