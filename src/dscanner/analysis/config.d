@@ -200,8 +200,8 @@ struct StaticAnalysisConfig
 	@INI("Check for redundant storage classes on variable declarations")
 	string redundant_storage_classes = Check.enabled;
 
-	@INI("Check for taking a number module 1")
-	string modulo_one_check = Check.enabled;
+	@INI("Check for pointless arithmetic")
+	string pointless_arithmetic_check = Check.enabled;
 
 	@INI("Module-specific filters")
 	ModuleFilters filters;

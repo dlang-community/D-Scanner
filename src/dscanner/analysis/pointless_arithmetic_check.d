@@ -2,7 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
-module dscanner.analysis.modulo_one_check;
+module dscanner.analysis.pointless_arithmetic_check;
 
 import dparse.ast;
 import dparse.lexer;
@@ -11,9 +11,9 @@ import std.stdio;
 import std.typetuple;
 
 /**
- * Checks for 'x' modulo 1 syntax.
+ * Checks for Pointless Arithmetic.
  */
-final class ModuloOneCheck : BaseAnalyzer
+final class PointlessArithmeticCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
@@ -55,7 +55,7 @@ final class ModuloOneCheck : BaseAnalyzer
 	}
 
 private:
-	enum KEY = "dscanner.confusing.mudulo_one_check";
+	enum KEY = "dscanner.confusing.pointless_arithmetic_check";
 }
 
 unittest
@@ -64,7 +64,7 @@ unittest
 	import dscanner.analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac = disabledConfig();
-	sac.modulo_one_check = Check.enabled;
+	sac.pointless_arithmetic_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		void testModuloOne()
 		{
@@ -75,5 +75,5 @@ unittest
 		}
 	}c, sac);
 
-	stderr.writeln("Unittest for ModuloOneCheck passed.");
+	stderr.writeln("Unittest for PointlessArithmeticCheck passed.");
 }
