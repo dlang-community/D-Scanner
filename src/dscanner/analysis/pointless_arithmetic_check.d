@@ -27,7 +27,15 @@ final class PointlessArithmeticCheck : BaseAnalyzer
 	{
 		UnaryExpression left = cast(UnaryExpression) mulExp.left;
 		UnaryExpression right = cast(UnaryExpression) mulExp.right;
-		if (mulExp.operator == tok!"%" &&
+
+		if (mulExp.operator == tok!"/" &&
+			isNumberLiteral(right.primaryExpression.primary.type) &&
+			right.primaryExpression.primary.text == "1")
+		{
+			addErrorMessage(mulExp.line, mulExp.column, KEY,
+							"Any number 'x' div 1 will be 'x'.");
+		}
+		else if (mulExp.operator == tok!"%" &&
 			isIntegerLiteral(left.primaryExpression.primary.type) &&
 			isNumberLiteral(right.primaryExpression.primary.type) &&
 			right.primaryExpression.primary.text == "1")
@@ -66,12 +74,18 @@ unittest
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.pointless_arithmetic_check = Check.enabled;
 	assertAnalyzerWarnings(q{
-		void testModuloOne()
+		void testPointlessArithmetic()
 		{
-			int a;
+			int a = 2;
+			a = a / 2;
+			a = a / 1; // [warn]: Any number 'x' div 1 will be 'x'.
+
 			a = 10 % 2;
 			a = 10 % 1; // [warn]: Any number modulo 1 will be 0.
 			a = 10 % 1.1;
+
+			float b = 1.1;
+			b = b / 1; // [warn]: Any number 'x' div 1 will be 'x'.
 		}
 	}c, sac);
 
