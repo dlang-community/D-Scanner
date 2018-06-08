@@ -62,7 +62,7 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 
 	override void visit(const ReturnStatement rs)
 	{
-		if (rs.expression.items.length != 1)
+		if (!rs.expression || rs.expression.items.length != 1)
 			return;
 		UnaryExpression unary = cast(UnaryExpression) rs.expression.items[0];
 		if (unary is null)
@@ -125,4 +125,14 @@ class C { bool empty() { return false; } } // [warn]: %1$s
 			.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);
 
 	stderr.writeln("Unittest for IncorrectInfiniteRangeCheck passed.");
+}
+
+// test for https://github.com/dlang-community/D-Scanner/issues/656
+// unittests are skipped but D-Scanner sources are self checked
+version(none) struct Foo
+{
+	void empty()
+	{
+		return;
+	}
 }
