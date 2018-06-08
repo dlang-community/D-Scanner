@@ -105,6 +105,9 @@ final class PointlessArithmeticCheck : BaseAnalyzer
 		mulExp.accept(this);
 	}
 
+private:
+	enum KEY = "dscanner.confusing.pointless_arithmetic_check";
+
 	static bool isIntegerLiteral(IdType type) nothrow pure
 	{
 		alias IntegerLiterals = AliasSeq!(tok!"intLiteral", tok!"longLiteral",
@@ -120,9 +123,6 @@ final class PointlessArithmeticCheck : BaseAnalyzer
 			return false;
 		}
 	}
-
-private:
-	enum KEY = "dscanner.confusing.pointless_arithmetic_check";
 }
 
 unittest
