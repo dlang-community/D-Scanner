@@ -8,6 +8,7 @@ import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
 import std.stdio;
+import std.typetuple;
 
 /**
  * Checks for 'x' modulo 1 syntax.
@@ -24,15 +25,33 @@ final class ModuloOneCheck : BaseAnalyzer
 
 	override void visit(const MulExpression mulExp)
 	{
-		UnaryExpression unary = cast(UnaryExpression) mulExp.right;
+		UnaryExpression left = cast(UnaryExpression) mulExp.left;
+		UnaryExpression right = cast(UnaryExpression) mulExp.right;
 		if (mulExp.operator == tok!"%" &&
-			isNumberLiteral(unary.primaryExpression.primary.type) &&
-			unary.primaryExpression.primary.text == "1")
+			isIntegerLiteral(left.primaryExpression.primary.type) &&
+			isNumberLiteral(right.primaryExpression.primary.type) &&
+			right.primaryExpression.primary.text == "1")
 		{
 			addErrorMessage(mulExp.line, mulExp.column, KEY,
 							"Any number modulo 1 will be 0.");
 		}
 		mulExp.accept(this);
+	}
+
+	static bool isIntegerLiteral(IdType type) nothrow pure
+	{
+		alias IntegerLiterals = AliasSeq!(tok!"intLiteral", tok!"longLiteral",
+										  tok!"uintLiteral", tok!"ulongLiteral");
+		switch (type)
+		{
+		foreach (T; IntegerLiterals)
+		{
+		case T:
+			return true;
+		}
+		default:
+			return false;
+		}
 	}
 
 private:
@@ -52,6 +71,7 @@ unittest
 			int a;
 			a = 10 % 2;
 			a = 10 % 1; // [warn]: Any number modulo 1 will be 0.
+			a = 10 % 1.1;
 		}
 	}c, sac);
 
