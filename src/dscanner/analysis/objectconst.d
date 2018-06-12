@@ -51,13 +51,25 @@ final class ObjectConstCheck : BaseAnalyzer
 			constBlock = true;
 		}
 
-		if (inAggregate && d.functionDeclaration !is null && !constColon && !constBlock
-				&& isInteresting(d.functionDeclaration.name.text)
-				&& !hasConst(d.functionDeclaration.memberFunctionAttributes))
+		bool containsDisable(A)(const A[] attribs)
 		{
-			addErrorMessage(d.functionDeclaration.name.line,
-					d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
-					"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
+			import std.algorithm.searching : canFind;
+			return attribs.canFind!(a => a.atAttribute !is null &&
+				a.atAttribute.identifier.text == "disable");
+		}
+
+		if (const FunctionDeclaration fd = d.functionDeclaration)
+		{
+			const isDeclationDisabled = containsDisable(d.attributes) ||
+				containsDisable(fd.memberFunctionAttributes);
+
+			if (inAggregate && !constColon && !constBlock && !isDeclationDisabled
+					&& isInteresting(fd.name.text) && !hasConst(fd.memberFunctionAttributes))
+			{
+				addErrorMessage(d.functionDeclaration.name.line,
+						d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
+						"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
+			}
 		}
 
 		d.accept(this);
@@ -128,6 +140,16 @@ unittest
 			class Fox
 			{
 				const{ override string toString() { return "foo"; }} // ok
+			}
+
+			class Rat
+			{
+				bool opEquals(Object a, Object b) @disable; // ok
+			}
+
+			class Ant
+			{
+				@disable bool opEquals(Object a, Object b); // ok
 			}
 
 			// Will warn, because none are const
