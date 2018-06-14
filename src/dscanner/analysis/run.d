@@ -74,6 +74,7 @@ import dscanner.analysis.assert_without_msg;
 import dscanner.analysis.if_constraints_indent;
 import dscanner.analysis.trust_too_much;
 import dscanner.analysis.redundant_storage_class;
+import dscanner.analysis.pointless_arithmetic_check;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -521,6 +522,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		checks ~= new RedundantStorageClassCheck(fileName,
 		analysisConfig.redundant_storage_classes == Check.skipTests && !ut);
 
+	if (moduleName.shouldRun!"pointless_arithmetic_check"(analysisConfig))
+		checks ~= new PointlessArithmeticCheck(fileName,
+		analysisConfig.pointless_arithmetic_check == Check.skipTests && !ut);
+
 	version (none)
 		if (moduleName.shouldRun!"redundant_if_check"(analysisConfig))
 			checks ~= new IfStatementCheck(fileName, moduleScope,
@@ -537,4 +542,3 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 			set.insert(message);
 	return set;
 }
-
