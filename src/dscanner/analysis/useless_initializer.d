@@ -39,7 +39,7 @@ private:
 	}
 	else
 	{
-		enum msg = `Variable %s initializer is useless because it does not differ from the default value`;
+		enum msg = "Variable `%s` initializer is useless because it does not differ from the default value";
 	}
 
 	static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
