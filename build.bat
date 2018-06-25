@@ -6,17 +6,18 @@ if "%DC%"=="ldc2" set DC="ldmd2"
 
 :: git might not be installed, so we provide 0.0.0 as a fallback or use
 :: the existing githash file if existent
-git describe --tags > githash_.txt
-for /f %%i in ("githash_.txt") do set githashsize=%%~zi
+if not exist "bin" mkdir bin
+git describe --tags > bin\githash_.txt
+for /f %%i in ("bin\githash_.txt") do set githashsize=%%~zi
 if %githashsize% == 0 (
-	if not exist "githash.txt" (
-		echo v0.0.0 > githash.txt
+	if not exist "bin\githash.txt" (
+		echo v0.0.0 > bin\githash.txt
 	)
 ) else (
-	move /y githash_.txt githash.txt
+	move /y bin\githash_.txt bin\githash.txt
 )
 
-set DFLAGS=-O -release -inline -version=StdLoggerDisableWarning -J.
+set DFLAGS=-O -release -inline -version=StdLoggerDisableWarning -Jbin
 set TESTFLAGS=-g -w -version=StdLoggerDisableWarning
 set CORE=
 set LIBDPARSE=

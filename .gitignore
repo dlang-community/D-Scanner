@@ -29,10 +29,6 @@ obj
 # debug build
 dsc
 
-# Git hash
-githash.txt
-githash_.txt
-
 # GDB history
 .gdb_history
 
