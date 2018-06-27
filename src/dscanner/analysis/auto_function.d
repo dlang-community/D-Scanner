@@ -49,7 +49,7 @@ public:
 		_returns[$-1] = false;
 
 		const bool autoFun = decl.storageClasses
-			.any!(a => a.token.type == tok!"auto");
+			.any!(a => a.token.type == tok!"auto" || a.atAttribute !is null);
 
 		decl.accept(this);
 
@@ -213,6 +213,16 @@ unittest
 		auto doStuff(){} // [warn]: %s
 		@disable auto doStuff();
 	}c.format(
+		AutoFunctionChecker.MESSAGE,
+	), sac);
+
+	assertAnalyzerWarnings(q{
+		@property doStuff(){} // [warn]: %s
+		@safe doStuff(){} // [warn]: %s
+		@disable doStuff();
+		@safe void doStuff();
+	}c.format(
+		AutoFunctionChecker.MESSAGE,
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 

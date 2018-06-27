@@ -57,7 +57,11 @@ public:
 	override void visit(const Declaration d)
 	{
 		const oldCheckAtAttribute = checkAtAttribute;
-		checkAtAttribute = d.functionDeclaration is null;
+
+		checkAtAttribute = 	d.functionDeclaration is null && d.unittest_ is null &&
+							d.constructor is null && d.destructor is null &&
+							d.staticConstructor is null && d.staticDestructor is null &&
+							d.sharedStaticConstructor is null && d.sharedStaticDestructor is null;
 		d.accept(this);
 		checkAtAttribute = oldCheckAtAttribute;
 	}
@@ -143,6 +147,11 @@ unittest
 
 	assertAnalyzerWarnings(q{
 	alias nothrow @trusted uint F4();
+	}c , sac);
+
+	assertAnalyzerWarnings(q{
+	@trusted ~this();
+	@trusted this();
 	}c , sac);
 
 	stderr.writeln("Unittest for TrustTooMuchCheck passed.");

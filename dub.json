@@ -12,8 +12,8 @@
     "StdLoggerDisableWarning"
   ],
   "dependencies" : {
-    "libdparse" : "~>0.8.6",
-    "dsymbol" : "~>0.3.7",
+    "libdparse" : "~>0.8.7",
+    "dsymbol" : "~>0.3.10",
     "inifiled" : "~>1.3.1",
     "emsi_containers" : "~>0.8.0-alpha.7",
     "libddoc" : "~>0.3.0-beta.1",
@@ -24,6 +24,6 @@
     "bin"
   ],
   "preGenerateCommands" : [
-    "rdmd --eval=\"auto dir=environment.get(\\\"DUB_PACKAGE_DIR\\\"); dir.buildPath(\\\"bin\\\").mkdirRecurse; auto gitVer = (\\\"git -C \\\"~dir~\\\" describe --tags\\\").executeShell; (gitVer.status == 0 ? gitVer.output : dir.dirName.baseName.findSplitAfter(environment.get(\\\"DUB_ROOT_PACKAGE\\\")~\\\"-\\\")[1]).ifThrown(\\\"0.0.0\\\").toFile(dir.buildPath(\\\"bin\\\", \\\"dubhash.txt\\\"));\""
+    "rdmd --eval=\"auto dir=environment.get(\\\"DUB_PACKAGE_DIR\\\"); dir.buildPath(\\\"bin\\\").mkdirRecurse; auto gitVer = (\\\"git -C \\\"~dir~\\\" describe --tags\\\").executeShell; (gitVer.status == 0 ? gitVer.output.strip : \\\"v\\\" ~ dir.dirName.baseName.findSplitAfter(environment.get(\\\"DUB_ROOT_PACKAGE\\\")~\\\"-\\\")[1]).ifThrown(\\\"0.0.0\\\").chain(newline).toFile(dir.buildPath(\\\"bin\\\", \\\"dubhash.txt\\\"));\""
   ]
 }
