@@ -5,18 +5,20 @@
 
 module dscanner.dscanner_version;
 
+import std.string : strip;
+
 /**
  * Human-readable version number
  */
 
 version (built_with_dub)
 {
-	enum DSCANNER_VERSION = import("dubhash.txt");
+	enum DSCANNER_VERSION = import("dubhash.txt").strip;
 }
 else
 {
 	/**
 	 * Current build's Git commit hash
 	 */
-	enum DSCANNER_VERSION = import("githash.txt");
+	enum DSCANNER_VERSION = import("githash.txt").strip;
 }
