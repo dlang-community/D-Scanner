@@ -62,6 +62,24 @@ jobs:
           on:
             repo: dlang-community/D-Scanner
             tags: true
+    - stage: dockerhub-stable
+      if: tag IS present
+      d: ldc
+      os: linux
+      script:
+        - echo "Deploying to DockerHub..." && ./release.sh
+        - LATEST_TAG="$(git describe --abbrev=0 --tags)"
+        - docker build -t "dlangcommunity/dscanner:${LATEST_TAG} ."
+        - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]] ; then docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" ; fi
+        - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]] ; then docker push "dlangcommunity/dscanner:${LATEST_TAG}" ; fi
+    - stage: dockerhub-latest
+      d: ldc
+      os: linux
+      script:
+        - echo "Deploying to DockerHub..." && ./release.sh
+        - docker build -t dlangcommunity/dscanner:latest .
+        - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]] ; then docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" ; fi
+        - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]] ; then docker push dlangcommunity/dscanner:latest ; fi
 stages:
   - name: test
     if: type = pull_request or (type = push and branch = master)
