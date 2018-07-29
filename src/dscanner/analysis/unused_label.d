@@ -9,6 +9,7 @@ import dscanner.analysis.helpers;
 import dparse.ast;
 import dparse.lexer;
 import dsymbol.scope_ : Scope;
+import std.algorithm.iteration : each;
 
 /**
  * Checks for labels that are never used.
@@ -44,18 +45,8 @@ final class UnusedLabelCheck : BaseAnalyzer
 			functionBody.bodyStatement.accept(this);
 			popScope();
 		}
-		if (functionBody.outStatement !is null)
-		{
-			pushScope();
-			functionBody.outStatement.accept(this);
-			popScope();
-		}
-		if (functionBody.inStatement !is null)
-		{
-			pushScope();
-			functionBody.inStatement.accept(this);
-			popScope();
-		}
+		functionBody.outStatements.each!((a){pushScope(); a.accept(this); popScope();});
+		functionBody.inStatements.each!((a){pushScope(); a.accept(this); popScope();});
 	}
 
 	override void visit(const LabeledStatement labeledStatement)
