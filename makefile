@@ -25,8 +25,8 @@ INCLUDE_PATHS = \
 	-Istdx-allocator/source
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
-DMD_FLAGS = -w -inline -release -O -J. -od${OBJ_DIR} -version=StdLoggerDisableWarning
-DMD_TEST_FLAGS = -w -g -J. -version=StdLoggerDisableWarning
+DMD_FLAGS = -w -inline -release -O -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
+DMD_TEST_FLAGS = -w -g -Jbin -version=StdLoggerDisableWarning
 override LDC_FLAGS += -O5 -release -oq
 override GDC_FLAGS += -O3 -frelease
 SHELL:=/bin/bash
@@ -36,23 +36,20 @@ ldc: ldcbuild
 gdc: gdcbuild
 
 githash:
-	git describe --tags > githash.txt
+	mkdir -p bin && git describe --tags > bin/githash.txt
 
-debug:
-	${DC} -w -g -J. -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+debug: githash
+	${DC} -w -g -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
-dmdbuild: githash $(SRC)
-	mkdir -p bin
+dmdbuild: githash
 	${DC} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
 	rm -f bin/dscanner.o
 
 gdcbuild: githash
-	mkdir -p bin
-	${GDC} ${GDC_FLAGS} -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${GDC} ${GDC_FLAGS} -obin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -Jbin
 
 ldcbuild: githash
-	mkdir -p bin
-	${LDC} ${LDC_FLAGS} -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -J.
+	${LDC} ${LDC_FLAGS} -of=bin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} -Jbin
 
 # compile the dependencies separately, s.t. their unittests don't get executed
 bin/dscanner-unittest-lib.a: ${LIB_SRC}
