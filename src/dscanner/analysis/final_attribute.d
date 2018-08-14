@@ -149,12 +149,14 @@ public:
 			undoBlockStatic = true;
 		}
 
+		const bool wasFinalAggr = _finalAggregate;
 		scope(exit)
 		{
 			d.accept(this);
 			_parent = savedParent;
 			if (undoBlockStatic)
 				_blockStatic = false;
+			_finalAggregate = wasFinalAggr;
 		}
 
 		if (!d.attributeDeclaration &&
@@ -401,6 +403,15 @@ public:
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
 	), sac);
+
+
+	assertAnalyzerWarnings(q{
+		class Statement
+		{
+			final class UsesEH{}
+			final void comeFrom(){}
+		}
+	}, sac);
 
 	stderr.writeln("Unittest for FinalAttributeChecker passed.");
 }
