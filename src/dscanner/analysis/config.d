@@ -177,7 +177,7 @@ struct StaticAnalysisConfig
 	string vcall_in_ctor = Check.enabled;
 
 	@INI("Check for useless user defined initializers")
-	string useless_initializer = Check.enabled;
+	string useless_initializer = Check.disabled;
 
 	@INI("Check allman brace style")
 	string allman_braces_check = Check.disabled;
