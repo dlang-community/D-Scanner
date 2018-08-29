@@ -324,7 +324,7 @@ final class UnusedVariableCheck : BaseAnalyzer
 		if (parameter.name != tok!"")
 		{
 			immutable bool isRef = !parameter.parameterAttributes
-				.filter!(a => a.among(tok!"ref", tok!"out")).empty;
+				.filter!(a => a.idType.among(tok!"ref", tok!"out")).empty;
 			immutable bool isPtr = parameter.type && !parameter.type
 				.typeSuffixes.filter!(a => a.star != tok!"").empty;
 

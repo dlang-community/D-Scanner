@@ -41,8 +41,8 @@ final class AutoRefAssignmentCheck : BaseAnalyzer
 	{
 		import std.algorithm.searching : canFind;
 
-		immutable bool isAuto = param.parameterAttributes.canFind(cast(ubyte) tok!"auto");
-		immutable bool isRef = param.parameterAttributes.canFind(cast(ubyte) tok!"ref");
+		immutable bool isAuto = param.parameterAttributes.canFind!(a => a.idType == cast(ubyte) tok!"auto");
+		immutable bool isRef = param.parameterAttributes.canFind!(a => a.idType == cast(ubyte) tok!"ref");
 		if (!isAuto || !isRef)
 			return;
 		addSymbol(param.name.text);
