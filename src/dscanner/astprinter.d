@@ -675,15 +675,21 @@ class XMLPrinter : ASTVisitor
 		output.writeln("</orOrExpression>");
 	}
 
+	override void visit(const ParameterAttribute pa)
+	{
+		output.writeln("<parameterAttribute>");
+		if (pa.atAttribute)
+			visit(pa.atAttribute);
+		else
+			writeln(str(pa.idType));
+		output.writeln("</parameterAttribute>");
+	}
+
 	override void visit(const Parameter param)
 	{
 		output.writeln("<parameter>");
 		if (param.name.type == tok!"identifier")
 			writeName(param.name.text);
-		foreach (attribute; param.parameterAttributes)
-		{
-			output.writeln("<parameterAttribute>", str(attribute), "</parameterAttribute>");
-		}
 		param.accept(this);
 		if (param.vararg)
 			output.writeln("<vararg/>");
