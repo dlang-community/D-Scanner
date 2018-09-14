@@ -598,7 +598,8 @@ class XMLPrinter : ASTVisitor
 	override void visit(const LabeledStatement labeledStatement)
 	{
 		output.writeln("<labeledStatement label=\"", labeledStatement.identifier.text, "\">");
-		visit(labeledStatement.declarationOrStatement);
+		if (labeledStatement.declarationOrStatement !is null)
+			visit(labeledStatement.declarationOrStatement);
 		output.writeln("</labeledStatement>");
 	}
 
