@@ -17,7 +17,7 @@
     "inifiled" : "~>1.3.1",
     "emsi_containers" : "~>0.8.0-alpha.7",
     "libddoc" : "~>0.4.0",
-    "stdx-allocator" : "~>2.77.2"
+    "stdx-allocator" : "~>2.77.4"
   },
   "targetPath" : "bin",
   "stringImportPaths" : [
