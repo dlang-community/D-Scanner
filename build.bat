@@ -3,6 +3,7 @@ setlocal enabledelayedexpansion
 
 if "%DC%"=="" set DC="dmd"
 if "%DC%"=="ldc2" set DC="ldmd2"
+if "%MFLAGS%"=="" set MFLAGS="-m32"
 
 :: git might not be installed, so we provide 0.0.0 as a fallback or use
 :: the existing githash file if existent
@@ -47,14 +48,14 @@ for %%x in (stdx-allocator\source\stdx\allocator\building_blocks\*.d) do set STD
 if "%1" == "test" goto test_cmd
 
 @echo on
-%DC% %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %STDXALLOCATORBLOCKS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -ofbin\dscanner.exe
+%DC% %MFLAGS% %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %STDXALLOCATORBLOCKS% %DFLAGS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -ofbin\dscanner.exe
 goto eof
 
 :test_cmd
 @echo on
 set TESTNAME="bin\dscanner-unittest"
-%DC% %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %STDXALLOCATORBLOCKS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -lib %TESTFLAGS% -of%TESTNAME%.lib
-if exist %TESTNAME%.lib %DC% %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -unittest %TESTFLAGS% -of%TESTNAME%.exe
+%DC% %MFLAGS% %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% %STDXALLOCATOR% %STDXALLOCATORBLOCKS% -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -lib %TESTFLAGS% -of%TESTNAME%.lib
+if exist %TESTNAME%.lib %DC% %MFLAGS% %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"dsymbol\src" -I"containers\src" -I"libddoc\src" -I"stdx-allocator\source" -unittest %TESTFLAGS% -of%TESTNAME%.exe
 if exist %TESTNAME%.exe %TESTNAME%.exe
 
 if exist %TESTNAME%.obj del %TESTNAME%.obj
