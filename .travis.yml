@@ -1,6 +1,7 @@
 sudo: false
 language: d
 d:
+- dmd-beta
 - dmd
 - ldc-beta
 - ldc
