@@ -10,6 +10,9 @@ os:
 env:
 - BUILD=
 - BUILD=dub
+branches:
+  only:
+  - master
 script: "./.travis.sh"
 jobs:
   include:
