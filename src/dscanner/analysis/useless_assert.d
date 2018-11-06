@@ -37,7 +37,7 @@ final class UselessAssertCheck : BaseAnalyzer
 	{
 		import std.conv : to;
 
-		UnaryExpression unary = cast(UnaryExpression) ae.assertion;
+		UnaryExpression unary = cast(UnaryExpression) ae.assertArguments.assertion;
 		if (unary is null)
 			return;
 		if (unary.primaryExpression is null)

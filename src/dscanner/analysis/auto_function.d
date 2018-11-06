@@ -53,7 +53,7 @@ public:
 
 		decl.accept(this);
 
-		if (decl.functionBody && autoFun && !_returns[$-1])
+		if (decl.functionBody.specifiedFunctionBody && autoFun && !_returns[$-1])
 			addErrorMessage(decl.name.line, decl.name.column, KEY, MESSAGE);
 	}
 
@@ -64,7 +64,7 @@ public:
 		rst.accept(this);
 	}
 
-	override void visit(const(AssertExpression) exp)
+	override void visit(const(AssertArguments) exp)
 	{
 		exp.accept(this);
 		if (_returns.length)

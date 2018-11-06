@@ -126,11 +126,11 @@ unittest
 
 	assertAnalyzerWarnings(q{
 void foo(R)(R r)
-if (R == int)
+if (R == null)
 {}
 
 void foo(R)(R r)
-	if (R == int) // [warn]: %s
+	if (R == null) // [warn]: %s
 {}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -138,15 +138,15 @@ void foo(R)(R r)
 
 	assertAnalyzerWarnings(q{
 	void foo(R)(R r)
-	if (R == int)
+	if (R == null)
 	{}
 
 	void foo(R)(R r)
-if (R == int) // [warn]: %s
+if (R == null) // [warn]: %s
 	{}
 
 	void foo(R)(R r)
-		if (R == int) // [warn]: %s
+		if (R == null) // [warn]: %s
 	{}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -155,15 +155,15 @@ if (R == int) // [warn]: %s
 
 	assertAnalyzerWarnings(q{
 	struct Foo(R)
-	if (R == int)
+	if (R == null)
 	{}
 
 	struct Foo(R)
-if (R == int) // [warn]: %s
+if (R == null) // [warn]: %s
 	{}
 
 	struct Foo(R)
-		if (R == int) // [warn]: %s
+		if (R == null) // [warn]: %s
 	{}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -188,33 +188,33 @@ if (is(typeof(Num.init >= 0)) && is(typeof(-Num.init)) &&
 	assertAnalyzerWarnings(q{
 	struct Foo(R)
 	if
-	(R == int)
+	(R == null)
 	{}
 
 	struct Foo(R)
 	if
-		(R == int)
+		(R == null)
 	{}
 
 	struct Foo(R)
 if
-	(R == int) // [warn]: %s
+	(R == null) // [warn]: %s
 	{}
 
 	struct Foo(R)
 	if (
-	R == int)
+	R == null)
 	{}
 
 	struct Foo(R)
 	if (
-		R == int
+		R == null
 	)
 	{}
 
 	struct Foo(R)
 		if (
-		R == int // [warn]: %s
+		R == null // [warn]: %s
 	) {}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,

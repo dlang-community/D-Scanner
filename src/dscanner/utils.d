@@ -145,6 +145,13 @@ if (is(M == class))
 	/// Unprotect the class instance.
 	alias unwrap = m;
 
+	/// Allows cast to interfaces and classes inside the chain.
+	auto ref as(A)() @trusted
+	if (!__traits(hasMember, M, "as") && (is(A == class) || is(A == interface)))
+	{
+		return SafeAccess!(A)(cast(A) m);
+	}
+
 	/// Handles safe access.
 	auto ref opDispatch(string member, A...)(auto ref A a)
 	{
@@ -177,7 +184,7 @@ if (is(M == class))
 				else
 				{
 					if (m)
-					    __traits(getMember, m, member)(a);
+						__traits(getMember, m, member)(a);
 				}
 			}
 			else

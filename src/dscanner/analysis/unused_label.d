@@ -31,22 +31,28 @@ final class UnusedLabelCheck : BaseAnalyzer
 		popScope();
 	}
 
+	override void visit(const FunctionLiteralExpression flit)
+	{
+		if (flit.specifiedFunctionBody)
+		{
+			pushScope();
+			flit.specifiedFunctionBody.accept(this);
+			popScope();
+		}
+	}
+
 	override void visit(const FunctionBody functionBody)
 	{
-		if (functionBody.blockStatement !is null)
+		if (functionBody.specifiedFunctionBody !is null)
 		{
 			pushScope();
-			functionBody.blockStatement.accept(this);
+			functionBody.specifiedFunctionBody.accept(this);
 			popScope();
 		}
-		if (functionBody.bodyStatement !is null)
-		{
-			pushScope();
-			functionBody.bodyStatement.accept(this);
-			popScope();
-		}
-		functionBody.outStatements.each!((a){pushScope(); a.accept(this); popScope();});
-		functionBody.inStatements.each!((a){pushScope(); a.accept(this); popScope();});
+        if (functionBody.missingFunctionBody && functionBody.missingFunctionBody.functionContracts)
+			functionBody.missingFunctionBody.functionContracts.each!((a){pushScope(); a.accept(this); popScope();});
+        if (functionBody.specifiedFunctionBody && functionBody.specifiedFunctionBody.functionContracts)
+			functionBody.specifiedFunctionBody.functionContracts.each!((a){pushScope(); a.accept(this); popScope();});
 	}
 
 	override void visit(const LabeledStatement labeledStatement)
