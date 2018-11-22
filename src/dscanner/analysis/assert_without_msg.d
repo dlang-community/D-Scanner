@@ -29,7 +29,7 @@ final class AssertWithoutMessageCheck : BaseAnalyzer
 
 	override void visit(const AssertExpression expr)
 	{
-		if (expr.message is null)
+		if (expr.assertArguments && expr.assertArguments.message is null)
 			addErrorMessage(expr.line, expr.column, KEY, MESSAGE);
 	}
 

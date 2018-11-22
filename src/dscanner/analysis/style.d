@@ -90,8 +90,9 @@ final class StyleChecker : BaseAnalyzer
 			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
 		}
 
-		if (dec.functionBody || (!dec.functionBody && !winStyle()))
-			checkLowercaseName("Function", dec.name);
+		if (dec.functionBody.specifiedFunctionBody ||
+			(dec.functionBody.missingFunctionBody && !winStyle()))
+				checkLowercaseName("Function", dec.name);
 
 		if (p)
 			popWinStyle;

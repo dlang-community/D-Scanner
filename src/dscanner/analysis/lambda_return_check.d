@@ -8,6 +8,7 @@ module dscanner.analysis.lambda_return_check;
 import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
+import dscanner.utils : safeAccess;
 
 final class LambdaReturnCheck : BaseAnalyzer
 {
@@ -20,23 +21,14 @@ final class LambdaReturnCheck : BaseAnalyzer
 
 	override void visit(const FunctionLiteralExpression fLit)
 	{
-		if (fLit.assignExpression is null)
+		auto fe = safeAccess(fLit).assignExpression.as!UnaryExpression
+			.primaryExpression.functionLiteralExpression.unwrap;
+
+		if (fe is null || fe.parameters !is null || fe.identifier != tok!"" ||
+			fe.specifiedFunctionBody is null || fe.specifiedFunctionBody.blockStatement is null)
+		{
 			return;
-		const UnaryExpression unary = cast(const UnaryExpression) fLit.assignExpression;
-		if (unary is null)
-			return;
-		if (unary.primaryExpression is null)
-			return;
-		if (unary.primaryExpression.functionLiteralExpression is null)
-			return;
-		if (unary.primaryExpression.functionLiteralExpression.parameters !is null)
-			return;
-		if (unary.primaryExpression.functionLiteralExpression.identifier != tok!"")
-			return;
-		if (unary.primaryExpression.functionLiteralExpression.functionBody is null)
-			return;
-		if (unary.primaryExpression.functionLiteralExpression.functionBody.blockStatement is null)
-			return;
+		}
 		addErrorMessage(fLit.line, fLit.column, KEY, "This lambda returns a lambda. Add parenthesis to clarify.");
 	}
 

@@ -42,11 +42,8 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 
 	override void visit(const FunctionBody fb)
 	{
-		if (fb.bodyStatement !is null)
-			visit(fb.bodyStatement.blockStatement);
-		else
-			if (fb.blockStatement !is null)
-				visit(fb.blockStatement);
+		if (fb.specifiedFunctionBody && fb.specifiedFunctionBody.blockStatement !is null)
+			visit(fb.specifiedFunctionBody.blockStatement);
 	}
 
 	override void visit(const BlockStatement bs)
