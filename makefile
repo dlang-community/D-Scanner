@@ -25,7 +25,7 @@ INCLUDE_PATHS = \
 	-Istdx-allocator/source
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
-DMD_FLAGS = -w -inline -release -O -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
+DMD_FLAGS = -w -release -O -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
 DMD_TEST_FLAGS = -w -g -Jbin -version=StdLoggerDisableWarning
 override LDC_FLAGS += -O5 -release -oq
 override GDC_FLAGS += -O3 -frelease
