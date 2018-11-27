@@ -308,9 +308,11 @@ final class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const WithStatement withStatetement)
 	{
 		interestDepth++;
-		withStatetement.expression.accept(this);
+		if (withStatetement.expression)
+			withStatetement.expression.accept(this);
 		interestDepth--;
-		withStatetement.declarationOrStatement.accept(this);
+		if (withStatetement.declarationOrStatement)
+			withStatetement.declarationOrStatement.accept(this);
 	}
 
 	override void visit(const Parameter parameter)
