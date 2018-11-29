@@ -473,6 +473,14 @@ private:
 		*(cast(FieldType*)(retVal.ptr + byteIndex)) = item;
 	}
 
+	// bug encountered after correct DIP 1009 impl in dparse
+	version (StdDdoc)
+	{
+	    bool isAbsolute(R)(R path) pure nothrow @safe
+	    if (isRandomAccessRange!R && isSomeChar!(ElementType!R) ||
+	        is(StringTypeOf!R));
+	}
+
 	unittest
 	{
 		int a; // [warn]: Variable a is never used.
