@@ -5,6 +5,8 @@
 
 module dscanner.analysis.run;
 
+import core.memory : GC;
+
 import std.stdio;
 import std.array;
 import std.conv;
@@ -332,6 +334,8 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	scope(exit) typeid(Scope).destroy(first.moduleScope);
 	BaseAnalyzer[] checks;
 
+	GC.disable;
+
 	with(analysisConfig)
 	if (moduleName.shouldRun!"asm_style_check"(analysisConfig))
 		checks ~= new AsmStyleCheck(fileName, moduleScope,
@@ -535,6 +539,9 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	foreach (check; checks)
 		foreach (message; check.messages)
 			set.insert(message);
+
+	GC.enable;
+
 	return set;
 }
 

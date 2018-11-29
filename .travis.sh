@@ -11,4 +11,7 @@ else
     git submodule update --init --recursive
     make test
     make lint
+    git clone https://www.github.com/dlang/phobos.git --depth=1
+    # just check that it doesn't crash
+    cd phobos && ../bin/dscanner -S --config=.dscanner.ini || true
 fi
