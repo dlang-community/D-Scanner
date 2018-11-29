@@ -49,7 +49,7 @@ final class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const FunctionDeclaration functionDec)
 	{
 		pushScope();
-		if (functionDec.functionBody !is null)
+		if (functionDec.functionBody && functionDec.functionBody.specifiedFunctionBody)
 		{
 			immutable bool ias = inAggregateScope;
 			inAggregateScope = false;
