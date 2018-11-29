@@ -180,7 +180,7 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		import std.array : Appender;
 
 		// ignore header declaration for now
-		if (decl.functionBody is null)
+		if (!decl.functionBody || !decl.functionBody.specifiedFunctionBody)
 			return;
 
 		if (nestedFuncs == 1)

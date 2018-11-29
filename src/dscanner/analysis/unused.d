@@ -49,7 +49,7 @@ final class UnusedVariableCheck : BaseAnalyzer
 	override void visit(const FunctionDeclaration functionDec)
 	{
 		pushScope();
-		if (functionDec.functionBody !is null)
+		if (functionDec.functionBody && functionDec.functionBody.specifiedFunctionBody)
 		{
 			immutable bool ias = inAggregateScope;
 			inAggregateScope = false;
@@ -471,6 +471,14 @@ private:
 	{
 		size_t byteIndex = 0;
 		*(cast(FieldType*)(retVal.ptr + byteIndex)) = item;
+	}
+
+	// bug encountered after correct DIP 1009 impl in dparse
+	version (StdDdoc)
+	{
+	    bool isAbsolute(R)(R path) pure nothrow @safe
+	    if (isRandomAccessRange!R && isSomeChar!(ElementType!R) ||
+	        is(StringTypeOf!R));
 	}
 
 	unittest
