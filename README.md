@@ -86,7 +86,7 @@ analysis and it does not compile the code.
 
 ### Style Check
 The "--styleCheck" or "-S" option runs some basic static analysis checks against
-the given source files.
+the given source file(s), the source(s) contained in the given folder(s), or the source(s) contained in the current working directory (when nothing is supplied).
 
 #### Skip style checks in the tests
 Static checks in the unit tests can produce irrelevant warnings. For example,
