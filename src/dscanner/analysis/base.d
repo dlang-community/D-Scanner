@@ -14,10 +14,36 @@ struct Message
 	size_t line;
 	/// Column number where the warning was triggered (in bytes)
 	size_t column;
-	/// Name of the warning
-	string key;
-	/// Warning message
+	/// Descriptor
+	MessageDescriptor descriptor;
+}
+
+struct MessageDescriptor
+{
+	/// Message text
 	string message;
+	/// Name of the message
+	string key;
+	/// Message type
+	MessageType type;
+	/// Message severity
+	MessageSeverity severity;
+}
+
+enum MessageSeverity
+{
+	info,
+	minor,
+	major,
+	critical,
+	blocker
+}
+
+enum MessageType
+{
+	bug,
+	vulnerability,
+	codeSmell
 }
 
 enum comparitor = q{ a.line < b.line || (a.line == b.line && a.column < b.column) };
@@ -71,7 +97,19 @@ protected:
 
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-		_messages.insert(Message(fileName, line, column, key, message));
+		MessageDescriptor descriptor = {
+			key : key,
+			message : message,
+			type : MessageType.codeSmell,
+			severity : MessageSeverity.info
+		};
+
+		_messages.insert(Message(fileName, line, column, descriptor));
+	}
+
+	void addErrorMessage(size_t line, size_t column, MessageDescriptor descriptor)
+	{
+		_messages.insert(Message(fileName, line, column, descriptor));
 	}
 
 	/**

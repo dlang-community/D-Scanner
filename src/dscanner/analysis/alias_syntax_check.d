@@ -27,10 +27,17 @@ final class AliasSyntaxCheck : BaseAnalyzer
 			return;
 		assert(ad.declaratorIdentifierList.identifiers.length > 0,
 				"Identifier list length is zero, libdparse has a bug");
+
+		MessageDescriptor descr = {
+			message: "Prefer the new \"'alias' identifier '=' type ';'\" syntax"
+				~ " to the  old \"'alias' type identifier ';'\" syntax.",
+			key: KEY,
+			type: MessageType.codeSmell,
+			severity: MessageSeverity.minor
+		};
+
 		addErrorMessage(ad.declaratorIdentifierList.identifiers[0].line,
-				ad.declaratorIdentifierList.identifiers[0].column, KEY,
-				"Prefer the new \"'alias' identifier '=' type ';'\" syntax"
-				~ " to the  old \"'alias' type identifier ';'\" syntax.");
+				ad.declaratorIdentifierList.identifiers[0].column, descr);
 	}
 
 private:

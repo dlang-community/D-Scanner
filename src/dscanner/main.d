@@ -61,6 +61,7 @@ else
 	bool styleCheck;
 	bool defaultConfig;
 	bool report;
+	string reportFormat;
 	bool skipTests;
 	string symbolName;
 	string configLocation;
@@ -91,6 +92,7 @@ else
 				"declaration|d", &symbolName,
 				"config", &configLocation,
 				"report", &report,
+				"reportFormat", &reportFormat,
 				"I", &importPaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
@@ -156,7 +158,7 @@ else
 		moduleCache.addImportPaths(absImportPaths);
 
 	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
-			outline, tokenDump, styleCheck, defaultConfig, report,
+			outline, tokenDump, styleCheck, defaultConfig, report, 
 			symbolName !is null, etags, etagsAll, recursiveImports]);
 	if (optionCount > 1)
 	{
@@ -237,7 +239,7 @@ else
 		if (skipTests)
 			config.enabled2SkipTests;
 		if (report)
-			generateReport(expandArgs(args), config, cache, moduleCache);
+			generateReport(expandArgs(args), config, cache, moduleCache, reportFormat);
 		else
 			return analyze(expandArgs(args), config, errorFormat, cache, moduleCache, true) ? 1 : 0;
 	}

@@ -87,12 +87,179 @@ import dsymbol.modulecache : ModuleCache;
 
 import dscanner.utils;
 
-bool first = true;
 
 private alias ASTAllocator = CAllocatorImpl!(
 		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
 
+private alias ParseErrorDelegate = void delegate(string fileName, size_t line, size_t column, string message, bool isError);
+
 immutable string defaultErrorFormat = "{filepath}({line}:{column})[{type}]: {message}";
+
+interface Reporter
+{
+	void begin();
+	void end();
+	void onParseError(string fileName, size_t line, size_t column, string message, bool);
+	void onModule(const Module, MessageSet messageSet, ulong lineOfCodeCount);
+}
+
+class DefaultJsonReporter : Reporter
+{
+	private bool first = true;
+	ulong sumLineOfCodeCount;
+	StatsCollector stats;
+
+	void begin()
+	{
+		writeln("{");
+		writeln(`  "issues": [`);
+		first = true;
+		stats = new StatsCollector("");
+	}
+
+	void end()
+	{
+		writeln();
+		writeln("  ],");
+		writefln(`  "interfaceCount": %d,`, stats.interfaceCount);
+		writefln(`  "classCount": %d,`, stats.classCount);
+		writefln(`  "functionCount": %d,`, stats.functionCount);
+		writefln(`  "templateCount": %d,`, stats.templateCount);
+		writefln(`  "structCount": %d,`, stats.structCount);
+		writefln(`  "statementCount": %d,`, stats.statementCount);
+		writefln(`  "lineOfCodeCount": %d,`, sumLineOfCodeCount);
+		writefln(`  "undocumentedPublicSymbols": %d`, stats.undocumentedPublicSymbols);
+		writeln("}");
+	}
+
+	void onParseError(string fileName, size_t line, size_t column, string message, bool)
+	{
+		MessageDescriptor descriptor = {
+			key : "dscanner.syntax",
+			message : message,
+			type : MessageType.bug,
+			severity : MessageSeverity.blocker
+		};
+
+		writeJSON(Message(fileName, line, column, descriptor));
+	}
+
+	void onModule(const Module m, MessageSet messageSet, ulong lineOfCodeCount)
+	{
+		stats.visit(m);
+		sumLineOfCodeCount += lineOfCodeCount;
+
+		foreach (message; messageSet[])
+		{
+			writeJSON(message);
+		}
+	}
+
+	private void writeJSON(Message message)
+	{
+		if (!first)
+			writeln(",");
+		else
+			first = false;
+		writeln("    {");
+		writeln(`      "key": "`, message.descriptor.key, `",`);
+		writeln(`      "fileName": "`, message.fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
+		writeln(`      "line": `, message.line, `,`);
+		writeln(`      "column": `, message.column, `,`);
+		writeln(`      "message": "`, message.descriptor.message.replace("\\", "\\\\").replace(`"`, `\"`), `"`);
+		write("    }");
+	}
+}
+
+class SonarQubeExternalIssueReporter : Reporter
+{
+	private bool first = true;
+
+	void begin()
+	{
+		writeln("{");
+		writeln(`  "issues": [`);
+		first = true;
+	}
+
+	void end()
+	{
+		writeln();
+		writeln("  ]");
+		writeln("}");
+	}
+
+	void onParseError(string fileName, size_t line, size_t column, string message, bool)
+	{
+		MessageDescriptor descriptor = {
+			key : "dscanner.syntax",
+			message : message,
+			type : MessageType.bug,
+			severity : MessageSeverity.blocker
+		};
+
+		writeJSON(Message(fileName, line, column, descriptor));
+	}
+
+	void onModule(const Module m, MessageSet messageSet, ulong lineOfCodeCount)
+	{
+		foreach (message; messageSet[])
+		{
+			writeJSON(message);
+		}
+	}
+
+	private void writeJSON(Message message)
+	{
+		if (!first)
+			writeln(",");
+		else
+			first = false;
+		writeln("    {");
+		writeln(`      "engineId": "dscanner",`);
+		writeln(`      "ruleId": "`, message.descriptor.key, `",`);
+		writeln(`      "severity": "`, formatSeverity(message.descriptor.severity), `",`);
+		writeln(`      "type": "`, formatType(message.descriptor.type), `",`);
+		writeln(`      "primaryLocation": {`);
+		writeln(`            "message": "`, message.descriptor.message.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
+		writeln(`            "filePath": "`, message.fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
+		writeln(`            "textRange": {`);
+		writeln(`                  "startLine": `, message.line);
+		writeln(`            }`);
+		writeln(`      }`);
+		write("    }");
+	}
+	
+	private string formatSeverity(MessageSeverity severity)
+	{
+		final switch (severity) with (MessageSeverity)
+		{
+			case info:
+				return "INFO";
+			case minor:
+				return "MINOR";
+			case major:
+				return "MAJOR";
+			case critical:
+				return "CRITICAL";
+			case blocker:
+				return "BLOCKER";
+		}
+	}
+	
+	private string formatType(MessageType type)
+	{
+		final switch (type) with (MessageType)
+		{
+			case bug:
+				return "BUG";
+			case vulnerability:
+				return "VULNERABILITY";
+			case codeSmell:
+				return "CODE_SMELL";
+		}
+	}
+}
 
 void messageFunctionFormat(string format, string fileName, size_t line, size_t column, string message, bool isError)
 {
@@ -112,26 +279,6 @@ void messageFunction(string fileName, size_t line, size_t column, string message
 	messageFunctionFormat(defaultErrorFormat, fileName, line, column, message, isError);
 }
 
-void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
-{
-	writeJSON("dscanner.syntax", fileName, line, column, message);
-}
-
-void writeJSON(string key, string fileName, size_t line, size_t column, string message)
-{
-	if (!first)
-		writeln(",");
-	else
-		first = false;
-	writeln("    {");
-	writeln(`      "key": "`, key, `",`);
-	writeln(`      "fileName": "`, fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
-	writeln(`      "line": `, line, `,`);
-	writeln(`      "column": `, column, `,`);
-	writeln(`      "message": "`, message.replace("\\", "\\\\").replace(`"`, `\"`), `"`);
-	write("    }");
-}
-
 bool syntaxCheck(string[] fileNames, string errorFormat, ref StringCache stringCache, ref ModuleCache moduleCache)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
@@ -139,40 +286,36 @@ bool syntaxCheck(string[] fileNames, string errorFormat, ref StringCache stringC
 }
 
 void generateReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache)
+		ref StringCache cache, ref ModuleCache moduleCache, string reportFormat = "")
 {
-	writeln("{");
-	writeln(`  "issues": [`);
-	first = true;
-	StatsCollector stats = new StatsCollector("");
-	ulong lineOfCodeCount;
+	Reporter reporter;
+
+	switch (reportFormat)
+	{
+		case "SonarQubeExternalIssue":
+			reporter = new SonarQubeExternalIssueReporter();
+			break;
+		default:
+			reporter = new DefaultJsonReporter();
+	}
+
+	reporter.begin();
+
 	foreach (fileName; fileNames)
 	{
+		ulong lineOfCodeCount;
 		auto code = readFile(fileName);
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
 		RollbackAllocator r;
 		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, defaultErrorFormat, cache, true, tokens, &lineOfCodeCount);
-		stats.visit(m);
+		const Module m = parseModule(fileName, code, &r, defaultErrorFormat, cache, &reporter.onParseError, tokens, &lineOfCodeCount);
 		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true);
-		foreach (result; results[])
-		{
-			writeJSON(result.key, result.fileName, result.line, result.column, result.message);
-		}
+		reporter.onModule(m, results, lineOfCodeCount);
 	}
-	writeln();
-	writeln("  ],");
-	writefln(`  "interfaceCount": %d,`, stats.interfaceCount);
-	writefln(`  "classCount": %d,`, stats.classCount);
-	writefln(`  "functionCount": %d,`, stats.functionCount);
-	writefln(`  "templateCount": %d,`, stats.templateCount);
-	writefln(`  "structCount": %d,`, stats.structCount);
-	writefln(`  "statementCount": %d,`, stats.statementCount);
-	writefln(`  "lineOfCodeCount": %d,`, lineOfCodeCount);
-	writefln(`  "undocumentedPublicSymbols": %d`, stats.undocumentedPublicSymbols);
-	writeln("}");
+
+	reporter.end();
 }
 
 /**
@@ -194,7 +337,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		uint errorCount;
 		uint warningCount;
 		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, errorFormat, cache, false, tokens,
+		const Module m = parseModule(fileName, code, &r, errorFormat, cache, null, tokens,
 				null, &errorCount, &warningCount);
 		assert(m);
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
@@ -205,14 +348,14 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		foreach (result; results[])
 		{
 			hasErrors = true;
-			messageFunctionFormat(errorFormat, result.fileName, result.line, result.column, result.message, false);
+			messageFunctionFormat(errorFormat, result.fileName, result.line, result.column, result.descriptor.message, false);
 		}
 	}
 	return hasErrors;
 }
 
 const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
-		string errorFormat, ref StringCache cache, bool report, ref const(Token)[] tokens,
+		string errorFormat, ref StringCache cache, ParseErrorDelegate parseErrorDelegate, ref const(Token)[] tokens,
 		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {
 	import dscanner.stats : isLineOfCode;
@@ -228,7 +371,7 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
 	return dparse.parser.parseModule(tokens, fileName, p,
-		report ? toDelegate(&messageFunctionJSON) : writeMessages,
+		parseErrorDelegate is null ? writeMessages : parseErrorDelegate,
 		errorCount, warningCount);
 }
 

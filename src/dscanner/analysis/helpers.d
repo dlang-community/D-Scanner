@@ -54,7 +54,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	StringCache cache = StringCache(StringCache.defaultBucketCount);
 	RollbackAllocator r;
 	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, defaultErrorFormat, cache, false, tokens);
+	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, defaultErrorFormat, cache, null, tokens);
 
 	auto moduleCache = ModuleCache(new CAllocatorImpl!Mallocator);
 
@@ -71,12 +71,12 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 		if (rawLine == 0)
 		{
 			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s",
-					rawWarning.message);
+					rawWarning.descriptor.message);
 			continue;
 		}
 
 		size_t warnLine = line - 1 + rawLine;
-		warnings[warnLine] = format("[warn]: %s", rawWarning.message);
+		warnings[warnLine] = format("[warn]: %s", rawWarning.descriptor.message);
 	}
 
 	// Get all the messages from the comments in the code
