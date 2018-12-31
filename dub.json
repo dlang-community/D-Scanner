@@ -12,7 +12,7 @@
     "StdLoggerDisableWarning"
   ],
   "dependencies" : {
-    "libdparse": "~>0.10.10",
+    "libdparse": "~>0.10.12",
     "dsymbol" : "~>0.5.5",
     "inifiled" : "~>1.3.1",
     "emsi_containers" : "~>0.8.0-alpha.7",
