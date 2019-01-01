@@ -7,7 +7,7 @@ import std.encoding : BOM, BOMSeq, EncodingException, getBOM;
 import std.format : format;
 import std.file : exists, read;
 
-private void processBOM(ubyte[] sourceCode, string fname)
+private void processBOM(ref ubyte[] sourceCode, string fname)
 {
 	enum spec = "D-Scanner does not support %s-encoded files (%s)";
 	const BOMSeq bs = sourceCode.getBOM;
@@ -19,6 +19,13 @@ private void processBOM(ubyte[] sourceCode, string fname)
 		throw new EncodingException(spec.format(bs.schema, fname));
 	}
 	sourceCode = sourceCode[bs.sequence.length .. $];
+}
+
+unittest
+{
+	ubyte[] data = [0xEF, 0xBB, 0xBF, 'h', 'i', '!'];
+	data.processBOM("unittest data");
+	assert(data[] == cast(ubyte[]) "hi!");
 }
 
 unittest
@@ -52,8 +59,9 @@ ubyte[] readStdin()
 			break;
 		sourceCode.put(b);
 	}
-	sourceCode.data.processBOM("stdin");
-	return sourceCode.data;
+	auto data = sourceCode.data;
+	data.processBOM("stdin");
+	return data;
 }
 
 ubyte[] readFile(string fileName)
