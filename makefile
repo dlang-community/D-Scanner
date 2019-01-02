@@ -13,6 +13,7 @@ LIB_SRC := \
 	$(shell find libdparse/src/dparse/ -name "*.d")\
 	$(shell find libddoc/src -name "*.d") \
 	$(shell find stdx-allocator/source -name "*.d")
+CI_COV := $(shell [[ ${CI} == "TRUE" ]] && echo -cov || echo "")
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
 INCLUDE_PATHS = \
@@ -42,7 +43,7 @@ debug: githash
 	${DC} -w -g -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild: githash
-	${DC} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DC} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC} ${CI_COV}
 	rm -f bin/dscanner.o
 
 gdcbuild: githash
@@ -56,7 +57,7 @@ bin/dscanner-unittest-lib.a: ${LIB_SRC}
 	${DC} ${DMD_TEST_FLAGS} -c ${INCLUDE_PATHS} ${LIB_SRC} -of$@
 
 test: bin/dscanner-unittest-lib.a githash
-	${DC} ${DMD_TEST_FLAGS} -unittest ${INCLUDE_PATHS} bin/dscanner-unittest-lib.a ${PROJECT_SRC} -ofbin/dscanner-unittest
+	${DC} ${DMD_TEST_FLAGS} -unittest ${INCLUDE_PATHS} bin/dscanner-unittest-lib.a ${PROJECT_SRC} ${CI_COV} -ofbin/dscanner-unittest
 	./bin/dscanner-unittest
 	rm -f bin/dscanner-unittest
 

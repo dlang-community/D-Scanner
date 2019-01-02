@@ -37,6 +37,20 @@ import inifiled;
 
 import dsymbol.modulecache;
 
+version(D_Coverage)
+{
+    shared static this()
+    {
+        import core.runtime: dmd_coverSetMerge, dmd_coverDestPath, dmd_coverSourcePath;
+        dmd_coverSetMerge(true);
+        auto rootDir = __FILE_FULL_PATH__.dirName.dirName.dirName;
+        auto destDir = rootDir ~ dirSeparator ~ "temp";
+        mkdirRecurse(destDir);
+        dmd_coverDestPath(destDir);
+        dmd_coverSourcePath(rootDir);
+    }
+}
+
 version (unittest)
 	void main()
 {

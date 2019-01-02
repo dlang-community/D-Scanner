@@ -2,7 +2,6 @@ sudo: false
 language: d
 d:
 - dmd
-- ldc-beta
 - ldc
 os:
 - linux
@@ -87,3 +86,5 @@ jobs:
 stages:
   - name: test
     if: type = pull_request or (type = push and branch = master)
+after_success:
+ - bash <(curl -s https://codecov.io/bash)
