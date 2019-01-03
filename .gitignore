@@ -16,7 +16,6 @@
 
 # D Scanner binaries
 /bin
-/temp
 
 # Static analysis reports
 dscanner-report.json
