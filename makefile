@@ -13,7 +13,7 @@ LIB_SRC := \
 	$(shell find libdparse/src/dparse/ -name "*.d")\
 	$(shell find libddoc/src -name "*.d") \
 	$(shell find stdx-allocator/source -name "*.d")
-CI_COV := $(shell [[ "${CI}" == "TRUE" ]] && echo -cov || echo "")
+CI_COV := $(shell [[ ${CI} == "TRUE" ]] && echo -cov || echo "")
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
 INCLUDE_PATHS = \
