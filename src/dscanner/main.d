@@ -45,7 +45,6 @@ version(D_Coverage)
         dmd_coverSetMerge(true);
         auto rootDir = __FILE_FULL_PATH__.dirName.dirName.dirName;
         auto destDir = rootDir ~ dirSeparator ~ "temp";
-        mkdirRecurse(destDir);
         dmd_coverDestPath(destDir);
         dmd_coverSourcePath(rootDir);
     }
