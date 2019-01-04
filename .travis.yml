@@ -47,16 +47,22 @@ jobs:
           tags: true
     - stage: GitHub Release
       #if: tag IS present
+      sudo: true
       d: dmd
       os: linux
       language: generic
       sudo: yes
-      script: echo "Deploying to GitHub releases ..." && ./release-windows.sh && ARCH=64 ./release-windows.sh
+      script:
+        # Manually install wine (see https://wiki.winehq.org/Ubuntu)
+        - wget -nc https://dl.winehq.org/wine-builds/winehq.key
+        - sudo apt-key add winehq.key
+        - sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ xenial main'
+        - sudo apt-get update && sudo apt-get install wine-stable
+        - echo "Deploying to GitHub releases ..." && ./release-windows.sh && ARCH=64 ./release-windows.sh
       addons:
         apt:
           packages:
             - p7zip-full
-            - wine
         deploy:
           provider: releases
           api_key: $GH_REPO_TOKEN
