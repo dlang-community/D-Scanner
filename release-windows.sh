@@ -26,11 +26,11 @@ fi
 # for the install.sh script only
 LDC_PATH="$(dirname $(dirname $(which ldc2)))"
 
-# Step 1: download the LDC multilib windows binaries
+# Step 1a: download the LDC x64 windows binaries
 if [ "${ARCH}" == 64 ] && [ ! -d "ldc2-${LDC_VERSION}-windows-x64" ] ; then
 	wget "https://github.com/ldc-developers/ldc/releases/download/v1.13.0/ldc2-${LDC_VERSION}-windows-x64.7z"
 	7z x "ldc2-${LDC_VERSION}-windows-x64.7z" > /dev/null
-	# Step 2: Add LDC windows binaries to LDC Linux
+	# Step 2a: Add LDC windows binaries to LDC Linux
 	if [ ! -d "${LDC_PATH}/lib-win64" ] ; then
 		cp -r ldc2-1.13.0-windows-x64/lib "${LDC_PATH}/lib-win64"
 		cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
@@ -47,9 +47,11 @@ if [ "${ARCH}" == 64 ] && [ ! -d "ldc2-${LDC_VERSION}-windows-x64" ] ; then
 EOF
 	fi
 fi
+# Step 1b: download the LDC x86 windows binaries
 if [ "${ARCH}" == 32 ] && [ ! -d "ldc2-${LDC_VERSION}-windows-x86" ] ; then
 	wget "https://github.com/ldc-developers/ldc/releases/download/v1.13.0/ldc2-${LDC_VERSION}-windows-x86.7z"
 	7z x "ldc2-${LDC_VERSION}-windows-x86.7z" > /dev/null
+	# Step 2b: Add LDC windows binaries to LDC Linux
 	if [ ! -d "${LDC_PATH}/lib-win32" ] ; then
 		cp -r ldc2-1.13.0-windows-x86/lib "${LDC_PATH}/lib-win32"
 		cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
