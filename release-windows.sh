@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Windows binaries under Linux (requires wine)
+# Build the Windows binaries under Linux
 set -eux -o pipefail
 VERSION=$(git describe --abbrev=0 --tags)
 OS=windows
