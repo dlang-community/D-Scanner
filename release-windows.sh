@@ -3,25 +3,32 @@
 set -eux -o pipefail
 VERSION=$(git describe --abbrev=0 --tags)
 OS=windows
+LDC_VERSION=1.13.0
 if [ "${ARCH:-32}" == "64" ] ; then
 	ARCH_SUFFIX="x86_64"
-	export DFLAGS=-mtriple=x86_64-windows-msvc
+	export DFLAGS="-mtriple=x86_64-windows-msvc"
 else
 	ARCH_SUFFIX="x86"
-	export DFLAGS=-mtriple=x86_32-windows-msvc
+	export DFLAGS="-mtriple=i686-windows-msvc"
 fi
-
-# for the install.sh script only
-LDC_PATH="$(dirname $(dirname $(which ldc2)))"
 
 # Allow the script to be run from anywhere
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-# Step 1: download the LDC windows binaries
-if [ ! -d ldc2-1.13.0-windows-x64 ] ; then
-	wget https://github.com/ldc-developers/ldc/releases/download/v1.13.0/ldc2-1.13.0-windows-x64.7z
-	7z x ldc2-1.13.0-windows-x64.7z > /dev/null
+# Step 0: install ldc
+if [ ! -d install.sh ] ; then
+	wget https://dlang.org/install.sh
+fi
+. $(bash ./install.sh -a "ldc-${LDC_VERSION}")
+
+# for the install.sh script only
+LDC_PATH="$(dirname $(dirname $(which ldc2)))"
+
+# Step 1: download the LDC multilib windows binaries
+if [ ! -d "ldc2-${LDC_VERSION}-windows-x64" ] ; then
+	wget "https://github.com/ldc-developers/ldc/releases/download/v1.13.0/ldc2-${LDC_VERSION}-windows-x64.7z"
+	7z x "ldc2-${LDC_VERSION}-windows-x64.7z" > /dev/null
 fi
 
 # Step 2: Add LDC windows binaries to LDC Linux
@@ -40,7 +47,22 @@ if [ ! -d "${LDC_PATH}/lib-win64" ] ; then
 	];
 };
 EOF
+fi
 
+if [ ! -d "${LDC_PATH}/lib-win32" ] ; then
+	cp -r ldc2-1.13.0-windows-x64/lib "${LDC_PATH}/lib-win32"
+	cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
+"i686-.*-windows-msvc":
+{
+	switches = [
+		"-defaultlib=phobos2-ldc,druntime-ldc",
+		"-link-defaultlib-shared=false",
+	];
+	lib-dirs = [
+		"%%ldcbinarypath%%/../lib-win32",
+	];
+};
+EOF
 fi
 
 # Step 3: Run LDC with cross-compilation
