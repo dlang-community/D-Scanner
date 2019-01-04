@@ -74,7 +74,7 @@ archiveName="dscanner-$VERSION-$OS-$ARCH_SUFFIX.zip"
 echo "Building $archiveName"
 mkdir -p bin
 export DC=ldmd2
-make
+make ldcbuild
 
 cd bin
 zip "$archiveName" dscanner.exe
