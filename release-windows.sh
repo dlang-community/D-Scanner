@@ -4,7 +4,8 @@ set -eux -o pipefail
 VERSION=$(git describe --abbrev=0 --tags)
 OS=windows
 LDC_VERSION=1.13.0
-if [ "${ARCH:-32}" == "64" ] ; then
+ARCH=${ARCH:-32}
+if [ "$ARCH" == "64" ] ; then
 	ARCH_SUFFIX="x86_64"
 	export DFLAGS="-mtriple=x86_64-windows-msvc"
 else
@@ -17,7 +18,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
 # Step 0: install ldc
-if [ ! -d install.sh ] ; then
+if [ ! -f install.sh ] ; then
 	wget https://dlang.org/install.sh
 fi
 . $(bash ./install.sh -a "ldc-${LDC_VERSION}")
@@ -26,16 +27,13 @@ fi
 LDC_PATH="$(dirname $(dirname $(which ldc2)))"
 
 # Step 1: download the LDC multilib windows binaries
-if [ ! -d "ldc2-${LDC_VERSION}-windows-x64" ] ; then
+if [ "${ARCH}" == 64 ] && [ ! -d "ldc2-${LDC_VERSION}-windows-x64" ] ; then
 	wget "https://github.com/ldc-developers/ldc/releases/download/v1.13.0/ldc2-${LDC_VERSION}-windows-x64.7z"
 	7z x "ldc2-${LDC_VERSION}-windows-x64.7z" > /dev/null
-fi
-
-# Step 2: Add LDC windows binaries to LDC Linux
-if [ ! -d "${LDC_PATH}/lib-win64" ] ; then
-	cp -r ldc2-1.13.0-windows-x64/lib "${LDC_PATH}/lib-win64"
-
-	cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
+	# Step 2: Add LDC windows binaries to LDC Linux
+	if [ ! -d "${LDC_PATH}/lib-win64" ] ; then
+		cp -r ldc2-1.13.0-windows-x64/lib "${LDC_PATH}/lib-win64"
+		cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
 "x86_64-.*-windows-msvc":
 {
 	switches = [
@@ -47,11 +45,14 @@ if [ ! -d "${LDC_PATH}/lib-win64" ] ; then
 	];
 };
 EOF
+	fi
 fi
-
-if [ ! -d "${LDC_PATH}/lib-win32" ] ; then
-	cp -r ldc2-1.13.0-windows-x64/lib "${LDC_PATH}/lib-win32"
-	cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
+if [ "${ARCH}" == 32 ] && [ ! -d "ldc2-${LDC_VERSION}-windows-x86" ] ; then
+	wget "https://github.com/ldc-developers/ldc/releases/download/v1.13.0/ldc2-${LDC_VERSION}-windows-x86.7z"
+	7z x "ldc2-${LDC_VERSION}-windows-x86.7z" > /dev/null
+	if [ ! -d "${LDC_PATH}/lib-win32" ] ; then
+		cp -r ldc2-1.13.0-windows-x86/lib "${LDC_PATH}/lib-win32"
+		cat >> "$LDC_PATH"/etc/ldc2.conf <<EOF
 "i686-.*-windows-msvc":
 {
 	switches = [
@@ -63,6 +64,7 @@ if [ ! -d "${LDC_PATH}/lib-win32" ] ; then
 	];
 };
 EOF
+	fi
 fi
 
 # Step 3: Run LDC with cross-compilation
