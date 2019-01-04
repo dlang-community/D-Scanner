@@ -2,6 +2,7 @@ sudo: false
 language: d
 d:
 - dmd
+- ldc-beta
 - ldc
 os:
 - linux
