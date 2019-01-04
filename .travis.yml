@@ -18,7 +18,7 @@ jobs:
   include:
     - stage: GitHub Release
       #if: tag IS present
-      d: ldc-1.8.0
+      d: ldc-1.13.0
       os: linux
       script: echo "Deploying to GitHub releases ..." && ./release.sh
       deploy:
@@ -32,7 +32,7 @@ jobs:
           tags: true
     - stage: GitHub Release
       #if: tag IS present
-      d: ldc-1.8.0
+      d: ldc-1.13.0
       os: osx
       script: echo "Deploying to GitHub releases ..." && ./release.sh
       deploy:
