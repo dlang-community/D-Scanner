@@ -24,6 +24,6 @@
     "bin"
   ],
   "preGenerateCommands" : [
-    "rdmd $PACKAGE_DIR/dubhash.d"
+    "rdmd \"$PACKAGE_DIR/dubhash.d\""
   ]
 }
