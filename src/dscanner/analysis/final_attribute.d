@@ -48,7 +48,7 @@ private:
 		interface_
 	}
 
-	bool[] _private;
+	bool _private;
 	bool _finalAggregate;
 	bool _alwaysStatic;
 	bool _blockStatic;
@@ -66,54 +66,55 @@ public:
 
 	alias visit = BaseAnalyzer.visit;
 
+	enum pushPopPrivate = q{
+		const bool wasPrivate = _private;
+		_private = false;
+		scope (exit) _private = wasPrivate;
+	};
+
 	///
 	this(string fileName, bool skipTests = false)
 	{
 		super(fileName, null, skipTests);
-		_private.length = 1;
 	}
 
 	override void visit(const(StructDeclaration) sd)
 	{
+		mixin (pushPopPrivate);
 		const Parent saved = _parent;
 		_parent = Parent.struct_;
-		_private.length += 1;
 		_alwaysStatic = false;
 		sd.accept(this);
-		_private.length -= 1;
 		_parent = saved;
 	}
 
 	override void visit(const(InterfaceDeclaration) id)
 	{
+		mixin (pushPopPrivate);
 		const Parent saved = _parent;
 		_parent = Parent.interface_;
-		_private.length += 1;
 		_alwaysStatic = false;
 		id.accept(this);
-		_private.length -= 1;
 		_parent = saved;
 	}
 
 	override void visit(const(UnionDeclaration) ud)
 	{
+		mixin (pushPopPrivate);
 		const Parent saved = _parent;
 		_parent = Parent.union_;
-		_private.length += 1;
 		_alwaysStatic = false;
 		ud.accept(this);
-		_private.length -= 1;
 		_parent = saved;
 	}
 
 	override void visit(const(ClassDeclaration) cd)
 	{
+		mixin (pushPopPrivate);
 		const Parent saved = _parent;
 		_parent = Parent.class_;
-		_private.length += 1;
 		_alwaysStatic = false;
 		cd.accept(this);
-		_private.length -= 1;
 		_parent = saved;
 	}
 
@@ -170,7 +171,7 @@ public:
 		if (d.attributeDeclaration && d.attributeDeclaration.attribute)
 		{
 			const tp = d.attributeDeclaration.attribute.attribute.type;
-			_private[$-1] = isProtection(tp) & (tp == tok!"private");
+			_private = isProtection(tp) & (tp == tok!"private");
 		}
 
 		const bool isFinal = d.attributes
@@ -190,7 +191,7 @@ public:
 
 		if (isPrivateOnce)
 			isPrivate = true;
-		else if (_private[$-1] && !changeProtectionOnce)
+		else if (_private && !changeProtectionOnce)
 			isPrivate = true;
 
 		// check final aggregate type
