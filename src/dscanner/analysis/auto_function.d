@@ -107,7 +107,7 @@ public:
 		}
 	}
 
-	bool findReturnInLiteral(const(string) value)
+	private bool findReturnInLiteral(const(string) value)
 	{
 		import std.algorithm.searching : find;
 		import std.range : empty;
@@ -115,7 +115,7 @@ public:
 		return value == "return" || !value.find("return ").empty;
 	}
 
-	bool stringliteralHasReturn(const(NonVoidInitializer) nvi)
+	private bool stringliteralHasReturn(const(NonVoidInitializer) nvi)
 	{
 		bool result;
 		if (!nvi.assignExpression || (cast(UnaryExpression) nvi.assignExpression) is null)
