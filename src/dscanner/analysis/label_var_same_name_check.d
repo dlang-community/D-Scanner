@@ -155,10 +155,9 @@ private:
 		import std.algorithm : map;
 		import std.array : join;
 
-		if (parentAggregates.length)
-			parentAggregateText = parentAggregates.map!(a => a.text).join(".") ~ ".";
-		else
-			parentAggregateText = "";
+		parentAggregateText = parentAggregates.length
+			? parentAggregates.map!(a => a.text).join(".") ~ "."
+			: "";
 	}
 
 	Token[] parentAggregates;

@@ -83,6 +83,9 @@ struct StaticAnalysisConfig
 	@INI("Checks for if statements whose 'then' block is the same as the 'else' block")
 	string if_else_same_check = Check.enabled;
 
+	@INI("Checks for if else statement could be rewritten as ternary expression")
+	string if_else_ternary = Check.enabled;
+
 	@INI("Checks for some problems with constructors")
 	string constructor_check = Check.enabled;
 

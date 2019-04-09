@@ -161,6 +161,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Indentation of if constraints
 * Check that `@trusted` is not applied to a whole scope. Trusting a whole scope can be a problem when new declarations are added and if they are not verified manually to be trustable.
 * Redundant storage class attributes
+* If else assignment rewriteable as ternary expression
 
 #### Wishlist
 

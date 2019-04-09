@@ -111,10 +111,7 @@ private:
 	// D Style defines tabs to have a width of four spaces
 	static size_t getEditorLength(C)(C c)
 	{
-		if (c == '\t')
-			return 4;
-		else
-			return 1;
+		return c == '\t' ? 4 : 1;
 	}
 
 	alias TokenLength = Tuple!(size_t, "length", bool, "newLine", bool, "multiLine");

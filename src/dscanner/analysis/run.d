@@ -36,6 +36,7 @@ import dscanner.analysis.numbers;
 import dscanner.analysis.objectconst;
 import dscanner.analysis.range;
 import dscanner.analysis.ifelsesame;
+import dscanner.analysis.ifelseternary;
 import dscanner.analysis.constructors;
 import dscanner.analysis.unused;
 import dscanner.analysis.unused_label;
@@ -388,6 +389,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"if_else_same_check"(analysisConfig))
 		checks ~= new IfElseSameCheck(fileName, moduleScope,
 		analysisConfig.if_else_same_check == Check.skipTests&& !ut);
+
+	if (moduleName.shouldRun!"if_else_ternary"(analysisConfig))
+		checks ~= new IfElseTernary(fileName, moduleScope,
+		analysisConfig.if_else_ternary == Check.skipTests&& !ut);
 
 	if (moduleName.shouldRun!"label_var_same_name_check"(analysisConfig))
 		checks ~= new LabelVarNameCheck(fileName, moduleScope,
