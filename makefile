@@ -26,6 +26,9 @@ INCLUDE_PATHS = \
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
 DMD_FLAGS = -w -release -O -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
+override DMD_FLAGS += $(DFLAGS)
+override LDC_FLAGS += $(DFLAGS)
+override GDC_FLAGS += $(DFLAGS)
 DMD_TEST_FLAGS = -w -g -Jbin -version=StdLoggerDisableWarning
 override LDC_FLAGS += -O5 -release -oq -d-version=StdLoggerDisableWarning
 override GDC_FLAGS += -O3 -frelease -d-version=StdLoggerDisableWarning
