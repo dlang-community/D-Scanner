@@ -150,6 +150,13 @@ private:
 		override void visit(const T declaration)
 		{
 			import std.traits : hasMember;
+			static if (hasMember!(T, "storageClasses"))
+			{
+				// stop at declarations with a deprecated in their storage classes
+				foreach (sc; declaration.storageClasses)
+					if (sc.deprecated_ !is null)
+						return;
+			}
 
 			if (currentIsInteresting())
 			{
@@ -248,7 +255,7 @@ private:
 	bool currentIsInteresting()
 	{
 		return stack[$ - 1].protection == tok!"public"
-			&& !stack[$ - 1].isOverride && !stack[$ - 1].isDisabled && !stack[$ - 1].isDeprecated;
+			&& !getOverride() && !getDisabled() && !getDeprecated();
 	}
 
 	void set(IdType p)
@@ -330,6 +337,12 @@ unittest
 		template T(){}
 		/// U
 		union U{}
+	}, sac);
+
+	// https://github.com/dlang-community/D-Scanner/issues/760
+	assertAnalyzerWarnings(q{
+		deprecated auto func(){}
+		deprecated auto func()(){}
 	}, sac);
 
 	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
