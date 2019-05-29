@@ -166,14 +166,9 @@ final class UnusedVariableCheck : BaseAnalyzer
 
 	override void visit(const AssignExpression assignExp)
 	{
-		if (assignExp.ternaryExpression !is null)
-			assignExp.ternaryExpression.accept(this);
-		if (assignExp.expression !is null)
-		{
-			interestDepth++;
-			assignExp.expression.accept(this);
-			interestDepth--;
-		}
+		interestDepth++;
+		assignExp.accept(this);
+		interestDepth--;
 	}
 
 	override void visit(const TemplateDeclaration templateDeclaration)
@@ -541,6 +536,13 @@ private:
 		cb1(3);
 		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
 		cb2(3);
+	}
+
+	void oops ()
+	{
+	    class Identity { int val; }
+	    Identity v;
+	    v.val = 0;
 	}
 	
 	bool hasDittos(int decl)
