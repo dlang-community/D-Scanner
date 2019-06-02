@@ -139,7 +139,7 @@ else
 
 	if (printVersion)
 	{
-		write(DSCANNER_VERSION);
+		writeln(DSCANNER_VERSION);
 		return 0;
 	}
 
