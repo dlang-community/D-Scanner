@@ -10,13 +10,12 @@ import dscanner.analysis.base;
 import std.container;
 import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
-import std.algorithm.iteration : map;
 import std.algorithm : all;
 
 /**
  * Checks for unused variables.
  */
-final class UnusedVariableCheck : BaseAnalyzer
+abstract class UnusedIdentifierCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
@@ -266,13 +265,6 @@ final class UnusedVariableCheck : BaseAnalyzer
 		inAggregateScope = sb;
 	}
 
-	override void visit(const VariableDeclaration variableDeclaration)
-	{
-		foreach (d; variableDeclaration.declarators)
-			this.variableDeclared(d.name.text, d.name.line, d.name.column, false, false);
-		variableDeclaration.accept(this);
-	}
-
 	override void visit(const Type2 tp)
 	{
 		if (tp.typeIdentifierPart &&
@@ -293,13 +285,6 @@ final class UnusedVariableCheck : BaseAnalyzer
 		tp.accept(this);
 	}
 
-	override void visit(const AutoDeclaration autoDeclaration)
-	{
-		foreach (t; autoDeclaration.parts.map!(a => a.identifier))
-			this.variableDeclared(t.text, t.line, t.column, false, false);
-		autoDeclaration.accept(this);
-	}
-
 	override void visit(const WithStatement withStatetement)
 	{
 		interestDepth++;
@@ -308,32 +293,6 @@ final class UnusedVariableCheck : BaseAnalyzer
 		interestDepth--;
 		if (withStatetement.declarationOrStatement)
 			withStatetement.declarationOrStatement.accept(this);
-	}
-
-	override void visit(const Parameter parameter)
-	{
-		import std.algorithm : among;
-		import std.algorithm.iteration : filter;
-		import std.range : empty;
-		import std.array : array;
-
-		if (parameter.name != tok!"")
-		{
-			immutable bool isRef = !parameter.parameterAttributes
-				.filter!(a => a.idType.among(tok!"ref", tok!"out")).empty;
-			immutable bool isPtr = parameter.type && !parameter.type
-				.typeSuffixes.filter!(a => a.star != tok!"").empty;
-
-			variableDeclared(parameter.name.text, parameter.name.line,
-					parameter.name.column, true, isRef | isPtr);
-
-			if (parameter.default_ !is null)
-			{
-				interestDepth++;
-				parameter.default_.accept(this);
-				interestDepth--;
-			}
-		}
 	}
 
 	override void visit(const StructBody structBody)
@@ -371,7 +330,36 @@ final class UnusedVariableCheck : BaseAnalyzer
 		// issue #270: Ignore unused variables inside of `typeof` expressions
 	}
 
+	abstract protected void popScope();
+
+	protected uint interestDepth;
+
+	protected Tree[] tree;
+
+	protected void variableDeclared(string name, size_t line, size_t column, bool isRef)
+	{
+		if (inAggregateScope || name.all!(a => a == '_'))
+			return;
+		tree[$ - 1].insert(new UnUsed(name, line, column, isRef));
+	}
+
+	protected void pushScope()
+	{
+		tree ~= new Tree;
+	}
+
 private:
+
+	struct UnUsed
+	{
+		string name;
+		size_t line;
+		size_t column;
+		bool isRef;
+		bool uncertain;
+	}
+
+	alias Tree = RedBlackTree!(UnUsed*, "a.name < b.name");
 
 	mixin template PartsUseVariables(NodeType)
 	{
@@ -381,13 +369,6 @@ private:
 			node.accept(this);
 			interestDepth--;
 		}
-	}
-
-	void variableDeclared(string name, size_t line, size_t column, bool isParameter, bool isRef)
-	{
-		if (inAggregateScope || name.all!(a => a == '_'))
-			return;
-		tree[$ - 1].insert(new UnUsed(name, line, column, isParameter, isRef));
 	}
 
 	void variableUsed(string name)
@@ -402,161 +383,13 @@ private:
 		}
 	}
 
-	void popScope()
-	{
-		foreach (uu; tree[$ - 1])
-		{
-			if (!uu.isRef && tree.length > 1)
-			{
-			    if (uu.uncertain)
-			        continue;
-				immutable string certainty = uu.uncertain ? " might not be used."
-					: " is never used.";
-				immutable string errorMessage = (uu.isParameter ? "Parameter " : "Variable ")
-					~ uu.name ~ certainty;
-				addErrorMessage(uu.line, uu.column, uu.isParameter ? "dscanner.suspicious.unused_parameter"
-						: "dscanner.suspicious.unused_variable", errorMessage);
-			}
-		}
-		tree = tree[0 .. $ - 1];
-	}
+	Regex!char re;
 
-	void pushScope()
-	{
-		tree ~= new RedBlackTree!(UnUsed*, "a.name < b.name");
-	}
-
-	struct UnUsed
-	{
-		string name;
-		size_t line;
-		size_t column;
-		bool isParameter;
-		bool isRef;
-		bool uncertain;
-	}
-
-	RedBlackTree!(UnUsed*, "a.name < b.name")[] tree;
-
-	uint interestDepth;
+	bool inAggregateScope;
 
 	uint mixinDepth;
 
 	bool isOverride;
 
-	bool inAggregateScope;
-
 	bool blockStatementIntroducesScope = true;
-
-	Regex!char re;
 }
-
-@system unittest
-{
-	import std.stdio : stderr;
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
-
-	StaticAnalysisConfig sac = disabledConfig();
-	sac.unused_variable_check = Check.enabled;
-	assertAnalyzerWarnings(q{
-
-	// Issue 274
-	unittest
-	{
-		size_t byteIndex = 0;
-		*(cast(FieldType*)(retVal.ptr + byteIndex)) = item;
-	}
-
-	// bug encountered after correct DIP 1009 impl in dparse
-	version (StdDdoc)
-	{
-	    bool isAbsolute(R)(R path) pure nothrow @safe
-	    if (isRandomAccessRange!R && isSomeChar!(ElementType!R) ||
-	        is(StringTypeOf!R));
-	}
-
-	unittest
-	{
-		int a; // [warn]: Variable a is never used.
-	}
-
-	void inPSC(in int a){} // [warn]: Parameter a is never used.
-
-	// Issue 380
-	int templatedEnum()
-	{
-		enum a(T) = T.init;
-		return a!int;
-	}
-
-	// Issue 380
-	int otherTemplatedEnum()
-	{
-		auto a(T) = T.init; // [warn]: Variable a is never used.
-		return 0;
-	}
-
-	void doStuff(int a, int b) // [warn]: Parameter b is never used.
-	{
-		return a;
-	}
-
-	// Issue 364
-	void test364_1()
-	{
-		enum s = 8;
-		immutable t = 2;
-		int[s][t] a;
-		a[0][0] = 1;
-	}
-
-	void test364_2()
-	{
-		enum s = 8;
-		alias a = e!s;
-		a = 1;
-	}
-
-	// Issue 352
-	void test352_1()
-	{
-		void f(int *x) {*x = 1;}
-	}
-
-	void test352_2()
-	{
-		void f(Bat** bat) {*bat = bats.ptr + 8;}
-	}
-
-	// Issue 490
-	void test490()
-	{
-		auto cb1 = delegate(size_t _) {};
-		cb1(3);
-		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
-		cb2(3);
-	}
-
-	void oops ()
-	{
-	    class Identity { int val; }
-	    Identity v;
-	    v.val = 0;
-	}
-	
-	bool hasDittos(int decl)
-	{
-		mixin("decl++;");
-	}
-
-	void main()
-	{
-	    const int testValue;
-	    testValue.writeln;
-	}
-
-	}c, sac);
-	stderr.writeln("Unittest for UnusedVariableCheck passed.");
-}
-

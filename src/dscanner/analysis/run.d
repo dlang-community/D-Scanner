@@ -37,8 +37,9 @@ import dscanner.analysis.objectconst;
 import dscanner.analysis.range;
 import dscanner.analysis.ifelsesame;
 import dscanner.analysis.constructors;
-import dscanner.analysis.unused;
+import dscanner.analysis.unused_variable;
 import dscanner.analysis.unused_label;
+import dscanner.analysis.unused_parameter;
 import dscanner.analysis.duplicate_attribute;
 import dscanner.analysis.opequals_without_tohash;
 import dscanner.analysis.length_subtraction;
@@ -440,6 +441,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!"unused_variable_check"(analysisConfig))
 		checks ~= new UnusedVariableCheck(fileName, moduleScope,
 		analysisConfig.unused_variable_check == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!"unused_parameter_check"(analysisConfig))
+		checks ~= new UnusedParameterCheck(fileName, moduleScope,
+		analysisConfig.unused_parameter_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!"long_line_check"(analysisConfig))
 		checks ~= new LineLengthCheck(fileName, tokens,

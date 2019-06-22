@@ -86,11 +86,14 @@ struct StaticAnalysisConfig
 	@INI("Checks for some problems with constructors")
 	string constructor_check = Check.enabled;
 
-	@INI("Checks for unused variables and function parameters")
+	@INI("Checks for unused variables")
 	string unused_variable_check = Check.enabled;
 
 	@INI("Checks for unused labels")
 	string unused_label_check = Check.enabled;
+
+	@INI("Checks for unused function parameters")
+	string unused_parameter_check = Check.enabled;
 
 	@INI("Checks for duplicate attributes")
 	string duplicate_attribute = Check.enabled;
