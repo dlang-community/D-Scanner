@@ -20,6 +20,8 @@ final class HasPublicExampleCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"has_public_example";
+
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);

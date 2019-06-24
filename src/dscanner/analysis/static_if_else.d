@@ -26,6 +26,8 @@ final class StaticIfElse : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"static_if_else_check";
+
 	this(string fileName, bool skipTests = false)
 	{
 		super(fileName, null, skipTests);

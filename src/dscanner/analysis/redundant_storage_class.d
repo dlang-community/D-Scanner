@@ -20,6 +20,7 @@ final class RedundantStorageClassCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 	enum string REDUNDANT_VARIABLE_ATTRIBUTES = "Variable declaration for `%s` has redundant attributes (%-(`%s`%|, %)).";
+	mixin AnalyzerInfo!"redundant_storage_classes";
 
 	this(string fileName, bool skipTests = false)
 	{

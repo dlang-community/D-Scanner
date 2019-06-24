@@ -28,6 +28,8 @@ public:
 
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"trust_too_much";
+
 	///
 	this(string fileName, bool skipTests = false)
 	{

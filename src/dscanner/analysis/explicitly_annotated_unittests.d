@@ -6,7 +6,7 @@ module dscanner.analysis.explicitly_annotated_unittests;
 
 import dparse.lexer;
 import dparse.ast;
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 
 import std.stdio;
 
@@ -17,6 +17,7 @@ final class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 {
 	enum string KEY = "dscanner.style.explicitly_annotated_unittest";
 	enum string MESSAGE = "A unittest should be annotated with at least @safe or @system";
+    mixin AnalyzerInfo!"explicitly_annotated_unittests";
 
 	///
 	this(string fileName, bool skipTests = false)

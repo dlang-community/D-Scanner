@@ -6,6 +6,7 @@ module dscanner.analysis.unused_parameter;
 
 import dparse.ast;
 import dparse.lexer;
+import dscanner.analysis.base;
 import dscanner.analysis.unused;
 import dsymbol.scope_ : Scope;
 
@@ -15,6 +16,8 @@ import dsymbol.scope_ : Scope;
 final class UnusedParameterCheck : UnusedIdentifierCheck
 {
 	alias visit = UnusedIdentifierCheck.visit;
+
+	mixin AnalyzerInfo!"unused_parameter_check";
 
 	/**
 	 * Params:

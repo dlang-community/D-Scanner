@@ -29,6 +29,8 @@ final class UselessInitializerChecker : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"useless_initializer";
+
 private:
 
 	enum key = "dscanner.useless-initializer";

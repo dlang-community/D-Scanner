@@ -16,6 +16,8 @@ final class AliasSyntaxCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"alias_syntax_check";
+
 	this(string fileName, bool skipTests = false)
 	{
 		super(fileName, null, skipTests);

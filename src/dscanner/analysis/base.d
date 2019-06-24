@@ -18,11 +18,23 @@ struct Message
 	string key;
 	/// Warning message
 	string message;
+	/// Check name
+	string checkName;
 }
 
 enum comparitor = q{ a.line < b.line || (a.line == b.line && a.column < b.column) };
 
 alias MessageSet = RedBlackTree!(Message, comparitor, true);
+
+mixin template AnalyzerInfo(string checkName)
+{
+	enum string name = checkName;
+
+	override protected string getName()
+	{
+		return name;
+	}
+}
 
 abstract class BaseAnalyzer : ASTVisitor
 {
@@ -33,6 +45,11 @@ public:
 		this.fileName = fileName;
 		this.skipTests = skipTests;
 		_messages = new MessageSet;
+	}
+
+	protected string getName()
+	{
+		return null;
 	}
 
 	Message[] messages()
@@ -71,7 +88,7 @@ protected:
 
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-		_messages.insert(Message(fileName, line, column, key, message));
+		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
 
 	/**

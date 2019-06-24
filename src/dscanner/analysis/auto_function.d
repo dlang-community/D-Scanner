@@ -36,6 +36,8 @@ public:
 
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"auto_function_check";
+
 	///
 	this(string fileName, bool skipTests = false)
 	{

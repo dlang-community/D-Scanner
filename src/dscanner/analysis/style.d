@@ -24,6 +24,7 @@ final class StyleChecker : BaseAnalyzer
 	enum string aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
 	enum string moduleNameRegex = `^[\p{Ll}_\d]+$`;
 	enum string KEY = "dscanner.style.phobos_naming_convention";
+	mixin AnalyzerInfo!"style_check";
 
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

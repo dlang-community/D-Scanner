@@ -15,6 +15,8 @@ import dscanner.analysis.helpers;
  */
 final class LabelVarNameCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"label_var_same_name_check";
+
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);

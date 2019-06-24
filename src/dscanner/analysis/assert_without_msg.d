@@ -4,7 +4,7 @@
 
 module dscanner.analysis.assert_without_msg;
 
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 import dscanner.utils : safeAccess;
 import dsymbol.scope_ : Scope;
 import dparse.lexer;
@@ -20,6 +20,7 @@ final class AssertWithoutMessageCheck : BaseAnalyzer
 {
 	enum string KEY = "dscanner.style.assert_without_msg";
 	enum string MESSAGE = "An assert should have an explanatory message";
+	mixin AnalyzerInfo!"assert_without_msg";
 
 	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)

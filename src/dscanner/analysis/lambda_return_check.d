@@ -14,6 +14,8 @@ final class LambdaReturnCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"lambda_return_check";
+
 	this(string fileName, bool skipTests = false)
 	{
 		super(fileName, null, skipTests);

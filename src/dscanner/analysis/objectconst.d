@@ -21,6 +21,8 @@ final class ObjectConstCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"object_const_check";
+
 	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

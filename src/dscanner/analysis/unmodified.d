@@ -18,6 +18,8 @@ final class UnmodifiedFinder : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"could_be_immutable_check";
+
 	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

@@ -17,6 +17,8 @@ final class RedundantParenCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"redundant_parens_check";
+
 	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

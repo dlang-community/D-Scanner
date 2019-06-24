@@ -19,6 +19,8 @@ import std.range : empty, front, walkLength;
  */
 final class RedundantAttributesCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"redundant_attributes_check";
+
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);
