@@ -82,11 +82,13 @@ Limitations:
 ### Syntax Check
 The "--syntaxCheck" or "-s" option prints a listing of any errors or warnings found
 while lexing or parsing the given source file. It does not do any semantic
-analysis and it does not compile the code.
+analysis and it does not compile the code. The format of the errors or
+warnings can be configured with the "--errorFormat" or "-f" option.
 
 ### Style Check
 The "--styleCheck" or "-S" option runs some basic static analysis checks against
 the given source files, the sources contained in the given folders, or the sources contained in the current working directory (when nothing is supplied).
+The format of the errors or warnings can be configured with the "--errorFormat" or "-f" option.
 
 #### Skip style checks in the tests
 Static checks in the unit tests can produce irrelevant warnings. For example,
