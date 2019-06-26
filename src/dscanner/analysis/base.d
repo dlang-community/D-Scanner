@@ -49,7 +49,7 @@ public:
 
 	protected string getName()
 	{
-		return null;
+		assert(0);
 	}
 
 	Message[] messages()
