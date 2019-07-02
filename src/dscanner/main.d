@@ -341,15 +341,22 @@ Options:
         Similar to "--imports", but lists imports of imports recursively.
 
     --syntaxCheck <file>, -s <file>
-        Lexes and parses sourceFile, printing the line and column number of any
-        syntax errors to stdout. One error or warning is printed per line.
-        If no files are specified, input is read from stdin. %1$s will exit with
-        a status code of zero if no errors are found, 1 otherwise.
+        Lexes and parses sourceFile, printing the line and column number of
+        any syntax errors to stdout. One error or warning is printed per line,
+        and formatted according to the pattern passed to "--errorFormat".
+        If no files are specified, input is read from stdin. %1$s will exit
+        with a status code of zero if no errors are found, 1 otherwise.
 
     --styleCheck|S <file | directory>..., <file | directory>...
-        Lexes and parses sourceFiles, printing the line and column number of any
-        static analysis check failures stdout. %1$s will exit with a status code
-        of zero if no warnings or errors are found, 1 otherwise.
+        Lexes and parses sourceFiles, printing the line and column number of
+        any static analysis check failures stdout. One error or warning is
+        printed per line, and formatted according to the pattern passed to
+        "--errorFormat". %1$s will exit with a status code of zero if no
+        warnings or errors are found, 1 otherwise.
+
+    --errorFormat|f <pattern>
+        Format errors produced by the style/syntax checkers. The default
+        value for the pattern is: "%2$s".
 
     --ctags <file | directory>..., -c <file | directory>...
         Generates ctags information from the given source code file. Note that
@@ -389,7 +396,7 @@ Options:
     --skipTests
         Does not analyze in the unittests. Only works if --styleCheck.`,
 
-    programName);
+    programName, defaultErrorFormat);
 }
 
 private void doNothing(string, size_t, size_t, string, bool)
