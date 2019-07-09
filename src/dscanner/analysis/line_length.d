@@ -5,7 +5,7 @@
 
 module dscanner.analysis.line_length;
 
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 
 import dparse.ast;
 import dparse.lexer;
@@ -17,6 +17,8 @@ import std.typecons : tuple, Tuple;
  */
 final class LineLengthCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"long_line_check";
+
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)
 	{

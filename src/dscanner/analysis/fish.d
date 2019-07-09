@@ -20,6 +20,7 @@ final class FloatOperatorCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 	enum string KEY = "dscanner.deprecated.floating_point_operators";
+	mixin AnalyzerInfo!"float_operator_check";
 
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

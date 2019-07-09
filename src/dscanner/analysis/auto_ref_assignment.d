@@ -14,6 +14,8 @@ import dscanner.analysis.base;
  */
 final class AutoRefAssignmentCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"auto_ref_assignment_check";
+
 	///
 	this(string fileName, bool skipTests = false)
 	{

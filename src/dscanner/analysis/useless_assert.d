@@ -27,6 +27,8 @@ final class UselessAssertCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"useless_assert_check";
+
 	///
 	this(string fileName, bool skipTests = false)
 	{

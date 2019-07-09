@@ -6,7 +6,7 @@ module dscanner.analysis.allman;
 
 import dparse.lexer;
 import dparse.ast;
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
 
 import std.algorithm;
@@ -27,6 +27,8 @@ if (param < 0)
 */
 final class AllManCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"allman_braces_check";
+
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)
 	{

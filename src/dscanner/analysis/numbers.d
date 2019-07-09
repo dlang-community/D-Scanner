@@ -21,6 +21,8 @@ final class NumberStyleCheck : BaseAnalyzer
 public:
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"number_style_check";
+
 	/**
 	 * Constructs the style checker with the given file name.
 	 */

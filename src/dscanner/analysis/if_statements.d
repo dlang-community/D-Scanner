@@ -13,6 +13,8 @@ import dsymbol.scope_ : Scope;
 final class IfStatementCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
+	mixin AnalyzerInfo!"redundant_if_check";
+
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
 		super(fileName, sc, skipTests);

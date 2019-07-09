@@ -17,6 +17,8 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"incorrect_infinite_range_check";
+
 	///
 	this(string fileName, bool skipTests = false)
 	{

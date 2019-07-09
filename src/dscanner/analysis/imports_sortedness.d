@@ -4,7 +4,7 @@
 
 module dscanner.analysis.imports_sortedness;
 
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 import dparse.lexer;
 import dparse.ast;
 
@@ -17,6 +17,7 @@ final class ImportSortednessCheck : BaseAnalyzer
 {
 	enum string KEY = "dscanner.style.imports_sortedness";
 	enum string MESSAGE = "The imports are not sorted in alphabetical order";
+	mixin AnalyzerInfo!"imports_sortedness";
 
 	///
 	this(string fileName, bool skipTests = false)

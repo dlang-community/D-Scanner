@@ -6,7 +6,7 @@ module dscanner.analysis.if_constraints_indent;
 
 import dparse.lexer;
 import dparse.ast;
-import dscanner.analysis.base : BaseAnalyzer, Message;
+import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
 
 import std.algorithm.iteration : filter;
@@ -17,6 +17,8 @@ Checks whether all if constraints have the same indention as their declaration.
 */
 final class IfConstraintsIndentCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"if_constraints_indent";
+
 	///
 	this(string fileName, const(Token)[] tokens, bool skipTests = false)
 	{

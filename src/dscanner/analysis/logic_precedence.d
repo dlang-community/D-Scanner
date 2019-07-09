@@ -24,6 +24,7 @@ final class LogicPrecedenceCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 	enum string KEY = "dscanner.confusing.logical_precedence";
+	mixin AnalyzerInfo!"logical_precedence_check";
 
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

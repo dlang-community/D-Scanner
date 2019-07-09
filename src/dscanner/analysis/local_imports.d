@@ -20,6 +20,8 @@ final class LocalImportCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"local_import_check";
+
 	/**
 	 * Construct with the given file name.
 	 */

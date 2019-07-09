@@ -66,6 +66,8 @@ public:
 
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"final_attribute_check";
+
 	enum pushPopPrivate = q{
 		const bool wasPrivate = _private;
 		_private = false;

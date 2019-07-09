@@ -5,6 +5,7 @@
 module dscanner.analysis.unused_variable;
 
 import dparse.ast;
+import dscanner.analysis.base;
 import dscanner.analysis.unused;
 import dsymbol.scope_ : Scope;
 import std.algorithm.iteration : map;
@@ -15,6 +16,8 @@ import std.algorithm.iteration : map;
 final class UnusedVariableCheck : UnusedIdentifierCheck
 {
 	alias visit = UnusedIdentifierCheck.visit;
+
+	mixin AnalyzerInfo!"unused_variable_check";
 
 	/**
 	 * Params:

@@ -18,6 +18,8 @@ final class UnusedLabelCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"unused_label_check";
+
 	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

@@ -20,6 +20,8 @@ final class VcallCtorChecker : BaseAnalyzer
 {
     alias visit = BaseAnalyzer.visit;
 
+    mixin AnalyzerInfo!"vcall_in_ctor";
+
 private:
 
     enum string KEY = "dscanner.vcall_ctor";

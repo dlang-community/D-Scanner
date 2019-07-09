@@ -20,6 +20,8 @@ final class BackwardsRangeCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;
 
+	mixin AnalyzerInfo!"backwards_range_check";
+
 	/// Key for this check in the report output
 	enum string KEY = "dscanner.bugs.backwards_slices";
 

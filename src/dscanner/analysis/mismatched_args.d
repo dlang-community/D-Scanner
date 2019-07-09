@@ -1,6 +1,6 @@
 module dscanner.analysis.mismatched_args;
 
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 import dscanner.utils : safeAccess;
 import dsymbol.scope_;
 import dsymbol.symbol;
@@ -11,6 +11,8 @@ import dsymbol.builtin.names;
 /// Checks for mismatched argument and parameter names
 final class MismatchedArgumentCheck : BaseAnalyzer
 {
+	mixin AnalyzerInfo!"mismatched_args_check";
+
 	///
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{

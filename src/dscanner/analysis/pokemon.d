@@ -27,6 +27,7 @@ final class PokemonExceptionCheck : BaseAnalyzer
 {
 	enum MESSAGE = "Catching Error or Throwable is almost always a bad idea.";
 	enum string KEY = "dscanner.suspicious.catch_em_all";
+	mixin AnalyzerInfo!"exception_check";
 
 	alias visit = BaseAnalyzer.visit;
 

@@ -7,7 +7,7 @@ module dscanner.analysis.properly_documented_public_functions;
 import dparse.lexer;
 import dparse.ast;
 import dparse.formatter : astFmt = format;
-import dscanner.analysis.base : BaseAnalyzer;
+import dscanner.analysis.base;
 import dscanner.utils : safeAccess;
 
 import std.format : format;
@@ -37,6 +37,8 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 	enum string MISSING_THROW_KEY = "dscanner.style.doc_missing_throw";
 	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section";
+
+	mixin AnalyzerInfo!"properly_documented_public_functions";
 
 	///
 	this(string fileName, bool skipTests = false)
