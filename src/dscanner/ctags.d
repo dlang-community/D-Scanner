@@ -73,7 +73,7 @@ void printCtags(File output, string[] fileNames)
 		printer.visit(m);
 	}
 	output.write("!_TAG_FILE_FORMAT\t2\n" ~ "!_TAG_FILE_SORTED\t1\n" ~ "!_TAG_FILE_AUTHOR\tBrian Schott\n"
-			~ "!_TAG_PROGRAM_URL\thttps://github.com/Hackerpilot/Dscanner/\n");
+			~ "!_TAG_PROGRAM_URL\thttps://github.com/dlang-community/D-Scanner/\n");
 	tags[].copy(output.lockingTextWriter);
 }
 
