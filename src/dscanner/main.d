@@ -62,6 +62,7 @@ else
 	bool defaultConfig;
 	bool report;
 	bool skipTests;
+	string reportFormat;
 	string symbolName;
 	string configLocation;
 	string[] importPaths;
@@ -91,6 +92,7 @@ else
 				"declaration|d", &symbolName,
 				"config", &configLocation,
 				"report", &report,
+				"reportFormat", &reportFormat,
 				"I", &importPaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
@@ -154,6 +156,9 @@ else
 
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);
+
+	if (reportFormat.length)
+		report = true;
 
 	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
 			outline, tokenDump, styleCheck, defaultConfig, report,
@@ -237,7 +242,21 @@ else
 		if (skipTests)
 			config.enabled2SkipTests;
 		if (report)
-			generateReport(expandArgs(args), config, cache, moduleCache);
+		{
+			switch (reportFormat)
+			{
+				default:
+					stderr.writeln("Unknown report format specified, using dscanner format");
+					goto case;
+				case "":
+				case "dscanner":
+					generateReport(expandArgs(args), config, cache, moduleCache);
+					break;
+				case "sonarQubeGenericIssueData":
+					generateSonarQubeGenericIssueDataReport(expandArgs(args), config, cache, moduleCache);
+					break;
+			}
+		}
 		else
 			return analyze(expandArgs(args), config, errorFormat, cache, moduleCache, true) ? 1 : 0;
 	}
@@ -385,6 +404,9 @@ Options:
         Generate a static analysis report in JSON format. Implies --styleCheck,
         however the exit code will still be zero if errors or warnings are
         found.
+
+    --reportFormat <dscanner | sonarQubeGenericIssueData>...
+        Specifies the format of the generated report.
 
     --config <file>
         Use the given configuration file instead of the default located in

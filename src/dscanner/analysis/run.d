@@ -87,6 +87,7 @@ import dsymbol.conversion.second;
 import dsymbol.modulecache : ModuleCache;
 
 import dscanner.utils;
+import dscanner.reports : SonarQubeGenericIssueDataReporter;
 
 bool first = true;
 
@@ -180,6 +181,31 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 	writeln("}");
 }
 
+void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAnalysisConfig config,
+		ref StringCache cache, ref ModuleCache moduleCache)
+{
+	auto reporter = new SonarQubeGenericIssueDataReporter();
+
+	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
+		reporter.addMessage(Message(fileName, line, column, "dscanner.syntax", message), isError);
+	};
+
+	foreach (fileName; fileNames)
+	{
+		auto code = readFile(fileName);
+		// Skip files that could not be read and continue with the rest
+		if (code.length == 0)
+			continue;
+		RollbackAllocator r;
+		const(Token)[] tokens;
+		const Module m = parseModule(fileName, code, &r, cache, tokens, writeMessages, null, null, null);
+		MessageSet messageSet = analyze(fileName, m, config, moduleCache, tokens, true);
+		reporter.addMessageSet(messageSet);
+	}
+
+	writeln(reporter.getContent());
+}
+
 /**
  * For multiple files
  *
@@ -217,14 +243,11 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 }
 
 const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
-		string errorFormat, ref StringCache cache, bool report, ref const(Token)[] tokens,
-		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
+		ref StringCache cache, ref const(Token)[] tokens,
+		MessageDelegate dlgMessage, ulong* linesOfCode = null,
+		uint* errorCount = null, uint* warningCount = null)
 {
 	import dscanner.stats : isLineOfCode;
-
-	auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
-		return messageFunctionFormat(errorFormat, Message(fileName, line, column, message), isError);
-	};
 
 	LexerConfig config;
 	config.fileName = fileName;
@@ -232,9 +255,21 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	tokens = getTokensForParser(code, config, &cache);
 	if (linesOfCode !is null)
 		(*linesOfCode) += count!(a => isLineOfCode(a.type))(tokens);
-	return dparse.parser.parseModule(tokens, fileName, p,
+
+	return dparse.parser.parseModule(tokens, fileName, p, dlgMessage, errorCount, warningCount);
+}
+
+const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
+		string errorFormat, ref StringCache cache, bool report, ref const(Token)[] tokens,
+		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
+{
+	auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
+		return messageFunctionFormat(errorFormat, Message(fileName, line, column, message), isError);
+	};
+
+	return parseModule(fileName, code, p, cache, tokens,
 		report ? toDelegate(&messageFunctionJSON) : writeMessages,
-		errorCount, warningCount);
+		linesOfCode, errorCount, warningCount);
 }
 
 /**
