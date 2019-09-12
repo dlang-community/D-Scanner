@@ -173,6 +173,15 @@ The "--report" option writes a JSON report on the static analysis checks
 document above to standard output. This file is usually used by the D plugin for
 SonarQube located [here](https://github.com/economicmodeling/sonar-d-plugin).
 
+Using option "--reportFormat sonarQubeGenericIssueData" a report in a sonar-scanner
+supported [Generic Issue Data format](https://docs.sonarqube.org/latest/analysis/generic-issue/) can be created.
+
+    $ dscanner --reportFormat sonarQubeGenericIssueData . > sonar-generic-issue-data.json
+
+Reference the report filename in sonar-project.properties using key "sonar.externalIssuesReportPaths"
+
+    sonar.externalIssuesReportPaths=sonar-generic-issue-data.json
+
 ### Find Declaration
 Ack, grep, and The Silver Searcher are useful for finding usages of symbols, but
 their signal to noise ratio is not very good when searching for a symbol's
