@@ -105,6 +105,7 @@ void messageFunctionFormat(string format, Message message, bool isError)
 	s = s.replace("{column}", to!string(message.column));
 	s = s.replace("{type}", isError ? "error" : "warn");
 	s = s.replace("{message}", message.message);
+    s = s.replace("{name}", message.checkName);
 
 	writefln("%s", s);
 }
