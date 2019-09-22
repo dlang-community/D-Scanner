@@ -376,6 +376,8 @@ Options:
     --errorFormat|f <pattern>
         Format errors produced by the style/syntax checkers. The default
         value for the pattern is: "%2$s".
+        Supported placeholders are: {filepath}, {line}, {column}, {type},
+        {message}, and {name}.
 
     --ctags <file | directory>..., -c <file | directory>...
         Generates ctags information from the given source code file. Note that
@@ -395,7 +397,7 @@ Options:
         tree. If no files are specified, input is read from stdin.
 
     --declaration <symbolName> <file | directory>...,
-	-d <symbolName> <file | directory>...
+    -d <symbolName> <file | directory>...
         Find the location where symbolName is declared. This should be more
         accurate than "grep". Searches the given files and directories, or the
         current working directory if none are specified.
