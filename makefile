@@ -32,7 +32,7 @@ override GDC_FLAGS += $(DFLAGS)
 DMD_TEST_FLAGS = -w -g -Jbin -version=StdLoggerDisableWarning
 override LDC_FLAGS += -O5 -release -oq -d-version=StdLoggerDisableWarning
 override GDC_FLAGS += -O3 -frelease -d-version=StdLoggerDisableWarning
-SHELL:=/bin/bash
+SHELL:=/usr/bin/env bash
 
 all: dmdbuild
 ldc: ldcbuild
