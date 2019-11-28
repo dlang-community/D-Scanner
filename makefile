@@ -1,6 +1,7 @@
 .PHONY: all test
 
 DC ?= dmd
+GIT ?= git
 DMD := $(DC)
 GDC := gdc
 LDC := ldc2
@@ -39,7 +40,7 @@ ldc: ldcbuild
 gdc: gdcbuild
 
 githash:
-	mkdir -p bin && git describe --tags > bin/githash.txt
+	mkdir -p bin && ${GIT} describe --tags > bin/githash.txt
 
 debug: githash
 	${DC} -w -g -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
