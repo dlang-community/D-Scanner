@@ -265,7 +265,7 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {
 	auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
-		return messageFunctionFormat(errorFormat, Message(fileName, line, column, message), isError);
+		return messageFunctionFormat(errorFormat, Message(fileName, line, column, "dscanner.syntax", message), isError);
 	};
 
 	return parseModule(fileName, code, p, cache, tokens,
