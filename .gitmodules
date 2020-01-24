@@ -10,10 +10,10 @@
 	url = https://github.com/dlang-community/containers.git
 [submodule "dsymbol"]
 	path = dsymbol
-	url = https://github.com/Hackerpilot/dsymbol.git
+	url = https://github.com/dlang-community/dsymbol.git
 [submodule "libddoc"]
 	path = libddoc
-	url = https://github.com/economicmodeling/libddoc
+	url = https://github.com/dlang-community/libddoc.git
 [submodule "stdx-allocator"]
 	path = stdx-allocator
-	url = https://github.com/dlang-community/stdx-allocator
+	url = https://github.com/dlang-community/stdx-allocator.git
