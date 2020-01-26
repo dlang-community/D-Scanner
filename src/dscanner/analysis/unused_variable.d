@@ -20,6 +20,12 @@ final class UnusedVariableCheck : UnusedIdentifierCheck
 	mixin AnalyzerInfo!"unused_variable_check";
 
 	/**
+	Ignore declarations which are allowed to be unused, e.g. inside of a
+	speculative compilation: __traits(compiles, { S s = 0; })
+	**/
+	uint ignoreDeclarations = 0;
+
+	/**
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
@@ -42,17 +48,30 @@ final class UnusedVariableCheck : UnusedIdentifierCheck
 		autoDeclaration.accept(this);
 	}
 
+	override void visit(const TraitsExpression traitsExp)
+	{
+		// issue #788: Enum values might be used inside of `__traits` expressions, e.g.:
+		// enum name = "abc";
+		// __traits(hasMember, S, name);
+		ignoreDeclarations++;
+		traitsExp.templateArgumentList.accept(this);
+		ignoreDeclarations--;
+	}
+
 	override protected void popScope()
 	{
-		foreach (uu; tree[$ - 1])
+		if (!ignoreDeclarations)
 		{
-			if (!uu.isRef && tree.length > 1)
+			foreach (uu; tree[$ - 1])
 			{
-				if (uu.uncertain)
-					continue;
-				immutable string errorMessage = "Variable " ~ uu.name ~ " is never used.";
-				addErrorMessage(uu.line, uu.column, 
-						"dscanner.suspicious.unused_variable", errorMessage);
+				if (!uu.isRef && tree.length > 1)
+				{
+					if (uu.uncertain)
+						continue;
+					immutable string errorMessage = "Variable " ~ uu.name ~ " is never used.";
+					addErrorMessage(uu.line, uu.column,
+							"dscanner.suspicious.unused_variable", errorMessage);
+				}
 			}
 		}
 		tree = tree[0 .. $ - 1];
@@ -122,6 +141,15 @@ final class UnusedVariableCheck : UnusedIdentifierCheck
 	{
 		const int testValue;
 		testValue.writeln;
+	}
+
+	// Issue 788
+	void traits()
+	{
+		enum fieldName = "abc";
+		__traits(hasMember, S, fieldName);
+
+		__traits(compiles, { int i = 2; });
 	}
 
 	}c, sac);
