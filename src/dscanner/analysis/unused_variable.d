@@ -13,17 +13,11 @@ import std.algorithm.iteration : map;
 /**
  * Checks for unused variables.
  */
-final class UnusedVariableCheck : UnusedIdentifierCheck
+final class UnusedVariableCheck : UnusedStorageCheck
 {
-	alias visit = UnusedIdentifierCheck.visit;
+	alias visit = UnusedStorageCheck.visit;
 
 	mixin AnalyzerInfo!"unused_variable_check";
-
-	/**
-	Ignore declarations which are allowed to be unused, e.g. inside of a
-	speculative compilation: __traits(compiles, { S s = 0; })
-	**/
-	uint ignoreDeclarations = 0;
 
 	/**
 	 * Params:
@@ -31,7 +25,7 @@ final class UnusedVariableCheck : UnusedIdentifierCheck
 	 */
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc, skipTests);
+		super(fileName, sc, skipTests, "Variable", "unused_variable");
 	}
 
 	override void visit(const VariableDeclaration variableDeclaration)
@@ -46,35 +40,6 @@ final class UnusedVariableCheck : UnusedIdentifierCheck
 		foreach (t; autoDeclaration.parts.map!(a => a.identifier))
 			this.variableDeclared(t.text, t.line, t.column, false);
 		autoDeclaration.accept(this);
-	}
-
-	override void visit(const TraitsExpression traitsExp)
-	{
-		// issue #788: Enum values might be used inside of `__traits` expressions, e.g.:
-		// enum name = "abc";
-		// __traits(hasMember, S, name);
-		ignoreDeclarations++;
-		traitsExp.templateArgumentList.accept(this);
-		ignoreDeclarations--;
-	}
-
-	override protected void popScope()
-	{
-		if (!ignoreDeclarations)
-		{
-			foreach (uu; tree[$ - 1])
-			{
-				if (!uu.isRef && tree.length > 1)
-				{
-					if (uu.uncertain)
-						continue;
-					immutable string errorMessage = "Variable " ~ uu.name ~ " is never used.";
-					addErrorMessage(uu.line, uu.column,
-							"dscanner.suspicious.unused_variable", errorMessage);
-				}
-			}
-		}
-		tree = tree[0 .. $ - 1];
 	}
 }
 

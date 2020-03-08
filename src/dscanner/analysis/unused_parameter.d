@@ -13,9 +13,9 @@ import dsymbol.scope_ : Scope;
 /**
  * Checks for unused variables.
  */
-final class UnusedParameterCheck : UnusedIdentifierCheck
+final class UnusedParameterCheck : UnusedStorageCheck
 {
-	alias visit = UnusedIdentifierCheck.visit;
+	alias visit = UnusedStorageCheck.visit;
 
 	mixin AnalyzerInfo!"unused_parameter_check";
 
@@ -25,7 +25,7 @@ final class UnusedParameterCheck : UnusedIdentifierCheck
 	 */
 	this(string fileName, const(Scope)* sc, bool skipTests = false)
 	{
-		super(fileName, sc, skipTests);
+		super(fileName, sc, skipTests, "Parameter", "unused_parameter");
 	}
 
 	override void visit(const Parameter parameter)
@@ -51,22 +51,6 @@ final class UnusedParameterCheck : UnusedIdentifierCheck
 				interestDepth--;
 			}
 		}
-	}
-
-	override protected void popScope()
-	{
-		foreach (uu; tree[$ - 1])
-		{
-			if (!uu.isRef && tree.length > 1)
-			{
-			 	if (uu.uncertain)
-					continue;
-				immutable string errorMessage = "Parameter " ~ uu.name ~ " is never used.";
-				addErrorMessage(uu.line, uu.column,
-						"dscanner.suspicious.unused_parameter", errorMessage);
-			}
-		}
-		tree = tree[0 .. $ - 1];
 	}
 }
 
@@ -114,10 +98,21 @@ final class UnusedParameterCheck : UnusedIdentifierCheck
 		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
 		cb2(3);
 	}
-	
+
 	bool hasDittos(int decl)
 	{
 		mixin("decl++;");
+	}
+
+	// https://github.com/dlang-community/D-Scanner/issues/794
+	void traits()
+	{
+		struct S { int i; }
+
+		static foo(S s)
+		{
+			__traits(getMember, s, "i") = 99;
+		}
 	}
 
 	}c, sac);

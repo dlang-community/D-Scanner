@@ -393,3 +393,65 @@ private:
 
 	bool blockStatementIntroducesScope = true;
 }
+
+/// Base class for unused parameter/variables checks
+abstract class UnusedStorageCheck : UnusedIdentifierCheck
+{
+	alias visit = UnusedIdentifierCheck.visit;
+
+	/**
+	Ignore declarations which are allowed to be unused, e.g. inside of a
+	speculative compilation: __traits(compiles, { S s = 0; })
+	**/
+	uint ignoreDeclarations = 0;
+
+	/// Kind of declaration for error messages e.g. "Variable"
+	const string publicType;
+
+	/// Kind of declaration for error reports e.g. "unused_variable"
+	const string reportType;
+
+	/**
+	 * Params:
+	 *      fileName	= the name of the file being analyzed
+	 *		sc			= the scope
+	 *		skipTest	= whether tests should be analyzed
+	 *		publicType	= declaration kind used in error messages, e.g. "Variable"s
+	 *		reportType	= declaration kind used in error reports, e.g. "unused_variable"
+	 */
+	this(string fileName, const(Scope)* sc, bool skipTests = false, string publicType = null, string reportType = null)
+	{
+		super(fileName, sc, skipTests);
+		this.publicType = publicType;
+		this.reportType = reportType;
+	}
+
+	override void visit(const TraitsExpression traitsExp)
+	{
+		// issue #788: Enum values might be used inside of `__traits` expressions, e.g.:
+		// enum name = "abc";
+		// __traits(hasMember, S, name);
+		ignoreDeclarations++;
+		traitsExp.templateArgumentList.accept(this);
+		ignoreDeclarations--;
+	}
+
+	override final protected void popScope()
+	{
+		if (!ignoreDeclarations)
+		{
+			foreach (uu; tree[$ - 1])
+			{
+				if (!uu.isRef && tree.length > 1)
+				{
+					if (uu.uncertain)
+						continue;
+					immutable string errorMessage = publicType ~ ' ' ~ uu.name ~ " is never used.";
+					addErrorMessage(uu.line, uu.column,
+							"dscanner.suspicious." ~ reportType, errorMessage);
+				}
+			}
+		}
+		tree = tree[0 .. $ - 1];
+	}
+}
