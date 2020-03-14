@@ -19,7 +19,7 @@ if %githashsize% == 0 (
 )
 
 set DFLAGS=-O -release -version=StdLoggerDisableWarning -Jbin %MFLAGS%
-set TESTFLAGS=-g -w -version=StdLoggerDisableWarning
+set TESTFLAGS=-g -w -version=StdLoggerDisableWarning -Jbin
 set CORE=
 set LIBDPARSE=
 set STD=
