@@ -88,15 +88,18 @@ protected:
 
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-        import std.file : readText;
+        import std.file : readText, exists;
         import std.array : split;
         import std.ascii : newline;
         import std.algorithm : canFind;
 
-        string l = readText(fileName).split(newline)[line-1];
-        if (l.canFind("@suppress(" ~ key ~ ")"))
+        if (exists(fileName))
         {
-            return;
+            string l = readText(fileName).split(newline)[line-1];
+            if (l.canFind("@suppress(" ~ key ~ ")"))
+            {
+                return;
+            }
         }
 
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
