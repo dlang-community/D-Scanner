@@ -4,6 +4,7 @@ import std.array : appender, uninitializedArray;
 import std.stdio : stdin, stderr, File;
 import std.conv : to;
 import std.encoding : BOM, BOMSeq, EncodingException, getBOM;
+import std.path : dirSeparator;
 import std.format : format;
 import std.file : exists, read;
 
@@ -105,7 +106,7 @@ string[] expandArgs(string[] args)
 		else
 			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
 			{
-				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)) && !item.find('.git'))
+				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)) && !item.find(dirSeparator ~ '.'))
 					rVal ~= item;
 				else
 					continue;
