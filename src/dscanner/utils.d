@@ -4,7 +4,6 @@ import std.array : appender, uninitializedArray;
 import std.stdio : stdin, stderr, File;
 import std.conv : to;
 import std.encoding : BOM, BOMSeq, EncodingException, getBOM;
-import std.path : dirSeparator;
 import std.format : format;
 import std.file : exists, read;
 
@@ -85,7 +84,8 @@ string[] expandArgs(string[] args)
 {
 	import std.file : isFile, FileException, dirEntries, SpanMode;
 	import std.algorithm.iteration : map;
-	import std.algorithm.searching : endsWith, find;
+	import std.algorithm.searching : endsWith, canFind;
+	import std.path : dirSeparator;
 
 	// isFile can throw if it's a broken symlink.
 	bool isFileSafe(T)(T a)
