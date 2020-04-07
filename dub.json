@@ -5,7 +5,7 @@
   "authors" : [
     "Brian Schott"
   ],
-  "license" : "Boost Software License - Version 1.0",
+  "license" : "BSL-1.0",
   "targetType" : "autodetect",
   "versions" : [
     "built_with_dub",
