@@ -133,7 +133,7 @@ final class ArgVisitor : ASTVisitor
 		{
 			if (iot.identifier == tok!"")
 				return;
-			immutable t = iot.identifier;
+			const t = iot.identifier;
 			lines ~= t.line;
 			columns ~= t.column;
 			args ~= internString(t.text);

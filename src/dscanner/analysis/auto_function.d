@@ -78,7 +78,7 @@ public:
 			if (!p)
 				return;
 
-			immutable token = p.primary;
+			const token = p.primary;
 			if (token.type == tok!"false")
 				_returns[$-1] = true;
 			else if (token.text == "0")

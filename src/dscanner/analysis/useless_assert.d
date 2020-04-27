@@ -44,7 +44,7 @@ final class UselessAssertCheck : BaseAnalyzer
 			return;
 		if (unary.primaryExpression is null)
 			return;
-		immutable token = unary.primaryExpression.primary;
+		const token = unary.primaryExpression.primary;
 		immutable skipSwitch = unary.primaryExpression.arrayLiteral !is null
 			|| unary.primaryExpression.assocArrayLiteral !is null
 			|| unary.primaryExpression.functionLiteralExpression !is null;
