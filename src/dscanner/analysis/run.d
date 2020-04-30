@@ -14,6 +14,8 @@ import std.algorithm;
 import std.range;
 import std.array;
 import std.functional : toDelegate;
+import std.file : mkdirRecurse;
+import std.path : dirName;
 import dparse.lexer;
 import dparse.parser;
 import dparse.ast;
@@ -87,7 +89,7 @@ import dsymbol.conversion.second;
 import dsymbol.modulecache : ModuleCache;
 
 import dscanner.utils;
-import dscanner.reports : SonarQubeGenericIssueDataReporter;
+import dscanner.reports : DScannerJsonReporter, SonarQubeGenericIssueDataReporter;
 
 bool first = true;
 
@@ -146,10 +148,14 @@ bool syntaxCheck(string[] fileNames, string errorFormat, ref StringCache stringC
 }
 
 void generateReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache)
+		ref StringCache cache, ref ModuleCache moduleCache, string reportFile = "")
 {
-	writeln("{");
-	writeln(`  "issues": [`);
+	auto reporter = new DScannerJsonReporter();
+
+	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
+		reporter.addMessage(Message(fileName, line, column, "dscanner.syntax", message), isError);
+	};
+
 	first = true;
 	StatsCollector stats = new StatsCollector("");
 	ulong lineOfCodeCount;
@@ -161,29 +167,26 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 			continue;
 		RollbackAllocator r;
 		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, defaultErrorFormat, cache, true, tokens, &lineOfCodeCount);
+		const Module m = parseModule(fileName, code, &r, cache, tokens, writeMessages, &lineOfCodeCount, null, null);
 		stats.visit(m);
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true);
-		foreach (result; results[])
-		{
-			writeJSON(result);
-		}
+		MessageSet messageSet = analyze(fileName, m, config, moduleCache, tokens, true);
+		reporter.addMessageSet(messageSet);
 	}
-	writeln();
-	writeln("  ],");
-	writefln(`  "interfaceCount": %d,`, stats.interfaceCount);
-	writefln(`  "classCount": %d,`, stats.classCount);
-	writefln(`  "functionCount": %d,`, stats.functionCount);
-	writefln(`  "templateCount": %d,`, stats.templateCount);
-	writefln(`  "structCount": %d,`, stats.structCount);
-	writefln(`  "statementCount": %d,`, stats.statementCount);
-	writefln(`  "lineOfCodeCount": %d,`, lineOfCodeCount);
-	writefln(`  "undocumentedPublicSymbols": %d`, stats.undocumentedPublicSymbols);
-	writeln("}");
+
+	string reportFileContent = reporter.getContent(stats, lineOfCodeCount);
+	if (reportFile == "")
+	{
+		writeln(reportFileContent);
+	}
+	else
+	{
+		mkdirRecurse(reportFile.dirName);
+		toFile(reportFileContent, reportFile);
+	}
 }
 
 void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache)
+		ref StringCache cache, ref ModuleCache moduleCache, string reportFile = "")
 {
 	auto reporter = new SonarQubeGenericIssueDataReporter();
 
@@ -204,7 +207,16 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
 		reporter.addMessageSet(messageSet);
 	}
 
-	writeln(reporter.getContent());
+	string reportFileContent = reporter.getContent();
+	if (reportFile == "")
+	{
+		writeln(reportFileContent);
+	}
+	else
+	{
+		mkdirRecurse(reportFile.dirName);
+		toFile(reportFileContent, reportFile);
+	}
 }
 
 /**

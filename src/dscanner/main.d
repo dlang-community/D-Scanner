@@ -63,6 +63,7 @@ else
 	bool report;
 	bool skipTests;
 	string reportFormat;
+	string reportFile;
 	string symbolName;
 	string configLocation;
 	string[] importPaths;
@@ -93,6 +94,7 @@ else
 				"config", &configLocation,
 				"report", &report,
 				"reportFormat", &reportFormat,
+				"reportFile", &reportFile,
 				"I", &importPaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
@@ -157,7 +159,7 @@ else
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);
 
-	if (reportFormat.length)
+	if (reportFormat.length || reportFile.length)
 		report = true;
 
 	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
@@ -250,10 +252,10 @@ else
 					goto case;
 				case "":
 				case "dscanner":
-					generateReport(expandArgs(args), config, cache, moduleCache);
+					generateReport(expandArgs(args), config, cache, moduleCache, reportFile);
 					break;
 				case "sonarQubeGenericIssueData":
-					generateSonarQubeGenericIssueDataReport(expandArgs(args), config, cache, moduleCache);
+					generateSonarQubeGenericIssueDataReport(expandArgs(args), config, cache, moduleCache, reportFile);
 					break;
 			}
 		}
@@ -406,6 +408,9 @@ Options:
         Generate a static analysis report in JSON format. Implies --styleCheck,
         however the exit code will still be zero if errors or warnings are
         found.
+
+    --reportFile <file>
+        Write report into file instead of STDOUT.
 
     --reportFormat <dscanner | sonarQubeGenericIssueData>...
         Specifies the format of the generated report.

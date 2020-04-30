@@ -84,7 +84,8 @@ string[] expandArgs(string[] args)
 {
 	import std.file : isFile, FileException, dirEntries, SpanMode;
 	import std.algorithm.iteration : map;
-	import std.algorithm.searching : endsWith;
+	import std.algorithm.searching : endsWith, canFind;
+	import std.path : dirSeparator;
 
 	// isFile can throw if it's a broken symlink.
 	bool isFileSafe(T)(T a)
@@ -105,7 +106,7 @@ string[] expandArgs(string[] args)
 		else
 			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
 			{
-				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)))
+				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)) && !item.canFind(dirSeparator ~ '.'))
 					rVal ~= item;
 				else
 					continue;

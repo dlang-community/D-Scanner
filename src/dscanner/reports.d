@@ -10,6 +10,86 @@ import std.algorithm : map;
 import std.array : split, array, Appender, appender;
 
 import dscanner.analysis.base : Message, MessageSet;
+import dscanner.analysis.stats_collector;
+
+class DScannerJsonReporter
+{
+	struct Issue
+	{
+		Message message;
+		string type;
+	}
+
+	private Appender!(Issue[]) _issues;
+
+	this()
+	{
+		_issues = appender!(Issue[]);
+	}
+
+	void addMessageSet(MessageSet messageSet)
+	{
+		_issues ~= toIssues(messageSet);
+	}
+
+	void addMessage(Message message, bool isError = false)
+	{
+		_issues ~= toIssue(message, isError);
+	}
+
+	string getContent(StatsCollector stats, ulong lineOfCodeCount)
+	{
+		JSONValue result = [
+			"issues" : JSONValue(_issues.data.map!(e => toJson(e)).array),
+			"interfaceCount": JSONValue(stats.interfaceCount),
+			"classCount": JSONValue(stats.classCount),
+			"functionCount": JSONValue(stats.functionCount),
+			"templateCount": JSONValue(stats.templateCount),
+			"structCount": JSONValue(stats.structCount),
+			"statementCount": JSONValue(stats.statementCount),
+			"lineOfCodeCount": JSONValue(lineOfCodeCount),
+			"undocumentedPublicSymbols": JSONValue(stats.undocumentedPublicSymbols)
+		];
+		return result.toPrettyString();
+	}
+
+	private static JSONValue toJson(Issue issue)
+	{
+		// dfmt off
+		JSONValue js = JSONValue([
+			"key": JSONValue(issue.message.key),
+			"fileName": JSONValue(issue.message.fileName),
+			"line": JSONValue(issue.message.line),
+			"column": JSONValue(issue.message.column),
+			"message": JSONValue(issue.message.message),
+			"type": JSONValue(issue.type)
+		]);
+		// dfmt on
+
+		if (issue.message.checkName !is null)
+		{
+			js["name"] = JSONValue(issue.message.checkName);
+		}
+
+		return js;
+	}
+
+	private static Issue[] toIssues(MessageSet messageSet)
+	{
+		return messageSet[].map!(e => toIssue(e)).array;
+	}
+
+	private static Issue toIssue(Message message, bool isError = false)
+	{
+		// dfmt off
+		Issue issue = {
+			message: message,
+			type : isError ? "error" : "warn"
+		};
+		// dfmt on
+		return issue;
+	}
+}
 
 class SonarQubeGenericIssueDataReporter
 {
