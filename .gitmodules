@@ -17,3 +17,6 @@
 [submodule "stdx-allocator"]
 	path = stdx-allocator
 	url = https://github.com/dlang-community/stdx-allocator.git
+[submodule "d-test-utils"]
+	path = d-test-utils
+	url = https://github.com/dlang-community/d-test-utils.git
