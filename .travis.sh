@@ -5,7 +5,7 @@ set -e
 if [[ $BUILD == dub ]]; then
     if [[ -n $LIBDPARSE_VERSION ]]; then
         rdmd ./d-test-utils/test_with_package.d $LIBDPARSE_VERSION libdparse -- dub test
-    elif if [[ -n $DSYMBOL_VERSION ]]; then
+    elif [[ -n $DSYMBOL_VERSION ]]; then
         rdmd ./d-test-utils/test_with_package.d $DSYMBOL_VERSION dsymbol -- dub test
     else
         echo 'Cannot run test without LIBDPARSE_VERSION nor DSYMBOL_VERSION environment variable'
