@@ -122,7 +122,7 @@ struct StaticAnalysisConfig
 	@INI("Checks for use of the comma operator")
 	string comma_expression_check = Check.enabled;
 
-	@INI("Checks for local imports that are too broad")
+	@INI("Checks for local imports that are too broad. Only accurate when checking code used with D versions older than 2.071.0")
 	string local_import_check = Check.disabled;
 
 	@INI("Checks for variables that could be declared immutable")
