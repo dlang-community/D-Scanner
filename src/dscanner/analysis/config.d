@@ -123,7 +123,7 @@ struct StaticAnalysisConfig
 	string comma_expression_check = Check.enabled;
 
 	@INI("Checks for local imports that are too broad")
-	string local_import_check = Check.enabled;
+	string local_import_check = Check.disabled;
 
 	@INI("Checks for variables that could be declared immutable")
 	string could_be_immutable_check = Check.enabled;
