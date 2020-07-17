@@ -367,8 +367,9 @@ Options:
         Similar to "--imports", but lists imports of imports recursively.
 
     -I <directory>
-        Specify that imported the given directory should be searched for
-        imported modules.
+        Specify that the given directory should be searched for imported
+        modules. This option can be passed multiple times to specify multiple
+        directories.
 
     --syntaxCheck <file>, -s <file>
         Lexes and parses sourceFile, printing the line and column number of
