@@ -348,6 +348,11 @@ Options:
         Prints the number of tokens in the given source files. If no files are
         specified, input is read from stdin.
 
+    --tokenDump <file>
+        Dump token information from the lexer. This option is mostly useful for
+        developing D-Scanner or its supporting libraries itself. You probably
+        dont't want to use this, and this feature may be removed in the future.
+
     --highlight <file>
         Syntax-highlight the given source file. The resulting HTML will be
         written to standard output. If no file is specified, input is read
@@ -360,6 +365,10 @@ Options:
 
     --recursiveImports <file>
         Similar to "--imports", but lists imports of imports recursively.
+
+    -I <directory>
+        Specify that imported the given directory should be searched for
+        imported modules.
 
     --syntaxCheck <file>, -s <file>
         Lexes and parses sourceFile, printing the line and column number of
@@ -423,7 +432,8 @@ Options:
         Generates a default configuration file for the static analysis checks,
 
     --skipTests
-        Does not analyze in the unittests. Only works if --styleCheck.`,
+        Does not analyze code in unittests. Only works if --styleCheck
+        is specified.`,
 
     programName, defaultErrorFormat);
 }
