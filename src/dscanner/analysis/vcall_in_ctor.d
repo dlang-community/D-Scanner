@@ -162,17 +162,17 @@ public:
         popNestedFunc();
     }
 
-	override void visit(const(StructDeclaration) decl)
-	{
-		pushVirtual(false);
-		pushInClass(false);
-		pushNestedFunc(false);
-		decl.accept(this);
-		check();
-		popVirtual();
-		popInClass();
-		popNestedFunc();
-	}
+    override void visit(const(StructDeclaration) decl)
+    {
+        pushVirtual(false);
+        pushInClass(false);
+        pushNestedFunc(false);
+        decl.accept(this);
+        check();
+        popVirtual();
+        popInClass();
+        popNestedFunc();
+    }
 
     override void visit(const(Constructor) ctor)
     {
@@ -416,17 +416,17 @@ unittest
         }
     }, sac);
 
-	assertAnalyzerWarnings(q{
-		class C {
-			static struct S {
-			public:
-				this(int) {
-					foo();
-				}
-				void foo() {}
-			}
-		}
-	}, sac);
+    assertAnalyzerWarnings(q{
+        class C {
+            static struct S {
+            public:
+                this(int) {
+                    foo();
+                }
+                void foo() {}
+            }
+        }
+    }, sac);
 
     import std.stdio: writeln;
     writeln("Unittest for VcallCtorChecker passed");
