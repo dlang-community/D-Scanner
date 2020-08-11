@@ -162,6 +162,18 @@ public:
         popNestedFunc();
     }
 
+    override void visit(const(StructDeclaration) decl)
+    {
+        pushVirtual(false);
+        pushInClass(false);
+        pushNestedFunc(false);
+        decl.accept(this);
+        check();
+        popVirtual();
+        popInClass();
+        popNestedFunc();
+    }
+
     override void visit(const(Constructor) ctor)
     {
         pushInCtor(isInClass);
@@ -401,6 +413,18 @@ unittest
         {
             package void nonVirtual();
             this(){nonVirtual();}
+        }
+    }, sac);
+
+    assertAnalyzerWarnings(q{
+        class C {
+            static struct S {
+            public:
+                this(int) {
+                    foo();
+                }
+                void foo() {}
+            }
         }
     }, sac);
 
