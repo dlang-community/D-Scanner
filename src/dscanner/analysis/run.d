@@ -79,6 +79,7 @@ import dscanner.analysis.assert_without_msg;
 import dscanner.analysis.if_constraints_indent;
 import dscanner.analysis.trust_too_much;
 import dscanner.analysis.redundant_storage_class;
+import dscanner.analysis.unused_result;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -582,6 +583,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!RedundantStorageClassCheck(analysisConfig))
 		checks ~= new RedundantStorageClassCheck(fileName,
 		analysisConfig.redundant_storage_classes == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!UnusedResultChecker(analysisConfig))
+		checks ~= new UnusedResultChecker(fileName, moduleScope,
+		analysisConfig.unused_result == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!IfStatementCheck(analysisConfig))
