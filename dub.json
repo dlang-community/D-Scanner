@@ -16,7 +16,7 @@
     "dsymbol" : ">=0.10.0 <0.12.0",
     "inifiled" : "~>1.3.1",
     "emsi_containers" : "~>0.8.0-alpha.17",
-    "libddoc" : "~>0.7.2",
+    "libddoc" : "~>0.7.3",
     "stdx-allocator" : "~>2.77.5"
   },
   "targetPath" : "bin",
