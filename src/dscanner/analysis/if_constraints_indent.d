@@ -24,12 +24,19 @@ final class IfConstraintsIndentCheck : BaseAnalyzer
 	{
 		super(fileName, null, skipTests);
 
+		// convert tokens to a list of token starting positions per line
+
 		// libdparse columns start at 1
 		foreach (t; tokens)
 		{
-			while (firstSymbolAtLine.length < t.line - 1)
+			// pad empty positions if we skip empty token-less lines
+			// t.line (unsigned) may be 0 if the token is uninitialized/broken, so don't subtract from it
+			// equivalent to: firstSymbolAtLine.length < t.line - 1
+			while (firstSymbolAtLine.length + 1 < t.line)
 				firstSymbolAtLine ~= Pos(1);
 
+			// insert a new line with positions if new line is reached
+			// (previous while pads skipped lines)
 			if (firstSymbolAtLine.length < t.line)
 				firstSymbolAtLine ~= Pos(t.column, t.type == tok!"if");
 		}
@@ -232,4 +239,20 @@ if
 	), sac);
 
 	stderr.writeln("Unittest for IfConstraintsIndentCheck passed.");
+}
+
+@("issue #829")
+unittest
+{
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import std.format : format;
+	import std.stdio : stderr;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.if_constraints_indent = Check.enabled;
+
+	assertAnalyzerWarnings(`void foo() {
+	''
+}`, sac);
 }
