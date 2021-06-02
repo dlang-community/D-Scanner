@@ -13,6 +13,7 @@ LIB_SRC := \
 	$(shell find libdparse/src/std/experimental/ -name "*.d")\
 	$(shell find libdparse/src/dparse/ -name "*.d")\
 	$(shell find libddoc/src -name "*.d") \
+	$(shell find libddoc/common/source -name "*.d") \
 	$(shell find stdx-allocator/source -name "*.d")
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
@@ -23,6 +24,7 @@ INCLUDE_PATHS = \
 	-Idsymbol/src \
 	-Icontainers/src \
 	-Ilibddoc/src \
+	-Ilibddoc/common/source \
 	-Istdx-allocator/source
 VERSIONS =
 DEBUG_VERSIONS = -version=dparse_verbose
