@@ -12,6 +12,8 @@ import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_ : Scope;
 
+
+
 /**
  * Checks for .. expressions where the left side is larger than the right. This
  * is almost always a mistake.

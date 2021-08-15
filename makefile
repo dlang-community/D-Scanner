@@ -27,13 +27,14 @@ INCLUDE_PATHS = \
 	-Ilibddoc/common/source \
 	-Istdx-allocator/source
 VERSIONS =
-DEBUG_VERSIONS = -version=dparse_verbose
-DMD_FLAGS = -w -release -O -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
+DEBUG_VERSIONS = -version=StdLoggerDisableWarning
+# DEBUG_VERSIONS = -version=StdLoggerDisableWarning
+DMD_FLAGS = -w -g -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
 override DMD_FLAGS += $(DFLAGS)
 override LDC_FLAGS += $(DFLAGS)
 override GDC_FLAGS += $(DFLAGS)
 DMD_TEST_FLAGS = -w -g -Jbin -version=StdLoggerDisableWarning
-override LDC_FLAGS += -O5 -release -oq -d-version=StdLoggerDisableWarning
+override LDC_FLAGS += --d-debug -g -oq -d-version=StdLoggerDisableWarning -fsanitize=address -link-defaultlib-debug
 override GDC_FLAGS += -O3 -frelease -d-version=StdLoggerDisableWarning
 SHELL:=/usr/bin/env bash
 

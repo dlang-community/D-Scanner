@@ -10,6 +10,8 @@ import dparse.ast, dparse.lexer;
 import std.algorithm.searching : canFind;
 import std.range: retro;
 
+
+
 /**
  * Checks virtual calls from the constructor to methods defined in the same class.
  *
@@ -431,4 +433,3 @@ unittest
     import std.stdio: writeln;
     writeln("Unittest for VcallCtorChecker passed");
 }
-

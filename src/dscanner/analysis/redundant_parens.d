@@ -10,6 +10,8 @@ import dparse.lexer;
 import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
 
+
+
 /**
  * Checks for redundant parenthesis
  */

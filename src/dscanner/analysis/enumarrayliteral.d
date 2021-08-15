@@ -11,6 +11,8 @@ import dscanner.analysis.base;
 import std.algorithm : canFind, map;
 import dsymbol.scope_ : Scope;
 
+
+
 void doNothing(string, size_t, size_t, string, bool)
 {
 }
@@ -52,6 +54,6 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 						~ part.identifier.text ~ " = [ ...' instead.");
 			}
 		}
-		autoDec.accept(this);
+                () @trusted { autoDec.accept(this); } ();
 	}
 }

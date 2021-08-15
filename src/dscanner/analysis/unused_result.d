@@ -13,6 +13,8 @@ import dparse.ast, dparse.lexer;
 import std.algorithm.searching : canFind;
 import std.range: retro;
 
+
+
 /**
  * Checks for function call statements which call non-void functions.
  *
@@ -154,4 +156,3 @@ unittest
     import std.stdio: writeln;
     writeln("Unittest for UnusedResultChecker passed");
 }
-

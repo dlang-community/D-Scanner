@@ -7,6 +7,8 @@ import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_ : Scope;
 
+
+
 final class ConstructorCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;

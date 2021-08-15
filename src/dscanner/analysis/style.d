@@ -16,6 +16,8 @@ import dscanner.analysis.helpers;
 import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
 
+
+
 final class StyleChecker : BaseAnalyzer
 {
 	alias visit = ASTVisitor.visit;

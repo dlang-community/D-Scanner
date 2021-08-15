@@ -14,6 +14,8 @@ import std.algorithm;
 import std.conv : to, text;
 import std.range : empty, front, walkLength;
 
+
+
 /**
  * Checks for redundant attributes. At the moment only visibility attributes.
  */
@@ -277,7 +279,7 @@ unittest
 	assertAnalyzerWarnings(q{
 unittest
 {
-@safe:
+
 	@safe void foo();
 @system
 {

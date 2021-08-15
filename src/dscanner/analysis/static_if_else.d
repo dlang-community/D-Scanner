@@ -10,6 +10,8 @@ import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.utils : safeAccess;
 
+
+
 /**
  * Checks for potentially mistaken static if / else if.
  *
@@ -19,7 +21,7 @@ import dscanner.utils : safeAccess;
  * } else if (bar) {
  * }
  * ---
- * 
+ *
  * However, it's more likely that this is a mistake.
  */
 final class StaticIfElse : BaseAnalyzer

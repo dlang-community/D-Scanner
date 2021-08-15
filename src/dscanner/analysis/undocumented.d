@@ -13,6 +13,8 @@ import dparse.lexer;
 import std.regex : ctRegex, matchAll;
 import std.stdio;
 
+
+
 /**
  * Checks for undocumented public declarations. Ignores some operator overloads,
  * main functions, and functions whose name starts with "get" or "set".
@@ -265,7 +267,7 @@ private:
 	{
 		assert(isProtection(p));
 	}
-	body
+	do
 	{
 		stack[$ - 1].protection = p;
 	}
@@ -275,7 +277,7 @@ private:
 	{
 		assert(isProtection(p));
 	}
-	body
+	do
 	{
 		stack ~= ProtectionInfo(p, false);
 	}
@@ -349,4 +351,3 @@ unittest
 
 	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
 }
-

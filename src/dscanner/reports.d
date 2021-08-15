@@ -12,6 +12,8 @@ import std.array : split, array, Appender, appender;
 import dscanner.analysis.base : Message, MessageSet;
 import dscanner.analysis.stats_collector;
 
+@safe:
+
 class DScannerJsonReporter
 {
 	struct Issue
@@ -146,7 +148,7 @@ class SonarQubeGenericIssueDataReporter
 	{
 		_issues ~= toIssues(messageSet);
 	}
-	
+
 	void addMessage(Message message, bool isError = false)
 	{
 		_issues ~= toIssue(message, isError);
@@ -185,7 +187,7 @@ class SonarQubeGenericIssueDataReporter
 	}
 
 	private static Issue toIssue(Message message, bool isError = false)
-	{		
+	{
 		// dfmt off
 		Issue issue = {
 			engineId: "dscanner",

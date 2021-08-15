@@ -12,6 +12,8 @@ import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_ : Scope;
 
+
+
 /**
  * Checks for use of the deprecated floating point comparison operators.
  */

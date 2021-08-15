@@ -99,6 +99,8 @@ private alias ASTAllocator = CAllocatorImpl!(
 
 immutable string defaultErrorFormat = "{filepath}({line}:{column})[{type}]: {message}";
 
+
+
 void messageFunctionFormat(string format, Message message, bool isError)
 {
 	auto s = format;
@@ -605,4 +607,3 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 
 	return set;
 }
-

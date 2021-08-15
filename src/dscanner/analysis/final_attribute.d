@@ -10,6 +10,8 @@ import dscanner.analysis.helpers;
 import dparse.ast;
 import dparse.lexer;
 
+
+
 /**
  * Checks for useless usage of the final attribute.
  *

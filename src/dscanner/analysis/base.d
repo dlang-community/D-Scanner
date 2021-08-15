@@ -6,6 +6,8 @@ import dparse.ast;
 import std.array;
 import dsymbol.scope_ : Scope;
 
+
+
 struct Message
 {
 	/// Name of the file where the warning was triggered
@@ -81,7 +83,7 @@ protected:
 		override void visit(const T structDec)
 		{
 			inAggregate = true;
-			structDec.accept(this);
+                        () @trusted { structDec.accept(this); } ();
 			inAggregate = false;
 		}
 	}

@@ -12,6 +12,8 @@ import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_ : Scope;
 
+
+
 /**
  * Checks for confusing asm expressions.
  * See_also: $(LINK https://issues.dlang.org/show_bug.cgi?id=9738)

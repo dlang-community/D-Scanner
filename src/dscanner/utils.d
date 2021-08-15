@@ -7,6 +7,8 @@ import std.encoding : BOM, BOMSeq, EncodingException, getBOM;
 import std.format : format;
 import std.file : exists, read;
 
+@safe:
+
 private void processBOM(ref ubyte[] sourceCode, string fname)
 {
 	enum spec = "D-Scanner does not support %s-encoded files (%s)";
@@ -54,7 +56,7 @@ ubyte[] readStdin()
 	ubyte[4096] buf;
 	while (true)
 	{
-		auto b = stdin.rawRead(buf);
+                auto b = () @trusted { return stdin.rawRead(buf); } ();
 		if (b.length == 0)
 			break;
 		sourceCode.put(b);
@@ -70,12 +72,12 @@ ubyte[] readFile(string fileName)
 		return readStdin();
 	if (!exists(fileName))
 	{
-		stderr.writefln("%s does not exist", fileName);
+                () @trusted { stderr.writefln("%s does not exist", fileName); } ();
 		return [];
 	}
 	File f = File(fileName);
 	ubyte[] sourceCode;
-	sourceCode = cast(ubyte[]) fileName.read();
+        () @trusted { sourceCode = cast(ubyte[]) fileName.read(); } ();
 	sourceCode.processBOM(fileName);
 	return sourceCode;
 }
@@ -104,13 +106,15 @@ string[] expandArgs(string[] args)
 		if (arg == "stdin" || isFileSafe(arg))
 			rVal ~= arg;
 		else
+                    () @trusted {
 			foreach (item; dirEntries(arg, SpanMode.breadth).map!(a => a.name))
-			{
+                            {
 				if (isFileSafe(item) && (item.endsWith(`.d`) || item.endsWith(`.di`)) && !item.canFind(dirSeparator ~ '.'))
-					rVal ~= item;
+                                    rVal ~= item;
 				else
-					continue;
-			}
+                                    continue;
+                            }
+                    } ();
 	}
 	return rVal;
 }

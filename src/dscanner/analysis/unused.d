@@ -12,6 +12,8 @@ import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
 import std.algorithm : all;
 
+
+
 /**
  * Checks for unused variables.
  */

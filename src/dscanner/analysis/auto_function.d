@@ -13,6 +13,8 @@ import dparse.lexer;
 import std.stdio;
 import std.algorithm.searching : any;
 
+
+
 /**
  * Checks for auto functions without return statement.
  *

@@ -10,6 +10,8 @@ import dparse.formatter;
 import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
 
+
+
 final class IfStatementCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;

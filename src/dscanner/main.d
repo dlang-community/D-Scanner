@@ -37,12 +37,14 @@ import inifiled;
 
 import dsymbol.modulecache;
 
+@safe:
+
 version (unittest)
-	void main()
+	void main() @trusted
 {
 }
 else
-	int main(string[] args)
+	int main(string[] args) @trusted
 {
 	bool sloc;
 	bool highlight;
@@ -74,48 +76,55 @@ else
 	try
 	{
 		// dfmt off
+                () @trusted {
 		getopt(args, std.getopt.config.caseSensitive,
-				"sloc|l", &sloc,
-				"highlight", &highlight,
-				"ctags|c", &ctags,
-				"help|h", &help,
-				"etags|e", &etags,
-				"etagsAll", &etagsAll,
-				"tokenCount|t", &tokenCount,
-				"syntaxCheck|s", &syntaxCheck,
-				"ast|xml", &ast,
-				"imports|i", &imports,
-				"recursiveImports", &recursiveImports,
-				"outline|o", &outline,
-				"tokenDump", &tokenDump,
-				"styleCheck|S", &styleCheck,
-				"defaultConfig", &defaultConfig,
-				"declaration|d", &symbolName,
-				"config", &configLocation,
-				"report", &report,
-				"reportFormat", &reportFormat,
-				"reportFile", &reportFile,
-				"I", &importPaths,
-				"version", &printVersion,
-				"muffinButton", &muffin,
-				"explore", &explore,
-				"skipTests", &skipTests,
-				"errorFormat|f", &errorFormat);
+                       "sloc|l", &sloc,
+                       "highlight", &highlight,
+                       "ctags|c", &ctags,
+                       "help|h", &help,
+                       "etags|e", &etags,
+                       "etagsAll", &etagsAll,
+                       "tokenCount|t", &tokenCount,
+                       "syntaxCheck|s", &syntaxCheck,
+                       "ast|xml", &ast,
+                       "imports|i", &imports,
+                       "recursiveImports", &recursiveImports,
+                       "outline|o", &outline,
+                       "tokenDump", &tokenDump,
+                       "styleCheck|S", &styleCheck,
+                       "defaultConfig", &defaultConfig,
+                       "declaration|d", &symbolName,
+                       "config", &configLocation,
+                       "report", &report,
+                       "reportFormat", &reportFormat,
+                       "reportFile", &reportFile,
+                       "I", &importPaths,
+                       "version", &printVersion,
+                       "muffinButton", &muffin,
+                       "explore", &explore,
+                       "skipTests", &skipTests,
+                       "errorFormat|f", &errorFormat);
+                } ();
 		//dfmt on
 	}
 	catch (ConvException e)
 	{
-		stderr.writeln(e.msg);
-		return 1;
+            () @trusted {
+                stderr.writeln(e.msg);
+            } ();
+            return 1;
 	}
 	catch (GetOptException e)
 	{
-		stderr.writeln(e.msg);
-		return 1;
+            () @trusted {
+                stderr.writeln(e.msg);
+            } ();
+            return 1;
 	}
 
 	if (muffin)
 	{
+                () @trusted {
 		stdout.writeln(`       ___________
     __(#*O 0** @%*)__
   _(%*o#*O%*0 #O#%##@)_
@@ -125,13 +134,16 @@ else
   |I|I|I|I|I|I|I|I|I|I|
   |I|I|I|I|I|I|I|I|I|I|
   |I|I|I|I|I|I|I|I|I|I|`);
+                } ();
 		return 0;
 	}
 
 	if (explore)
 	{
-		stdout.writeln("D-Scanner: Scanning...");
+            () @trusted {
+                stdout.writeln("D-Scanner: Scanning...");
 		stderr.writeln("D-Scanner: No new astronomical objects discovered.");
+            } ();
 		return 1;
 	}
 
@@ -153,7 +165,7 @@ else
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
 
-	auto alloc = scoped!(dsymbol.modulecache.ASTAllocator)();
+	scope alloc = () @trusted { return new dsymbol.modulecache.ASTAllocator(); } ();
 	auto moduleCache = ModuleCache(alloc);
 
 	if (absImportPaths.length)
@@ -328,7 +340,7 @@ else
 	return 0;
 }
 
-void printHelp(string programName)
+void printHelp(string programName) @trusted
 {
 	stderr.writefln(`
     Usage: %s <options>
