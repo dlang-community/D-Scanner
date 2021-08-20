@@ -46,7 +46,7 @@ githash:
 	mkdir -p bin && ${GIT} describe --tags > bin/githash.txt
 
 debug: githash
-	${DC} -w -g -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
+	${DC} -w -g -debug -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 dmdbuild: githash
 	${DC} ${DMD_FLAGS} -ofbin/dscanner ${VERSIONS} ${INCLUDE_PATHS} ${SRC}
