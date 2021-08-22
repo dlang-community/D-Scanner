@@ -10,8 +10,6 @@ import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.utils : safeAccess;
 
-
-
 final class LambdaReturnCheck : BaseAnalyzer
 {
 	alias visit = BaseAnalyzer.visit;

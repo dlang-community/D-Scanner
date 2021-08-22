@@ -7,8 +7,6 @@ module dscanner.analysis.config;
 
 import inifiled;
 
-
-
 /// Returns: A default configuration.
 StaticAnalysisConfig defaultStaticAnalysisConfig()
 {

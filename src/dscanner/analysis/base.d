@@ -6,8 +6,6 @@ import dparse.ast;
 import std.array;
 import dsymbol.scope_ : Scope;
 
-
-
 struct Message
 {
 	/// Name of the file where the warning was triggered

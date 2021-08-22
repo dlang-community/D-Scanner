@@ -13,8 +13,6 @@ import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_;
 
-
-
 /**
  * Checks for subtraction from a .length property. This is usually a bug.
  */

@@ -10,8 +10,6 @@ import dscanner.analysis.unused;
 import dsymbol.scope_ : Scope;
 import std.algorithm.iteration : map;
 
-
-
 /**
  * Checks for unused variables.
  */

@@ -10,8 +10,6 @@ import dparse.ast;
 
 import std.stdio;
 
-
-
 /**
  * Checks the sortedness of module imports
  */

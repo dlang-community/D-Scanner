@@ -10,8 +10,6 @@ import dparse.lexer;
 import dscanner.analysis.base;
 import dsymbol.scope_;
 
-
-
 /**
  * Check for uses of the comma expression.
  */

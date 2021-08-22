@@ -11,8 +11,6 @@ import dparse.lexer;
 import dscanner.analysis.base;
 import dsymbol.scope_;
 
-
-
 /**
  * Checks for use of the deprecated 'delete' keyword
  */

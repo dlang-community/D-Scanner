@@ -19,8 +19,6 @@ import dscanner.analysis.base;
 import stdx.allocator.mallocator;
 import stdx.allocator;
 
-
-
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
 	return value.after(before).before(after);

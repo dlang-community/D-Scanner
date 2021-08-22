@@ -12,8 +12,6 @@ import dparse.lexer;
 import std.algorithm;
 import std.stdio;
 
-
-
 /**
  * Checks for public declarations without a documented unittests.
  * For now, variable and enum declarations aren't checked.
@@ -334,3 +332,4 @@ unittest
 
 	stderr.writeln("Unittest for HasPublicExampleCheck passed.");
 }
+

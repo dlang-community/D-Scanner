@@ -12,8 +12,6 @@ import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_;
 
-
-
 /**
  * Checks for code with confusing && and || operator precedence
  * ---

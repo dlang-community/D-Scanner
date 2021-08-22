@@ -14,8 +14,6 @@ import dscanner.analysis.helpers;
 import dsymbol.scope_;
 import std.algorithm : map;
 
-
-
 /**
  * The following code should be killed with fire:
  * ---

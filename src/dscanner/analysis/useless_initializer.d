@@ -14,8 +14,6 @@ import std.algorithm;
 import std.range : empty;
 import std.stdio;
 
-
-
 /*
 Limitations:
 	- Stuff s = Stuff.init does not work with type with postfixes`*` `[]`.
@@ -342,3 +340,4 @@ public:
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
 }
+

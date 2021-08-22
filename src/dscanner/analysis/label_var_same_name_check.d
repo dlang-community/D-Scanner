@@ -10,8 +10,6 @@ import dsymbol.scope_ : Scope;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 
-
-
 /**
  * Checks for labels and variables that have the same name.
  */

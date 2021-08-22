@@ -11,8 +11,6 @@ import dscanner.analysis.base;
 import std.algorithm : canFind, map;
 import dsymbol.scope_ : Scope;
 
-
-
 void doNothing(string, size_t, size_t, string, bool)
 {
 }

@@ -12,7 +12,6 @@ import dsymbol.scope_ : Scope;
 import std.algorithm;
 import std.range;
 
-
 /**
 Checks for the allman style (braces should be on their own line)
 ------------

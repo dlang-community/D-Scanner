@@ -11,8 +11,6 @@ import std.container;
 import dparse.ast;
 import dparse.lexer;
 
-
-
 /**
  * Checks for variables that could have been declared const or immutable
  */
@@ -384,3 +382,4 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 		}
 	}, sac);
 }
+

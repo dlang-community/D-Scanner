@@ -11,8 +11,6 @@ import dparse.lexer;
 import dscanner.analysis.base;
 import dsymbol.scope_;
 
-
-
 /**
  * Checks that `@trusted` is only applied to a a single function
  */
