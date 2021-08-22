@@ -81,7 +81,7 @@ protected:
 		override void visit(const T structDec)
 		{
 			inAggregate = true;
-                        () @trusted { structDec.accept(this); } ();
+			() @trusted { structDec.accept(this); } ();
 			inAggregate = false;
 		}
 	}
