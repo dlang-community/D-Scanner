@@ -40,11 +40,11 @@ import dsymbol.modulecache;
 @safe:
 
 version (unittest)
-	void main() @trusted
+void main() @trusted
 {
 }
 else
-	int main(string[] args) @trusted
+int main(string[] args) @trusted
 {
 	bool sloc;
 	bool highlight;
