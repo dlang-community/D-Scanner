@@ -76,7 +76,7 @@ else
 	try
 	{
 		// dfmt off
-                () @trusted {
+		() @trusted {
 		getopt(args, std.getopt.config.caseSensitive,
 		       "sloc|l", &sloc,
 		       "highlight", &highlight,
@@ -109,22 +109,22 @@ else
 	}
 	catch (ConvException e)
 	{
-            () @trusted {
-                stderr.writeln(e.msg);
-            } ();
-            return 1;
+	    () @trusted {
+		stderr.writeln(e.msg);
+	    } ();
+	    return 1;
 	}
 	catch (GetOptException e)
 	{
-            () @trusted {
-                stderr.writeln(e.msg);
-            } ();
-            return 1;
+	    () @trusted {
+		stderr.writeln(e.msg);
+	    } ();
+	    return 1;
 	}
 
 	if (muffin)
 	{
-                () @trusted {
+		() @trusted {
 		stdout.writeln(`       ___________
     __(#*O 0** @%*)__
   _(%*o#*O%*0 #O#%##@)_
@@ -134,16 +134,16 @@ else
   |I|I|I|I|I|I|I|I|I|I|
   |I|I|I|I|I|I|I|I|I|I|
   |I|I|I|I|I|I|I|I|I|I|`);
-                } ();
+		} ();
 		return 0;
 	}
 
 	if (explore)
 	{
-            () @trusted {
-                stdout.writeln("D-Scanner: Scanning...");
+	    () @trusted {
+		stdout.writeln("D-Scanner: Scanning...");
 		stderr.writeln("D-Scanner: No new astronomical objects discovered.");
-            } ();
+	    } ();
 		return 1;
 	}
 
