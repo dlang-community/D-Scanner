@@ -36,7 +36,7 @@ version = UseModuleContext;
  *	   tagAll = if set, tag private/package declaration too
  *	   fileNames = tags will be generated from these files
  */
-void printEtags(File output, bool tagAll, string[] fileNames)
+void printEtags(File output, bool tagAll, string[] fileNames) @trusted
 {
 	LexerConfig config;
 	StringCache cache = StringCache(StringCache.defaultBucketCount);

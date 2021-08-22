@@ -9,6 +9,8 @@ import std.stdio;
 import std.algorithm;
 import dparse.lexer;
 
+@safe:
+
 pure nothrow bool isLineOfCode(IdType t)
 {
 	switch (t)

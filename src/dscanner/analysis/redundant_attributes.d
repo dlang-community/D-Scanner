@@ -277,7 +277,7 @@ unittest
 	assertAnalyzerWarnings(q{
 unittest
 {
-@safe:
+
 	@safe void foo();
 @system
 {

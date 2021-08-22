@@ -52,6 +52,6 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 						~ part.identifier.text ~ " = [ ...' instead.");
 			}
 		}
-		autoDec.accept(this);
+		() @trusted { autoDec.accept(this); } ();
 	}
 }

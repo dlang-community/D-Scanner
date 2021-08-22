@@ -14,6 +14,8 @@ import std.stdio;
 import std.file : isFile;
 import std.functional : toDelegate;
 
+@safe:
+
 void findDeclarationOf(File output, string symbolName, string[] fileNames)
 {
 	findDeclarationOf((string fileName, size_t line, size_t column)
@@ -30,7 +32,7 @@ alias OutputHandler = void delegate(string fileName, size_t line, size_t column)
 ///   output = Callback which gets called when a declaration is found
 ///   symbolName = Symbol name to search for
 ///   fileNames = An array of file names which might contain stdin to read from stdin
-void findDeclarationOf(scope OutputHandler output, string symbolName, string[] fileNames)
+void findDeclarationOf(scope OutputHandler output, string symbolName, string[] fileNames) @trusted
 {
 	import std.array : uninitializedArray, array;
 	import std.conv : to;
@@ -136,7 +138,7 @@ class FinderVisitor : ASTVisitor
 		{
 			if (t.name.text == symbolName)
 				output(fileName, t.name.line, t.name.column);
-			t.accept(this);
+                        () @trusted { t.accept(this); } ();
 		}
 	}
 

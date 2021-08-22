@@ -9,9 +9,12 @@ import std.stdio;
 import std.array;
 import dparse.lexer;
 
+@safe:
+
 // http://ethanschoonover.com/solarized
 void highlight(R)(ref R tokens, string fileName)
 {
+    () @trusted {
 	stdout.writeln(q"[
 <!DOCTYPE html>
 <html>
@@ -31,6 +34,7 @@ html  { background-color: #fdf6e3; color: #002b36; }
 .cons { color: #859900; font-weight: bold;  }
 </style>
 <pre>]");
+    } ();
 
 	while (!tokens.empty)
 	{
@@ -57,17 +61,23 @@ html  { background-color: #fdf6e3; color: #002b36; }
 				// Stupid Windows automatically does a LF → CRLF, so
 				// CRLF → CRCRLF, which is obviously wrong.
 				// Strip out the CR characters here to avoid this.
+                            () @trusted {
 				stdout.write(t.text.replace("<", "&lt;").replace("\r", ""));
+                            } ();
 			}
 			else
+                            () @trusted {
 				stdout.write(t.text.replace("<", "&lt;"));
+                            } ();
 		}
 
 	}
-	stdout.writeln("</pre>\n</body></html>");
+        () @trusted {
+            stdout.writeln("</pre>\n</body></html>");
+        } ();
 }
 
-void writeSpan(string cssClass, string value)
+void writeSpan(string cssClass, string value) @trusted
 {
 	version (Windows)
 		stdout.write(`<span class="`, cssClass, `">`, value.replace("&",
