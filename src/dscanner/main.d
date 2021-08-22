@@ -116,10 +116,10 @@ else
 	}
 	catch (GetOptException e)
 	{
-            () @trusted {
-                stderr.writeln(e.msg);
-            } ();
-            return 1;
+		() @trusted {
+			stderr.writeln(e.msg);
+		} ();
+		return 1;
 	}
 
 	if (muffin)
