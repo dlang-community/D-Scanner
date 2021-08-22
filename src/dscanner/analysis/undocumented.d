@@ -13,8 +13,6 @@ import dparse.lexer;
 import std.regex : ctRegex, matchAll;
 import std.stdio;
 
-
-
 /**
  * Checks for undocumented public declarations. Ignores some operator overloads,
  * main functions, and functions whose name starts with "get" or "set".
