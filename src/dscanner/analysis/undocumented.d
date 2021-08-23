@@ -265,7 +265,7 @@ private:
 	{
 		assert(isProtection(p));
 	}
-	body
+	do
 	{
 		stack[$ - 1].protection = p;
 	}
@@ -275,7 +275,7 @@ private:
 	{
 		assert(isProtection(p));
 	}
-	body
+	do
 	{
 		stack ~= ProtectionInfo(p, false);
 	}
@@ -349,4 +349,3 @@ unittest
 
 	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
 }
-
