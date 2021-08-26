@@ -379,7 +379,7 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		  m.moduleDeclaration.moduleName.identifiers !is null)
 		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
 
-	auto first = scoped!FirstPass(m, internString(fileName), symbolAllocator,
+	scope first = new FirstPass(m, internString(fileName), symbolAllocator,
 			symbolAllocator, true, &moduleCache, null);
 	first.run();
 
@@ -605,4 +605,3 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 
 	return set;
 }
-
