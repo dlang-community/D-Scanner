@@ -146,7 +146,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Variables that could have been declared const or immutable (experimental)
 * Redundant parenthesis.
 * Unused labels.
-* Lines longer than 120 characters.
+* Lines longer than `max_line_length` characters.
 * Incorrect infinite range definitions.
 * Some assertions that check conditions that will always be true.
 * Auto functions without return statement. The compiler doesn't see an omission and it infers 'void' as return type.

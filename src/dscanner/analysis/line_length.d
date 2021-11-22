@@ -13,17 +13,18 @@ import dparse.lexer;
 import std.typecons : tuple, Tuple;
 
 /**
- * Checks for lines longer than 120 characters
+ * Checks for lines longer than `max_line_length` characters
  */
 final class LineLengthCheck : BaseAnalyzer
 {
 	mixin AnalyzerInfo!"long_line_check";
 
 	///
-	this(string fileName, const(Token)[] tokens, bool skipTests = false)
+	this(string fileName, const(Token)[] tokens, int maxLineLength, bool skipTests = false)
 	{
 		super(fileName, null, skipTests);
 		this.tokens = tokens;
+		this.maxLineLength = maxLineLength;
 	}
 
 	override void visit(const Module)
@@ -44,7 +45,7 @@ final class LineLengthCheck : BaseAnalyzer
 						: 0;
 				endColumn += wsChange + info.length;
 			}
-			if (endColumn > MAX_LINE_LENGTH)
+			if (endColumn > maxLineLength)
 				triggerError(token);
 		}
 	}
@@ -59,7 +60,7 @@ private:
 	{
 		if (tok.line != lastErrorLine)
 		{
-			addErrorMessage(tok.line, tok.column, KEY, MESSAGE);
+			addErrorMessage(tok.line, tok.column, KEY, message);
 			lastErrorLine = tok.line;
 		}
 	}
@@ -79,7 +80,7 @@ private:
 		{
 			if (isLineSeparator(c))
 			{
-				if (col > MAX_LINE_LENGTH)
+				if (col > maxLineLength)
 					triggerError(tok);
 				col = 1;
 			}
@@ -91,9 +92,9 @@ private:
 
 	unittest
 	{
-		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
-		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
-		assert(new LineLengthCheck(null, null).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
+		assert(new LineLengthCheck(null, null, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
+		assert(new LineLengthCheck(null, null, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
+		assert(new LineLengthCheck(null, null, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
 	}
 
 	static size_t tokenByteLength()(auto ref const Token tok)
@@ -155,9 +156,13 @@ private:
 
 	import std.conv : to;
 
+	string message() const
+	{
+		return "Line is longer than " ~ to!string(maxLineLength) ~ " characters";
+	}
+
 	enum string KEY = "dscanner.style.long_line";
-	enum string MESSAGE = "Line is longer than " ~ to!string(MAX_LINE_LENGTH) ~ " characters";
-	enum MAX_LINE_LENGTH = 120;
+	const int maxLineLength;
 	const(Token)[] tokens;
 }
 
@@ -199,6 +204,21 @@ assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
                                                                             opCacheTrue[pc] = &Ops!(true).op!(IR.`~e~`);
                                                                      opCacheBackTrue[pc] = &BackOps!(true).op!(IR.`~e~`); // [warn]: Line is longer than 120 characters
                 `);
+	}c, sac);
+
+	// Test customizing max_line_length.
+	sac.max_line_length = 115;
+	assertAnalyzerWarnings(q{
+Window window = Platform.instance.createWindow("Дистанционное управлсварочным оборудованием			   ", null);
+Window window = Platform.instance.createWindow("Дистанционное управлсварочным оборудованием				", null); // [warn]: Line is longer than 115 characters
+unittest {
+// with tabs
+assert("foo" == "fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo1");
+assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo2"); // [warn]: Line is longer than 115 characters
+// with whitespace (don't overwrite)
+    assert("foo" == "booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo3");
+    assert("foo" == "boooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo4"); // [warn]: Line is longer than 115 characters
+}
 	}c, sac);
 
 	stderr.writeln("Unittest for LineLengthCheck passed.");
