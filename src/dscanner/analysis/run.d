@@ -502,6 +502,7 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 
 	if (moduleName.shouldRun!LineLengthCheck(analysisConfig))
 		checks ~= new LineLengthCheck(fileName, tokens,
+		analysisConfig.max_line_length,
 		analysisConfig.long_line_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!AutoRefAssignmentCheck(analysisConfig))

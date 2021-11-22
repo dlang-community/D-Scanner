@@ -140,8 +140,11 @@ struct StaticAnalysisConfig
 	@INI("Checks for labels with the same name as variables")
 	string label_var_same_name_check = Check.enabled;
 
-	@INI("Checks for lines longer than 120 characters")
+	@INI("Checks for lines longer than `max_line_length` characters")
 	string long_line_check = Check.enabled;
+
+	@INI("The maximum line length used in `long_line_check`.")
+	int max_line_length = 120;
 
 	@INI("Checks for assignment to auto-ref function parameters")
 	string auto_ref_assignment_check = Check.enabled;
