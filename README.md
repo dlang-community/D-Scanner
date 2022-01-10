@@ -7,7 +7,15 @@
 D-Scanner is a tool for analyzing D source code
 
 ### Building and installing
-First make sure that you have all the source code. Run ```git submodule update --init --recursive```
+
+First, make sure that you have fetched the upstream: git@github.com:dlang-community/D-Scanner.git
+
+```
+git remote add upstream git@github.com:dlang-community/D-Scanner.git
+git fetch upstream
+```
+
+Secondly, make sure that you have all the source code. Run ```git submodule update --init --recursive```
 after cloning the project.
 
 To build D-Scanner, run ```make``` (or the build.bat file on Windows).
