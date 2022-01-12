@@ -17,3 +17,6 @@
 [submodule "DCD"]
 	path = DCD
 	url = https://github.com/dlang-community/DCD.git
+[submodule "dmd"]
+	path = dmd
+	url = git@github.com:dlang/dmd.git
