@@ -5,6 +5,31 @@ GIT ?= git
 DMD := $(DC)
 GDC := gdc
 LDC := ldc2
+DMD_ROOT_SRC := \
+	$(shell find dmd/src/dmd/common -name "*.d")\
+	$(shell find dmd/src/dmd/root -name "*.d")
+DMD_LEXER_SRC := \
+	dmd/src/dmd/console.d \
+	dmd/src/dmd/entity.d \
+	dmd/src/dmd/errors.d \
+	dmd/src/dmd/file_manager.d \
+	dmd/src/dmd/globals.d \
+	dmd/src/dmd/id.d \
+	dmd/src/dmd/identifier.d \
+	dmd/src/dmd/lexer.d \
+	dmd/src/dmd/tokens.d \
+	dmd/src/dmd/utils.d \
+	$(DMD_ROOT_SRC)
+
+DMD_PARSER_SRC := \
+	dmd/src/dmd/astbase.d \
+	dmd/src/dmd/parse.d \
+	dmd/src/dmd/parsetimevisitor.d \
+	dmd/src/dmd/transitivevisitor.d \
+	dmd/src/dmd/permissivevisitor.d \
+	dmd/src/dmd/strictvisitor.d \
+	dmd/src/dmd/astenums.d \
+	$(DMD_LEXER_SRC)
 
 LIB_SRC := \
 	$(shell find containers/src -name "*.d")\
@@ -13,7 +38,8 @@ LIB_SRC := \
 	$(shell find libdparse/src/std/experimental/ -name "*.d")\
 	$(shell find libdparse/src/dparse/ -name "*.d")\
 	$(shell find libddoc/src -name "*.d") \
-	$(shell find libddoc/common/source -name "*.d")
+	$(shell find libddoc/common/source -name "*.d") \
+	$(DMD_PARSER_SRC)
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
 
@@ -42,29 +68,27 @@ INCLUDE_PATHS = \
 	-IDCD/dsymbol/src \
 	-Icontainers/src \
 	-Ilibddoc/src \
-	-Ilibddoc/common/source
+	-Ilibddoc/common/source \
+	-Idmd/src
 
-# e.g. "-version=MyCustomVersion"
-DMD_VERSIONS =
+DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB
 DMD_DEBUG_VERSIONS = -version=dparse_verbose
-# e.g. "-d-version=MyCustomVersion"
-LDC_VERSIONS =
+LDC_VERSIONS = -d-version=StdLoggerDisableWarning -d-version=CallbackAPI -d-version=DMDLIB
 LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
-# e.g. "-fversion=MyCustomVersion"
-GDC_VERSIONS =
+GDC_VERSIONS = -fversion=StdLoggerDisableWarning -fversion=CallbackAPI -fversion=DMDLIB
 GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
 
-DC_FLAGS += -Jbin
+DC_FLAGS += -Jbin -Jdmd
 override DMD_FLAGS += $(DFLAGS) -w -release -O -od${OBJ_DIR}
 override LDC_FLAGS += $(DFLAGS) -O5 -release -oq
 override GDC_FLAGS += $(DFLAGS) -O3 -frelease -fall-instantiations
 
 override GDC_TEST_FLAGS += -fall-instantiations
 
-DC_TEST_FLAGS += -g -Jbin
+DC_TEST_FLAGS += -g -Jbin -Jdmd
 override DMD_TEST_FLAGS += -w
 
-DC_DEBUG_FLAGS := -g -Jbin
+DC_DEBUG_FLAGS := -g -Jbin -Jdmd
 
 ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
 	VERSIONS := $(DMD_VERSIONS)
@@ -85,6 +109,7 @@ else ifneq (,$(findstring gdc, $(DC)))
 	DC_TEST_FLAGS += $(GDC_TEST_FLAGS) -funittest
 	WRITE_TO_TARGET_NAME = -o $@
 endif
+SHELL:=/usr/bin/env bash
 
 GITHASH = bin/githash.txt
 
