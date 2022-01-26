@@ -1,0 +1,24 @@
+name: Run tests
+on: push
+jobs:
+    build:
+        runs-on: ubuntu-20.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  submodules: 'recursive'
+
+            - name: Install dmd
+              run: |
+                  curl https://dlang.org/install.sh | bash -s
+
+            # Uncomment to get a ssh connection inside the GH Actions runner
+            #- name: Setup upterm session
+              #uses: lhotari/action-upterm@v1
+
+            - name: Run tests
+              run: |
+                  source ~/dlang/*/activate
+                  make test
+
