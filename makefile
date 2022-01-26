@@ -113,7 +113,6 @@ SHELL:=/usr/bin/env bash
 
 GITHASH = bin/githash.txt
 
-
 $(OBJ_DIR)/$(DC)/%.o: %.d
 	${DC} ${DC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
