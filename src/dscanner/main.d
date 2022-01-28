@@ -387,7 +387,7 @@ else
 		}
 		else if (imports || recursiveImports)
 		{
-			printImports(usingStdin, args, importPaths, &cache, recursiveImports);
+			printImports(usingStdin, args, importPaths, recursiveImports);
 		}
 		else if (ast || outline)
 		{
