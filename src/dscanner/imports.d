@@ -5,75 +5,73 @@
 
 module dscanner.imports;
 
-import dparse.ast;
-import dparse.lexer;
-import dparse.parser;
-import dparse.rollback_allocator;
 import std.stdio;
 import std.container.rbtree;
 import std.functional : toDelegate;
 import dscanner.utils;
+import dmd.permissivevisitor;
+import dmd.transitivevisitor;
+import dmd.tokens;
+import dmd.common.outbuffer;
+import core.stdc.stdio;
+import dmd.parse;
+import dmd.astbase;
+import dmd.id;
+import dmd.globals;
+import dmd.identifier;
+import core.memory;
+import std.stdio;
+import std.file;
 
-/**
- * AST visitor that collects modules imported to an R-B tree.
- */
-class ImportPrinter : ASTVisitor
+extern(C++) class ImportVisitor(AST) : ParseTimeTransitiveVisitor!AST
 {
+    alias visit = ParseTimeTransitiveVisitor!AST.visit;
+
 	this()
 	{
 		imports = new RedBlackTree!string;
 	}
 
-	override void visit(const SingleImport singleImport)
-	{
-		ignore = false;
-		singleImport.accept(this);
-		ignore = true;
-	}
-
-	override void visit(const IdentifierChain identifierChain)
-	{
-		if (ignore)
-			return;
-		bool first = true;
+    override void visit(AST.Import imp)
+    {
+		import std.conv;
 		string s;
-		foreach (ident; identifierChain.identifiers)
-		{
-			if (!first)
-				s ~= ".";
-			s ~= ident.text;
-			first = false;
-		}
+        
+        foreach (const pid; imp.packages)
+			s = s ~ to!string(pid.toChars()) ~ ".";
+
+		s ~= to!string(imp.id.toChars());
 		imports.insert(s);
-	}
+    }
 
-	alias visit = ASTVisitor.visit;
-
-	/// Collected imports
 	RedBlackTree!string imports;
-
-private:
-	bool ignore = true;
 }
 
-private void visitFile(bool usingStdin, string fileName, RedBlackTree!string importedModules, StringCache* cache)
+private void visitFile(bool usingStdin, string fileName, RedBlackTree!string importedModules)
 {
-	RollbackAllocator rba;
-	LexerConfig config;
-	config.fileName = fileName;
-	config.stringBehavior = StringBehavior.source;
-	auto visitor = new ImportPrinter;
-	auto tokens = getTokensForParser(usingStdin ? readStdin() : readFile(fileName), config, cache);
-	auto mod = parseModule(tokens, fileName, &rba, toDelegate(&doNothing));
-	visitor.visit(mod);
-	importedModules.insert(visitor.imports[]);
+	Id.initialize();
+	global._init();
+	global.params.useUnitTests = true;
+	ASTBase.Type._init();
+
+	auto id = Identifier.idPool(fileName);
+	auto m = new ASTBase.Module(&(fileName.dup)[0], id, false, false);
+	auto input = readText(fileName);
+
+	scope p = new Parser!ASTBase(m, input, false);
+	p.nextToken();
+	m.members = p.parseModule();
+
+	scope vis = new ImportVisitor!ASTBase();
+	m.accept(vis);
+	importedModules.insert(vis.imports[]);
 }
 
 private void doNothing(string, size_t, size_t, string, bool)
 {
 }
 
-void printImports(bool usingStdin, string[] args, string[] importPaths, StringCache* cache, bool recursive)
+void printImports(bool usingStdin, string[] args, string[] importPaths, bool recursive)
 {
 	string[] fileNames = usingStdin ? ["stdin"] : expandArgs(args);
 	import std.path : buildPath, dirSeparator;
@@ -85,7 +83,7 @@ void printImports(bool usingStdin, string[] args, string[] importPaths, StringCa
 	auto resolvedLocations = new RedBlackTree!(string);
 	auto importedFiles = new RedBlackTree!(string);
 	foreach (name; fileNames)
-		visitFile(usingStdin, name, importedFiles, cache);
+		visitFile(usingStdin, name, importedFiles);
 	if (importPaths.empty)
 	{
 		foreach (item; importedFiles[])
@@ -110,7 +108,7 @@ void printImports(bool usingStdin, string[] args, string[] importPaths, StringCa
 						resolvedModules.insert(item);
 						resolvedLocations.insert(alt);
 						if (recursive)
-							visitFile(false, alt, newlyDiscovered, cache);
+							visitFile(false, alt, newlyDiscovered);
 						continue itemLoop;
 					}
 				}
