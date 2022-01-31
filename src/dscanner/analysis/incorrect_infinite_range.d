@@ -46,6 +46,8 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 	{
 		if (fb.specifiedFunctionBody && fb.specifiedFunctionBody.blockStatement !is null)
 			visit(fb.specifiedFunctionBody.blockStatement);
+		else if (fb.shortenedFunctionBody && fb.shortenedFunctionBody.expression !is null)
+			visitReturnExpression(fb.shortenedFunctionBody.expression);
 	}
 
 	override void visit(const BlockStatement bs)
@@ -63,9 +65,14 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 	{
 		if (inStruct == 0 || line == size_t.max) // not within a struct yet
 			return;
-		if (!rs.expression || rs.expression.items.length != 1)
+		visitReturnExpression(rs.expression);
+	}
+
+	void visitReturnExpression(const Expression expression)
+	{
+		if (!expression || expression.items.length != 1)
 			return;
-		UnaryExpression unary = cast(UnaryExpression) rs.expression.items[0];
+		UnaryExpression unary = cast(UnaryExpression) expression.items[0];
 		if (unary is null)
 			return;
 		if (unary.primaryExpression is null)

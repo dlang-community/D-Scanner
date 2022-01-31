@@ -1146,7 +1146,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const TemplateValueParameter templateValueParameter) { mixin (tagAndAccept!"templateValueParameter"); }
 	override void visit(const TernaryExpression ternaryExpression) { mixin (tagAndAccept!"ternaryExpression"); }
 	override void visit(const TypeIdentifierPart typeIdentifierPart) { mixin (tagAndAccept!"typeIdentifierPart"); }
-	override void visit(const ThrowStatement throwStatement) { mixin (tagAndAccept!"throwStatement"); }
+	override void visit(const ThrowExpression throwExpression) { mixin (tagAndAccept!"throwExpression"); }
 	override void visit(const TryStatement tryStatement) { mixin (tagAndAccept!"tryStatement"); } override void visit(const TemplateInstance templateInstance) { mixin (tagAndAccept!"templateInstance"); }
 	override void visit(const TypeofExpression typeofExpression) { mixin (tagAndAccept!"typeofExpression"); } override void visit(const TypeSpecialization typeSpecialization) { mixin (tagAndAccept!"typeSpecialization"); } override void visit(const TraitsExpression traitsExpression) { mixin (tagAndAccept!"traitsExpression"); }
 	override void visit(const Vector vector) { mixin (tagAndAccept!"vector"); }

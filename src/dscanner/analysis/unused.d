@@ -48,7 +48,9 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 	override void visit(const FunctionDeclaration functionDec)
 	{
 		pushScope();
-		if (functionDec.functionBody && functionDec.functionBody.specifiedFunctionBody)
+		if (functionDec.functionBody
+			&& (functionDec.functionBody.specifiedFunctionBody
+			|| functionDec.functionBody.shortenedFunctionBody))
 		{
 			immutable bool ias = inAggregateScope;
 			inAggregateScope = false;
@@ -74,7 +76,7 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 	mixin PartsUseVariables!StaticIfCondition;
 	mixin PartsUseVariables!StructDeclaration;
 	mixin PartsUseVariables!TemplateArgumentList;
-	mixin PartsUseVariables!ThrowStatement;
+	mixin PartsUseVariables!ThrowExpression;
 	mixin PartsUseVariables!CastExpression;
 
 	override void visit(const SwitchStatement switchStatement)
