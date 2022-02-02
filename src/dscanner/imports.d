@@ -124,3 +124,37 @@ void printImports(bool usingStdin, string[] args, string[] importPaths, bool rec
 	foreach (resolved; resolvedLocations[])
 		writeln(resolved);
 }
+
+unittest
+{
+	import std.stdio;
+	import std.file;
+	import core.stdc.stdio;
+
+	auto deleteme = "test.txt";
+	File file = File(deleteme, "w");
+	scope(exit)
+	{
+		assert(exists(deleteme));
+        remove(deleteme);
+	}
+
+	file.write(q{
+		import std.stdio;
+		import std.fish : scales, head;
+		import DAGRON = std.experimental.dragon;
+		import std.file;
+	});
+
+	file.close();
+
+	auto importedFiles = new RedBlackTree!(string);
+	visitFile(false, deleteme, importedFiles);
+
+	auto expected = new RedBlackTree!(string);
+	expected.insert("std.stdio");
+	expected.insert("std.fish");
+	expected.insert("std.file");
+	expected.insert("std.experimental.dragon");
+	assert(expected == importedFiles);
+}
