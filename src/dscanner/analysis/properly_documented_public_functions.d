@@ -190,7 +190,8 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		import std.array : Appender;
 
 		// ignore header declaration for now
-		if (!decl.functionBody || !decl.functionBody.specifiedFunctionBody)
+		if (!decl.functionBody || (!decl.functionBody.specifiedFunctionBody
+			&& !decl.functionBody.shortenedFunctionBody))
 			return;
 
 		if (nestedFuncs == 1)
@@ -653,6 +654,20 @@ unittest
  * A long description.
  */
 int foo(int k){} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
+	), sac);
+
+	assertAnalyzerWarnings(q{
+/**
+ * Description.
+ *
+ * Params:
+ *
+ * Returns:
+ * A long description.
+ */
+int foo(int k) => k; // [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
 	), sac);

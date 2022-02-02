@@ -51,10 +51,8 @@ final class UnusedLabelCheck : BaseAnalyzer
 			functionBody.specifiedFunctionBody.accept(this);
 			popScope();
 		}
-        if (functionBody.missingFunctionBody && functionBody.missingFunctionBody.functionContracts)
+		if (functionBody.missingFunctionBody && functionBody.missingFunctionBody.functionContracts)
 			functionBody.missingFunctionBody.functionContracts.each!((a){pushScope(); a.accept(this); popScope();});
-        if (functionBody.specifiedFunctionBody && functionBody.specifiedFunctionBody.functionContracts)
-			functionBody.specifiedFunctionBody.functionContracts.each!((a){pushScope(); a.accept(this); popScope();});
 	}
 
 	override void visit(const LabeledStatement labeledStatement)

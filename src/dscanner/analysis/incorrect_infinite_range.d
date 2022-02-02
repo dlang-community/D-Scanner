@@ -126,6 +126,22 @@ unittest
 	}
 }
 
+struct InfiniteRange
+{
+	bool empty() => false; // [warn]: %1$s
+	bool stuff() => false;
+	unittest
+	{
+		return false;
+	}
+
+	// https://issues.dlang.org/show_bug.cgi?id=18409
+	struct Foo
+	{
+		~this() nothrow @nogc;
+	}
+}
+
 bool empty() { return false; }
 class C { bool empty() { return false; } } // [warn]: %1$s
 
