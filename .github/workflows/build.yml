@@ -17,8 +17,12 @@ jobs:
             #- name: Setup upterm session
               #uses: lhotari/action-upterm@v1
 
+            - name: Run style checks
+              run: |
+                  source ~/dlang/*/activate
+                  make style
+
             - name: Run tests
               run: |
                   source ~/dlang/*/activate
                   make test
-

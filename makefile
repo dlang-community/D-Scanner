@@ -175,3 +175,42 @@ report: all
 
 release:
 	./release.sh
+
+# Add source files here as we transition to DMD-as-a-library
+STYLE_CHECKED_SRC := \
+	src/dscanner/imports.d \
+	src/dscanner/main.d
+
+style:
+	@echo "Check for trailing whitespace"
+	grep -nr '[[:blank:]]$$' ${STYLE_CHECKED_SRC}; test $$? -eq 1
+
+	@echo "Enforce whitespace before opening parenthesis"
+	grep -nrE "\<(for|foreach|foreach_reverse|if|while|switch|catch|version)\(" ${STYLE_CHECKED_SRC} ; test $$? -eq 1
+
+	@echo "Enforce no whitespace after opening parenthesis"
+	grep -nrE "\<(version) \( " ${STYLE_CHECKED_SRC} ; test $$? -eq 1
+
+	@echo "Enforce whitespace between colon(:) for import statements (doesn't catch everything)"
+	grep -nr 'import [^/,=]*:.*;' ${STYLE_CHECKED_SRC} | grep -vE "import ([^ ]+) :\s"; test $$? -eq 1
+
+	@echo "Check for package wide std.algorithm imports"
+	grep -nr 'import std.algorithm : ' ${STYLE_CHECKED_SRC} ; test $$? -eq 1
+
+	@echo "Enforce Allman style"
+	grep -nrE '(if|for|foreach|foreach_reverse|while|unittest|switch|else|version) .*{$$' ${STYLE_CHECKED_SRC}; test $$? -eq 1
+
+	@echo "Enforce do { to be in Allman style"
+	grep -nr 'do *{$$' ${STYLE_CHECKED_SRC} ; test $$? -eq 1
+
+	@echo "Enforce no space between assert and the opening brace, i.e. assert("
+	grep -nrE 'assert +\(' ${STYLE_CHECKED_SRC} ; test $$? -eq 1
+
+	@echo "Enforce space after cast(...)"
+	grep -nrE '[^"]cast\([^)]*?\)[[:alnum:]]' ${STYLE_CHECKED_SRC} ; test $$? -eq 1
+
+	@echo "Enforce space between a .. b"
+	grep -nrE '[[:alnum:]][.][.][[:alnum:]]|[[:alnum:]] [.][.][[:alnum:]]|[[:alnum:]][.][.] [[:alnum:]]' ${STYLE_CHECKED_SRC}; test $$? -eq 1
+
+	@echo "Enforce space between binary operators"
+	grep -nrE "[[:alnum:]](==|!=|<=|<<|>>|>>>|^^)[[:alnum:]]|[[:alnum:]] (==|!=|<=|<<|>>|>>>|^^)[[:alnum:]]|[[:alnum:]](==|!=|<=|<<|>>|>>>|^^) [[:alnum:]]" ${STYLE_CHECKED_SRC}; test $$? -eq 1
