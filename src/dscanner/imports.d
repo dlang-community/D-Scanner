@@ -36,7 +36,7 @@ extern(C++) class ImportVisitor(AST) : ParseTimeTransitiveVisitor!AST
     {
 		import std.conv;
 		string s;
-        
+
         foreach (const pid; imp.packages)
 			s = s ~ to!string(pid.toChars()) ~ ".";
 

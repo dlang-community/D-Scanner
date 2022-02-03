@@ -599,7 +599,7 @@ string getDefaultConfigurationLocation()
 			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
 		return configDir;
 	}
-	else version(Windows)
+	else version (Windows)
 	{
 		string configDir = environment.get("APPDATA", null);
 		enforce(configDir !is null, "%APPDATA% is unset");
