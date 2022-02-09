@@ -33,7 +33,8 @@ UT_OBJ_BY_DC_DIR = $(sort $(dir $(UT_OBJ_BY_DC)))
 DSCANNER_BIN = bin/dscanner
 DSCANNER_BIN_DIR = $(dir $(DSCANNER_BIN))
 UT_DSCANNER_BIN = bin/dscanner-unittest
-UT_DSCANNER_LIB = bin/dscanner-unittest-lib.a
+UT_DSCANNER_LIB = bin/$(DC)/dscanner-unittest-lib.a
+UT_DSCANNER_LIB_DIR = $(dir $(UT_DSCANNER_LIB))
 
 INCLUDE_PATHS = \
 	-Isrc \
@@ -60,23 +61,25 @@ override GDC_FLAGS += $(DFLAGS) -O3 -frelease
 DC_TEST_FLAGS += -g -Jbin
 override DMD_TEST_FLAGS += -w
 
+DC_DEBUG_FLAGS := -g -Jbin
+
 ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
 	VERSIONS := $(DMD_VERSIONS)
 	DEBUG_VERSIONS := $(DMD_DEBUG_VERSIONS)
 	DC_FLAGS += $(DMD_FLAGS)
-	DC_TEST_FLAGS += $(DMD_TEST_FLAGS)
+	DC_TEST_FLAGS += $(DMD_TEST_FLAGS) -unittest
 	WRITE_TO_TARGET_NAME = -of=$@
-else ifeq ($(DC), ldc2)
+else ifneq (,$(findstring ldc2, $(DC)))
 	VERSIONS := $(LDC_VERSIONS)
 	DEBUG_VERSIONS := $(LDC_DEBUG_VERSIONS)
 	DC_FLAGS += $(LDC_FLAGS)
-	DC_TEST_FLAGS += $(LDC_TEST_FLAGS)
+	DC_TEST_FLAGS += $(LDC_TEST_FLAGS) -unittest
 	WRITE_TO_TARGET_NAME = -of=$@
-else ifeq ($(DC), gdc)
+else ifneq (,$(findstring gdc, $(DC)))
 	VERSIONS := $(GDC_VERSIONS)
 	DEBUG_VERSIONS := $(GDC_DEBUG_VERSIONS)
 	DC_FLAGS += $(GDC_FLAGS)
-	DC_TEST_FLAGS += $(GDC_TEST_FLAGS)
+	DC_TEST_FLAGS += $(GDC_TEST_FLAGS) -funittest
 	WRITE_TO_TARGET_NAME = -o $@
 endif
 
@@ -89,7 +92,7 @@ $(OBJ_DIR)/$(DC)/%.o: %.d
 	${DC} ${DC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
 $(UT_OBJ_DIR)/$(DC)/%.o: %.d
-	${DC} ${DC_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
+	${DC} ${DC_TEST_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
 ${DSCANNER_BIN}: ${GITHASH} ${OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
 	${DC} ${OBJ_BY_DC} ${WRITE_TO_TARGET_NAME}
@@ -97,9 +100,17 @@ ${DSCANNER_BIN}: ${GITHASH} ${OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
 ${OBJ_BY_DC}: | ${OBJ_BY_DC_DIR}
 
 ${OBJ_BY_DC_DIR}:
-	mkdir -p ${OBJ_BY_DC_DIR}
+	mkdir -p $@
+
+${UT_OBJ_BY_DC}: | ${UT_OBJ_BY_DC_DIR}
+
+${UT_OBJ_BY_DC_DIR}:
+	mkdir -p $@
 
 ${DSCANNER_BIN_DIR}:
+	mkdir -p $@
+
+${UT_DSCANNER_LIB_DIR}:
 	mkdir -p $@
 
 all: ${DSCANNER_BIN}
@@ -113,8 +124,8 @@ debug: ${GITHASH}
 	${DC} -w -g -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
 # compile the dependencies separately, s.t. their unittests don't get executed
-${UT_DSCANNER_LIB}: ${LIB_SRC} | ${DSCANNER_BIN_DIR}
-	${DC} ${DC_TEST_FLAGS} -c ${VERSIONS} ${INCLUDE_PATHS} ${LIB_SRC} ${WRITE_TO_TARGET_NAME}
+${UT_DSCANNER_LIB}: ${LIB_SRC} | ${UT_DSCANNER_LIB_DIR}
+	${DC} ${DC_DEBUG_FLAGS} -c ${VERSIONS} ${INCLUDE_PATHS} ${LIB_SRC} ${WRITE_TO_TARGET_NAME}
 
 test: ${UT_DSCANNER_BIN}
 
