@@ -51,36 +51,37 @@ GDC_BIN = bin/gdc/dscanner
 GITHASH = bin/githash.txt
 
 OBJ_BY_DMD = $(addprefix $(OBJ_DIR)/dmd/, $(OBJ))
+# `sort` also removes duplicates, which is what we want
+OBJ_BY_DMD_DIR = $(sort $(dir $(OBJ_BY_DMD)))
 UT_OBJ_BY_DMD = $(addprefix $(UT_OBJ_DIR)/dmd/, $(PROJECT_OBJ))
+UT_OBJ_BY_DMD_DIR = $(sort $(dir $(UT_OBJ_BY_DMD)))
 
 OBJ_BY_LDC = $(addprefix $(OBJ_DIR)/ldc/, $(OBJ))
+OBJ_BY_LDC_DIR = $(sort $(dir $(OBJ_BY_LDC)))
 UT_OBJ_BY_LDC = $(addprefix $(UT_OBJ_DIR)/ldc/, $(PROJECT_OBJ))
+UT_OBJ_BY_LDC_DIR = $(sort $(dir $(UT_OBJ_BY_LDC)))
 
 OBJ_BY_GDC = $(addprefix $(OBJ_DIR)/gdc/, $(OBJ))
+OBJ_BY_GDC_DIR = $(sort $(dir $(OBJ_BY_GDC)))
 UT_OBJ_BY_GDC = $(addprefix $(UT_OBJ_DIR)/gdc/, $(PROJECT_OBJ))
+UT_OBJ_BY_GDC_DIR = $(sort $(dir $(UT_OBJ_BY_GDC)))
 
 $(OBJ_DIR)/dmd/%.o: %.d
-	@test -d $(dir $@) || mkdir -p $(dir $@)
 	${DC} ${DMD_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< -of=$@
 
 $(UT_OBJ_DIR)/dmd/%.o: %.d
-	@test -d $(dir $@) || mkdir -p $(dir $@)
 	${DC} ${DMD_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< -of=$@
 
 $(OBJ_DIR)/ldc/%.o: %.d
-	@test -d $(dir $@) || mkdir -p $(dir $@)
 	${DC} ${LDC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< -of=$@
 
 $(UT_OBJ_DIR)/ldc/%.o: %.d
-	@test -d $(dir $@) || mkdir -p $(dir $@)
 	${DC} ${LDC_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< -of=$@
 
 $(OBJ_DIR)/gdc/%.o: %.d
-	@test -d $(dir $@) || mkdir -p $(dir $@)
 	${DC} ${GDC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< -o $@
 
 $(UT_OBJ_DIR)/gdc/%.o: %.d
-	@test -d $(dir $@) || mkdir -p $(dir $@)
 	${DC} ${GDC_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< -o $@
 
 all: ${DMD_BIN}
@@ -96,11 +97,26 @@ debug: ${GITHASH}
 ${DMD_BIN}: ${GITHASH} ${OBJ_BY_DMD}
 	${DC} -of${DMD_BIN} ${OBJ_BY_DMD}
 
+${OBJ_BY_DMD}: | ${OBJ_BY_DMD_DIR}
+
+${OBJ_BY_DMD_DIR}:
+	mkdir -p ${OBJ_BY_DMD_DIR}
+
 ${GDC_BIN}: ${GITHASH} ${OBJ_BY_GDC}
 	${GDC} -o${GDC_BIN} ${OBJ_BY_GDC}
 
+${OBJ_BY_GDC}: | ${OBJ_BY_GDC_DIR}
+
+${OBJ_BY_GDC_DIR}:
+	mkdir -p ${OBJ_BY_GDC_DIR}
+
 ${LDC_BIN}: ${GITHASH} ${OBJ_BY_LDC}
-	${LDC} -of=${DMD_BIN} ${OBJ_BY_LDC}
+	${LDC} -of=${LDC_BIN} ${OBJ_BY_LDC}
+
+${OBJ_BY_LDC}: | ${OBJ_BY_LDC_DIR}
+
+${OBJ_BY_LDC_DIR}:
+	mkdir -p ${OBJ_BY_LDC_DIR}
 
 # compile the dependencies separately, s.t. their unittests don't get executed
 bin/dmd/dscanner-unittest-lib.a: ${LIB_SRC}
@@ -109,6 +125,11 @@ bin/dmd/dscanner-unittest-lib.a: ${LIB_SRC}
 test: bin/dmd/dscanner-unittest-lib.a ${GITHASH} ${UT_OBJ_BY_DMD}
 	${DC} bin/dmd/dscanner-unittest-lib.a ${UT_OBJ_BY_DMD} -ofbin/dmd/dscanner-unittest
 	./bin/dmd/dscanner-unittest
+
+${UT_OBJ_BY_DMD}: | ${UT_OBJ_BY_DMD_DIR}
+
+${UT_OBJ_BY_DMD_DIR}:
+	mkdir -p ${UT_OBJ_BY_DMD_DIR}
 
 lint: ${DMD_BIN}
 	./${DMD_BIN} --config .dscanner.ini --styleCheck src
