@@ -347,5 +347,15 @@ unittest
 		deprecated auto func()(){}
 	}, sac);
 
+	assertAnalyzerWarnings(q{
+		class C{} /// a
+		interface I{} /// b
+		enum e = 0; /// c
+		void f(){} /// d
+		struct S{} /// e
+		template T(){} /// f
+		union U{} /// g
+	}, sac);
+
 	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
 }

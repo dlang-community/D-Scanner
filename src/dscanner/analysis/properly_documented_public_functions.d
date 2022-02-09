@@ -55,6 +55,8 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 
 	override void visit(const UnaryExpression decl)
 	{
+		import std.algorithm.searching : canFind;
+
 		const IdentifierOrTemplateInstance iot = safeAccess(decl)
 			.functionCallExpression.unaryExpression.primaryExpression
 			.identifierOrTemplateInstance;
@@ -67,6 +69,12 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 			t.type2.typeIdentifierPart.identifierOrTemplateInstance = new IdentifierOrTemplateInstance;
 			t.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier = name;
 			return t;
+		}
+
+		if (inThrowExpression && decl.newExpression && decl.newExpression.type &&
+			!thrown.canFind!(a => a == decl.newExpression.type))
+		{
+			thrown ~= decl.newExpression.type;
 		}
 
 		// enforce(condition);
@@ -182,12 +190,13 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 		import std.array : Appender;
 
 		// ignore header declaration for now
-		if (!decl.functionBody || !decl.functionBody.specifiedFunctionBody)
+		if (!decl.functionBody || (!decl.functionBody.specifiedFunctionBody
+			&& !decl.functionBody.shortenedFunctionBody))
 			return;
 
 		if (nestedFuncs == 1)
 			thrown.length = 0;
-		// detect ThrowStatement only if not nothrow
+		// detect ThrowExpression only if not nothrow
 		if (!decl.attributes.any!(a => a.attribute.text == "nothrow"))
 		{
 			decl.accept(this);
@@ -228,20 +237,14 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 							.array;
 	}
 
-	override void visit(const ThrowStatement ts)
+	override void visit(const ThrowExpression ts)
 	{
-		import std.algorithm.searching : canFind;
-
+		const wasInThrowExpression = inThrowExpression;
+		inThrowExpression = true;
+		scope (exit)
+			inThrowExpression = wasInThrowExpression;
 		ts.accept(this);
-		if (ts.expression && ts.expression.items.length == 1)
-			if (const UnaryExpression ue = cast(UnaryExpression) ts.expression.items[0])
-		{
-			if (ue.newExpression && ue.newExpression.type &&
-				!thrown.canFind!(a => a == ue.newExpression.type))
-			{
-				thrown ~= ue.newExpression.type;
-			}
-		}
+		inThrowExpression = false;
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -260,6 +263,7 @@ private:
 	}
 	Function lastSeenFun;
 
+	bool inThrowExpression;
 	const(Type)[] thrown;
 
 	// find invalid ddoc parameters (i.e. they don't occur in a function declaration)
@@ -650,6 +654,20 @@ unittest
  * A long description.
  */
 int foo(int k){} // [warn]: %s
+	}c.format(
+		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
+	), sac);
+
+	assertAnalyzerWarnings(q{
+/**
+ * Description.
+ *
+ * Params:
+ *
+ * Returns:
+ * A long description.
+ */
+int foo(int k) => k; // [warn]: %s
 	}c.format(
 		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
 	), sac);
