@@ -24,6 +24,17 @@ OBJ = $(SRC:.d=.o)
 PROJECT_OBJ = $(PROJECT_SRC:.d=.o)
 LIB_OBJ = $(LIB_SRC:.d=.o)
 
+OBJ_BY_DC = $(addprefix $(OBJ_DIR)/$(DC)/, $(OBJ))
+# `sort` also removes duplicates, which is what we want
+OBJ_BY_DC_DIR = $(sort $(dir $(OBJ_BY_DC)))
+UT_OBJ_BY_DC = $(addprefix $(UT_OBJ_DIR)/$(DC)/, $(PROJECT_OBJ))
+UT_OBJ_BY_DC_DIR = $(sort $(dir $(UT_OBJ_BY_DC)))
+
+DSCANNER_BIN = bin/dscanner
+DSCANNER_BIN_DIR = $(dir $(DSCANNER_BIN))
+UT_DSCANNER_BIN = bin/dscanner-unittest
+UT_DSCANNER_LIB = bin/dscanner-unittest-lib.a
+
 INCLUDE_PATHS = \
 	-Isrc \
 	-Iinifiled/source \
@@ -33,60 +44,67 @@ INCLUDE_PATHS = \
 	-Ilibddoc/src \
 	-Ilibddoc/common/source \
 	-Istdx-allocator/source
-VERSIONS =
-DEBUG_VERSIONS = -version=dparse_verbose
-DMD_FLAGS = -w -release -O -Jbin -od${OBJ_DIR} -version=StdLoggerDisableWarning
-override DMD_FLAGS += $(DFLAGS)
-override LDC_FLAGS += $(DFLAGS)
-override GDC_FLAGS += $(DFLAGS)
-DMD_TEST_FLAGS = -w -g -Jbin -version=StdLoggerDisableWarning
-override LDC_FLAGS += -O5 -release -oq -d-version=StdLoggerDisableWarning -Jbin
-override GDC_FLAGS += -O3 -frelease -d-version=StdLoggerDisableWarning -Jbin
-SHELL:=/usr/bin/env bash
 
-DMD_BIN = bin/dmd/dscanner
-LDC_BIN = bin/ldc/dscanner
-GDC_BIN = bin/gdc/dscanner
+DMD_VERSIONS = -version=StdLoggerDisableWarning
+DMD_DEBUG_VERSIONS = -version=dparse_verbose
+LDC_VERSIONS = -d-version=StdLoggerDisableWarning
+LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
+GDC_VERSIONS = -fversion=StdLoggerDisableWarning
+GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
+
+DC_FLAGS += -Jbin
+override DMD_FLAGS += $(DFLAGS) -w -release -O -od${OBJ_DIR}
+override LDC_FLAGS += $(DFLAGS) -O5 -release -oq
+override GDC_FLAGS += $(DFLAGS) -O3 -frelease
+
+DC_TEST_FLAGS += -g -Jbin
+override DMD_TEST_FLAGS += -w
+
+ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
+	VERSIONS := $(DMD_VERSIONS)
+	DEBUG_VERSIONS := $(DMD_DEBUG_VERSIONS)
+	DC_FLAGS += $(DMD_FLAGS)
+	DC_TEST_FLAGS += $(DMD_TEST_FLAGS)
+	WRITE_TO_TARGET_NAME = -of=$@
+else ifeq ($(DC), ldc2)
+	VERSIONS := $(LDC_VERSIONS)
+	DEBUG_VERSIONS := $(LDC_DEBUG_VERSIONS)
+	DC_FLAGS += $(LDC_FLAGS)
+	DC_TEST_FLAGS += $(LDC_TEST_FLAGS)
+	WRITE_TO_TARGET_NAME = -of=$@
+else ifeq ($(DC), gdc)
+	VERSIONS := $(GDC_VERSIONS)
+	DEBUG_VERSIONS := $(GDC_DEBUG_VERSIONS)
+	DC_FLAGS += $(GDC_FLAGS)
+	DC_TEST_FLAGS += $(GDC_TEST_FLAGS)
+	WRITE_TO_TARGET_NAME = -o $@
+endif
+
+SHELL:=/usr/bin/env bash
 
 GITHASH = bin/githash.txt
 
-OBJ_BY_DMD = $(addprefix $(OBJ_DIR)/dmd/, $(OBJ))
-# `sort` also removes duplicates, which is what we want
-OBJ_BY_DMD_DIR = $(sort $(dir $(OBJ_BY_DMD)))
-UT_OBJ_BY_DMD = $(addprefix $(UT_OBJ_DIR)/dmd/, $(PROJECT_OBJ))
-UT_OBJ_BY_DMD_DIR = $(sort $(dir $(UT_OBJ_BY_DMD)))
 
-OBJ_BY_LDC = $(addprefix $(OBJ_DIR)/ldc/, $(OBJ))
-OBJ_BY_LDC_DIR = $(sort $(dir $(OBJ_BY_LDC)))
-UT_OBJ_BY_LDC = $(addprefix $(UT_OBJ_DIR)/ldc/, $(PROJECT_OBJ))
-UT_OBJ_BY_LDC_DIR = $(sort $(dir $(UT_OBJ_BY_LDC)))
+$(OBJ_DIR)/$(DC)/%.o: %.d
+	${DC} ${DC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
-OBJ_BY_GDC = $(addprefix $(OBJ_DIR)/gdc/, $(OBJ))
-OBJ_BY_GDC_DIR = $(sort $(dir $(OBJ_BY_GDC)))
-UT_OBJ_BY_GDC = $(addprefix $(UT_OBJ_DIR)/gdc/, $(PROJECT_OBJ))
-UT_OBJ_BY_GDC_DIR = $(sort $(dir $(UT_OBJ_BY_GDC)))
+$(UT_OBJ_DIR)/$(DC)/%.o: %.d
+	${DC} ${DC_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
-$(OBJ_DIR)/dmd/%.o: %.d
-	${DC} ${DMD_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< -of=$@
+${DSCANNER_BIN}: ${GITHASH} ${OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
+	${DC} ${OBJ_BY_DC} ${WRITE_TO_TARGET_NAME}
 
-$(UT_OBJ_DIR)/dmd/%.o: %.d
-	${DC} ${DMD_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< -of=$@
+${OBJ_BY_DC}: | ${OBJ_BY_DC_DIR}
 
-$(OBJ_DIR)/ldc/%.o: %.d
-	${DC} ${LDC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< -of=$@
+${OBJ_BY_DC_DIR}:
+	mkdir -p ${OBJ_BY_DC_DIR}
 
-$(UT_OBJ_DIR)/ldc/%.o: %.d
-	${DC} ${LDC_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< -of=$@
+${DSCANNER_BIN_DIR}:
+	mkdir -p $@
 
-$(OBJ_DIR)/gdc/%.o: %.d
-	${DC} ${GDC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< -o $@
-
-$(UT_OBJ_DIR)/gdc/%.o: %.d
-	${DC} ${GDC_TEST_FLAGS} ${VERSIONS} -unittest ${INCLUDE_PATHS} -c $< -o $@
-
-all: ${DMD_BIN}
-ldc: ${LDC_BIN}
-gdc: ${GDC_BIN}
+all: ${DSCANNER_BIN}
+ldc: ${DSCANNER_BIN}
+gdc: ${DSCANNER_BIN}
 
 ${GITHASH}:
 	mkdir -p bin && ${GIT} describe --tags --always > ${GITHASH}
@@ -94,50 +112,24 @@ ${GITHASH}:
 debug: ${GITHASH}
 	${DC} -w -g -Jbin -ofdsc ${VERSIONS} ${DEBUG_VERSIONS} ${INCLUDE_PATHS} ${SRC}
 
-${DMD_BIN}: ${GITHASH} ${OBJ_BY_DMD}
-	${DC} -of${DMD_BIN} ${OBJ_BY_DMD}
-
-${OBJ_BY_DMD}: | ${OBJ_BY_DMD_DIR}
-
-${OBJ_BY_DMD_DIR}:
-	mkdir -p ${OBJ_BY_DMD_DIR}
-
-${GDC_BIN}: ${GITHASH} ${OBJ_BY_GDC}
-	${GDC} -o${GDC_BIN} ${OBJ_BY_GDC}
-
-${OBJ_BY_GDC}: | ${OBJ_BY_GDC_DIR}
-
-${OBJ_BY_GDC_DIR}:
-	mkdir -p ${OBJ_BY_GDC_DIR}
-
-${LDC_BIN}: ${GITHASH} ${OBJ_BY_LDC}
-	${LDC} -of=${LDC_BIN} ${OBJ_BY_LDC}
-
-${OBJ_BY_LDC}: | ${OBJ_BY_LDC_DIR}
-
-${OBJ_BY_LDC_DIR}:
-	mkdir -p ${OBJ_BY_LDC_DIR}
-
 # compile the dependencies separately, s.t. their unittests don't get executed
-bin/dmd/dscanner-unittest-lib.a: ${LIB_SRC}
-	${DC} ${DMD_TEST_FLAGS} -c ${VERSIONS} ${INCLUDE_PATHS} ${LIB_SRC} -of$@
+${UT_DSCANNER_LIB}: ${LIB_SRC} | ${DSCANNER_BIN_DIR}
+	${DC} ${DC_TEST_FLAGS} -c ${VERSIONS} ${INCLUDE_PATHS} ${LIB_SRC} ${WRITE_TO_TARGET_NAME}
 
-test: bin/dmd/dscanner-unittest-lib.a ${GITHASH} ${UT_OBJ_BY_DMD}
-	${DC} bin/dmd/dscanner-unittest-lib.a ${UT_OBJ_BY_DMD} -ofbin/dmd/dscanner-unittest
-	./bin/dmd/dscanner-unittest
+test: ${UT_DSCANNER_BIN}
 
-${UT_OBJ_BY_DMD}: | ${UT_OBJ_BY_DMD_DIR}
+${UT_DSCANNER_BIN}: ${UT_DSCANNER_LIB} ${GITHASH} ${UT_OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
+	${DC} ${UT_DSCANNER_LIB} ${UT_OBJ_BY_DC} ${WRITE_TO_TARGET_NAME}
+	./${UT_DSCANNER_BIN}
 
-${UT_OBJ_BY_DMD_DIR}:
-	mkdir -p ${UT_OBJ_BY_DMD_DIR}
-
-lint: ${DMD_BIN}
-	./${DMD_BIN} --config .dscanner.ini --styleCheck src
+lint: ${DSCANNER_BIN}
+	./${DSCANNER_BIN} --config .dscanner.ini --styleCheck src
 
 clean:
 	rm -rf dsc
 	rm -rf bin
 	rm -rf ${OBJ_DIR}
+	rm -rf ${UT_OBJ_DIR}
 	rm -f dscanner-report.json
 
 report: all
