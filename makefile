@@ -68,7 +68,7 @@ ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
 	DEBUG_VERSIONS := $(DMD_DEBUG_VERSIONS)
 	DC_FLAGS += $(DMD_FLAGS)
 	DC_TEST_FLAGS += $(DMD_TEST_FLAGS) -unittest
-	WRITE_TO_TARGET_NAME = -of=$@
+	WRITE_TO_TARGET_NAME = -of$@
 else ifneq (,$(findstring ldc2, $(DC)))
 	VERSIONS := $(LDC_VERSIONS)
 	DEBUG_VERSIONS := $(LDC_DEBUG_VERSIONS)
