@@ -6,13 +6,14 @@ on:
   push:
     branches:
       - master
+      - replace_libdparse
 
 jobs:
   main:
     name: Run all tests
 
     # Only run for the main repository - not forks
-    if: ${{ github.repository == 'dlang-community/D-Scanner' }}
+    if: ${{ github.repository == 'Dlang-UPB/D-Scanner' }}
 
     # Run permutations of common os + host compilers
     strategy:
@@ -86,6 +87,10 @@ jobs:
         with:
            submodules: 'recursive'
            fetch-depth: 0
+
+      # Uncomment to get a ssh connection inside the GH Actions runner
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
 
       # Install the host compiler (DMD or LDC)
       # Also grabs DMD for GDC to include dub + rdmd
@@ -162,6 +167,11 @@ jobs:
         run: ./it.sh
         working-directory: tests
         shell: bash
+
+      - name: Run style checks
+        if: ${{ matrix.compiler.dmd == 'dmd' && matrix.build.type == 'make' }}
+        run: |
+            make style
 
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
