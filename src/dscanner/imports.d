@@ -22,6 +22,7 @@ import dmd.identifier;
 import core.memory;
 import std.stdio;
 import std.file;
+import std.conv : to;
 
 extern(C++) class ImportVisitor(AST) : ParseTimeTransitiveVisitor!AST
 {
@@ -34,7 +35,7 @@ extern(C++) class ImportVisitor(AST) : ParseTimeTransitiveVisitor!AST
 
     override void visit(AST.Import imp)
     {
-		import std.conv;
+		import std.conv : to;
 		string s;
 
         foreach (const pid; imp.packages)
@@ -56,7 +57,8 @@ private void visitFile(bool usingStdin, string fileName, RedBlackTree!string imp
 
 	auto id = Identifier.idPool(fileName);
 	auto m = new ASTBase.Module(&(fileName.dup)[0], id, false, false);
-	auto input = readText(fileName);
+	ubyte[] bytes = usingStdin ? readStdin() : readFile(fileName);
+	auto input = cast(char[]) bytes;
 
 	scope p = new Parser!ASTBase(m, input, false);
 	p.nextToken();
@@ -127,9 +129,8 @@ void printImports(bool usingStdin, string[] args, string[] importPaths, bool rec
 
 unittest
 {
-	import std.stdio;
-	import std.file;
-	import core.stdc.stdio;
+	import std.stdio : File;
+	import std.file : exists, remove;
 
 	auto deleteme = "test.txt";
 	File file = File(deleteme, "w");
@@ -156,5 +157,6 @@ unittest
 	expected.insert("std.fish");
 	expected.insert("std.file");
 	expected.insert("std.experimental.dragon");
+
 	assert(expected == importedFiles);
 }
