@@ -15,7 +15,10 @@
     "dcd:dsymbol": ">=0.16.0-beta.2 <0.17.0",
     "inifiled": "~>1.3.1",
     "emsi_containers": "~>0.9.0",
-    "libddoc": "~>0.8.0"
+    "libddoc": "~>0.8.0",
+    "dmd:root": "~master",
+    "dmd:lexer": "~master",
+    "dmd:parser": "~master"
   },
   "targetPath" : "bin",
   "stringImportPaths" : [
