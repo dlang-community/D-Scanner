@@ -209,6 +209,12 @@ struct StaticAnalysisConfig
 	@INI("Check for unused function return values")
 	string unused_result = Check.enabled;
 
+	@INI("Enable cyclomatic complexity check")
+	string cyclomatic_complexity = Check.disabled;
+
+	@INI("Maximum cyclomatic complexity after which to issue warnings")
+	int max_cyclomatic_complexity = 50;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }
