@@ -163,6 +163,7 @@ Note that the "--skipTests" option is the equivalent of changing each
 * Indentation of if constraints
 * Check that `@trusted` is not applied to a whole scope. Trusting a whole scope can be a problem when new declarations are added and if they are not verified manually to be trustable.
 * Redundant storage class attributes
+* Cyclomatic complexity threshold per function and unittest (starts at 1, increased by 1 at each `if`, switch `case`, loop, `&&`, `||`, `?:`, `throw`, `catch`, `return`, `break`, `continue`, `goto` and function literal)
 
 #### Wishlist
 

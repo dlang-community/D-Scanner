@@ -80,6 +80,7 @@ import dscanner.analysis.if_constraints_indent;
 import dscanner.analysis.trust_too_much;
 import dscanner.analysis.redundant_storage_class;
 import dscanner.analysis.unused_result;
+import dscanner.analysis.cyclomatic_complexity;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -588,6 +589,11 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (moduleName.shouldRun!UnusedResultChecker(analysisConfig))
 		checks ~= new UnusedResultChecker(fileName, moduleScope,
 		analysisConfig.unused_result == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!CyclomaticComplexityCheck(analysisConfig))
+		checks ~= new CyclomaticComplexityCheck(fileName, moduleScope,
+		analysisConfig.cyclomatic_complexity == Check.skipTests && !ut,
+		analysisConfig.max_cyclomatic_complexity.to!int);
 
 	version (none)
 		if (moduleName.shouldRun!IfStatementCheck(analysisConfig))
