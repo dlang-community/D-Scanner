@@ -70,7 +70,7 @@ final class CyclomaticComplexityCheck : BaseAnalyzer
 	mixin VisitComplex!AndAndExpression;
 	mixin VisitComplex!OrOrExpression;
 	mixin VisitComplex!TernaryExpression;
-	mixin VisitComplex!ThrowStatement;
+	mixin VisitComplex!ThrowExpression;
 	mixin VisitComplex!Catch;
 	mixin VisitComplex!LastCatch;
 	mixin VisitComplex!ReturnStatement;
