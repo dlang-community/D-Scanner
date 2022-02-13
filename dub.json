@@ -23,7 +23,7 @@
   "stringImportPaths" : [
     "bin"
   ],
-  "preGenerateCommands" : [
-    "rdmd \"$PACKAGE_DIR/dubhash.d\""
+  "preBuildCommands" : [
+    "$DC -run \"$PACKAGE_DIR/dubhash.d\""
   ]
 }
