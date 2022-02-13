@@ -112,6 +112,11 @@ jobs:
           rdmd ./d-test-utils/test_with_package.d ${{ matrix.build.version }} -- dub build
           rdmd ./d-test-utils/test_with_package.d ${{ matrix.build.version }} -- dub test
 
+      - uses: actions/upload-artifact@v2
+        with:
+          name: bin-${{matrix.build.type}}-${{matrix.build.version}}-${{ matrix.compiler.dmd }}-${{ matrix.host }}
+          path: bin
+
       # Lint source code using the previously built binary
       - name: Run linter
         shell: bash
