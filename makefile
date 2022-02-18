@@ -18,8 +18,8 @@ LIB_SRC := \
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
 
-UT_OBJ_DIR = unittest-obj
 OBJ_DIR := obj
+UT_OBJ_DIR = $(OBJ_DIR)/unittest
 OBJ = $(SRC:.d=.o)
 PROJECT_OBJ = $(PROJECT_SRC:.d=.o)
 LIB_OBJ = $(LIB_SRC:.d=.o)
@@ -117,6 +117,8 @@ all: ${DSCANNER_BIN}
 ldc: ${DSCANNER_BIN}
 gdc: ${DSCANNER_BIN}
 
+githash: ${GITHASH}
+
 ${GITHASH}:
 	mkdir -p bin && ${GIT} describe --tags --always > ${GITHASH}
 
@@ -140,7 +142,6 @@ clean:
 	rm -rf dsc
 	rm -rf bin
 	rm -rf ${OBJ_DIR}
-	rm -rf ${UT_OBJ_DIR}
 	rm -f dscanner-report.json
 
 report: all
