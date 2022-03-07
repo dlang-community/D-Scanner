@@ -434,7 +434,8 @@ abstract class UnusedStorageCheck : UnusedIdentifierCheck
 		// enum name = "abc";
 		// __traits(hasMember, S, name);
 		ignoreDeclarations++;
-		traitsExp.templateArgumentList.accept(this);
+		if (traitsExp.templateArgumentList)
+			traitsExp.templateArgumentList.accept(this);
 		ignoreDeclarations--;
 	}
 
