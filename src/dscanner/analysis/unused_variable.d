@@ -117,6 +117,12 @@ final class UnusedVariableCheck : UnusedStorageCheck
 		__traits(compiles, { int i = 2; });
 	}
 
+	// segfault with null templateArgumentList
+	void nullTest()
+	{
+		__traits(isPOD);
+	}
+
 	}c, sac);
 	stderr.writeln("Unittest for UnusedVariableCheck passed.");
 }
