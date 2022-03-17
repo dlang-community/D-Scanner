@@ -81,6 +81,7 @@ import dscanner.analysis.trust_too_much;
 import dscanner.analysis.redundant_storage_class;
 import dscanner.analysis.unused_result;
 import dscanner.analysis.cyclomatic_complexity;
+import dscanner.analysis.ignored_unittest;
 
 import dsymbol.string_interning : internString;
 import dsymbol.scope_;
@@ -594,6 +595,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		checks ~= new CyclomaticComplexityCheck(fileName, moduleScope,
 		analysisConfig.cyclomatic_complexity == Check.skipTests && !ut,
 		analysisConfig.max_cyclomatic_complexity.to!int);
+
+	if (moduleName.shouldRun!IgnoredUnittestCheck(analysisConfig))
+		checks ~= new IgnoredUnittestCheck(fileName,
+		analysisConfig.unused_result == Check.skipTests && !ut);
 
 	version (none)
 		if (moduleName.shouldRun!IfStatementCheck(analysisConfig))
