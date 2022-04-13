@@ -71,11 +71,11 @@ INCLUDE_PATHS = \
 	-Ilibddoc/common/source \
 	-Idmd/src
 
-DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB
+DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS
 DMD_DEBUG_VERSIONS = -version=dparse_verbose
-LDC_VERSIONS = -d-version=StdLoggerDisableWarning -d-version=CallbackAPI -d-version=DMDLIB
+LDC_VERSIONS = -d-version=StdLoggerDisableWarning -d-version=CallbackAPI -d-version=DMDLIB -version=MARS
 LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
-GDC_VERSIONS = -fversion=StdLoggerDisableWarning -fversion=CallbackAPI -fversion=DMDLIB
+GDC_VERSIONS = -fversion=StdLoggerDisableWarning -fversion=CallbackAPI -fversion=DMDLIB -version=MARS
 GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
 
 DC_FLAGS += -Jbin -Jdmd
