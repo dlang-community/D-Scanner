@@ -1,3 +1,5 @@
+This is a test, do not merge
+
 # D-Scanner
 
 [![CI status](https://travis-ci.org/dlang-community/D-Scanner.svg?branch=master)](https://travis-ci.org/dlang-community/D-Scanner/)
