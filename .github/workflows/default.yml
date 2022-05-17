@@ -72,6 +72,8 @@ jobs:
            submodules: 'recursive'
            fetch-depth: 0
 
+      # Empty commit to trigger build and check for linkage error
+
       # Install the host compiler (DMD or LDC)
       # Also grabs DMD for GDC to include dub + rdmd
       - name: Install ${{ matrix.compiler.version }}
