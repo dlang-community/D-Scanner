@@ -8,6 +8,9 @@ import std.format : format;
 import std.file : exists, read;
 import std.path: isValidPath;
 
+import dmd.astbase : ASTBase;
+import dmd.parse : Parser;
+
 private void processBOM(ref ubyte[] sourceCode, string fname)
 {
 	enum spec = "D-Scanner does not support %s-encoded files (%s)";
@@ -308,4 +311,25 @@ if (is(M == class))
 auto ref safeAccess(M)(M m)
 {
 	return SafeAccess!M(m);
+}
+
+/**
+ * Return the module name from a ModuleDeclaration instance with the following format: `foo.bar.module`
+ */
+const(char[]) getModuleName(ASTBase.ModuleDeclaration *mdptr)
+{
+	import std.array : array, join;
+
+	if (mdptr !is null)
+	{
+		import std.algorithm : map;
+		ASTBase.ModuleDeclaration md = *mdptr;
+		
+		if (md.packages.length != 0)
+			return join(md.packages.map!(e => e.toString()).array ~ md.id.toString().dup, ".");
+		else
+			return md.id.toString(); 
+	}
+
+	return "";
 }

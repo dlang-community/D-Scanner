@@ -13,7 +13,6 @@ import dparse.parser;
 import dparse.rollback_allocator;
 import std.algorithm;
 import std.array;
-import std.array;
 import std.conv;
 import std.file : mkdirRecurse;
 import std.functional : toDelegate;
@@ -96,6 +95,7 @@ import dscanner.utils;
 import dscanner.reports : DScannerJsonReporter, SonarQubeGenericIssueDataReporter;
 
 import dmd.astbase : ASTBase;
+import dmd.parse : Parser;
 
 bool first = true;
 
@@ -404,9 +404,9 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		auto ast_m = new ASTBase.Module(fileName.toStringz, id, false, false);
 		auto input = cast(char[]) code;
 		input ~= '\0';
-		scope p = new Parser!ASTBase(ast_m, input, false);
-		p.nextToken();
-		ast_m.members = p.parseModule();
+		scope astbaseParser = new Parser!ASTBase(ast_m, input, false);
+		astbaseParser.nextToken();
+		ast_m.members = astbaseParser.parseModule();
 
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
@@ -421,8 +421,8 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
 		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
-		MessageSet resultsDmd = analyzeDmd(fileName, ast_m);
-		foreach(result; resultsDmd[])
+		MessageSet resultsDmd = analyzeDmd(fileName, ast_m, getModuleName(astbaseParser.md), config);
+		foreach (result; resultsDmd[])
 		{
 			results.insert(result);
 		}
@@ -726,6 +726,46 @@ bool shouldRun(check : BaseAnalyzer)(string moduleName, const ref StaticAnalysis
 	return true;
 }
 
+/**
+ * Checks whether a module is part of a user-specified include/exclude list.
+ *
+ * The user can specify a comma-separated list of filters, everyone needs to start with
+ * either a '+' (inclusion) or '-' (exclusion).
+ *
+ * If no includes are specified, all modules are included.
+*/
+bool shouldRunDmd(check : BaseAnalyzerDmd!ASTBase)(const char[] moduleName, const ref StaticAnalysisConfig config)
+{
+	enum string a = check.name;
+
+	if (mixin("config." ~ a) == Check.disabled)
+		return false;
+
+	// By default, run the check
+	if (!moduleName.length)
+		return true;
+
+	auto filters = mixin("config.filters." ~ a);
+
+	// Check if there are filters are defined
+	// filters starting with a comma are invalid
+	if (filters.length == 0 || filters[0].length == 0)
+		return true;
+
+	auto includers = filters.filter!(f => f[0] == '+').map!(f => f[1..$]);
+	auto excluders = filters.filter!(f => f[0] == '-').map!(f => f[1..$]);
+
+	// exclusion has preference over inclusion
+	if (!excluders.empty && excluders.any!(s => moduleName.canFind(s)))
+		return false;
+
+	if (!includers.empty)
+		return includers.any!(s => moduleName.canFind(s));
+
+	// by default: include all modules
+	return true;
+}
+
 ///
 unittest
 {
@@ -855,10 +895,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	if (moduleName.shouldRun!NumberStyleCheck(analysisConfig))
 		checks ~= new NumberStyleCheck(args.setSkipTests(
 		analysisConfig.number_style_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ObjectConstCheck(analysisConfig))
-		checks ~= new ObjectConstCheck(args.setSkipTests(
-		analysisConfig.object_const_check == Check.skipTests && !ut));
 
 	if (moduleName.shouldRun!OpEqualsWithoutToHashCheck(analysisConfig))
 		checks ~= new OpEqualsWithoutToHashCheck(args.setSkipTests(
@@ -1285,14 +1321,24 @@ version (unittest)
 	}
 }
 
-MessageSet analyzeDmd(string fileName, ASTBase.Module m)
+MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName, const StaticAnalysisConfig config)
 {
-	scope vis = new EnumArrayVisitor!ASTBase(fileName);
-	m.accept(vis);
-
 	MessageSet set = new MessageSet;
-	foreach(message; vis.messages)
-		set.insert(message);
+	BaseAnalyzerDmd!ASTBase[] visitors;
+
+	if (moduleName.shouldRunDmd!(ObjectConstCheck!ASTBase)(config))
+		visitors ~= new ObjectConstCheck!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(EnumArrayVisitor!ASTBase)(config))
+		visitors ~= new EnumArrayVisitor!ASTBase(fileName);
+
+	foreach (visitor; visitors)
+	{
+		m.accept(visitor);
+		
+		foreach (message; visitor.messages)
+			set.insert(message);
+	}
 
 	return set;
 }
