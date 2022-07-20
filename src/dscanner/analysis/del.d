@@ -6,74 +6,47 @@
 module dscanner.analysis.del;
 
 import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
+import dscanner.analysis.helpers;
 import dsymbol.scope_;
 
 /**
  * Checks for use of the deprecated 'delete' keyword
  */
-final class DeleteCheck : BaseAnalyzer
+extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	// alias visit = BaseAnalyzerDmd!AST.visit;
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"delete_check";
 
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	override void visit(const DeleteExpression d)
+	override void visit(AST.DeleteExp d)
 	{
-		addErrorMessage(d.tokens[0], KEY,
-				"Avoid using the 'delete' keyword.",
-				[AutoFix.replacement(d.tokens[0], `destroy(`, "Replace delete with destroy()")
-					.concat(AutoFix.insertionAfter(d.tokens[$ - 1], ")"))]);
-		d.accept(this);
+		addErrorMessage(cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum, "dscanner.deprecated.delete_keyword",
+				"Avoid using the 'delete' keyword.");
+		super.visit(d);
 	}
-
-	private enum string KEY = "dscanner.deprecated.delete_keyword";
 }
 
 unittest
 {
-	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.delete_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testDelete()
 		{
 			int[int] data = [1 : 2];
-			delete data[1]; /+
-			^^^^^^ [warn]: Avoid using the 'delete' keyword. +/
+			delete data[1]; // [warn]: Avoid using the 'delete' keyword.
 
 			auto a = new Class();
-			delete a; /+
-			^^^^^^ [warn]: Avoid using the 'delete' keyword. +/
-		}
-	}c, sac);
-
-	assertAutoFix(q{
-		void testDelete()
-		{
-			int[int] data = [1 : 2];
-			delete data[1]; // fix
-
-			auto a = new Class();
-			delete a; // fix
-		}
-	}c, q{
-		void testDelete()
-		{
-			int[int] data = [1 : 2];
-			destroy(data[1]); // fix
-
-			auto a = new Class();
-			destroy(a); // fix
+			delete a; // [warn]: Avoid using the 'delete' keyword.
 		}
 	}c, sac);
 
