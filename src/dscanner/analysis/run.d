@@ -848,10 +848,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UnmodifiedFinder(args.setSkipTests(
 		analysisConfig.could_be_immutable_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!DeleteCheck(analysisConfig))
-		checks ~= new DeleteCheck(args.setSkipTests(
-		analysisConfig.delete_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!DuplicateAttributeCheck(analysisConfig))
 		checks ~= new DuplicateAttributeCheck(args.setSkipTests(
 		analysisConfig.duplicate_attribute == Check.skipTests && !ut));
@@ -1331,6 +1327,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(EnumArrayVisitor!ASTBase)(config))
 		visitors ~= new EnumArrayVisitor!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(DeleteCheck!ASTBase)(config))
+		visitors ~= new DeleteCheck!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
