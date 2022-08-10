@@ -30,29 +30,29 @@ set CONTAINERS=
 set LIBDDOC=
 
 set DMD_ROOT_SRC=
-for %%x in (dmd\src\dmd\common\*.d) do set DMD_ROOT_SRC=!DMD_ROOT_SRC! %%x
-for %%x in (dmd\src\dmd\root\*.d) do set DMD_ROOT_SRC=!DMD_ROOT_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\common\*.d) do set DMD_ROOT_SRC=!DMD_ROOT_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\root\*.d) do set DMD_ROOT_SRC=!DMD_ROOT_SRC! %%x
 
 set DMD_LEXER_SRC=^
-	dmd\src\dmd\console.d ^
-	dmd\src\dmd\entity.d ^
-	dmd\src\dmd\errors.d ^
-	dmd\src\dmd\file_manager.d ^
-	dmd\src\dmd\globals.d ^
-	dmd\src\dmd\id.d ^
-	dmd\src\dmd\identifier.d ^
-	dmd\src\dmd\lexer.d ^
-	dmd\src\dmd\tokens.d ^
-	dmd\src\dmd\utils.d
+	dmd\compiler\src\dmd\console.d ^
+	dmd\compiler\src\dmd\entity.d ^
+	dmd\compiler\src\dmd\errors.d ^
+	dmd\compiler\src\dmd\file_manager.d ^
+	dmd\compiler\src\dmd\globals.d ^
+	dmd\compiler\src\dmd\id.d ^
+	dmd\compiler\src\dmd\identifier.d ^
+	dmd\compiler\src\dmd\lexer.d ^
+	dmd\compiler\src\dmd\tokens.d ^
+	dmd\compiler\src\dmd\utils.d
 
 set DMD_PARSER_SRC=^
-	dmd\src\dmd\astbase.d ^
-	dmd\src\dmd\parse.d ^
-	dmd\src\dmd\parsetimevisitor.d ^
-	dmd\src\dmd\transitivevisitor.d ^
-	dmd\src\dmd\permissivevisitor.d ^
-	dmd\src\dmd\strictvisitor.d ^
-	dmd\src\dmd\astenums.d
+	dmd\compiler\src\dmd\astbase.d ^
+	dmd\compiler\src\dmd\parse.d ^
+	dmd\compiler\src\dmd\parsetimevisitor.d ^
+	dmd\compiler\src\dmd\transitivevisitor.d ^
+	dmd\compiler\src\dmd\permissivevisitor.d ^
+	dmd\compiler\src\dmd\strictvisitor.d ^
+	dmd\compiler\src\dmd\astenums.d
 
 for %%x in (src\dscanner\*.d) do set CORE=!CORE! %%x
 for %%x in (src\dscanner\analysis\*.d) do set ANALYSIS=!ANALYSIS! %%x
@@ -88,7 +88,7 @@ if "%1" == "test" goto test_cmd
 	-I"containers\src"^
 	-I"libddoc\src"^
 	-I"libddoc\common\source"^
-	-I"dmd\src"^
+	-I"dmd\compiler\src"^
 	-ofbin\dscanner.exe
 goto eof
 
@@ -109,7 +109,7 @@ set TESTNAME="bin\dscanner-unittest"
 	-I"DCD\dsymbol\src"^
 	-I"containers\src"^
 	-I"libddoc\src"^
-	-I"dmd\src"^
+	-I"dmd\compiler\src"^
 	-lib %TESTFLAGS%^
 	-of%TESTNAME%.lib
 if exist %TESTNAME%.lib %DC% %MFLAGS%^
@@ -123,7 +123,7 @@ if exist %TESTNAME%.lib %DC% %MFLAGS%^
 	-I"containers\src"^
 	-I"libddoc\src"^
 	-I"libddoc\common\source"^
-	-I"dmd\src"^
+	-I"dmd\compiler\src"^
 	-unittest^
 	%TESTFLAGS%^
 	-of%TESTNAME%.exe
