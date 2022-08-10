@@ -6,29 +6,29 @@ DMD := $(DC)
 GDC := gdc
 LDC := ldc2
 DMD_ROOT_SRC := \
-	$(shell find dmd/src/dmd/common -name "*.d")\
-	$(shell find dmd/src/dmd/root -name "*.d")
+	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
+	$(shell find dmd/compiler/src/dmd/root -name "*.d")
 DMD_LEXER_SRC := \
-	dmd/src/dmd/console.d \
-	dmd/src/dmd/entity.d \
-	dmd/src/dmd/errors.d \
-	dmd/src/dmd/file_manager.d \
-	dmd/src/dmd/globals.d \
-	dmd/src/dmd/id.d \
-	dmd/src/dmd/identifier.d \
-	dmd/src/dmd/lexer.d \
-	dmd/src/dmd/tokens.d \
-	dmd/src/dmd/utils.d \
+	dmd/compiler/src/dmd/console.d \
+	dmd/compiler/src/dmd/entity.d \
+	dmd/compiler/src/dmd/errors.d \
+	dmd/compiler/src/dmd/file_manager.d \
+	dmd/compiler/src/dmd/globals.d \
+	dmd/compiler/src/dmd/id.d \
+	dmd/compiler/src/dmd/identifier.d \
+	dmd/compiler/src/dmd/lexer.d \
+	dmd/compiler/src/dmd/tokens.d \
+	dmd/compiler/src/dmd/utils.d \
 	$(DMD_ROOT_SRC)
 
 DMD_PARSER_SRC := \
-	dmd/src/dmd/astbase.d \
-	dmd/src/dmd/parse.d \
-	dmd/src/dmd/parsetimevisitor.d \
-	dmd/src/dmd/transitivevisitor.d \
-	dmd/src/dmd/permissivevisitor.d \
-	dmd/src/dmd/strictvisitor.d \
-	dmd/src/dmd/astenums.d \
+	dmd/compiler/src/dmd/astbase.d \
+	dmd/compiler/src/dmd/parse.d \
+	dmd/compiler/src/dmd/parsetimevisitor.d \
+	dmd/compiler/src/dmd/transitivevisitor.d \
+	dmd/compiler/src/dmd/permissivevisitor.d \
+	dmd/compiler/src/dmd/strictvisitor.d \
+	dmd/compiler/src/dmd/astenums.d \
 	$(DMD_LEXER_SRC)
 
 LIB_SRC := \
@@ -69,7 +69,7 @@ INCLUDE_PATHS = \
 	-Icontainers/src \
 	-Ilibddoc/src \
 	-Ilibddoc/common/source \
-	-Idmd/src
+	-Idmd/compiler/src
 
 DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS
 DMD_DEBUG_VERSIONS = -version=dparse_verbose
