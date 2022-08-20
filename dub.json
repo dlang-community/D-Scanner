@@ -24,6 +24,6 @@
     "bin"
   ],
   "preBuildCommands" : [
-    "$DC -run \"$PACKAGE_DIR/dubhash.d\""
+    "\"$DC\" -run \"$PACKAGE_DIR/dubhash.d\""
   ]
 }
