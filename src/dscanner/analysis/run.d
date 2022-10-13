@@ -22,10 +22,10 @@ import dparse.ast;
 import dparse.rollback_allocator;
 import std.typecons : scoped;
 
-import stdx.allocator : CAllocatorImpl;
-import stdx.allocator.mallocator : Mallocator;
-import stdx.allocator.building_blocks.region : Region;
-import stdx.allocator.building_blocks.allocator_list : AllocatorList;
+import std.experimental.allocator : CAllocatorImpl;
+import std.experimental.allocator.mallocator : Mallocator;
+import std.experimental.allocator.building_blocks.region : Region;
+import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
 
 import dscanner.analysis.config;
 import dscanner.analysis.base;
@@ -368,7 +368,6 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	if (!staticAnalyze)
 		return null;
 
-	auto symbolAllocator = scoped!ASTAllocator();
 	version (unittest)
 		enum ut = true;
 	else
@@ -380,8 +379,7 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		  m.moduleDeclaration.moduleName.identifiers !is null)
 		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
 
-	scope first = new FirstPass(m, internString(fileName), symbolAllocator,
-			symbolAllocator, true, &moduleCache, null);
+	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
 	first.run();
 
 	secondPass(first.rootSymbol, first.moduleScope, moduleCache);

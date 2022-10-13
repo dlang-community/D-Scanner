@@ -16,8 +16,8 @@ import dsymbol.modulecache : ModuleCache;
 import dscanner.analysis.config;
 import dscanner.analysis.run;
 import dscanner.analysis.base;
-import stdx.allocator.mallocator;
-import stdx.allocator;
+import std.experimental.allocator.mallocator;
+import std.experimental.allocator;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
@@ -56,7 +56,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	const(Token)[] tokens;
 	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, defaultErrorFormat, cache, false, tokens);
 
-	auto moduleCache = ModuleCache(new CAllocatorImpl!Mallocator);
+	ModuleCache moduleCache;
 
 	// Run the code and get any warnings
 	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);

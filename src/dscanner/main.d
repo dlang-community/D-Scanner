@@ -153,8 +153,7 @@ else
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
 
-	auto alloc = scoped!(dsymbol.modulecache.ASTAllocator)();
-	auto moduleCache = ModuleCache(alloc);
+	ModuleCache moduleCache;
 
 	if (absImportPaths.length)
 		moduleCache.addImportPaths(absImportPaths);
