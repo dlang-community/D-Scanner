@@ -30,11 +30,11 @@ jobs:
           {
             # Install dmd for the associated tools (dub/rdmd)
             version: dmd-latest,
-            dmd: gdmd
+            dmd: gdc-12
           }
         ]
         host: [
-          ubuntu-latest,
+          ubuntu-22.04,
           macos-latest,
           windows-latest
         ]
@@ -50,15 +50,15 @@ jobs:
         exclude:
           # Restrict GDC to Ubuntu
           - compiler:
-              dmd: gdmd
+              dmd: gdc-12
             host: windows-latest
           - compiler:
-              dmd: gdmd
+              dmd: gdc-12
             host: macos-latest
 
           #  Omit dub builds for GDC because dub rejects the old fronted revision
           - compiler:
-              dmd: gdmd
+              dmd: gdc-12
             build:
               type: dub
 
@@ -75,17 +75,17 @@ jobs:
       # Install the host compiler (DMD or LDC)
       # Also grabs DMD for GDC to include dub + rdmd
       - name: Install ${{ matrix.compiler.version }}
-        if: ${{ matrix.compiler.dmd != 'gdmd' || matrix.build.type == 'dub' }} # Fetch required tools for GDC
+        if: ${{ matrix.compiler.dmd != 'gdc-12' || matrix.build.type == 'dub' }} # Fetch required tools for GDC
         uses: dlang-community/setup-dlang@v1
         with:
           compiler: ${{ matrix.compiler.version }}
 
         # GDC not yet supported by setup-dlang
       - name: Install GDC via apt-get
-        if: ${{ matrix.compiler.dmd == 'gdmd' }}
+        if: ${{ matrix.compiler.dmd == 'gdc-12' }}
         run: |
-          sudo apt-get install gdc gdmd -y
-          gdc --version
+          sudo apt-get install gdc-12 -y
+          gdc-12 --version
 
       # Compile D-Scanner and execute all tests without dub
       - name: Build and test without dub

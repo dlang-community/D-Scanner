@@ -54,7 +54,9 @@ GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
 DC_FLAGS += -Jbin
 override DMD_FLAGS += $(DFLAGS) -w -release -O -od${OBJ_DIR}
 override LDC_FLAGS += $(DFLAGS) -O5 -release -oq
-override GDC_FLAGS += $(DFLAGS) -O3 -frelease
+override GDC_FLAGS += $(DFLAGS) -O3 -frelease -fall-instantiations
+
+override GDC_TEST_FLAGS += -fall-instantiations
 
 DC_TEST_FLAGS += -g -Jbin
 override DMD_TEST_FLAGS += -w
