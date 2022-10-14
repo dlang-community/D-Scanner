@@ -34,7 +34,7 @@ jobs:
           }
         ]
         host: [
-          ubuntu-latest,
+          ubuntu-22.04,
           macos-latest,
           windows-latest
         ]
@@ -55,12 +55,6 @@ jobs:
           - compiler:
               dmd: gdmd
             host: macos-latest
-
-          #  Omit dub builds for GDC because dub rejects the old fronted revision
-          - compiler:
-              dmd: gdmd
-            build:
-              type: dub
 
     runs-on: ${{ matrix.host }}
 
@@ -84,7 +78,7 @@ jobs:
       - name: Install GDC via apt-get
         if: ${{ matrix.compiler.dmd == 'gdmd' }}
         run: |
-          sudo apt-get install gdc gdmd -y
+          sudo apt-get install gdc-12 gdmd -y
           gdc --version
 
       # Compile D-Scanner and execute all tests without dub
@@ -103,7 +97,6 @@ jobs:
           fi
 
       # Compile D-Scanner and execute all tests using a specific dependency version
-      # Currently skipped for GDC (dub installed from apt-get is broken)
       - name: Build and test with dub
         if: ${{ matrix.build.type == 'dub' }}
         env:
