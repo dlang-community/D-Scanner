@@ -965,10 +965,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new ProperlyDocumentedPublicFunctions(args.setSkipTests(
 		analysisConfig.properly_documented_public_functions == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!FinalAttributeChecker(analysisConfig))
-		checks ~= new FinalAttributeChecker(args.setSkipTests(
-		analysisConfig.final_attribute_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!VcallCtorChecker(analysisConfig))
 		checks ~= new VcallCtorChecker(args.setSkipTests(
 		analysisConfig.vcall_in_ctor == Check.skipTests && !ut));
@@ -1330,6 +1326,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(DeleteCheck!ASTBase)(config))
 		visitors ~= new DeleteCheck!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(FinalAttributeChecker!ASTBase)(config))
+		visitors ~= new FinalAttributeChecker!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
