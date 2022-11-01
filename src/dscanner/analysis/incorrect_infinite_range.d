@@ -10,90 +10,88 @@ import dscanner.analysis.helpers;
 import dparse.ast;
 import dparse.lexer;
 
-import std.typecons : Rebindable;
-
 /**
  * Checks for incorrect infinite range definitions
  */
-final class IncorrectInfiniteRangeCheck : BaseAnalyzer
+extern(C++) class IncorrectInfiniteRangeCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
+	// alias visit = BaseAnalyzerDmd!AST.visit;
+	alias visit = BaseAnalyzerDmd.visit;
 
 	mixin AnalyzerInfo!"incorrect_infinite_range_check";
 
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	override void visit(const StructBody structBody)
+	override void visit(AST.StructDeclaration sd)
 	{
-		inStruct++;
-		structBody.accept(this);
-		inStruct--;
+		inAggregate++;
+		super.visit(sd);
+		inAggregate--;
 	}
 
-	override void visit(const FunctionDeclaration fd)
+	override void visit(AST.ClassDeclaration cd)
 	{
-		if (inStruct > 0 && fd.name.text == "empty")
+		inAggregate++;
+		super.visit(cd);
+		inAggregate--;
+	}
+
+	override void visit(AST.FuncDeclaration fd)
+	{
+		import dmd.astenums : Tbool;
+
+		if (!inAggregate)
+			return;
+
+		if (!fd.ident || fd.ident.toString() != "empty")
+			return;
+
+		AST.TypeFunction tf = fd.type.isTypeFunction();
+
+		if (!tf || !tf.next || !tf.next.ty)
+			return;
+
+		AST.ReturnStatement rs = fd.fbody ? fd.fbody.isReturnStatement() : null;
+
+		if (rs)
 		{
-			auto old = parentFunc;
-			parentFunc = fd;
-			fd.accept(this);
-			parentFunc = old;
+			AST.IntegerExp ie = cast(AST.IntegerExp) rs.exp;
+
+			if (ie && ie.getInteger() == 0)
+				addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
+				"Use `enum bool empty = false;` to define an infinite range.");
 		}
+
+		AST.CompoundStatement cs = fd.fbody ? fd.fbody.isCompoundStatement() : null;
+		
+		if (!cs || (*cs.statements).length == 0)
+			return;
+
+		if (auto rs1 = (*cs.statements)[0].isReturnStatement())
+		{
+			AST.IntegerExp ie = cast(AST.IntegerExp) rs1.exp;
+
+			if (ie && ie.getInteger() == 0)
+				addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
+				"Use `enum bool empty = false;` to define an infinite range.");
+		}
+
+		super.visit(fd);
 	}
 
-	override void visit(const FunctionBody fb)
+	override void visit(AST.UnitTestDeclaration ud)
 	{
-		if (fb.specifiedFunctionBody && fb.specifiedFunctionBody.blockStatement !is null)
-			visit(fb.specifiedFunctionBody.blockStatement);
-		else if (fb.shortenedFunctionBody && fb.shortenedFunctionBody.expression !is null)
-			visitReturnExpression(fb.shortenedFunctionBody.expression);
-	}
-
-	override void visit(const BlockStatement bs)
-	{
-		if (bs.declarationsAndStatements is null)
-			return;
-		if (bs.declarationsAndStatements.declarationsAndStatements is null)
-			return;
-		if (bs.declarationsAndStatements.declarationsAndStatements.length != 1)
-			return;
-		visit(bs.declarationsAndStatements);
-	}
-
-	override void visit(const ReturnStatement rs)
-	{
-		if (inStruct == 0 || parentFunc == null) // not within a struct yet
-			return;
-		visitReturnExpression(rs.expression);
-	}
-
-	void visitReturnExpression(const Expression expression)
-	{
-		if (!expression || expression.items.length != 1)
-			return;
-		UnaryExpression unary = cast(UnaryExpression) expression.items[0];
-		if (unary is null)
-			return;
-		if (unary.primaryExpression is null)
-			return;
-		if (unary.primaryExpression.primary != tok!"false")
-			return;
-		addErrorMessage(parentFunc.get, KEY, MESSAGE);
-	}
-
-	override void visit(const Unittest u)
-	{
+		
 	}
 
 private:
-	uint inStruct;
+	uint inAggregate;
 	enum string KEY = "dscanner.suspicious.incorrect_infinite_range";
 	enum string MESSAGE = "Use `enum bool empty = false;` to define an infinite range.";
-	Rebindable!(const FunctionDeclaration) parentFunc;
 }
 
 unittest
@@ -104,14 +102,12 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.incorrect_infinite_range_check = Check.enabled;
-	assertAnalyzerWarnings(q{struct InfiniteRange
+	assertAnalyzerWarningsDMD(q{struct InfiniteRange
 {
-	bool empty()
+	bool empty() // [warn]: Use `enum bool empty = false;` to define an infinite range.
 	{
 		return false;
-	} /+
-^^ [warn]: %1$s+/
-	// TODO: test for multiline issues like this
+	}
 
 	bool stuff()
 	{
@@ -132,8 +128,7 @@ unittest
 
 struct InfiniteRange
 {
-	bool empty() => false; /+
-	^^^^^^^^^^^^^^^^^^^^^^ [warn]: %1$s +/
+	bool empty() => false; // [warn]: Use `enum bool empty = false;` to define an infinite range.
 	bool stuff() => false;
 	unittest
 	{
@@ -148,11 +143,9 @@ struct InfiniteRange
 }
 
 bool empty() { return false; }
-class C { bool empty() { return false; } } /+
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [warn]: %1$s +/
+class C { bool empty() { return false; } } // [warn]: Use `enum bool empty = false;` to define an infinite range.
 
-}c
-			.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);
+}c, sac);
 }
 
 // test for https://github.com/dlang-community/D-Scanner/issues/656
@@ -173,7 +166,7 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.incorrect_infinite_range_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		enum isAllZeroBits = ()
 		{
 			if (true)

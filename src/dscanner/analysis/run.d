@@ -929,10 +929,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new AutoRefAssignmentCheck(args.setSkipTests(
 		analysisConfig.auto_ref_assignment_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!IncorrectInfiniteRangeCheck(analysisConfig))
-		checks ~= new IncorrectInfiniteRangeCheck(args.setSkipTests(
-		analysisConfig.incorrect_infinite_range_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!UselessAssertCheck(analysisConfig))
 		checks ~= new UselessAssertCheck(args.setSkipTests(
 		analysisConfig.useless_assert_check == Check.skipTests && !ut));
@@ -1329,6 +1325,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(FinalAttributeChecker!ASTBase)(config))
 		visitors ~= new FinalAttributeChecker!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(IncorrectInfiniteRangeCheck!ASTBase)(config))
+		visitors ~= new IncorrectInfiniteRangeCheck!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
