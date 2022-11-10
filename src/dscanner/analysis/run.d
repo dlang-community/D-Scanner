@@ -973,10 +973,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new AlwaysCurlyCheck(args.setSkipTests(
 		analysisConfig.always_curly_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!RedundantAttributesCheck(analysisConfig))
-		checks ~= new RedundantAttributesCheck(args.setSkipTests(
-		analysisConfig.redundant_attributes_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!HasPublicExampleCheck(analysisConfig))
 		checks ~= new HasPublicExampleCheck(args.setSkipTests(
 		analysisConfig.has_public_example == Check.skipTests && !ut));
@@ -1327,6 +1323,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(IncorrectInfiniteRangeCheck!ASTBase)(config))
 		visitors ~= new IncorrectInfiniteRangeCheck!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(RedundantAttributesCheck!ASTBase)(config))
+		visitors ~= new RedundantAttributesCheck!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
