@@ -872,10 +872,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new LabelVarNameCheck(args.setSkipTests(
 		analysisConfig.label_var_same_name_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!LengthSubtractionCheck(analysisConfig))
-		checks ~= new LengthSubtractionCheck(args.setSkipTests(
-		analysisConfig.length_subtraction_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!LocalImportCheck(analysisConfig))
 		checks ~= new LocalImportCheck(args.setSkipTests(
 		analysisConfig.local_import_check == Check.skipTests && !ut));
@@ -1326,6 +1322,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(RedundantAttributesCheck!ASTBase)(config))
 		visitors ~= new RedundantAttributesCheck!ASTBase(fileName);
+		
+	if (moduleName.shouldRunDmd!(LengthSubtractionCheck!ASTBase)(config))
+		visitors ~= new LengthSubtractionCheck!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
