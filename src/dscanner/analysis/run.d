@@ -929,10 +929,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UselessAssertCheck(args.setSkipTests(
 		analysisConfig.useless_assert_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!AliasSyntaxCheck(analysisConfig))
-		checks ~= new AliasSyntaxCheck(args.setSkipTests(
-		analysisConfig.alias_syntax_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!StaticIfElse(analysisConfig))
 		checks ~= new StaticIfElse(args.setSkipTests(
 		analysisConfig.static_if_else_check == Check.skipTests && !ut));
@@ -1321,6 +1317,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 		
 	if (moduleName.shouldRunDmd!(LengthSubtractionCheck!ASTBase)(config))
 		visitors ~= new LengthSubtractionCheck!ASTBase(fileName);
+		
+	if (moduleName.shouldRunDmd!(AliasSyntaxCheck!ASTBase)(config))
+		visitors ~= new AliasSyntaxCheck!ASTBase(fileName);
 
 	if (moduleName.shouldRunDmd!(ExplicitlyAnnotatedUnittestCheck!ASTBase)(config))
 		visitors ~= new ExplicitlyAnnotatedUnittestCheck!ASTBase(fileName);
