@@ -840,10 +840,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new CommaExpressionCheck(args.setSkipTests(
 		analysisConfig.comma_expression_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!ConstructorCheck(analysisConfig))
-		checks ~= new ConstructorCheck(args.setSkipTests(
-		analysisConfig.constructor_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!UnmodifiedFinder(analysisConfig))
 		checks ~= new UnmodifiedFinder(args.setSkipTests(
 		analysisConfig.could_be_immutable_check == Check.skipTests && !ut));
@@ -1323,6 +1319,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(ExplicitlyAnnotatedUnittestCheck!ASTBase)(config))
 		visitors ~= new ExplicitlyAnnotatedUnittestCheck!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(ConstructorCheck!ASTBase)(config))
+		visitors ~= new ConstructorCheck!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
