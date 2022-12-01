@@ -99,6 +99,11 @@ import dmd.parse : Parser;
 
 bool first = true;
 
+version (unittest)
+	enum ut = true;
+else
+	enum ut = false;
+
 private alias ASTAllocator = CAllocatorImpl!(
 		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
 
@@ -801,15 +806,18 @@ unittest
 	assert(test("std.bar.foo", "-barr,+bar"));
 }
 
-private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
-	const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
+private
 {
 	version (unittest)
 		enum ut = true;
 	else
 		enum ut = false;
+}
 
+private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
+	const(Token)[] tokens, const Module m,
+	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
+{
 	BaseAnalyzer[] checks;
 
 	string moduleName;
@@ -956,10 +964,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	if (moduleName.shouldRun!HasPublicExampleCheck(analysisConfig))
 		checks ~= new HasPublicExampleCheck(args.setSkipTests(
 		analysisConfig.has_public_example == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!AssertWithoutMessageCheck(analysisConfig))
-		checks ~= new AssertWithoutMessageCheck(args.setSkipTests(
-		analysisConfig.assert_without_msg == Check.skipTests && !ut));
 
 	if (moduleName.shouldRun!IfConstraintsIndentCheck(analysisConfig))
 		checks ~= new IfConstraintsIndentCheck(args.setSkipTests(
@@ -1318,6 +1322,12 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(ConstructorCheck!ASTBase)(config))
 		visitors ~= new ConstructorCheck!ASTBase(fileName);
+		
+	if (moduleName.shouldRunDmd!(AssertWithoutMessageCheck!ASTBase)(config))
+		visitors ~= new AssertWithoutMessageCheck!ASTBase(
+			fileName,
+			config.assert_without_msg == Check.skipTests && !ut
+		);
 
 	if (moduleName.shouldRunDmd!(LocalImportCheck!ASTBase)(config))
 		visitors ~= new LocalImportCheck!ASTBase(fileName);
