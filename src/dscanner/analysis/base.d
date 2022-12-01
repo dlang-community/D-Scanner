@@ -913,9 +913,10 @@ extern(C++) class BaseAnalyzerDmd(AST) : ParseTimeTransitiveVisitor!AST
 {
 	alias visit = ParseTimeTransitiveVisitor!AST.visit;
 
-	extern(D) this(string fileName)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
 		this.fileName = fileName;
+		this.skipTests = skipTests;
 		_messages = new MessageSet;
 	}
 
@@ -933,6 +934,12 @@ extern(C++) class BaseAnalyzerDmd(AST) : ParseTimeTransitiveVisitor!AST
 		return _messages[].array;
 	}
 
+	override void visit(AST.UnitTestDeclaration ud)
+	{
+		if (!skipTests)
+			super.visit(ud);
+	}
+
 
 protected:
 
@@ -940,6 +947,8 @@ protected:
 	{
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
+
+	extern(D) bool skipTests;
 
 	/**
 	 * The file name
