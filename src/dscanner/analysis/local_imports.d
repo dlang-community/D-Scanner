@@ -5,98 +5,100 @@
 
 module dscanner.analysis.local_imports;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_;
+
+import std.stdio : writeln;
 
 /**
  * Checks for local imports that import all symbols.
  * See_also: $(LINK https://issues.dlang.org/show_bug.cgi?id=10378)
  */
-final class LocalImportCheck : BaseAnalyzer
+extern(C++) class LocalImportCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
 	mixin AnalyzerInfo!"local_import_check";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	/**
-	 * Construct with the given file name.
-	 */
-	this(BaseAnalyzerArguments args)
+	mixin ScopedVisit!(AST.FuncDeclaration);
+	mixin ScopedVisit!(AST.IfStatement);
+	mixin ScopedVisit!(AST.WhileStatement);
+	mixin ScopedVisit!(AST.ForStatement);
+	mixin ScopedVisit!(AST.ForeachStatement);
+	mixin ScopedVisit!(AST.ClassDeclaration);
+	mixin ScopedVisit!(AST.StructDeclaration);
+	
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
+		this.localImport = false;
 	}
 
-	mixin visitThing!StructBody;
-	mixin visitThing!BlockStatement;
-
-	override void visit(const Declaration dec)
+	override void visit(AST.Import i)
 	{
-		if (dec.importDeclaration is null)
+		// Look for import foo.bar : x or foo.bar : y = x
+		if (!i.isstatic && localImport && i.names.length == 0 && !i.aliasId)
 		{
-			dec.accept(this);
-			return;
+			addErrorMessage(cast(ulong) i.loc.linnum, cast(ulong) i.loc.charnum, KEY, MESSAGE);
 		}
-		foreach (attr; dec.attributes)
-		{
-			if (attr.attribute == tok!"static")
-				isStatic = true;
-		}
-		dec.accept(this);
-		isStatic = false;
 	}
 
-	override void visit(const ImportDeclaration id)
+	// Skip unittests for now
+	override void visit(AST.UnitTestDeclaration ud)
 	{
-		if ((!isStatic && interesting) && (id.importBindings is null
-				|| id.importBindings.importBinds.length == 0))
-		{
-			foreach (singleImport; id.singleImports)
-			{
-				if (singleImport.rename.text.length == 0)
-				{
-					addErrorMessage(singleImport,
-							"dscanner.suspicious.local_imports", "Local imports should specify"
-							~ " the symbols being imported to avoid hiding local symbols.");
-				}
-			}
-		}
+		return;
 	}
 
 private:
-
-	mixin template visitThing(T)
+	template ScopedVisit(NodeType)
 	{
-		override void visit(const T thing)
+		override void visit(NodeType n)
 		{
-			const b = interesting;
-			interesting = true;
-			thing.accept(this);
-			interesting = b;
+			bool prevState = localImport;
+			localImport = true;
+			super.visit(n);
+			localImport = prevState;
 		}
 	}
 
-	bool interesting;
-	bool isStatic;
+	bool localImport;
+	enum KEY = "dscanner.suspicious.local_imports";
+	enum MESSAGE = "Local imports should specify the symbols being imported to avoid hiding local symbols.";
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.local_import_check = Check.enabled;
-	assertAnalyzerWarnings(q{
-		void testLocalImport()
+
+	assertAnalyzerWarningsDMD(q{
+		import std.experimental;
+
+		void foo()
 		{
-			import std.stdio; /+
-			       ^^^^^^^^^ [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols. +/
+			import std.stdio; // [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols.
 			import std.fish : scales, head;
 			import DAGRON = std.experimental.dragon;
+
+			if (1)
+			{
+				import foo.bar; // [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols.
+			}
+			else
+			{
+				import foo.bar; // [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols.
+			}
+
+			foreach (i; [1, 2, 3])
+			{
+				import foo.bar; // [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols.
+				import std.stdio : writeln;
+			}
 		}
+
+		import std.experimental.dragon;
 	}c, sac);
 
 	stderr.writeln("Unittest for LocalImportCheck passed.");
