@@ -917,10 +917,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		analysisConfig.long_line_check == Check.skipTests && !ut),
 		analysisConfig.max_line_length);
 
-	if (moduleName.shouldRun!AutoRefAssignmentCheck(analysisConfig))
-		checks ~= new AutoRefAssignmentCheck(args.setSkipTests(
-		analysisConfig.auto_ref_assignment_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!UselessAssertCheck(analysisConfig))
 		checks ~= new UselessAssertCheck(args.setSkipTests(
 		analysisConfig.useless_assert_check == Check.skipTests && !ut));
@@ -1333,6 +1329,9 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 			fileName,
 			config.opequals_tohash_check == Check.skipTests && !ut
 		);
+		
+	if (moduleName.shouldRunDmd!(AutoRefAssignmentCheck!ASTBase)(config))
+		visitors ~= new AutoRefAssignmentCheck!ASTBase(fileName);
 
 	foreach (visitor; visitors)
 	{
