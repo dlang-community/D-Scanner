@@ -888,10 +888,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new NumberStyleCheck(args.setSkipTests(
 		analysisConfig.number_style_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!OpEqualsWithoutToHashCheck(analysisConfig))
-		checks ~= new OpEqualsWithoutToHashCheck(args.setSkipTests(
-		analysisConfig.opequals_tohash_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!RedundantParenCheck(analysisConfig))
 		checks ~= new RedundantParenCheck(args.setSkipTests(
 		analysisConfig.redundant_parens_check == Check.skipTests && !ut));
@@ -1331,6 +1327,12 @@ MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName
 
 	if (moduleName.shouldRunDmd!(LocalImportCheck!ASTBase)(config))
 		visitors ~= new LocalImportCheck!ASTBase(fileName);
+
+	if (moduleName.shouldRunDmd!(OpEqualsWithoutToHashCheck!ASTBase)(config))
+		visitors ~= new OpEqualsWithoutToHashCheck!ASTBase(
+			fileName,
+			config.opequals_tohash_check == Check.skipTests && !ut
+		);
 
 	foreach (visitor; visitors)
 	{
