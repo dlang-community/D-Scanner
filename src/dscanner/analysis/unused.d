@@ -228,7 +228,7 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 				else if (idt.templateInstance && idt.templateInstance.identifier != tok!"")
 					variableUsed(idt.templateInstance.identifier.text);
 			}
-			if (mixinDepth > 0 && primary.primary == tok!"stringLiteral"
+			if ((mixinDepth > 0 && primary.primary == tok!"stringLiteral")
 					|| primary.primary == tok!"wstringLiteral"
 					|| primary.primary == tok!"dstringLiteral")
 			{
