@@ -5,127 +5,97 @@
 
 module dscanner.analysis.auto_ref_assignment;
 
-import dparse.lexer;
-import dparse.ast;
 import dscanner.analysis.base;
 
 /**
  * Checks for assignment to auto-ref function parameters.
  */
-final class AutoRefAssignmentCheck : BaseAnalyzer
+extern(C++) class AutoRefAssignmentCheck(AST) : BaseAnalyzerDmd
 {
 	mixin AnalyzerInfo!"auto_ref_assignment_check";
+	alias visit = BaseAnalyzerDmd.visit;
+
+	mixin ScopedVisit!(AST.ClassDeclaration);
+	mixin ScopedVisit!(AST.StructDeclaration);
+	mixin ScopedVisit!(AST.FuncDeclaration);
+	mixin ScopedVisit!(AST.InterfaceDeclaration);
+	mixin ScopedVisit!(AST.UnionDeclaration);
+	mixin ScopedVisit!(AST.ScopeStatement);
 
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	override void visit(const Module m)
+	override void visit(AST.TemplateDeclaration td)
 	{
-		pushScope();
-		m.accept(this);
-		popScope();
+		auto autoRefParamsOld = autoRefParams;
+		autoRefParams = [];
+		auto temp = inTemplateScope;
+		inTemplateScope = true;
+
+		super.visit(td);
+		
+		inTemplateScope = temp;
+		autoRefParams = autoRefParamsOld;
 	}
 
-	override void visit(const FunctionDeclaration func)
+	override void visit(AST.Parameter p)
 	{
-		if (func.parameters is null || func.parameters.parameters.length == 0)
-			return;
-		pushScope();
-		scope (exit)
-			popScope();
-		func.accept(this);
+		import dmd.astenums : STC;
+
+		if (p.storageClass & STC.auto_ && p.storageClass & STC.ref_ && p.ident)
+			autoRefParams ~= p.ident.toString();
 	}
 
-	override void visit(const Parameter param)
+	override void visit(AST.AssignExp ae)
 	{
-		import std.algorithm.searching : canFind;
+		import std.algorithm: canFind;
 
-		immutable bool isAuto = param.parameterAttributes.canFind!(a => a.idType == cast(ubyte) tok!"auto");
-		immutable bool isRef = param.parameterAttributes.canFind!(a => a.idType == cast(ubyte) tok!"ref");
-		if (!isAuto || !isRef)
-			return;
-		addSymbol(param.name.text);
+		auto ie = ae.e1.isIdentifierExp();
+
+		if (ie && inTemplateScope && autoRefParams.canFind(ie.ident.toString()))
+			addErrorMessage(cast(ulong) ae.loc.linnum, cast(ulong) ae.loc.charnum, KEY,
+				"Assignment to auto-ref function parameter.");
 	}
 
-	override void visit(const AssignExpression assign)
+	template ScopedVisit(NodeType)
 	{
-		if (assign.operator == tok!"" || scopes.length == 0)
-			return;
-		interest ~= assign;
-		assign.ternaryExpression.accept(this);
-		interest.length--;
+		override void visit(NodeType n)
+		{
+			auto temp = inTemplateScope;
+			inTemplateScope = false;
+			super.visit(n);
+			inTemplateScope = temp;
+		}
 	}
-
-	override void visit(const IdentifierOrTemplateInstance ioti)
-	{
-		import std.algorithm.searching : canFind;
-
-		if (ioti.identifier == tok!"" || !interest.length)
-			return;
-		if (scopes[$ - 1].canFind(ioti.identifier.text))
-			addErrorMessage(interest[$ - 1], KEY, MESSAGE);
-	}
-
-	override void visit(const IdentifierChain ic)
-	{
-		import std.algorithm.searching : canFind;
-
-		if (ic.identifiers.length == 0 || !interest.length)
-			return;
-		if (scopes[$ - 1].canFind(ic.identifiers[0].text))
-			addErrorMessage(interest[$ - 1], KEY, MESSAGE);
-	}
-
-	alias visit = BaseAnalyzer.visit;
 
 private:
+	const(char[])[] autoRefParams;
+	bool inTemplateScope;
 
-	enum string MESSAGE = "Assignment to auto-ref function parameter.";
-	enum string KEY = "dscanner.suspicious.auto_ref_assignment";
-
-	const(AssignExpression)[] interest;
-
-	void addSymbol(string symbolName)
-	{
-		scopes[$ - 1] ~= symbolName;
-	}
-
-	void pushScope()
-	{
-		scopes.length++;
-	}
-
-	void popScope()
-	{
-		scopes = scopes[0 .. $ - 1];
-	}
-
-	string[][] scopes;
+	enum KEY = "dscanner.suspicious.object_const";
 }
 
 unittest
 {
 	import std.stdio : stderr;
-	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.auto_ref_assignment_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		int doStuff(T)(auto ref int a)
 		{
-			a = 10; /+
-			^^^^^^ [warn]: %s +/
+			a = 10; // [warn]: Assignment to auto-ref function parameter.
 		}
 
 		int doStuff(T)(ref int a)
 		{
 			a = 10;
 		}
-	}c.format(AutoRefAssignmentCheck.MESSAGE), sac);
+	}c, sac);
 	stderr.writeln("Unittest for AutoRefAssignmentCheck passed.");
 }
