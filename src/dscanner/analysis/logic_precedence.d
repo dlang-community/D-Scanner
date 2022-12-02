@@ -5,12 +5,8 @@
 
 module dscanner.analysis.logic_precedence;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_;
 
 /**
  * Checks for code with confusing && and || operator precedence
@@ -19,48 +15,62 @@ import dsymbol.scope_;
  * if (a && (b || c)) // good
  * ---
  */
-final class LogicPrecedenceCheck : BaseAnalyzer
+extern(C++) class LogicPrecedenceCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
 	enum string KEY = "dscanner.confusing.logical_precedence";
 	mixin AnalyzerInfo!"logical_precedence_check";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const OrOrExpression orOr)
+	override void visit(AST.LogicalExp le)
 	{
-		if (orOr.left is null || orOr.right is null)
-			return;
-		const AndAndExpression left = cast(AndAndExpression) orOr.left;
-		const AndAndExpression right = cast(AndAndExpression) orOr.right;
-		if (left is null && right is null)
-			return;
-		if ((left !is null && left.right is null) && (right !is null && right.right is null))
-			return;
-		addErrorMessage(orOr, KEY,
+		import dmd.tokens : EXP;
+
+		auto left = le.e1.isLogicalExp();
+		auto right = le.e2.isLogicalExp();
+
+		if (left)
+			left = left.op == EXP.andAnd ? left : null;
+		if (right)
+			right = right.op == EXP.andAnd ? right : null;
+
+		if (le.op != EXP.orOr)
+			goto END;
+
+		if (!left && !right)
+			goto END;
+		
+		if ((left && left.parens) || (right && right.parens))
+			goto END;
+
+		if ((left !is null && left.e2 is null) && (right !is null && right.e2 is null))
+			goto END;
+
+		addErrorMessage(cast(ulong) le.loc.linnum, cast(ulong) le.loc.charnum, KEY,
 				"Use parenthesis to clarify this expression.");
-		orOr.accept(this);
+		
+END:
+		super.visit(le);
 	}
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.logical_precedence_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testFish()
 		{
-			if (a && b || c) {} /+
-			    ^^^^^^^^^^^ [warn]: Use parenthesis to clarify this expression. +/
+			if (a && b || c) {} // [warn]: Use parenthesis to clarify this expression.
 			if ((a && b) || c) {} // Good
-			if (b || c && d) {} /+
-			    ^^^^^^^^^^^ [warn]: Use parenthesis to clarify this expression. +/
+			if (b || c && d) {} // [warn]: Use parenthesis to clarify this expression.
 			if (b || (c && d)) {} // Good
 		}
 	}c, sac);
