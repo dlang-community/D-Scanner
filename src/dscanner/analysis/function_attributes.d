@@ -35,17 +35,45 @@ final class FunctionAttributeCheck : BaseAnalyzer
 	override void visit(const InterfaceDeclaration dec)
 	{
 		const t = inInterface;
+		const t2 = inAggregate;
 		inInterface = true;
+		inAggregate = true;
 		dec.accept(this);
 		inInterface = t;
+		inAggregate = t2;
 	}
 
 	override void visit(const ClassDeclaration dec)
 	{
 		const t = inInterface;
+		const t2 = inAggregate;
 		inInterface = false;
+		inAggregate = true;
 		dec.accept(this);
 		inInterface = t;
+		inAggregate = t2;
+	}
+
+	override void visit(const StructDeclaration dec)
+	{
+		const t = inInterface;
+		const t2 = inAggregate;
+		inInterface = false;
+		inAggregate = true;
+		dec.accept(this);
+		inInterface = t;
+		inAggregate = t2;
+	}
+
+	override void visit(const UnionDeclaration dec)
+	{
+		const t = inInterface;
+		const t2 = inAggregate;
+		inInterface = false;
+		inAggregate = true;
+		dec.accept(this);
+		inInterface = t;
+		inAggregate = t2;
 	}
 
 	override void visit(const AttributeDeclaration dec)
@@ -59,7 +87,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const FunctionDeclaration dec)
 	{
-		if (dec.parameters.parameters.length == 0)
+		if (dec.parameters.parameters.length == 0 && inAggregate)
 		{
 			bool foundConst;
 			bool foundProperty;
@@ -115,6 +143,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 
 private:
 	bool inInterface;
+	bool inAggregate;
 	enum string ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
 	enum string KEY = "dscanner.confusing.function_attributes";
 }
