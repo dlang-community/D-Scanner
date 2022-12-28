@@ -6,6 +6,7 @@
 module dscanner.analysis.function_attributes;
 
 import dscanner.analysis.base;
+import dscanner.analysis.helpers;
 import dparse.ast;
 import dparse.lexer;
 import std.stdio;
@@ -146,4 +147,40 @@ private:
 	bool inAggregate;
 	enum string ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
 	enum string KEY = "dscanner.confusing.function_attributes";
+}
+
+unittest
+{
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.function_attribute_check = Check.enabled;
+	assertAnalyzerWarnings(q{
+		int foo() @property { return 0; }
+		const int confusingConst() { return 0; } // [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify.
+
+		class ClassName {
+			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int barConst() const @property { return 0; }
+		}
+
+		struct StructName {
+			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int barConst() const @property { return 0; }
+		}
+
+		union UnionName {
+			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int barConst() const @property { return 0; }
+		}
+
+		interface InterfaceName {
+			int bar() @property; // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int barConst() const @property;
+
+			abstract int method(); // [warn]: 'abstract' attribute is redundant in interface declarations
+		}
+	}c, sac);
+
+	stderr.writeln("Unittest for FunctionAttributeCheck passed.");
 }
