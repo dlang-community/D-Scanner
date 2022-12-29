@@ -115,6 +115,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 
 	override void visit(const Declaration dec)
 	{
+		bool isStatic = false;
 		if (dec.attributes.length == 0)
 			goto end;
 		foreach (attr; dec.attributes)
@@ -125,6 +126,10 @@ final class FunctionAttributeCheck : BaseAnalyzer
 			{
 				addErrorMessage(attr.attribute.line, attr.attribute.column, KEY, ABSTRACT_MESSAGE);
 				continue;
+			}
+			if (attr.attribute == tok!"static")
+			{
+				isStatic = true;
 			}
 			if (dec.functionDeclaration !is null && (attr.attribute == tok!"const"
 					|| attr.attribute == tok!"inout" || attr.attribute == tok!"immutable"))
@@ -139,7 +144,15 @@ final class FunctionAttributeCheck : BaseAnalyzer
 			}
 		}
 	end:
-		dec.accept(this);
+		if (isStatic) {
+			const t = inAggregate;
+			inAggregate = false;
+			dec.accept(this);
+			inAggregate = t;
+		}
+		else {
+			dec.accept(this);
+		}
 	}
 
 private:
@@ -157,25 +170,30 @@ unittest
 	sac.function_attribute_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 		int foo() @property { return 0; }
-		const int confusingConst() { return 0; } // [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify.
 
 		class ClassName {
+			const int confusingConst() { return 0; } // [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify.
+
 			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		struct StructName {
 			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		union UnionName {
 			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		interface InterfaceName {
 			int bar() @property; // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			static int barStatic() @property { return 0; }
 			int barConst() const @property;
 
 			abstract int method(); // [warn]: 'abstract' attribute is redundant in interface declarations
