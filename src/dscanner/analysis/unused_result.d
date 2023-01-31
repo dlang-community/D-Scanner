@@ -44,7 +44,9 @@ public:
     {
         super(fileName, sc, skipTests);
         void_ = sc.getSymbolsByName(internString("void"))[0];
-        noreturn_ = sc.getSymbolsByName(internString("noreturn"))[0];
+        auto symbols = sc.getSymbolsByName(internString("noreturn"));
+        if (symbols.length > 0)
+            noreturn_ = symbols[0];
     }
 
     override void visit(const(ExpressionStatement) decl)
@@ -87,7 +89,7 @@ public:
                 return;
             if (sym.type is void_)
                 return;
-            if (sym.type is noreturn_)
+            if (noreturn_ && sym.type is noreturn_)
                 return;
         }
 
