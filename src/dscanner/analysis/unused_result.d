@@ -116,6 +116,15 @@ unittest
     }c, sac);
 
     assertAnalyzerWarnings(q{
+        alias noreturn = typeof(*null);
+        noreturn fun() { while (1) {}}
+        noreturn main()
+        {
+            fun();
+        }
+    }c, sac);
+
+    assertAnalyzerWarnings(q{
         int fun() { return 1; }
         void main()
         {
