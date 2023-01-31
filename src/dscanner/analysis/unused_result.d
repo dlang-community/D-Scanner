@@ -117,7 +117,7 @@ unittest
 
     assertAnalyzerWarnings(q{
         alias noreturn = typeof(*null);
-        noreturn fun() { while (1) {}}
+        noreturn fun() { while (1) {} }
         noreturn main()
         {
             fun();
