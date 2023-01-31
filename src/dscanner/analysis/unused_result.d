@@ -37,12 +37,14 @@ private:
 public:
 
     const(DSymbol)* void_;
+    const(DSymbol)* noreturn_;
 
     ///
     this(string fileName, const(Scope)* sc, bool skipTests = false)
     {
         super(fileName, sc, skipTests);
         void_ = sc.getSymbolsByName(internString("void"))[0];
+        noreturn_ = sc.getSymbolsByName(internString("noreturn"))[0];
     }
 
     override void visit(const(ExpressionStatement) decl)
@@ -84,6 +86,8 @@ public:
             if (sym.kind != CompletionKind.functionName)
                 return;
             if (sym.type is void_)
+                return;
+            if (sym.type is noreturn_)
                 return;
         }
 
