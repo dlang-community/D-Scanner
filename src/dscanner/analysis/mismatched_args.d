@@ -161,7 +161,8 @@ const(DSymbol)*[] resolveSymbol(const Scope* sc, const istring[] symbolChain)
 		{
 			if (symbol.kind == CompletionKind.variableName
 					|| symbol.kind == CompletionKind.memberVariableName
-					|| symbol.kind == CompletionKind.functionName)
+					|| symbol.kind == CompletionKind.functionName
+					|| symbol.kind == CompletionKind.aliasName)
 				symbol = symbol.type;
 			if (symbol is null)
 			{
