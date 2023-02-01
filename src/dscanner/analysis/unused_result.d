@@ -133,6 +133,21 @@ unittest
     }c.format(UnusedResultChecker.MSG), sac);
 
     assertAnalyzerWarnings(q{
+        struct Foo
+        {
+            static bool get()
+            {
+                return false;
+            }
+        }
+        alias Bar = Foo;
+        void main()
+        {
+            Bar.get(); // [warn]: %s
+        }
+    }c.format(UnusedResultChecker.MSG), sac);
+
+    assertAnalyzerWarnings(q{
         void main()
         {
             void fun() {}
