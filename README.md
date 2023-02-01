@@ -1,6 +1,6 @@
 # D-Scanner
 
-[![CI status](https://travis-ci.org/dlang-community/D-Scanner.svg?branch=master)](https://travis-ci.org/dlang-community/D-Scanner/)
+[![CI status](https://github.com/dlang-community/D-Scanner/actions/workflows/default.yml/badge.svg)](https://github.com/dlang-community/D-Scanner/actions?query=workflow%3A%22run+tests%22)
 [![Latest version](https://img.shields.io/dub/v/dscanner.svg)](http://code.dlang.org/packages/dscanner)
 [![License](https://img.shields.io/dub/l/dscanner.svg)](http://code.dlang.org/packages/dscanner)
 
