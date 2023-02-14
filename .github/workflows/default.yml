@@ -40,6 +40,7 @@ jobs:
         ]
         build: [
           { type: make },
+          { type: dub, version: 'current' },
           { type: dub, version: 'min libdparse' },
           # Fail due to unresolvable dependencies
           # { type: dub, version: 'max libdparse' },
@@ -104,13 +105,21 @@ jobs:
 
       # Compile D-Scanner and execute all tests using a specific dependency version
       # Currently skipped for GDC (dub installed from apt-get is broken)
-      - name: Build and test with dub
-        if: ${{ matrix.build.type == 'dub' }}
+      - name: Build and test with dub (min or max libdparse test)
+        if: ${{ matrix.build.type == 'dub' && matrix.build.version != 'current' }}
         env:
           DC: ${{ matrix.compiler.dmd }}
         run: |
           rdmd ./d-test-utils/test_with_package.d ${{ matrix.build.version }} -- dub build
           rdmd ./d-test-utils/test_with_package.d ${{ matrix.build.version }} -- dub test
+
+      - name: Build and test with dub (with dub.selections.json)
+        if: ${{ matrix.build.type == 'dub' && matrix.build.version == 'current' }}
+        env:
+          DC: ${{ matrix.compiler.dmd }}
+        run: |
+          dub build
+          dub test
 
       - uses: actions/upload-artifact@v2
         with:

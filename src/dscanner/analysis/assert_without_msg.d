@@ -30,7 +30,17 @@ final class AssertWithoutMessageCheck : BaseAnalyzer
 
 	override void visit(const AssertExpression expr)
 	{
-		if (expr.assertArguments && expr.assertArguments.message is null)
+		static if (__traits(hasMember, expr.assertArguments, "messageParts"))
+		{
+			// libdparse 0.22.0+
+			bool hasMessage = expr.assertArguments
+				&& expr.assertArguments.messageParts.length > 0;
+		}
+		else
+			bool hasMessage = expr.assertArguments
+				&& expr.assertArguments.message !is null;
+
+		if (!hasMessage)
 			addErrorMessage(expr.line, expr.column, KEY, MESSAGE);
 	}
 
