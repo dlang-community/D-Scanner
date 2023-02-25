@@ -28,14 +28,14 @@ final class IfStatementCheck : BaseAnalyzer
 
 		++depth;
 
-		if (ifStatement.expression.items.length == 1
-				&& (cast(AndAndExpression) ifStatement.expression.items[0]) is null)
+		if (ifStatement.condition.expression.items.length == 1
+				&& (cast(AndAndExpression) ifStatement.condition.expression.items[0]) is null)
 		{
-			redundancyCheck(ifStatement.expression,
-					ifStatement.expression.line, ifStatement.expression.column);
+			redundancyCheck(ifStatement.condition.expression,
+					ifStatement.condition.expression.line, ifStatement.condition.expression.column);
 		}
 		inIfExpresson = true;
-		ifStatement.expression.accept(this);
+		ifStatement.condition.expression.accept(this);
 		inIfExpresson = false;
 		ifStatement.thenStatement.accept(this);
 		if (expressions.length)

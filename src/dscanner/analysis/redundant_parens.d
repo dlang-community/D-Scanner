@@ -28,9 +28,9 @@ final class RedundantParenCheck : BaseAnalyzer
 	override void visit(const IfStatement statement)
 	{
 		UnaryExpression unary;
-		if (statement.expression is null || statement.expression.items.length != 1)
+		if (statement.condition.expression is null || statement.condition.expression.items.length != 1)
 			goto end;
-		unary = cast(UnaryExpression) statement.expression.items[0];
+		unary = cast(UnaryExpression) statement.condition.expression.items[0];
 		if (unary is null)
 			goto end;
 		if (unary.primaryExpression is null)

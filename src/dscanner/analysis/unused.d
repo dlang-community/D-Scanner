@@ -92,10 +92,10 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 
 	override void visit(const WhileStatement whileStatement)
 	{
-		if (whileStatement.expression !is null)
+		if (whileStatement.condition.expression !is null)
 		{
 			interestDepth++;
-			whileStatement.expression.accept(this);
+			whileStatement.condition.expression.accept(this);
 			interestDepth--;
 		}
 		if (whileStatement.declarationOrStatement !is null)
@@ -136,10 +136,10 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 
 	override void visit(const IfStatement ifStatement)
 	{
-		if (ifStatement.expression !is null)
+		if (ifStatement.condition.expression !is null)
 		{
 			interestDepth++;
-			ifStatement.expression.accept(this);
+			ifStatement.condition.expression.accept(this);
 			interestDepth--;
 		}
 		if (ifStatement.thenStatement !is null)
