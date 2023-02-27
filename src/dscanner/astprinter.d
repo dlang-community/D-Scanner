@@ -460,15 +460,15 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<ifStatement>");
 
 		output.writeln("<condition>");
-		if (ifStatement.identifier.type != tok!"")
+		if (ifStatement.condition.identifier.type != tok!"")
 		{
-			if (ifStatement.type is null)
+			if (ifStatement.condition.type is null)
 				output.writeln("<auto/>");
 			else
-				visit(ifStatement.type);
-			visit(ifStatement.identifier);
+				visit(ifStatement.condition.type);
+			visit(ifStatement.condition.identifier);
 		}
-		ifStatement.expression.accept(this);
+		ifStatement.condition.expression.accept(this);
 		output.writeln("</condition>");
 
 		output.writeln("<then>");
