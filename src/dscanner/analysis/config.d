@@ -215,6 +215,9 @@ struct StaticAnalysisConfig
 	@INI("Maximum cyclomatic complexity after which to issue warnings")
 	int max_cyclomatic_complexity = 50;
 
+	@INI("Check for function bodies on disabled functions")
+	string body_on_disabled_func_check = Check.enabled;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }
