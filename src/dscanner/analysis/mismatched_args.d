@@ -109,11 +109,11 @@ final class IdentVisitor : ASTVisitor
 
 final class ArgVisitor : ASTVisitor
 {
-	override void visit(const ArgumentList al)
+	override void visit(const NamedArgumentList al)
 	{
 		foreach (a; al.items)
 		{
-			auto u = cast(UnaryExpression) a;
+			auto u = cast(UnaryExpression) a.assignExpression;
 			if (u !is null)
 				visit(u);
 			else

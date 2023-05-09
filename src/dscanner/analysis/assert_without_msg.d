@@ -53,8 +53,8 @@ final class AssertWithoutMessageCheck : BaseAnalyzer
 			.unaryExpression.primaryExpression.identifierOrTemplateInstance)
 		{
 			auto ident = iot.identifier;
-			if (ident.text == "enforce" && expr.arguments !is null && expr.arguments.argumentList !is null &&
-					expr.arguments.argumentList.items.length < 2)
+			if (ident.text == "enforce" && expr.arguments !is null && expr.arguments.namedArgumentList !is null &&
+					expr.arguments.namedArgumentList.items.length < 2)
 				addErrorMessage(ident.line, ident.column, KEY, MESSAGE);
 		}
 	}

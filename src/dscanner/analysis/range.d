@@ -106,9 +106,9 @@ final class BackwardsRangeCheck : BaseAnalyzer
 		if (index.low !is null && index.high !is null)
 		{
 			state = State.left;
-			visit(index.low);
+			dynamicDispatch(index.low);
 			state = State.right;
-			visit(index.high);
+			dynamicDispatch(index.high);
 			state = State.ignore;
 			if (hasLeft && hasRight && left > right)
 			{
