@@ -119,9 +119,9 @@ else
 
 	{
 		static if (__VERSION__ >= 2_101_0)
-			import std.logger;
+			import std.logger : sharedLog, LogLevel;
 		else
-			import std.experimental.logger;
+			import std.experimental.logger : globalLogLevel, LogLevel;
 		// we don't use std.logger, but dsymbol does, so we surpress all
 		// messages that aren't errors from it by default
 		// users can use verbose to enable all logs (this will log things like

@@ -618,12 +618,12 @@ version (unittest)
 		// mute dsymbol warnings in tests
 		static if (__VERSION__ >= 2_101_0)
 		{
-			import std.logger;
+			import std.logger : sharedLog, LogLevel;
 			sharedLog.globalLogLevel = LogLevel.error;
 		}
 		else
 		{
-			import std.experimental.logger;
+			import std.experimental.logger : globalLogLevel, LogLevel;
 			globalLogLevel = LogLevel.error;
 		}
 	}
