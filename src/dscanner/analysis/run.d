@@ -610,3 +610,21 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 
 	return set;
 }
+
+version (unittest)
+{
+	shared static this()
+	{
+		// mute dsymbol warnings in tests
+		static if (__VERSION__ >= 2_101_0)
+		{
+			import std.logger : sharedLog, LogLevel;
+			sharedLog.globalLogLevel = LogLevel.error;
+		}
+		else
+		{
+			import std.experimental.logger : globalLogLevel, LogLevel;
+			globalLogLevel = LogLevel.error;
+		}
+	}
+}

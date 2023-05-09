@@ -8,8 +8,7 @@
   "license" : "BSL-1.0",
   "targetType" : "autodetect",
   "versions" : [
-    "built_with_dub",
-    "StdLoggerDisableWarning"
+    "built_with_dub"
   ],
   "dependencies": {
     "libdparse": ">=0.21.1 <0.23.0",

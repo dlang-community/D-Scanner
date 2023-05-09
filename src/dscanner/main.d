@@ -69,6 +69,7 @@ else
 	string[] importPaths;
 	bool printVersion;
 	bool explore;
+	bool verbose;
 	string errorFormat;
 
 	try
@@ -100,7 +101,9 @@ else
 				"muffinButton", &muffin,
 				"explore", &explore,
 				"skipTests", &skipTests,
-				"errorFormat|f", &errorFormat);
+				"errorFormat|f", &errorFormat,
+				"verbose|v", &verbose
+				);
 		//dfmt on
 	}
 	catch (ConvException e)
@@ -112,6 +115,21 @@ else
 	{
 		stderr.writeln(e.msg);
 		return 1;
+	}
+
+	{
+		static if (__VERSION__ >= 2_101_0)
+			import std.logger : sharedLog, LogLevel;
+		else
+			import std.experimental.logger : globalLogLevel, LogLevel;
+		// we don't use std.logger, but dsymbol does, so we surpress all
+		// messages that aren't errors from it by default
+		// users can use verbose to enable all logs (this will log things like
+		// dsymbol couldn't find some modules due to wrong import paths)
+		static if (__VERSION__ >= 2_101_0)
+			sharedLog.globalLogLevel = verbose ? LogLevel.all : LogLevel.error;
+		else
+			globalLogLevel = verbose ? LogLevel.all : LogLevel.error;
 	}
 
 	if (muffin)
