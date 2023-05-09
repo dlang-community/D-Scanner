@@ -215,6 +215,9 @@ struct StaticAnalysisConfig
 	@INI("Maximum cyclomatic complexity after which to issue warnings")
 	int max_cyclomatic_complexity = 50;
 
+	@INI("Check for ignored unittests in templates or functions")
+	string ignored_unittest = Check.enabled;
+
 	@INI("Module-specific filters")
 	ModuleFilters filters;
 }
