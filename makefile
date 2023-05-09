@@ -44,11 +44,14 @@ INCLUDE_PATHS = \
 	-Ilibddoc/src \
 	-Ilibddoc/common/source
 
-DMD_VERSIONS = -version=StdLoggerDisableWarning
+# e.g. "-version=MyCustomVersion"
+DMD_VERSIONS =
 DMD_DEBUG_VERSIONS = -version=dparse_verbose
-LDC_VERSIONS = -d-version=StdLoggerDisableWarning
+# e.g. "-d-version=MyCustomVersion"
+LDC_VERSIONS =
 LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
-GDC_VERSIONS = -fversion=StdLoggerDisableWarning
+# e.g. "-fversion=MyCustomVersion"
+GDC_VERSIONS =
 GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
 
 DC_FLAGS += -Jbin

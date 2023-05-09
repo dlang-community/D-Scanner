@@ -18,8 +18,8 @@ if %githashsize% == 0 (
 	move /y bin\githash_.txt bin\githash.txt
 )
 
-set DFLAGS=-O -release -version=StdLoggerDisableWarning -Jbin %MFLAGS%
-set TESTFLAGS=-g -w -version=StdLoggerDisableWarning -Jbin
+set DFLAGS=-O -release -Jbin %MFLAGS%
+set TESTFLAGS=-g -w -Jbin
 set CORE=
 set LIBDPARSE=
 set STD=
