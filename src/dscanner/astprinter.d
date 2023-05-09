@@ -21,12 +21,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<addExpression operator=\"", str(addExpression.operator), "\">");
 		output.writeln("<left>");
-		visit(addExpression.left);
+		dynamicDispatch(addExpression.left);
 		output.writeln("</left>");
 		if (addExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(addExpression.right);
+			dynamicDispatch(addExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</addExpression>");
@@ -56,12 +56,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<andAndExpression>");
 		output.writeln("<left>");
-		visit(andAndExpression.left);
+		dynamicDispatch(andAndExpression.left);
 		output.writeln("</left>");
 		if (andAndExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(andAndExpression.right);
+			dynamicDispatch(andAndExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</andAndExpression>");
@@ -71,12 +71,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<andExpression>");
 		output.writeln("<left>");
-		visit(andExpression.left);
+		dynamicDispatch(andExpression.left);
 		output.writeln("</left>");
 		if (andExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(andExpression.right);
+			dynamicDispatch(andExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</andExpression>");
@@ -182,13 +182,13 @@ class XMLPrinter : ASTVisitor
 		if (caseRangeStatement.low !is null)
 		{
 			output.writeln("<low>");
-			visit(caseRangeStatement.low);
+			dynamicDispatch(caseRangeStatement.low);
 			output.writeln("</low>");
 		}
 		if (caseRangeStatement.high !is null)
 		{
 			output.writeln("<high>");
-			visit(caseRangeStatement.high);
+			dynamicDispatch(caseRangeStatement.high);
 			output.writeln("</high>");
 		}
 		if (caseRangeStatement.declarationsAndStatements !is null)
@@ -286,7 +286,7 @@ class XMLPrinter : ASTVisitor
 		if (deprecated_.assignExpression !is null)
 		{
 			output.writeln("<deprecated>");
-			visit(deprecated_.assignExpression);
+			dynamicDispatch(deprecated_.assignExpression);
 			output.writeln("</deprecated>");
 		}
 		else
@@ -311,7 +311,7 @@ class XMLPrinter : ASTVisitor
 			visit(enumMember.type);
 		output.write("<name>", enumMember.name.text, "</name>");
 		if (enumMember.assignExpression !is null)
-			visit(enumMember.assignExpression);
+			dynamicDispatch(enumMember.assignExpression);
 		output.writeln("</anonymousEnumMember>");
 	}
 
@@ -327,10 +327,10 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<equalExpression operator=\"", str(equalExpression.operator), "\">");
 		output.writeln("<left>");
-		visit(equalExpression.left);
+		dynamicDispatch(equalExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(equalExpression.right);
+		dynamicDispatch(equalExpression.right);
 		output.writeln("</right>");
 		output.writeln("</equalExpression>");
 	}
@@ -447,10 +447,10 @@ class XMLPrinter : ASTVisitor
 		else
 			output.writeln("<identityExpression operator=\"is\">");
 		output.writeln("<left>");
-		visit(identityExpression.left);
+		dynamicDispatch(identityExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(identityExpression.right);
+		dynamicDispatch(identityExpression.right);
 		output.writeln("</right>");
 		output.writeln("</identityExpression>");
 	}
@@ -500,10 +500,10 @@ class XMLPrinter : ASTVisitor
 		else
 			output.writeln("<inExpression operator=\"in\">");
 		output.writeln("<left>");
-		visit(inExpression.left);
+		dynamicDispatch(inExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(inExpression.right);
+		dynamicDispatch(inExpression.right);
 		output.writeln("</right>");
 		output.writeln("</inExpression>");
 	}
@@ -572,10 +572,10 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<keyValuePair>");
 		output.writeln("<key>");
-		visit(keyValuePair.key);
+		dynamicDispatch(keyValuePair.key);
 		output.writeln("</key>");
 		output.writeln("<value>");
-		visit(keyValuePair.value);
+		dynamicDispatch(keyValuePair.value);
 		output.writeln("</value>");
 		output.writeln("</keyValuePair>");
 	}
@@ -635,12 +635,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<mulExpression operator=\"", str(mulExpression.operator), "\">");
 		output.writeln("<left>");
-		visit(mulExpression.left);
+		dynamicDispatch(mulExpression.left);
 		output.writeln("</left>");
 		if (mulExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(mulExpression.right);
+			dynamicDispatch(mulExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</mulExpression>");
@@ -650,12 +650,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<orOrExpression>");
 		output.writeln("<left>");
-		visit(orOrExpression.left);
+		dynamicDispatch(orOrExpression.left);
 		output.writeln("</left>");
 		if (orOrExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(orOrExpression.right);
+			dynamicDispatch(orOrExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</orOrExpression>");
@@ -686,12 +686,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<powExpression>");
 		output.writeln("<left>");
-		visit(powExpression.left);
+		dynamicDispatch(powExpression.left);
 		output.writeln("</left>");
 		if (powExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(powExpression.right);
+			dynamicDispatch(powExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</powExpression>");
@@ -702,10 +702,10 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<relExpression operator=\"",
 				xmlAttributeEscape(str(relExpression.operator)), "\">");
 		output.writeln("<left>");
-		visit(relExpression.left);
+		dynamicDispatch(relExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(relExpression.right);
+		dynamicDispatch(relExpression.right);
 		output.writeln("</right>");
 		output.writeln("</relExpression>");
 	}
@@ -727,10 +727,10 @@ class XMLPrinter : ASTVisitor
 		output.writeln("<shiftExpression operator=\"",
 				xmlAttributeEscape(str(shiftExpression.operator)), "\">");
 		output.writeln("<left>");
-		visit(shiftExpression.left);
+		dynamicDispatch(shiftExpression.left);
 		output.writeln("</left>");
 		output.writeln("<right>");
-		visit(shiftExpression.right);
+		dynamicDispatch(shiftExpression.right);
 		output.writeln("</right>");
 		output.writeln("</shiftExpression>");
 	}
@@ -763,7 +763,7 @@ class XMLPrinter : ASTVisitor
 		if (templateAliasParameter.colonExpression !is null)
 		{
 			output.writeln("<specialization>");
-			visit(templateAliasParameter.colonExpression);
+			dynamicDispatch(templateAliasParameter.colonExpression);
 			output.writeln("</specialization>");
 		}
 		else if (templateAliasParameter.colonType !is null)
@@ -776,7 +776,7 @@ class XMLPrinter : ASTVisitor
 		if (templateAliasParameter.assignExpression !is null)
 		{
 			output.writeln("<default>");
-			visit(templateAliasParameter.assignExpression);
+			dynamicDispatch(templateAliasParameter.assignExpression);
 			output.writeln("</default>");
 		}
 		else if (templateAliasParameter.assignType !is null)
@@ -921,14 +921,14 @@ class XMLPrinter : ASTVisitor
 					if (typeSuffix.high !is null)
 					{
 						output.writeln("<low>");
-						visit(typeSuffix.low);
+						dynamicDispatch(typeSuffix.low);
 						output.writeln("</low>");
 						output.writeln("<high>");
-						visit(typeSuffix.high);
+						dynamicDispatch(typeSuffix.high);
 						output.writeln("</high>");
 					}
 					else
-						visit(typeSuffix.low);
+						dynamicDispatch(typeSuffix.low);
 					output.writeln("</typeSuffix>");
 				}
 			}
@@ -1000,12 +1000,12 @@ class XMLPrinter : ASTVisitor
 	{
 		output.writeln("<xorExpression>");
 		output.writeln("<left>");
-		visit(xorExpression.left);
+		dynamicDispatch(xorExpression.left);
 		output.writeln("</left>");
 		if (xorExpression.right !is null)
 		{
 			output.writeln("<right>");
-			visit(xorExpression.right);
+			dynamicDispatch(xorExpression.right);
 			output.writeln("</right>");
 		}
 		output.writeln("</xorExpression>");
@@ -1017,16 +1017,26 @@ class XMLPrinter : ASTVisitor
 		if (index.high)
 		{
 			output.writeln("<low>");
-			visit(index.low);
+			dynamicDispatch(index.low);
 			output.writeln("</low>");
 
 			output.writeln("<high>");
-			visit(index.high);
+			dynamicDispatch(index.high);
 			output.writeln("</high>");
 		}
 		else
-			visit(index.low);
+			dynamicDispatch(index.low);
 		output.writeln("</index>");
+	}
+
+	override void visit(const NamedArgument arg)
+	{
+		if (arg.name.text.length)
+			output.writeln("<argument named=\"", arg.name.text, "\">");
+		else
+			output.writeln("<argument>");
+		dynamicDispatch(arg.assignExpression);
+		output.writeln("</argument>");
 	}
 
 	// dfmt off
@@ -1034,6 +1044,7 @@ class XMLPrinter : ASTVisitor
 	override void visit(const AliasThisDeclaration aliasThisDeclaration) { mixin (tagAndAccept!"aliasThisDeclaration"); }
 	override void visit(const AnonymousEnumDeclaration anonymousEnumDeclaration) { mixin (tagAndAccept!"anonymousEnumDeclaration"); }
 	override void visit(const ArgumentList argumentList) { mixin (tagAndAccept!"argumentList"); }
+	override void visit(const NamedArgumentList argumentList) { mixin (tagAndAccept!"argumentList"); }
 	override void visit(const Arguments arguments) { mixin (tagAndAccept!"arguments"); }
 	override void visit(const ArrayInitializer arrayInitializer) { mixin (tagAndAccept!"arrayInitializer"); }
 	override void visit(const ArrayLiteral arrayLiteral) { mixin (tagAndAccept!"arrayLiteral"); }

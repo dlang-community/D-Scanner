@@ -91,8 +91,8 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 				thrown ~= newNamedType(tsa.token);
 			}
 			// enforce!(Type)(condition);
-			else if (const TemplateArgumentList tal = safeAccess(iot.templateInstance)
-				.templateArguments.templateArgumentList)
+			else if (const NamedTemplateArgumentList tal = safeAccess(iot.templateInstance)
+				.templateArguments.namedTemplateArgumentList)
 			{
 				if (tal.items.length && tal.items[0].type)
 					thrown ~= tal.items[0].type;
