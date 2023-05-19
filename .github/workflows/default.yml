@@ -107,6 +107,10 @@ jobs:
           sudo apt-get install gdc-12 -y
           gdc-12 --version
 
+      # - name: Setup upterm session
+      #   if: ${{ matrix.build.type == 'make' && matrix.host == 'macos-latest'}}
+      #   uses: lhotari/action-upterm@v1
+      
       # Compile D-Scanner and execute all tests without dub
       - name: Build and test without dub
         if: ${{ matrix.build.type == 'make' }}
@@ -119,7 +123,8 @@ jobs:
             ./build.bat
             ./build.bat test
           else
-            make "-j$(nproc)" all test
+            NUM_PROC=$(nproc || getconf _NPROCESSORS_ONLN || 1)
+            make "-j$((NUM_PROC / 2))" all test
           fi
 
       # Compile D-Scanner and execute all tests using a specific dependency version
