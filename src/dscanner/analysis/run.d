@@ -621,10 +621,10 @@ version (unittest)
 	shared static this()
 	{
 		// mute dsymbol warnings in tests
-		static if (__VERSION__ >= 2_101_0)
+		static if (__VERSION__ >= 2_101)
 		{
 			import std.logger : sharedLog, LogLevel;
-			sharedLog.globalLogLevel = LogLevel.error;
+			(cast()sharedLog).logLevel = LogLevel.error;
 		}
 		else
 		{

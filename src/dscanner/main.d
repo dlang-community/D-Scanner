@@ -118,7 +118,7 @@ else
 	}
 
 	{
-		static if (__VERSION__ >= 2_101_0)
+		static if (__VERSION__ >= 2_101)
 			import std.logger : sharedLog, LogLevel;
 		else
 			import std.experimental.logger : globalLogLevel, LogLevel;
@@ -126,8 +126,8 @@ else
 		// messages that aren't errors from it by default
 		// users can use verbose to enable all logs (this will log things like
 		// dsymbol couldn't find some modules due to wrong import paths)
-		static if (__VERSION__ >= 2_101_0)
-			sharedLog.globalLogLevel = verbose ? LogLevel.all : LogLevel.error;
+		static if (__VERSION__ >= 2_101)
+			(cast()sharedLog).logLevel = verbose ? LogLevel.all : LogLevel.error;
 		else
 			globalLogLevel = verbose ? LogLevel.all : LogLevel.error;
 	}
