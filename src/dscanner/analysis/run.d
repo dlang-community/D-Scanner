@@ -97,6 +97,9 @@ import dscanner.reports : DScannerJsonReporter, SonarQubeGenericIssueDataReporte
 import dmd.astbase : ASTBase;
 import dmd.parse : Parser;
 
+import dmd.frontend;
+import dmd.astcodegen;
+
 bool first = true;
 
 version (unittest)
@@ -393,25 +396,27 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 	import dmd.globals : global;
 	import dmd.identifier : Identifier;
 	import std.string : toStringz;
-
-	Id.initialize();
-	global._init();
-	global.params.useUnitTests = true;
-	ASTBase.Type._init();
-
+	import dmd.arraytypes : Strings;
 
 	bool hasErrors;
 	foreach (fileName; fileNames)
 	{
-		auto code = readFile(fileName);
 
-		auto id = Identifier.idPool(fileName);
-		auto ast_m = new ASTBase.Module(fileName.toStringz, id, false, false);
+		auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
+
+		global.params.useUnitTests = true;
+		global.path = new Strings();
+		global.path.push((dmdParentDir ~ "/dmd").ptr);
+		global.path.push((dmdParentDir ~ "/dmd/druntime/src").ptr);
+
+		initDMD();
+
+		auto code = readFile(fileName);
 		auto input = cast(char[]) code;
 		input ~= '\0';
-		scope astbaseParser = new Parser!ASTBase(ast_m, input, false);
-		astbaseParser.nextToken();
-		ast_m.members = astbaseParser.parseModule();
+
+		auto t = dmd.frontend.parseModule(cast(const(char)[]) fileName, cast(const (char)[]) input);
+		// t.module_.fullSemantic();
 
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
@@ -426,7 +431,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
 		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
-		MessageSet resultsDmd = analyzeDmd(fileName, ast_m, getModuleName(astbaseParser.md), config);
+		MessageSet resultsDmd = analyzeDmd(fileName, t.module_, getModuleName(t.module_.md), config);
 		foreach (result; resultsDmd[])
 		{
 			results.insert(result);
@@ -739,7 +744,7 @@ bool shouldRun(check : BaseAnalyzer)(string moduleName, const ref StaticAnalysis
  *
  * If no includes are specified, all modules are included.
 */
-bool shouldRunDmd(check : BaseAnalyzerDmd!ASTBase)(const char[] moduleName, const ref StaticAnalysisConfig config)
+bool shouldRunDmd(check : BaseAnalyzerDmd)(const char[] moduleName, const ref StaticAnalysisConfig config)
 {
 	enum string a = check.name;
 
@@ -920,10 +925,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	if (moduleName.shouldRun!AutoFunctionChecker(analysisConfig))
 		checks ~= new AutoFunctionChecker(args.setSkipTests(
 		analysisConfig.auto_function_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ProperlyDocumentedPublicFunctions(analysisConfig))
-		checks ~= new ProperlyDocumentedPublicFunctions(args.setSkipTests(
-		analysisConfig.properly_documented_public_functions == Check.skipTests && !ut));
 
 	if (moduleName.shouldRun!VcallCtorChecker(analysisConfig))
 		checks ~= new VcallCtorChecker(args.setSkipTests(
@@ -1265,75 +1266,81 @@ version (unittest)
 	}
 }
 
-MessageSet analyzeDmd(string fileName, ASTBase.Module m, const char[] moduleName, const StaticAnalysisConfig config)
+MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleName, const StaticAnalysisConfig config)
 {
 	MessageSet set = new MessageSet;
-	BaseAnalyzerDmd!ASTBase[] visitors;
+	BaseAnalyzerDmd[] visitors;
 
-	if (moduleName.shouldRunDmd!(ObjectConstCheck!ASTBase)(config))
-		visitors ~= new ObjectConstCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(ObjectConstCheck!ASTCodegen)(config))
+		visitors ~= new ObjectConstCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(EnumArrayVisitor!ASTBase)(config))
-		visitors ~= new EnumArrayVisitor!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(EnumArrayVisitor!ASTCodegen)(config))
+		visitors ~= new EnumArrayVisitor!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(DeleteCheck!ASTBase)(config))
-		visitors ~= new DeleteCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(DeleteCheck!ASTCodegen)(config))
+		visitors ~= new DeleteCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(FinalAttributeChecker!ASTBase)(config))
-		visitors ~= new FinalAttributeChecker!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(FinalAttributeChecker!ASTCodegen)(config))
+		visitors ~= new FinalAttributeChecker!ASTCodegen(fileName);
 	
-	if (moduleName.shouldRunDmd!(ImportSortednessCheck!ASTBase)(config))
-		visitors ~= new ImportSortednessCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(ImportSortednessCheck!ASTCodegen)(config))
+		visitors ~= new ImportSortednessCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(IncorrectInfiniteRangeCheck!ASTBase)(config))
-		visitors ~= new IncorrectInfiniteRangeCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(IncorrectInfiniteRangeCheck!ASTCodegen)(config))
+		visitors ~= new IncorrectInfiniteRangeCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(RedundantAttributesCheck!ASTBase)(config))
-		visitors ~= new RedundantAttributesCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(RedundantAttributesCheck!ASTCodegen)(config))
+		visitors ~= new RedundantAttributesCheck!ASTCodegen(fileName);
 		
-	if (moduleName.shouldRunDmd!(LengthSubtractionCheck!ASTBase)(config))
-		visitors ~= new LengthSubtractionCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(LengthSubtractionCheck!ASTCodegen)(config))
+		visitors ~= new LengthSubtractionCheck!ASTCodegen(fileName);
 		
-	if (moduleName.shouldRunDmd!(AliasSyntaxCheck!ASTBase)(config))
-		visitors ~= new AliasSyntaxCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(AliasSyntaxCheck!ASTCodegen)(config))
+		visitors ~= new AliasSyntaxCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(ExplicitlyAnnotatedUnittestCheck!ASTBase)(config))
-		visitors ~= new ExplicitlyAnnotatedUnittestCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(ExplicitlyAnnotatedUnittestCheck!ASTCodegen)(config))
+		visitors ~= new ExplicitlyAnnotatedUnittestCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(ConstructorCheck!ASTBase)(config))
-		visitors ~= new ConstructorCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(ConstructorCheck!ASTCodegen)(config))
+		visitors ~= new ConstructorCheck!ASTCodegen(fileName);
 		
-	if (moduleName.shouldRunDmd!(AssertWithoutMessageCheck!ASTBase)(config))
-		visitors ~= new AssertWithoutMessageCheck!ASTBase(
+	if (moduleName.shouldRunDmd!(AssertWithoutMessageCheck!ASTCodegen)(config))
+		visitors ~= new AssertWithoutMessageCheck!ASTCodegen(
 			fileName,
 			config.assert_without_msg == Check.skipTests && !ut
 		);
 
-	if (moduleName.shouldRunDmd!(LocalImportCheck!ASTBase)(config))
-		visitors ~= new LocalImportCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(LocalImportCheck!ASTCodegen)(config))
+		visitors ~= new LocalImportCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(OpEqualsWithoutToHashCheck!ASTBase)(config))
-		visitors ~= new OpEqualsWithoutToHashCheck!ASTBase(
+	if (moduleName.shouldRunDmd!(OpEqualsWithoutToHashCheck!ASTCodegen)(config))
+		visitors ~= new OpEqualsWithoutToHashCheck!ASTCodegen(
 			fileName,
 			config.opequals_tohash_check == Check.skipTests && !ut
 		);
 		
-	if (moduleName.shouldRunDmd!(AutoRefAssignmentCheck!ASTBase)(config))
-		visitors ~= new AutoRefAssignmentCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(AutoRefAssignmentCheck!ASTCodegen)(config))
+		visitors ~= new AutoRefAssignmentCheck!ASTCodegen(fileName);
 		
-	if (moduleName.shouldRunDmd!(LogicPrecedenceCheck!ASTBase)(config))
-		visitors ~= new LogicPrecedenceCheck!ASTBase(
+	if (moduleName.shouldRunDmd!(LogicPrecedenceCheck!ASTCodegen)(config))
+		visitors ~= new LogicPrecedenceCheck!ASTCodegen(
 			fileName,
 			config.logical_precedence_check == Check.skipTests && !ut
 		);
 	
-	if (moduleName.shouldRunDmd!(BuiltinPropertyNameCheck!ASTBase)(config))
-		visitors ~= new BuiltinPropertyNameCheck!ASTBase(fileName);
+	if (moduleName.shouldRunDmd!(BuiltinPropertyNameCheck!ASTCodegen)(config))
+		visitors ~= new BuiltinPropertyNameCheck!ASTCodegen(fileName);
 
-	if (moduleName.shouldRunDmd!(BackwardsRangeCheck!ASTBase)(config))
-		visitors ~= new BackwardsRangeCheck!ASTBase(
+	if (moduleName.shouldRunDmd!(BackwardsRangeCheck!ASTCodegen)(config))
+		visitors ~= new BackwardsRangeCheck!ASTCodegen(
 			fileName,
 			config.backwards_range_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(ProperlyDocumentedPublicFunctions!ASTCodegen)(config))
+		visitors ~= new ProperlyDocumentedPublicFunctions!ASTCodegen(
+			fileName,
+			config.properly_documented_public_functions == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
