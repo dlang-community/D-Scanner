@@ -1,5 +1,7 @@
 .PHONY: all test clean
 
+.DEFAULT_GOAL := all
+
 DC ?= dmd
 GIT ?= git
 DMD := $(DC)
@@ -7,11 +9,19 @@ GDC := gdc
 LDC := ldc2
 DMD_ROOT_SRC := \
 	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
-	$(shell find dmd/compiler/src/dmd/root -name "*.d")
+	$(shell find dmd/compiler/src/dmd/root -name "*.d")\
+
+DMD_FRONTEND_SRC := \
+	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
+	$(shell find dmd/compiler/src/dmd/root -name "*.d")\
+	$(shell find dmd/compiler/src/dmd/backend -name "*.d")\
+	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" ! -name "mars.d" )
+
 DMD_LEXER_SRC := \
 	dmd/compiler/src/dmd/console.d \
 	dmd/compiler/src/dmd/entity.d \
 	dmd/compiler/src/dmd/errors.d \
+	dmd/compiler/src/dmd/errorsink.d \
 	dmd/compiler/src/dmd/file_manager.d \
 	dmd/compiler/src/dmd/globals.d \
 	dmd/compiler/src/dmd/id.d \
@@ -19,6 +29,7 @@ DMD_LEXER_SRC := \
 	dmd/compiler/src/dmd/lexer.d \
 	dmd/compiler/src/dmd/tokens.d \
 	dmd/compiler/src/dmd/utils.d \
+	dmd/compiler/src/dmd/location.d \
 	$(DMD_ROOT_SRC)
 
 DMD_PARSER_SRC := \
@@ -39,7 +50,8 @@ LIB_SRC := \
 	$(shell find libdparse/src/dparse/ -name "*.d")\
 	$(shell find libddoc/src -name "*.d") \
 	$(shell find libddoc/common/source -name "*.d") \
-	$(DMD_PARSER_SRC)
+	$(DMD_FRONTEND_SRC)
+
 PROJECT_SRC := $(shell find src/ -name "*.d")
 SRC := $(LIB_SRC) $(PROJECT_SRC)
 
@@ -78,17 +90,17 @@ LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
 GDC_VERSIONS = -fversion=StdLoggerDisableWarning -fversion=CallbackAPI -fversion=DMDLIB -fversion=MARS
 GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
 
-DC_FLAGS += -Jbin -Jdmd
+DC_FLAGS += -Jbin -Jdmd -Jdmd/compiler/src/dmd/res
 override DMD_FLAGS += $(DFLAGS) -w -release -O -od${OBJ_DIR}
 override LDC_FLAGS += $(DFLAGS) -O5 -release -oq
 override GDC_FLAGS += $(DFLAGS) -O3 -frelease -fall-instantiations
 
 override GDC_TEST_FLAGS += -fall-instantiations
 
-DC_TEST_FLAGS += -g -Jbin -Jdmd
+DC_TEST_FLAGS += -g -Jbin -Jdmd -Jdmd/compiler/src/dmd/res
 override DMD_TEST_FLAGS += -w
 
-DC_DEBUG_FLAGS := -g -Jbin -Jdmd
+DC_DEBUG_FLAGS := -g -Jbin -Jdmd -Jdmd/compiler/src/dmd/res
 
 ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
 	VERSIONS := $(DMD_VERSIONS)
@@ -113,7 +125,13 @@ SHELL:=/usr/bin/env bash
 
 GITHASH = bin/githash.txt
 
+FIRST_RUN_FLAG := $(OBJ_DIR)/$(DC)/first_run.flag
+
 $(OBJ_DIR)/$(DC)/%.o: %.d
+	if [ ! -f $(FIRST_RUN_FLAG) ]; then \
+		${DC} -run dmd/config.d bin VERSION /etc; \
+		touch $(FIRST_RUN_FLAG); \
+	fi
 	${DC} ${DC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
 $(UT_OBJ_DIR)/$(DC)/%.o: %.d

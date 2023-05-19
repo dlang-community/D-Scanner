@@ -50,6 +50,8 @@ extern(C++) class ImportVisitor(AST) : ParseTimeTransitiveVisitor!AST
 
 private void visitFile(bool usingStdin, string fileName, RedBlackTree!string importedModules)
 {
+	import dmd.errorsink : ErrorSinkNull;
+
 	Id.initialize();
 	global._init();
 	global.params.useUnitTests = true;
@@ -60,7 +62,11 @@ private void visitFile(bool usingStdin, string fileName, RedBlackTree!string imp
 	ubyte[] bytes = usingStdin ? readStdin() : readFile(fileName);
 	auto input = cast(char[]) bytes;
 
-	scope p = new Parser!ASTBase(m, input, false);
+	__gshared ErrorSinkNull errorSinkNull;
+	if (!errorSinkNull)
+		errorSinkNull = new ErrorSinkNull;
+
+	scope p = new Parser!ASTBase(m, input, false, new ErrorSinkNull, null, false);
 	p.nextToken();
 	m.members = p.parseModule();
 

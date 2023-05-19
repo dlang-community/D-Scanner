@@ -22,6 +22,8 @@ import std.experimental.allocator.mallocator;
 
 import dmd.parse : Parser;
 import dmd.astbase : ASTBase;
+import dmd.astcodegen;
+import dmd.frontend;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
@@ -390,6 +392,124 @@ void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, b
 	auto input = cast(char[]) code;
 	input ~= '\0';
 	auto t = dmd.frontend.parseModule(cast(const(char)[]) file, cast(const (char)[]) input);
+	if (semantic)
+		t.module_.fullSemantic();
+
+	MessageSet rawWarnings = analyzeDmd("test.txt", t.module_, getModuleName(t.module_.md), config);
+
+	string[] codeLines = code.splitLines();
+
+	// Get the warnings ordered by line
+	string[size_t] warnings;
+	foreach (rawWarning; rawWarnings[])
+	{
+		// Skip the warning if it is on line zero
+		immutable size_t rawLine = rawWarning.line;
+		if (rawLine == 0)
+		{
+			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s",
+					rawWarning.message);
+			continue;
+		}
+
+		size_t warnLine = line - 1 + rawLine;
+		warnings[warnLine] = format("[warn]: %s", rawWarning.message);
+	}
+
+	// Get all the messages from the comments in the code
+	string[size_t] messages;
+	foreach (i, codeLine; codeLines)
+	{
+		// Skip if no [warn] comment
+		if (codeLine.indexOf("// [warn]:") == -1)
+			continue;
+
+		// Skip if there is no comment or code
+		immutable string codePart = codeLine.before("// ");
+		immutable string commentPart = codeLine.after("// ");
+		if (!codePart.length || !commentPart.length)
+			continue;
+
+		// Get the line of this code line
+		size_t lineNo = i + line;
+
+		// Get the message
+		messages[lineNo] = commentPart;
+	}
+
+	// Throw an assert error if any messages are not listed in the warnings
+	foreach (lineNo, message; messages)
+	{
+		// No warning
+		if (lineNo !in warnings)
+		{
+			immutable string errors = "Expected warning:\n%s\nFrom source code at (%s:?):\n%s".format(messages[lineNo],
+					lineNo, codeLines[lineNo - line]);
+			throw new AssertError(errors, file, lineNo);
+		}
+		// Different warning
+		else if (warnings[lineNo] != messages[lineNo])
+		{
+			immutable string errors = "Expected warning:\n%s\nBut was:\n%s\nFrom source code at (%s:?):\n%s".format(
+					messages[lineNo], warnings[lineNo], lineNo, codeLines[lineNo - line]);
+			throw new AssertError(errors, file, lineNo);
+		}
+	}
+
+	// Throw an assert error if there were any warnings that were not expected
+	string[] unexpectedWarnings;
+	foreach (lineNo, warning; warnings)
+	{
+		// Unexpected warning
+		if (lineNo !in messages)
+		{
+			unexpectedWarnings ~= "%s\nFrom source code at (%s:?):\n%s".format(warning,
+					lineNo, codeLines[lineNo - line]);
+		}
+	}
+	if (unexpectedWarnings.length)
+	{
+		immutable string message = "Unexpected warnings:\n" ~ unexpectedWarnings.join("\n");
+		throw new AssertError(message, file, line);
+	}
+}
+
+void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, bool semantic = false,
+		string file = __FILE__, size_t line = __LINE__)
+{
+	import dmd.globals : global;
+	import dscanner.utils : getModuleName;
+	import std.file : remove, exists;
+	import std.stdio : File;
+	import std.path : dirName;
+	import dmd.arraytypes : Strings;
+
+	import std.stdio : File;
+	import std.file : exists, remove;
+
+	auto deleteme = "test.txt";
+	File f = File(deleteme, "w");
+	scope(exit)
+	{
+		assert(exists(deleteme));
+        remove(deleteme);
+	}
+
+	f.write(code);
+	f.close();
+
+	auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
+
+	global.params.useUnitTests = true;
+	global.path = new Strings();
+	global.path.push((dmdParentDir ~ "/dmd").ptr);
+	global.path.push((dmdParentDir ~ "/dmd/druntime/src").ptr);
+
+	initDMD();
+
+	auto input = cast(char[]) code;
+	input ~= '\0';
+	auto t = dmd.frontend.parseModule(cast(const(char)[]) file, cast(const (char)[]) input);		
 	if (semantic)
 		t.module_.fullSemantic();
 

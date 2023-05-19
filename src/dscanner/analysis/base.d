@@ -10,6 +10,8 @@ import std.meta : AliasSeq;
 import std.string;
 import std.sumtype;
 import dmd.transitivevisitor;
+import dmd.visitor;
+import dmd.func;
 import core.stdc.string;
 import std.conv : to;
 
@@ -909,9 +911,9 @@ unittest
  * Visitor that implements the AST traversal logic.
  * Supports collecting error messages
  */
-extern(C++) class BaseAnalyzerDmd(AST) : ParseTimeTransitiveVisitor!AST
+extern(C++) class BaseAnalyzerDmd : SemanticTimeTransitiveVisitor
 {
-	alias visit = ParseTimeTransitiveVisitor!AST.visit;
+	alias visit = SemanticTimeTransitiveVisitor.visit;
 
 	extern(D) this(string fileName, bool skipTests = false)
 	{
@@ -934,7 +936,7 @@ extern(C++) class BaseAnalyzerDmd(AST) : ParseTimeTransitiveVisitor!AST
 		return _messages[].array;
 	}
 
-	override void visit(AST.UnitTestDeclaration ud)
+	override void visit(UnitTestDeclaration ud)
 	{
 		if (!skipTests)
 			super.visit(ud);
