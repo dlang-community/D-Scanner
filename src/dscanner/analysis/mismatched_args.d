@@ -114,13 +114,17 @@ final class ArgVisitor : ASTVisitor
 		foreach (a; al.items)
 		{
 			auto u = cast(UnaryExpression) a.assignExpression;
-			if (u !is null)
+			size_t prevArgs = args.length;
+			if (u !is null && !a.name.text.length)
 				visit(u);
-			else
+
+			if (args.length == prevArgs)
 			{
+				// if we didn't get an identifier in the unary expression,
+				// assume it's a good argument
 				args ~= istring.init;
-				lines ~= size_t.max;
-				columns ~= size_t.max;
+				lines ~= a.tokens.length ? a.tokens[0].line : size_t.max;
+				columns ~= a.tokens.length ? a.tokens[0].column : size_t.max;
 			}
 		}
 	}
@@ -248,4 +252,34 @@ unittest
 		immutable res = compareArgsToParams(params, args);
 		assert(res == []);
 	}
+}
+
+unittest
+{
+	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import std.stdio : stderr;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.mismatched_args_check = Check.enabled;
+	assertAnalyzerWarnings(q{
+		void foo(int x, int y)
+		{
+		}
+
+		void bar()
+		{
+			int x = 1;
+			int y = 2;
+			foo(y, x); // [warn]: Argument 2 is named 'x', but this is the name of parameter 1
+			foo(y + 1, x); // [warn]: Argument 2 is named 'x', but this is the name of parameter 1
+			foo(y + 1, f(x));
+			foo(x: y, y: x);
+
+			// foo(y: y, x); // TODO: this shouldn't error
+			foo(x, y: x); // TODO: this should error
+			foo(y, y: x); // [warn]: Argument 1 is named 'y', but this is the name of parameter 2
+		}
+	}c, sac);
+	stderr.writeln("Unittest for MismatchedArgumentCheck passed.");
 }
