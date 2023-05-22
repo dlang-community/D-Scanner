@@ -881,10 +881,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new NumberStyleCheck(args.setSkipTests(
 		analysisConfig.number_style_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!RedundantParenCheck(analysisConfig))
-		checks ~= new RedundantParenCheck(args.setSkipTests(
-		analysisConfig.redundant_parens_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!StyleChecker(analysisConfig))
 		checks ~= new StyleChecker(args.setSkipTests(
 		analysisConfig.style_check == Check.skipTests && !ut));
@@ -1341,6 +1337,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new ProperlyDocumentedPublicFunctions!ASTCodegen(
 			fileName,
 			config.properly_documented_public_functions == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(RedundantParenCheck!ASTCodegen)(config))
+		visitors ~= new RedundantParenCheck!ASTCodegen(
+			fileName,
+			config.redundant_parens_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
