@@ -5,11 +5,10 @@
 
 module dscanner.analysis.static_if_else;
 
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dscanner.utils : safeAccess;
+import std.stdio;
 
+// TODO: check and fix AutoFix
 /**
  * Checks for potentially mistaken static if / else if.
  *
@@ -19,81 +18,53 @@ import dscanner.utils : safeAccess;
  * } else if (bar) {
  * }
  * ---
- *
+ * 
  * However, it's more likely that this is a mistake.
  */
-final class StaticIfElse : BaseAnalyzer
+extern(C++) class StaticIfElse(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"static_if_else_check";
 
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const ConditionalStatement cc)
+	override void visit(AST.ConditionalStatement s)
 	{
-		cc.accept(this);
-		if (cc.falseStatement is null)
+		import dmd.astenums : STMT;
+
+		if (!s.condition.isStaticIfCondition())
 		{
+			super.visit(s);
 			return;
 		}
-		const(IfStatement) ifStmt = getIfStatement(cc);
-		if (!ifStmt)
+
+		s.condition.accept(this);
+
+		if (s.ifbody)
+            s.ifbody.accept(this);
+        
+		if (s.elsebody)
 		{
-			return;
+			if (s.elsebody.stmt == STMT.If)
+				addErrorMessage(cast(ulong) s.elsebody.loc.linnum, cast(ulong) s.elsebody.loc.charnum,
+					KEY, MESSAGE);
+		
+			s.elsebody.accept(this);
 		}
-		auto tokens = ifStmt.tokens[0 .. 1];
-		// extend one token to include `else` before this if
-		tokens = (tokens.ptr - 1)[0 .. 2];
-		addErrorMessage(tokens, KEY, "Mismatched static if. Use 'else static if' here.",
-			[
-				AutoFix.insertionBefore(tokens[$ - 1], "static "),
-				AutoFix.resolveLater("Wrap '{}' block around 'if'", [tokens[0].index, ifStmt.tokens[$ - 1].index, 0])
-			]);
 	}
 
-	const(IfStatement) getIfStatement(const ConditionalStatement cc)
-	{
-		return safeAccess(cc).falseStatement.statement.statementNoCaseNoDefault.ifStatement;
-	}
-
-	override AutoFix.CodeReplacement[] resolveAutoFix(
-		const Module mod,
-		scope const(Token)[] tokens,
-		const AutoFix.ResolveContext context,
-		const AutoFixFormatting formatting,
-	)
-	{
-		import dscanner.analysis.helpers : getLineIndentation;
-		import std.algorithm : countUntil;
-
-		auto beforeElse = tokens.countUntil!(a => a.index == context.params[0]);
-		auto lastToken = tokens.countUntil!(a => a.index == context.params[1]);
-		if (beforeElse == -1 || lastToken == -1)
-			throw new Exception("got different tokens than what was used to generate this autofix");
-
-		auto indentation = getLineIndentation(tokens, tokens[beforeElse].line, formatting);
-
-		string beforeIf = formatting.getWhitespaceBeforeOpeningBrace(indentation, false)
-			~ "{" ~ formatting.eol ~ indentation;
-		string afterIf = formatting.eol ~ indentation ~ "}";
-
-		return AutoFix.replacement([tokens[beforeElse].index + 4, tokens[beforeElse + 1].index], beforeIf, "")
-			.concat(AutoFix.indentLines(tokens[beforeElse + 1 .. lastToken + 1], formatting))
-			.concat(AutoFix.insertionAfter(tokens[lastToken], afterIf))
-			.expectReplacements;
-	}
-
+private:
 	enum KEY = "dscanner.suspicious.static_if_else";
+	enum MESSAGE = "Mismatched static if. Use 'else static if' here.";
 }
 
 unittest
 {
-	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
@@ -102,8 +73,7 @@ unittest
 		void foo() {
 			static if (false)
 				auto a = 0;
-			else if (true) /+
-			^^^^^^^ [warn]: Mismatched static if. Use 'else static if' here. +/
+			else if (true) // [warn]: Mismatched static if. Use 'else static if' here.
 				auto b = 1;
 		}
 	}c, sac);
@@ -115,52 +85,6 @@ unittest
 			else {
 				if (true)
 					auto b = 1;
-			}
-		}
-	}c, sac);
-
-	assertAutoFix(q{
-		void foo() {
-			static if (false)
-				auto a = 0;
-			else if (true) // fix:0
-				auto b = 1;
-		}
-		void bar() {
-			static if (false)
-				auto a = 0;
-			else if (true) // fix:1
-				auto b = 1;
-		}
-		void baz() {
-			static if (false)
-				auto a = 0;
-			else if (true) { // fix:1
-				auto b = 1;
-			}
-		}
-	}c, q{
-		void foo() {
-			static if (false)
-				auto a = 0;
-			else static if (true) // fix:0
-				auto b = 1;
-		}
-		void bar() {
-			static if (false)
-				auto a = 0;
-			else {
-				if (true) // fix:1
-					auto b = 1;
-			}
-		}
-		void baz() {
-			static if (false)
-				auto a = 0;
-			else {
-				if (true) { // fix:1
-					auto b = 1;
-				}
 			}
 		}
 	}c, sac);
