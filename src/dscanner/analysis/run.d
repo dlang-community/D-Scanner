@@ -906,10 +906,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		analysisConfig.long_line_check == Check.skipTests && !ut),
 		analysisConfig.max_line_length);
 
-	if (moduleName.shouldRun!UselessAssertCheck(analysisConfig))
-		checks ~= new UselessAssertCheck(args.setSkipTests(
-		analysisConfig.useless_assert_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!LambdaReturnCheck(analysisConfig))
 		checks ~= new LambdaReturnCheck(args.setSkipTests(
 		analysisConfig.lambda_return_check == Check.skipTests && !ut));
@@ -1345,6 +1341,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new StaticIfElse!ASTCodegen(
 			fileName,
 			config.static_if_else_check == Check.skipTests && !ut
+		);
+		
+	if (moduleName.shouldRunDmd!(UselessAssertCheck!ASTCodegen)(config))
+		visitors ~= new UselessAssertCheck!ASTCodegen(
+			fileName,
+			config.useless_assert_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
