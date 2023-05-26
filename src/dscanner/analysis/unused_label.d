@@ -5,126 +5,131 @@
 module dscanner.analysis.unused_label;
 
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
-import dsymbol.scope_ : Scope;
-import std.algorithm.iteration : each;
+import dmd.tokens;
 
 /**
  * Checks for labels that are never used.
  */
-final class UnusedLabelCheck : BaseAnalyzer
+extern (C++) class UnusedLabelCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"unused_label_check";
 
-	///
-	this(BaseAnalyzerArguments args)
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const Module mod)
+	override void visit(AST.Module m)
 	{
 		pushScope();
-		mod.accept(this);
+		super.visit(m);
 		popScope();
 	}
 
-	override void visit(const FunctionLiteralExpression flit)
+	override void visit(AST.LabelStatement ls)
 	{
-		if (flit.specifiedFunctionBody)
-		{
-			pushScope();
-			flit.specifiedFunctionBody.accept(this);
-			popScope();
-		}
-	}
+		Label* label = ls.ident.toString() in current;
 
-	override void visit(const FunctionBody functionBody)
-	{
-		if (functionBody.specifiedFunctionBody !is null)
-		{
-			pushScope();
-			functionBody.specifiedFunctionBody.accept(this);
-			popScope();
-		}
-		if (functionBody.missingFunctionBody && functionBody.missingFunctionBody.functionContracts)
-			functionBody.missingFunctionBody.functionContracts.each!((a){pushScope(); a.accept(this); popScope();});
-	}
-
-	override void visit(const LabeledStatement labeledStatement)
-	{
-		auto token = labeledStatement.identifier;
-		Label* label = token.text in current;
 		if (label is null)
 		{
-			current[token.text] = Label(token.text, token, false);
+			current[ls.ident.toString()] = Label(ls.ident.toString(),
+					ls.loc.linnum, ls.loc.charnum, false);
 		}
 		else
 		{
-			label.token = token;
+			label.line = ls.loc.linnum;
+			label.column = ls.loc.charnum;
 		}
-		if (labeledStatement.declarationOrStatement !is null)
-			labeledStatement.declarationOrStatement.accept(this);
+
+		super.visit(ls);
 	}
 
-	override void visit(const ContinueStatement contStatement)
+	override void visit(AST.GotoStatement gs)
 	{
-		if (contStatement.label.text.length)
-			labelUsed(contStatement.label.text);
+		if (gs.ident)
+			labelUsed(gs.ident.toString());
 	}
 
-	override void visit(const BreakStatement breakStatement)
+	override void visit(AST.BreakStatement bs)
 	{
-		if (breakStatement.label.text.length)
-			labelUsed(breakStatement.label.text);
+		if (bs.ident)
+			labelUsed(bs.ident.toString());
 	}
 
-	override void visit(const GotoStatement gotoStatement)
+	override void visit(AST.StaticForeachStatement s)
 	{
-		if (gotoStatement.label.text.length)
-			labelUsed(gotoStatement.label.text);
+		if (s.sfe.aggrfe)
+			super.visit(s.sfe.aggrfe);
+
+		if (s.sfe.rangefe)
+			super.visit(s.sfe.rangefe);
 	}
 
-	override void visit(const AsmInstruction instr)
+	override void visit(AST.ContinueStatement cs)
 	{
-		instr.accept(this);
+		if (cs.ident)
+			labelUsed(cs.ident.toString());
+	}
 
-		bool jmp;
-		if (instr.identifierOrIntegerOrOpcode.text.length)
-			jmp = instr.identifierOrIntegerOrOpcode.text[0] == 'j';
+	override void visit(AST.FuncDeclaration fd)
+	{
+		pushScope();
+		super.visit(fd);
+		popScope();
+	}
 
-		if (!jmp || !instr.operands || instr.operands.operands.length != 1)
+	override void visit(AST.FuncLiteralDeclaration fd)
+	{
+		pushScope();
+		super.visit(fd);
+		popScope();
+	}
+
+	override void visit(AST.AsmStatement as)
+	{
+		if (!as.tokens)
 			return;
 
-		const AsmExp e = cast(AsmExp) instr.operands.operands[0];
-		if (e.left && cast(AsmBrExp) e.left)
-		{
-			const AsmBrExp b = cast(AsmBrExp) e.left;
-			if (b && b.asmUnaExp && b.asmUnaExp.asmPrimaryExp)
-			{
-				const AsmPrimaryExp p = b.asmUnaExp.asmPrimaryExp;
-				if (p && p.identifierChain && p.identifierChain.identifiers.length == 1)
-					labelUsed(p.identifierChain.identifiers[0].text);
-			}
-		}
+		// Look for jump instructions
+		bool jmp;
+		if (getFirstLetterOf(cast(char*) as.tokens[0].ptr) == 'j')
+			jmp = true;
+
+		// Last argument of the jmp instruction will be the label
+		Token* label;
+		for (label = as.tokens; label.next; label = label.next) {}
+
+		if (jmp && label.ident)
+			labelUsed(label.ident.toString());
+	}
+
+	private char getFirstLetterOf(char* str)
+	{
+		import std.ascii : isAlpha;
+
+		if (str is null)
+			return '\0';
+
+		while (str && !isAlpha(*str))
+			str++;
+
+		return *str;
 	}
 
 private:
 
 	static struct Label
 	{
-		string name;
-		Token token;
+		const(char)[] name;
+		size_t line;
+		size_t column;
 		bool used;
 	}
 
-	Label[string][] stack;
+	extern (D) Label[const(char)[]][] stack;
 
-	auto ref current()
+	extern (D) auto ref current()
 	{
 		return stack[$ - 1];
 	}
@@ -136,26 +141,28 @@ private:
 
 	void popScope()
 	{
+		import std.conv : to;
+
 		foreach (label; current.byValue())
 		{
-			if (label.token is Token.init)
+			if (label.line == size_t.max || label.column == size_t.max)
 			{
 				// TODO: handle unknown labels
 			}
 			else if (!label.used)
 			{
-				addErrorMessage(label.token, "dscanner.suspicious.unused_label",
-						"Label \"" ~ label.name ~ "\" is not used.");
+				addErrorMessage(label.line, label.column, "dscanner.suspicious.unused_label",
+						"Label \"" ~ to!string(label.name) ~ "\" is not used.");
 			}
 		}
 		stack.length--;
 	}
 
-	void labelUsed(string name)
+	extern (D) void labelUsed(const(char)[] name)
 	{
 		Label* entry = name in current;
 		if (entry is null)
-			current[name] = Label(name, Token.init, true);
+			current[name] = Label(name, size_t.max, size_t.max, true);
 		else
 			entry.used = true;
 	}
@@ -163,25 +170,24 @@ private:
 
 unittest
 {
-	import dscanner.analysis.config : Check, StaticAnalysisConfig, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.unused_label_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		int testUnusedLabel()
 		{
 		    int x = 0;
-		A: /+
-		^ [warn]: Label "A" is not used. +/
+		A: // [warn]: Label "A" is not used.
 			if (x) goto B;
 			x++;
 		B:
 			goto C;
 			void foo()
 			{
-			C: /+
-			^ [warn]: Label "C" is not used. +/
+			C: // [warn]: Label "C" is not used.
 				return;
 			}
 		C:
@@ -191,12 +197,10 @@ unittest
 			D:
 				return;
 			}
-		D: /+
-		^ [warn]: Label "D" is not used. +/
+		D: // [warn]: Label "D" is not used.
 			goto E;
 			() {
-			E: /+
-			^ [warn]: Label "E" is not used. +/
+			E: // [warn]: Label "E" is not used.
 				return;
 			}();
 		E:
@@ -205,15 +209,13 @@ unittest
 			F:
 				return;
 			}();
-		F: /+
-		^ [warn]: Label "F" is not used. +/
+		F: // [warn]: Label "F" is not used.
 			return x;
-		G: /+
-		^ [warn]: Label "G" is not used. +/
+		G: // [warn]: Label "G" is not used.
 		}
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testAsm()
 		{
 			asm { jmp lbl;}
@@ -221,17 +223,16 @@ unittest
 		}
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testAsm()
 		{
 			asm { mov RAX,1;}
-			lbl: /+
-			^^^ [warn]: Label "lbl" is not used. +/
+			lbl: // [warn]: Label "lbl" is not used.
 		}
 	}c, sac);
 
 	// from std.math
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		real polyImpl() {
 			asm {
 				jecxz return_ST;
@@ -240,12 +241,23 @@ unittest
 	}c, sac);
 
 	// a label might be hard to find, e.g. in a mixin
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		real polyImpl() {
 			mixin("return_ST: return 1;");
 			asm {
 				jecxz return_ST;
 		    }
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		void testAsm()
+		{
+			asm nothrow @nogc
+            {
+                "movgr2fcsr $r0,%0" :
+                : "r" (newState & (roundingMask | allExceptions));
+            }
 		}
 	}c, sac);
 
