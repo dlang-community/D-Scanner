@@ -32,7 +32,6 @@ import dscanner.analysis.style;
 import dscanner.analysis.enumarrayliteral;
 import dscanner.analysis.pokemon;
 import dscanner.analysis.del;
-import dscanner.analysis.fish;
 import dscanner.analysis.numbers;
 import dscanner.analysis.objectconst;
 import dscanner.analysis.range;
@@ -811,14 +810,6 @@ unittest
 	assert(test("std.bar.foo", "-barr,+bar"));
 }
 
-private
-{
-	version (unittest)
-		enum ut = true;
-	else
-		enum ut = false;
-}
-
 private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	const(Token)[] tokens, const Module m,
 	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
@@ -852,10 +843,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	if (moduleName.shouldRun!DuplicateAttributeCheck(analysisConfig))
 		checks ~= new DuplicateAttributeCheck(args.setSkipTests(
 		analysisConfig.duplicate_attribute == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!FloatOperatorCheck(analysisConfig))
-		checks ~= new FloatOperatorCheck(args.setSkipTests(
-		analysisConfig.float_operator_check == Check.skipTests && !ut));
 
 	if (moduleName.shouldRun!FunctionAttributeCheck(analysisConfig))
 		checks ~= new FunctionAttributeCheck(args.setSkipTests(
