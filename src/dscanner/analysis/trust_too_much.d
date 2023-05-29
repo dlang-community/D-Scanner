@@ -5,103 +5,65 @@
 
 module dscanner.analysis.trust_too_much;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dsymbol.scope_;
+import dmd.astenums : STC;
 
 /**
  * Checks that `@trusted` is only applied to a a single function
  */
-final class TrustTooMuchCheck : BaseAnalyzer
+extern(C++) class TrustTooMuchCheck(AST) : BaseAnalyzerDmd
 {
+	mixin AnalyzerInfo!"trust_too_much";
+	alias visit = BaseAnalyzerDmd.visit;
+
 private:
-
-	static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
+	extern(D) static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
 		"`@trusted` should only be attached to the functions individually";
-	static immutable string KEY = "dscanner.trust_too_much";
-
-	bool checkAtAttribute = true;
+	extern(D) static immutable string KEY = "dscanner.trust_too_much";
 
 public:
-
-	alias visit = BaseAnalyzer.visit;
-
-	mixin AnalyzerInfo!"trust_too_much";
-
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const AtAttribute d)
+	override void visit(AST.StorageClassDeclaration scd)
 	{
-		if (checkAtAttribute && d.identifier.text == "trusted")
-			addErrorMessage(d, KEY, MESSAGE);
-		d.accept(this);
-	}
-
-	// always applied to function body, so OK
-	override void visit(const MemberFunctionAttribute d)
-	{
-		const oldCheckAtAttribute = checkAtAttribute;
-		checkAtAttribute = false;
-		d.accept(this);
-		checkAtAttribute = oldCheckAtAttribute;
-	}
-
-	// handles `@trusted{}` and old style, leading, atAttribute for single funcs
-	override void visit(const Declaration d)
-	{
-		const oldCheckAtAttribute = checkAtAttribute;
-
-		checkAtAttribute = 	d.functionDeclaration is null && d.unittest_ is null &&
-							d.constructor is null && d.destructor is null &&
-							d.staticConstructor is null && d.staticDestructor is null &&
-							d.sharedStaticConstructor is null && d.sharedStaticDestructor is null;
-		d.accept(this);
-		checkAtAttribute = oldCheckAtAttribute;
-	}
-
-	// issue #588
-	override void visit(const AliasDeclaration d)
-	{
-		const oldCheckAtAttribute = checkAtAttribute;
-		checkAtAttribute = false;
-		d.accept(this);
-		checkAtAttribute = oldCheckAtAttribute;
+		if (scd.stc & STC.trusted)
+			addErrorMessage(cast(ulong) scd.loc.linnum, cast(ulong) scd.loc.charnum,
+					KEY, MESSAGE);
+	
+			super.visit(scd);
 	}
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
 	import std.format : format;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.trust_too_much = Check.enabled;
-	const msg = TrustTooMuchCheck.MESSAGE;
+	const msg = "Trusting a whole scope is a bad idea, " ~
+		"`@trusted` should only be attached to the functions individually";
 
 	//--- fail cases ---//
 
 	assertAnalyzerWarnings(q{
-	@trusted: /+
-	^^^^^^^^ [warn]: %s +/
+	@trusted: // [warn]: %s
 		void test();
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@trusted @nogc: /+
-	^^^^^^^^ [warn]: %s +/
+	@trusted @nogc: // [warn]: %s
 		void test();
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@trusted { /+
-	^^^^^^^^ [warn]: %s +/
+	@trusted { // [warn]: %s
 		void test();
 		void test();
 	}
@@ -109,31 +71,27 @@ unittest
 
 	assertAnalyzerWarnings(q{
 	@safe {
-		@trusted @nogc { /+
-		^^^^^^^^ [warn]: %s +/
+		@trusted @nogc { // [warn]: %s
 		void test();
 		void test();
 	}}
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@nogc @trusted { /+
-	      ^^^^^^^^ [warn]: %s +/
+	@nogc @trusted { // [warn]: %s
 		void test();
 		void test();
 	}
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@trusted template foo(){ /+
-	^^^^^^^^ [warn]: %s +/
+	@trusted template foo(){ // [warn]: %s
 	}
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
 	struct foo{
-	@trusted:  /+
-	^^^^^^^^ [warn]: %s +/
+	@trusted:  // [warn]: %s
 	}
 	}c.format(msg), sac);
 	//--- pass cases ---//
