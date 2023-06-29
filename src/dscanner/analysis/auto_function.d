@@ -75,7 +75,8 @@ public:
 				// highlight on the whitespace between attribute and function name
 				auto tok = autoTokens[$ - 1];
 				auto whitespace = tok.column + (tok.text.length ? tok.text.length : str(tok.type).length);
-				addErrorMessage(tok.line, whitespace, whitespace + 1, KEY, MESSAGE_INSERT);
+				auto whitespaceIndex = tok.index + (tok.text.length ? tok.text.length : str(tok.type).length);
+				addErrorMessage([whitespaceIndex, whitespaceIndex + 1], tok.line, [whitespace, whitespace + 1], KEY, MESSAGE_INSERT);
 			}
 			else
 				addErrorMessage(autoTokens, KEY, MESSAGE);

@@ -62,7 +62,7 @@ private:
 
 		if (tok.line != lastErrorLine)
 		{
-			addErrorMessage(tok.line, maxLineLength, max(maxLineLength + 1, tok.column + 1), KEY, message);
+			addErrorMessage([0, 0], tok.line, [maxLineLength, max(maxLineLength + 1, tok.column + 1)], KEY, message);
 			lastErrorLine = tok.line;
 		}
 	}
