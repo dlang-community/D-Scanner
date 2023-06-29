@@ -139,7 +139,7 @@ ${UT_DSCANNER_BIN}: ${UT_DSCANNER_LIB} ${GITHASH} ${UT_OBJ_BY_DC} | ${DSCANNER_B
 	./${UT_DSCANNER_BIN}
 
 lint: ${DSCANNER_BIN}
-	./${DSCANNER_BIN} --config .dscanner.ini --styleCheck src
+	./${DSCANNER_BIN} --styleCheck src
 
 clean:
 	rm -rf dsc
