@@ -73,7 +73,7 @@ ubyte[] readFile(string fileName)
 		stderr.writefln("%s does not exist", fileName);
 		return [];
 	}
-	File f = File(fileName);
+
 	ubyte[] sourceCode;
 	sourceCode = cast(ubyte[]) fileName.read();
 	sourceCode.processBOM(fileName);
