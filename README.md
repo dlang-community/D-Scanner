@@ -247,10 +247,13 @@ outline of the file's declarations to stdout.
 
 ### Configuration
 
-By default Dscanner uses the configuration file given in `$HOME/.config/dscanner/dscanner.ini`.
-Run `--defaultConfig` to regenerate it.
-The `--config` option allows one to use a custom configuration file.
-If a `dscanner.ini` file is locate in the working directory or any of it's parents, it overrides any other configuration files.
+If a `dscanner.ini` file is locate in the working directory or any of it's
+parents, it overrides any other configuration files.
+
+As final location, D-Scanner uses the configuration file given in
+`$HOME/.config/dscanner/dscanner.ini`. Run `--defaultConfig` to regenerate it.
+
+The `--config` option allows one to use a custom configuration file path.
 
 ### AST Dump
 The "--ast" or "--xml" options will dump the complete abstract syntax tree of
@@ -347,7 +350,7 @@ using its formatting switch.
 Selecting modules for a specific check
 --------------------------------------
 
-It is possible to create a new section `analysis.config.ModuleFilters` in the `.dscanner.ini`.
+It is possible to create a new section `analysis.config.ModuleFilters` in the `dscanner.ini`.
 In this optional section a comma-separated list of inclusion and exclusion selectors can
 be specified for every check on which selective filtering should be applied.
 These given selectors match on the module name and partial matches (`std.` or `.foo.`) are possible.
