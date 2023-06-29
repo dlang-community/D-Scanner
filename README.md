@@ -47,6 +47,46 @@ void main(string[] args)
 }
 ```
 
+## Linting
+
+Use
+
+```sh
+dscanner lint source/
+```
+
+to view a human readable list of issues.
+
+For a CLI / tool parsable output use either
+
+```sh
+dscanner -S source/
+# or
+dscanner --report source/
+```
+
+You can also specify custom formats using `-f` / `--errorFormat`, where there
+are also built-in formats for GitHub Actions:
+
+```sh
+# for GitHub actions: (automatically adds annotations to files in PRs)
+dscanner -S -f github source/
+# custom format:
+dscanner -S -f '{filepath}({line}:{column})[{type}]: {message}' source/
+```
+
+Diagnostic types can be enabled/disabled using a configuration file, check out
+the `--config` argument / `dscanner.ini` file for more info. Tip: some IDEs that
+integrate D-Scanner may have helpers to configure the diagnostics or help
+generate the dscanner.ini file.
+<!--
+IDE list for overview:
+code-d has an "insert default dscanner.ini content" command + proprietary
+	disabling per-line (we really need to bring that into standard D-Scanner)
+-->
+
+## Other features
+
 ### Token Count
 The "--tokenCount" or "-t" option prints the number of tokens in the given file
 

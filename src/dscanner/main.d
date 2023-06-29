@@ -165,10 +165,24 @@ else
 		return 0;
 	}
 
+	if (args.length > 1 && args[1] == "lint")
+	{
+		args = args[0] ~ args[2 .. $];
+		styleCheck = true;
+		if (!errorFormat.length)
+			errorFormat = "pretty";
+	}
+
 	if (!errorFormat.length)
 		errorFormat = defaultErrorFormat;
 	else if (auto errorFormatSuppl = errorFormat in errorFormatMap)
-		errorFormat = *errorFormatSuppl;
+		errorFormat = (*errorFormatSuppl)
+			// support some basic formatting things so it's easier for the user to type these
+			.replace("\\x1B", "\x1B")
+			.replace("\\033", "\x1B")
+			.replace("\\r", "\r")
+			.replace("\\n", "\n")
+			.replace("\\t", "\t");
 
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
@@ -350,7 +364,14 @@ else
 void printHelp(string programName)
 {
 	stderr.writefln(`
-    Usage: %s <options>
+    Usage: %1$s <options>
+
+Human-readable output:
+    %1$s lint <options> <files...>
+
+Parsable outputs:
+    %1$s -S <options> <files...>
+    %1$s --report <options> <files...>
 
 Options:
     --help, -h
@@ -418,11 +439,17 @@ Options:
         - {type2}: "error" or "warning", uppercase variants: {Type2}, {TYPE2}
         - {message}: human readable message such as "Variable c is never used."
         - {name}: D-Scanner check name such as "unused_variable_check"
+        - {context}: "\n<source code>\n  ^^^^^ here"
+        - {supplemental}: for supplemental messages, each one formatted using
+                          this same format string, tab indented, type = "hint".
 
         For compatibility with other tools, the following strings may be
         specified as shorthand aliases:
 
-        %3$(-f %1$s -> %2$s\n        %)
+        %3$(-f %1$s -> %2$s` ~ '\n' ~ `        %)
+
+        When calling "%1$s lint" for human readable output, "pretty"
+        is used by default.
 
     --ctags <file | directory>..., -c <file | directory>...
         Generates ctags information from the given source code file. Note that
