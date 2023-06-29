@@ -167,6 +167,8 @@ else
 
 	if (!errorFormat.length)
 		errorFormat = defaultErrorFormat;
+	else if (auto errorFormatSuppl = errorFormat in errorFormatMap)
+		errorFormat = *errorFormatSuppl;
 
 	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
 			.buildNormalizedPath()).array();
@@ -405,8 +407,22 @@ Options:
     --errorFormat|f <pattern>
         Format errors produced by the style/syntax checkers. The default
         value for the pattern is: "%2$s".
-        Supported placeholders are: {filepath}, {line}, {column}, {type},
-        {endLine}, {endColumn}, {message}, and {name}.
+
+        Supported placeholders are:
+        - {filepath}: file path, usually relative to CWD
+        - {line}: start line number, 1-based
+        - {endLine}: end line number, 1-based, inclusive
+        - {column}: start column on start line, 1-based, in bytes
+        - {endColumn}: end column on end line, 1-based, in bytes, exclusive
+        - {type}: "error" or "warn", uppercase variants: {Type}, {TYPE},
+        - {type2}: "error" or "warning", uppercase variants: {Type2}, {TYPE2}
+        - {message}: human readable message such as "Variable c is never used."
+        - {name}: D-Scanner check name such as "unused_variable_check"
+
+        For compatibility with other tools, the following strings may be
+        specified as shorthand aliases:
+
+        %3$(-f %1$s -> %2$s\n        %)
 
     --ctags <file | directory>..., -c <file | directory>...
         Generates ctags information from the given source code file. Note that
@@ -453,7 +469,7 @@ Options:
         Does not analyze code in unittests. Only works if --styleCheck
         is specified.`,
 
-    programName, defaultErrorFormat);
+    programName, defaultErrorFormat, errorFormatMap);
 }
 
 private void doNothing(string, size_t, size_t, string, bool)

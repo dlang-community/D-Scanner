@@ -135,7 +135,7 @@ jobs:
           else
             EXE=""
           fi
-          "./bin/dscanner$EXE" --config .dscanner.ini --styleCheck src
+          "./bin/dscanner$EXE" --config .dscanner.ini --styleCheck -f github src
 
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
