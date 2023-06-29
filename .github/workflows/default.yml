@@ -161,5 +161,5 @@ jobs:
           for FILE in $(find std -name '*.d');
           do
             echo "$FILE"
-            ../bin/dscanner -S "$FILE"
+            ../bin/dscanner -S --config=.dscanner.ini "$FILE"
           done
