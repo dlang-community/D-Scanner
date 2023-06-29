@@ -40,7 +40,6 @@ final class LengthSubtractionCheck : BaseAnalyzer
 			if (l.identifierOrTemplateInstance is null
 					|| l.identifierOrTemplateInstance.identifier.text != "length")
 				goto end;
-			const(Token) token = l.identifierOrTemplateInstance.identifier;
 			addErrorMessage(addExpression, "dscanner.suspicious.length_subtraction",
 					"Avoid subtracting from '.length' as it may be unsigned.");
 		}
