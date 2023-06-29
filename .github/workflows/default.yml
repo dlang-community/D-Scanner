@@ -62,6 +62,8 @@ jobs:
               dmd: gdc-12
             build:
               type: dub
+        include:
+          - { do_report: 1, build: { type: dub, version: 'current' }, host: 'ubuntu-22.04', compiler: { version: dmd-latest, dmd: dmd } }
 
     runs-on: ${{ matrix.host }}
 
@@ -129,13 +131,20 @@ jobs:
       # Lint source code using the previously built binary
       - name: Run linter
         shell: bash
+        env:
+          REPORT_GITHUB: ${{matrix.do_report}}
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
             EXE=".exe"
           else
             EXE=""
           fi
-          "./bin/dscanner$EXE" --config .dscanner.ini --styleCheck -f github src
+          if [ "$REPORT_GITHUB" == "1" ]; then
+            FORMAT="github"
+          else
+            FORMAT=""
+          fi
+          "./bin/dscanner$EXE" --config .dscanner.ini --styleCheck -f "$FORMAT" src
 
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
