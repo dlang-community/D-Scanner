@@ -109,17 +109,21 @@ private:
 
 	void checkConstraintSpace(const Constraint constraint, size_t line)
 	{
+		import std.algorithm : min;
+
 		// dscanner lines start at 1
 		auto pDecl = firstSymbolAtLine[line - 1];
 
 		// search for constraint if (might not be on the same line as the expression)
 		auto r = firstSymbolAtLine[line .. constraint.expression.line].retro.filter!(s => s.isIf);
 
+		auto if_ = constraint.tokens.findTokenForDisplay(tok!"if")[0];
+
 		// no hit = constraint is on the same line
 		if (r.empty)
-			addErrorMessage(constraint.expression.line, constraint.expression.column, KEY, MESSAGE);
+			addErrorMessage(if_, KEY, MESSAGE);
 		else if (pDecl.column != r.front.column)
-			addErrorMessage(constraint.expression.line, constraint.expression.column, KEY, MESSAGE);
+			addErrorMessage(if_.line, min(if_.column, pDecl.column), if_.column + 2, KEY, MESSAGE);
 	}
 }
 
@@ -138,8 +142,10 @@ void foo(R)(R r)
 if (R == null)
 {}
 
+// note: since we are using tabs, the ^ look a bit off here. Use 1-wide tab stops to view tests.
 void foo(R)(R r)
-	if (R == null) // [warn]: %s
+	if (R == null) /+
+^^^ [warn]: %s +/
 {}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -151,11 +157,13 @@ void foo(R)(R r)
 	{}
 
 	void foo(R)(R r)
-if (R == null) // [warn]: %s
+if (R == null) /+
+^^ [warn]: %s +/
 	{}
 
 	void foo(R)(R r)
-		if (R == null) // [warn]: %s
+		if (R == null) /+
+	^^^ [warn]: %s +/
 	{}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -168,11 +176,13 @@ if (R == null) // [warn]: %s
 	{}
 
 	struct Foo(R)
-if (R == null) // [warn]: %s
+if (R == null) /+
+^^ [warn]: %s +/
 	{}
 
 	struct Foo(R)
-		if (R == null) // [warn]: %s
+		if (R == null) /+
+	^^^ [warn]: %s +/
 	{}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -206,8 +216,9 @@ if (is(typeof(Num.init >= 0)) && is(typeof(-Num.init)) &&
 	{}
 
 	struct Foo(R)
-if
-	(R == null) // [warn]: %s
+if /+
+^^ [warn]: %s +/
+	(R == null)
 	{}
 
 	struct Foo(R)
@@ -222,8 +233,9 @@ if
 	{}
 
 	struct Foo(R)
-		if (
-		R == null // [warn]: %s
+		if ( /+
+	^^^ [warn]: %s +/
+		R == null
 	) {}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,
@@ -232,7 +244,8 @@ if
 
 	// constraint on the same line
 	assertAnalyzerWarnings(q{
-	struct CRC(uint N, ulong P) if (N == 32 || N == 64) // [warn]: %s
+	struct CRC(uint N, ulong P) if (N == 32 || N == 64) /+
+	                            ^^ [warn]: %s +/
 	{}
 	}c.format(
 		IfConstraintsIndentCheck.MESSAGE,

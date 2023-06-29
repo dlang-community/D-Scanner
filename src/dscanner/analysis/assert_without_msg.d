@@ -41,7 +41,7 @@ final class AssertWithoutMessageCheck : BaseAnalyzer
 				&& expr.assertArguments.message !is null;
 
 		if (!hasMessage)
-			addErrorMessage(expr.line, expr.column, KEY, MESSAGE);
+			addErrorMessage(expr, KEY, MESSAGE);
 	}
 
 	override void visit(const FunctionCallExpression expr)
@@ -55,7 +55,7 @@ final class AssertWithoutMessageCheck : BaseAnalyzer
 			auto ident = iot.identifier;
 			if (ident.text == "enforce" && expr.arguments !is null && expr.arguments.namedArgumentList !is null &&
 					expr.arguments.namedArgumentList.items.length < 2)
-				addErrorMessage(ident.line, ident.column, KEY, MESSAGE);
+				addErrorMessage(expr, KEY, MESSAGE);
 		}
 	}
 
@@ -112,7 +112,8 @@ unittest
 	assertAnalyzerWarnings(q{
 	unittest {
 		assert(0, "foo bar");
-		assert(0); // [warn]: %s
+		assert(0); /+
+		^^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(
 		AssertWithoutMessageCheck.MESSAGE,
@@ -121,7 +122,8 @@ unittest
 	assertAnalyzerWarnings(q{
 	unittest {
 		static assert(0, "foo bar");
-		static assert(0); // [warn]: %s
+		static assert(0); /+
+		       ^^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(
 		AssertWithoutMessageCheck.MESSAGE,
@@ -133,7 +135,8 @@ unittest
 		enforce(0); // std.exception not imported yet - could be a user-defined symbol
 		import std.exception;
 		enforce(0, "foo bar");
-		enforce(0); // [warn]: %s
+		enforce(0); /+
+		^^^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(
 		AssertWithoutMessageCheck.MESSAGE,

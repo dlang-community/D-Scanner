@@ -63,8 +63,7 @@ final class UnmodifiedFinder : BaseAnalyzer
 					continue;
 				if (initializedFromNew(d.initializer))
 					continue;
-				tree[$ - 1].insert(new VariableInfo(d.name.text, d.name.line,
-						d.name.column, isValueTypeSimple(dec.type)));
+				tree[$ - 1].insert(new VariableInfo(d.name.text, d.name, isValueTypeSimple(dec.type)));
 			}
 		}
 		dec.accept(this);
@@ -84,8 +83,7 @@ final class UnmodifiedFinder : BaseAnalyzer
 					continue;
 				if (initializedFromNew(part.initializer))
 					continue;
-				tree[$ - 1].insert(new VariableInfo(part.identifier.text,
-						part.identifier.line, part.identifier.column));
+				tree[$ - 1].insert(new VariableInfo(part.identifier.text, part.identifier));
 			}
 		}
 		autoDeclaration.accept(this);
@@ -292,8 +290,7 @@ private:
 	static struct VariableInfo
 	{
 		string name;
-		size_t line;
-		size_t column;
+		Token token;
 		bool isValueType;
 	}
 
@@ -303,7 +300,7 @@ private:
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
 				~ " is never modified and could have been declared const or immutable.";
-			addErrorMessage(vi.line, vi.column, "dscanner.suspicious.unmodified", errorMessage);
+			addErrorMessage(vi.token, "dscanner.suspicious.unmodified", errorMessage);
 		}
 		tree = tree[0 .. $ - 1];
 	}
@@ -346,7 +343,8 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 	// fails
 
 	assertAnalyzerWarnings(q{
-		void foo(){int i = 1;} // [warn]: Variable i is never modified and could have been declared const or immutable.
+		void foo(){int i = 1;} /+
+		               ^ [warn]: Variable i is never modified and could have been declared const or immutable. +/
 	}, sac);
 
 	// pass

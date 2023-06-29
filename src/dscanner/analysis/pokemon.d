@@ -38,7 +38,7 @@ final class PokemonExceptionCheck : BaseAnalyzer
 
 	override void visit(const LastCatch lc)
 	{
-		addErrorMessage(lc.line, lc.column, KEY, MESSAGE);
+		addErrorMessage(lc.tokens[0], KEY, MESSAGE);
 		lc.accept(this);
 	}
 
@@ -76,9 +76,7 @@ final class PokemonExceptionCheck : BaseAnalyzer
 		if (identOrTemplate.identifier.text == "Throwable"
 				|| identOrTemplate.identifier.text == "Error")
 		{
-			immutable column = identOrTemplate.identifier.column;
-			immutable line = identOrTemplate.identifier.line;
-			addErrorMessage(line, column, KEY, MESSAGE);
+			addErrorMessage(identOrTemplate, KEY, MESSAGE);
 		}
 	}
 }
@@ -108,19 +106,23 @@ unittest
 			{
 
 			}
-			catch (Error err) // [warn]: Catching Error or Throwable is almost always a bad idea.
+			catch (Error err) /+
+			       ^^^^^ [warn]: Catching Error or Throwable is almost always a bad idea. +/
 			{
 
 			}
-			catch (Throwable err) // [warn]: Catching Error or Throwable is almost always a bad idea.
+			catch (Throwable err) /+
+			       ^^^^^^^^^ [warn]: Catching Error or Throwable is almost always a bad idea. +/
 			{
 
 			}
-			catch (shared(Error) err) // [warn]: Catching Error or Throwable is almost always a bad idea.
+			catch (shared(Error) err) /+
+			              ^^^^^ [warn]: Catching Error or Throwable is almost always a bad idea. +/
 			{
 
 			}
-			catch // [warn]: Catching Error or Throwable is almost always a bad idea.
+			catch /+
+			^^^^^ [warn]: Catching Error or Throwable is almost always a bad idea. +/
 			{
 
 			}

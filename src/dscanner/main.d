@@ -406,7 +406,7 @@ Options:
         Format errors produced by the style/syntax checkers. The default
         value for the pattern is: "%2$s".
         Supported placeholders are: {filepath}, {line}, {column}, {type},
-        {message}, and {name}.
+        {endLine}, {endColumn}, {message}, and {name}.
 
     --ctags <file | directory>..., -c <file | directory>...
         Generates ctags information from the given source code file. Note that

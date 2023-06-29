@@ -94,7 +94,7 @@ final class UselessAssertCheck : BaseAnalyzer
 		default:
 			return;
 		}
-		addErrorMessage(ae.line, ae.column, KEY, MESSAGE);
+		addErrorMessage(unary, KEY, MESSAGE);
 	}
 
 private:
@@ -113,9 +113,12 @@ unittest
 	assertAnalyzerWarnings(q{
 unittest
 {
-	assert(true); // [warn]: %1$s
-	assert(1); // [warn]: %1$s
-	assert([10]); // [warn]: %1$s
+	assert(true); /+
+	       ^^^^ [warn]: %1$s +/
+	assert(1); /+
+	       ^ [warn]: %1$s +/
+	assert([10]); /+
+	       ^^^^ [warn]: %1$s +/
 	assert(false);
 	assert(0);
 	assert(0.0L);

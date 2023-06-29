@@ -157,14 +157,14 @@ private:
 	{
 		foreach (property; possibleDeclarations)
 			if (auto fn = mixin("decl." ~ property))
-				addMessage(fn.name.line, fn.name.column, fn.name.text);
+				addMessage(fn.name.type ? [fn.name] : fn.tokens, fn.name.text);
 	}
 
-	void addMessage(size_t line, size_t column, string name)
+	void addMessage(const Token[] tokens, string name)
 	{
 		import std.string : format;
 
-		addErrorMessage(line, column, "dscanner.style.has_public_example", name is null
+		addErrorMessage(tokens, "dscanner.style.has_public_example", name is null
 				? "Public declaration has no documented example."
 				: format("Public declaration '%s' has no documented example.", name));
 	}
@@ -220,27 +220,33 @@ unittest
 	// enums or variables don't need to have public unittest
 	assertAnalyzerWarnings(q{
 		/// C
-		class C{} // [warn]: Public declaration 'C' has no documented example.
+		class C{} /+
+		      ^ [warn]: Public declaration 'C' has no documented example. +/
 		unittest {}
 
 		/// I
-		interface I{} // [warn]: Public declaration 'I' has no documented example.
+		interface I{} /+
+		          ^ [warn]: Public declaration 'I' has no documented example. +/
 		unittest {}
 
 		/// f
-		void f(){} // [warn]: Public declaration 'f' has no documented example.
+		void f(){} /+
+		     ^ [warn]: Public declaration 'f' has no documented example. +/
 		unittest {}
 
 		/// S
-		struct S{} // [warn]: Public declaration 'S' has no documented example.
+		struct S{} /+
+		       ^ [warn]: Public declaration 'S' has no documented example. +/
 		unittest {}
 
 		/// T
-		template T(){} // [warn]: Public declaration 'T' has no documented example.
+		template T(){} /+
+		         ^ [warn]: Public declaration 'T' has no documented example. +/
 		unittest {}
 
 		/// U
-		union U{} // [warn]: Public declaration 'U' has no documented example.
+		union U{} /+
+		      ^ [warn]: Public declaration 'U' has no documented example. +/
 		unittest {}
 	}, sac);
 
@@ -248,7 +254,8 @@ unittest
 	assertAnalyzerWarnings(q{
 		unittest {}
 		/// C
-		class C{} // [warn]: Public declaration 'C' has no documented example.
+		class C{} /+
+		      ^ [warn]: Public declaration 'C' has no documented example. +/
 	}, sac);
 
 	// test documented module header unittest
@@ -256,13 +263,15 @@ unittest
 		///
 		unittest {}
 		/// C
-		class C{} // [warn]: Public declaration 'C' has no documented example.
+		class C{} /+
+		      ^ [warn]: Public declaration 'C' has no documented example. +/
 	}, sac);
 
 	// test multiple unittest blocks
 	assertAnalyzerWarnings(q{
 		/// C
-		class C{} // [warn]: Public declaration 'C' has no documented example.
+		class C{} /+
+		      ^ [warn]: Public declaration 'C' has no documented example. +/
 		unittest {}
 		unittest {}
 		unittest {}
@@ -318,7 +327,8 @@ unittest
 	// test reset on private symbols (#500)
 	assertAnalyzerWarnings(q{
 		///
-		void dirName(C)(C[] path) {} // [warn]: Public declaration 'dirName' has no documented example.
+		void dirName(C)(C[] path) {} /+
+		     ^^^^^^^ [warn]: Public declaration 'dirName' has no documented example. +/
 		private void _dirName(R)(R path) {}
 		///
 		unittest {}

@@ -31,14 +31,14 @@ final class UnusedVariableCheck : UnusedStorageCheck
 	override void visit(const VariableDeclaration variableDeclaration)
 	{
 		foreach (d; variableDeclaration.declarators)
-			this.variableDeclared(d.name.text, d.name.line, d.name.column, false);
+			this.variableDeclared(d.name.text, d.name, false);
 		variableDeclaration.accept(this);
 	}
 
 	override void visit(const AutoDeclaration autoDeclaration)
 	{
 		foreach (t; autoDeclaration.parts.map!(a => a.identifier))
-			this.variableDeclared(t.text, t.line, t.column, false);
+			this.variableDeclared(t.text, t, false);
 		autoDeclaration.accept(this);
 	}
 }
@@ -62,7 +62,8 @@ final class UnusedVariableCheck : UnusedStorageCheck
 
 	unittest
 	{
-		int a; // [warn]: Variable a is never used.
+		int a; /+
+		    ^ [warn]: Variable a is never used. +/
 	}
 
 	// Issue 380
@@ -75,7 +76,8 @@ final class UnusedVariableCheck : UnusedStorageCheck
 	// Issue 380
 	int otherTemplatedEnum()
 	{
-		auto a(T) = T.init; // [warn]: Variable a is never used.
+		auto a(T) = T.init; /+
+		     ^ [warn]: Variable a is never used. +/
 		return 0;
 	}
 

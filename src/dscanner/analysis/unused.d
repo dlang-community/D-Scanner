@@ -338,11 +338,11 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 
 	protected Tree[] tree;
 
-	protected void variableDeclared(string name, size_t line, size_t column, bool isRef)
+	protected void variableDeclared(string name, Token token, bool isRef)
 	{
 		if (inAggregateScope || name.all!(a => a == '_'))
 			return;
-		tree[$ - 1].insert(new UnUsed(name, line, column, isRef));
+		tree[$ - 1].insert(new UnUsed(name, token, isRef));
 	}
 
 	protected void pushScope()
@@ -355,8 +355,7 @@ private:
 	struct UnUsed
 	{
 		string name;
-		size_t line;
-		size_t column;
+		Token token;
 		bool isRef;
 		bool uncertain;
 	}
@@ -450,8 +449,7 @@ abstract class UnusedStorageCheck : UnusedIdentifierCheck
 					if (uu.uncertain)
 						continue;
 					immutable string errorMessage = publicType ~ ' ' ~ uu.name ~ " is never used.";
-					addErrorMessage(uu.line, uu.column,
-							"dscanner.suspicious." ~ reportType, errorMessage);
+					addErrorMessage(uu.token, "dscanner.suspicious." ~ reportType, errorMessage);
 				}
 			}
 		}

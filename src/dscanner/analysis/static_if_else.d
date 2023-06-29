@@ -45,7 +45,10 @@ final class StaticIfElse : BaseAnalyzer
 		{
 			return;
 		}
-		addErrorMessage(ifStmt.line, ifStmt.column, KEY, "Mismatched static if. Use 'else static if' here.");
+		auto tokens = ifStmt.tokens[0 .. 1];
+		// extend one token to include `else` before this if
+		tokens = (tokens.ptr - 1)[0 .. 2];
+		addErrorMessage(tokens, KEY, "Mismatched static if. Use 'else static if' here.");
 	}
 
 	const(IfStatement) getIfStatement(const ConditionalStatement cc)
@@ -68,7 +71,8 @@ unittest
 		void foo() {
 			static if (false)
 				auto a = 0;
-			else if (true) // [warn]: Mismatched static if. Use 'else static if' here.
+			else if (true) /+
+			^^^^^^^ [warn]: Mismatched static if. Use 'else static if' here. +/
 				auto b = 1;
 		}
 	}c, sac);

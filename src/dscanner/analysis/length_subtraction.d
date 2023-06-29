@@ -34,23 +34,14 @@ final class LengthSubtractionCheck : BaseAnalyzer
 			const UnaryExpression l = cast(const UnaryExpression) addExpression.left;
 			const UnaryExpression r = cast(const UnaryExpression) addExpression.right;
 			if (l is null || r is null)
-			{
-				//				stderr.writeln(__FILE__, " ", __LINE__);
 				goto end;
-			}
 			if (r.primaryExpression is null || r.primaryExpression.primary.type != tok!"intLiteral")
-			{
-				//				stderr.writeln(__FILE__, " ", __LINE__);
 				goto end;
-			}
 			if (l.identifierOrTemplateInstance is null
 					|| l.identifierOrTemplateInstance.identifier.text != "length")
-			{
-				//				stderr.writeln(__FILE__, " ", __LINE__);
 				goto end;
-			}
 			const(Token) token = l.identifierOrTemplateInstance.identifier;
-			addErrorMessage(token.line, token.column, "dscanner.suspicious.length_subtraction",
+			addErrorMessage(addExpression, "dscanner.suspicious.length_subtraction",
 					"Avoid subtracting from '.length' as it may be unsigned.");
 		}
 	end:
@@ -67,7 +58,8 @@ unittest
 	assertAnalyzerWarnings(q{
 		void testSizeT()
 		{
-			if (i < a.length - 1) // [warn]: Avoid subtracting from '.length' as it may be unsigned.
+			if (i < a.length - 1) /+
+			        ^^^^^^^^^^^^ [warn]: Avoid subtracting from '.length' as it may be unsigned. +/
 				writeln("something");
 		}
 	}c, sac);

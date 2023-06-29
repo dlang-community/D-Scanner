@@ -44,7 +44,7 @@ final class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 				}
 			}
 			if (!isSafeOrSystem)
-				addErrorMessage(decl.unittest_.line, decl.unittest_.column, KEY, MESSAGE);
+				addErrorMessage(decl.unittest_.findTokenForDisplay(tok!"unittest"), KEY, MESSAGE);
 		}
 		decl.accept(this);
 	}
@@ -68,8 +68,10 @@ unittest
 		@system unittest {}
 		pure nothrow @system @nogc unittest {}
 
-		unittest {} // [warn]: %s
-		pure nothrow @nogc unittest {} // [warn]: %s
+		unittest {} /+
+		^^^^^^^^ [warn]: %s +/
+		pure nothrow @nogc unittest {} /+
+		                   ^^^^^^^^ [warn]: %s +/
 	}c.format(
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
@@ -82,8 +84,10 @@ unittest
 			@safe unittest {}
 			@system unittest {}
 
-			unittest {} // [warn]: %s
-			pure nothrow @nogc unittest {} // [warn]: %s
+			unittest {} /+
+			^^^^^^^^ [warn]: %s +/
+			pure nothrow @nogc unittest {} /+
+			                   ^^^^^^^^ [warn]: %s +/
 		}
 	}c.format(
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,

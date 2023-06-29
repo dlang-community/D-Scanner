@@ -46,18 +46,18 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 		// Check the attributes
 		foreach (attribute; node.attributes)
 		{
-			size_t line, column;
-			string attributeName = getAttributeName(attribute, line, column);
-			if (!attributeName || line == 0 || column == 0)
+			const(Token)[] tokens;
+			string attributeName = getAttributeName(attribute, tokens);
+			if (!attributeName || !tokens.length)
 				return;
 
 			// Check for the attributes
-			checkDuplicateAttribute(attributeName, "property", line, column, hasProperty);
-			checkDuplicateAttribute(attributeName, "safe", line, column, hasSafe);
-			checkDuplicateAttribute(attributeName, "trusted", line, column, hasTrusted);
-			checkDuplicateAttribute(attributeName, "system", line, column, hasSystem);
-			checkDuplicateAttribute(attributeName, "pure", line, column, hasPure);
-			checkDuplicateAttribute(attributeName, "nothrow", line, column, hasNoThrow);
+			checkDuplicateAttribute(attributeName, "property", tokens, hasProperty);
+			checkDuplicateAttribute(attributeName, "safe", tokens, hasSafe);
+			checkDuplicateAttribute(attributeName, "trusted", tokens, hasTrusted);
+			checkDuplicateAttribute(attributeName, "system", tokens, hasSystem);
+			checkDuplicateAttribute(attributeName, "pure", tokens, hasPure);
+			checkDuplicateAttribute(attributeName, "nothrow", tokens, hasNoThrow);
 		}
 
 		// Just return if missing function nodes
@@ -67,23 +67,23 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 		// Check the functions
 		foreach (memberFunctionAttribute; node.functionDeclaration.memberFunctionAttributes)
 		{
-			size_t line, column;
-			string attributeName = getAttributeName(memberFunctionAttribute, line, column);
-			if (!attributeName || line == 0 || column == 0)
+			const(Token)[] tokens;
+			string attributeName = getAttributeName(memberFunctionAttribute, tokens);
+			if (!attributeName || !tokens.length)
 				return;
 
 			// Check for the attributes
-			checkDuplicateAttribute(attributeName, "property", line, column, hasProperty);
-			checkDuplicateAttribute(attributeName, "safe", line, column, hasSafe);
-			checkDuplicateAttribute(attributeName, "trusted", line, column, hasTrusted);
-			checkDuplicateAttribute(attributeName, "system", line, column, hasSystem);
-			checkDuplicateAttribute(attributeName, "pure", line, column, hasPure);
-			checkDuplicateAttribute(attributeName, "nothrow", line, column, hasNoThrow);
+			checkDuplicateAttribute(attributeName, "property", tokens, hasProperty);
+			checkDuplicateAttribute(attributeName, "safe", tokens, hasSafe);
+			checkDuplicateAttribute(attributeName, "trusted", tokens, hasTrusted);
+			checkDuplicateAttribute(attributeName, "system", tokens, hasSystem);
+			checkDuplicateAttribute(attributeName, "pure", tokens, hasPure);
+			checkDuplicateAttribute(attributeName, "nothrow", tokens, hasNoThrow);
 		}
 	}
 
 	void checkDuplicateAttribute(const string attributeName,
-			const string attributeDesired, size_t line, size_t column, ref bool hasAttribute)
+			const string attributeDesired, const(Token)[] tokens, ref bool hasAttribute)
 	{
 		// Just return if not an attribute
 		if (attributeName != attributeDesired)
@@ -93,14 +93,14 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 		if (hasAttribute)
 		{
 			string message = "Attribute '%s' is duplicated.".format(attributeName);
-			addErrorMessage(line, column, "dscanner.unnecessary.duplicate_attribute", message);
+			addErrorMessage(tokens, "dscanner.unnecessary.duplicate_attribute", message);
 		}
 
 		// Mark it as having that attribute
 		hasAttribute = true;
 	}
 
-	string getAttributeName(const Attribute attribute, ref size_t line, ref size_t column)
+	string getAttributeName(const Attribute attribute, ref const(Token)[] outTokens)
 	{
 		// Get the name from the attribute identifier
 		if (attribute && attribute.atAttribute && attribute.atAttribute.identifier !is Token.init
@@ -108,16 +108,14 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 				&& attribute.atAttribute.identifier.text.length)
 		{
 			auto token = attribute.atAttribute.identifier;
-			line = token.line;
-			column = token.column;
+			outTokens = attribute.atAttribute.tokens;
 			return token.text;
 		}
 
 		// Get the attribute from the storage class token
 		if (attribute && attribute.attribute.type != tok!"")
 		{
-			line = attribute.attribute.line;
-			column = attribute.attribute.column;
+			outTokens = attribute.tokens;
 			return attribute.attribute.type.str;
 		}
 
@@ -125,14 +123,14 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 	}
 
 	string getAttributeName(const MemberFunctionAttribute memberFunctionAttribute,
-			ref size_t line, ref size_t column)
+			ref const(Token)[] outTokens)
 	{
 		// Get the name from the tokenType
 		if (memberFunctionAttribute && memberFunctionAttribute.tokenType !is IdType.init
 				&& memberFunctionAttribute.tokenType.str
 				&& memberFunctionAttribute.tokenType.str.length)
 		{
-			// FIXME: How do we get the line/column number?
+			outTokens = memberFunctionAttribute.tokens;
 			return memberFunctionAttribute.tokenType.str;
 		}
 
@@ -144,8 +142,7 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 				&& memberFunctionAttribute.atAttribute.identifier.text.length)
 		{
 			auto iden = memberFunctionAttribute.atAttribute.identifier;
-			line = iden.line;
-			column = iden.column;
+			outTokens = memberFunctionAttribute.atAttribute.tokens;
 			return iden.text;
 		}
 
@@ -168,25 +165,29 @@ unittest
 			}
 
 			// Duplicate before
-			@property @property bool aaa() // [warn]: Attribute 'property' is duplicated.
+			@property @property bool aaa() /+
+			          ^^^^^^^^^ [warn]: Attribute 'property' is duplicated. +/
 			{
 				return false;
 			}
 
 			// Duplicate after
-			bool bbb() @safe @safe // [warn]: Attribute 'safe' is duplicated.
+			bool bbb() @safe @safe /+
+			                 ^^^^^ [warn]: Attribute 'safe' is duplicated. +/
 			{
 				return false;
 			}
 
 			// Duplicate before and after
-			@system bool ccc() @system // [warn]: Attribute 'system' is duplicated.
+			@system bool ccc() @system /+
+			                   ^^^^^^^ [warn]: Attribute 'system' is duplicated. +/
 			{
 				return false;
 			}
 
 			// Duplicate before and after
-			@trusted bool ddd() @trusted // [warn]: Attribute 'trusted' is duplicated.
+			@trusted bool ddd() @trusted /+
+			                    ^^^^^^^^ [warn]: Attribute 'trusted' is duplicated. +/
 			{
 				return false;
 			}
@@ -199,24 +200,26 @@ unittest
 				return false;
 			}
 
-			pure pure bool bbb() // [warn]: Attribute 'pure' is duplicated.
+			pure pure bool bbb() /+
+			     ^^^^ [warn]: Attribute 'pure' is duplicated. +/
 			{
 				return false;
 			}
 
-			// FIXME: There is no way to get the line/column number of the attribute like this
-			bool ccc() pure pure // FIXME: [warn]: Attribute 'pure' is duplicated.
+			bool ccc() pure pure /+
+			                ^^^^ [warn]: Attribute 'pure' is duplicated. +/
 			{
 				return false;
 			}
 
-			nothrow nothrow bool ddd() // [warn]: Attribute 'nothrow' is duplicated.
+			nothrow nothrow bool ddd() /+
+			        ^^^^^^^ [warn]: Attribute 'nothrow' is duplicated. +/
 			{
 				return false;
 			}
 
-			// FIXME: There is no way to get the line/column number of the attribute like this
-			bool eee() nothrow nothrow // FIXME: [warn]: Attribute 'nothrow' is duplicated.
+			bool eee() nothrow nothrow /+
+			                   ^^^^^^^ [warn]: Attribute 'nothrow' is duplicated. +/
 			{
 				return false;
 			}

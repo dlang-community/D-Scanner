@@ -39,7 +39,7 @@ public:
 				&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex)
 					.empty) || !t.text.matchFirst(badDecimalRegex).empty))
 		{
-			addErrorMessage(t.line, t.column, "dscanner.style.number_literals",
+			addErrorMessage(t, "dscanner.style.number_literals",
 					"Use underscores to improve number constant readability.");
 		}
 	}
@@ -62,10 +62,13 @@ unittest
 			a = 1; // ok
 			a = 10; // ok
 			a = 100; // ok
-			a = 1000; // FIXME: boom
-			a = 10000; // [warn]: Use underscores to improve number constant readability.
-			a = 100000; // [warn]: Use underscores to improve number constant readability.
-			a = 1000000; // [warn]: Use underscores to improve number constant readability.
+			a = 1000; // ok
+			a = 10000; /+
+			    ^^^^^ [warn]: Use underscores to improve number constant readability. +/
+			a = 100000; /+
+			    ^^^^^^ [warn]: Use underscores to improve number constant readability. +/
+			a = 1000000; /+
+			    ^^^^^^^ [warn]: Use underscores to improve number constant readability. +/
 		}
 	}c, sac);
 

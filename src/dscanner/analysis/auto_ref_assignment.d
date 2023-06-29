@@ -54,29 +54,29 @@ final class AutoRefAssignmentCheck : BaseAnalyzer
 	{
 		if (assign.operator == tok!"" || scopes.length == 0)
 			return;
-		interest++;
+		interest ~= assign;
 		assign.ternaryExpression.accept(this);
-		interest--;
+		interest.length--;
 	}
 
 	override void visit(const IdentifierOrTemplateInstance ioti)
 	{
 		import std.algorithm.searching : canFind;
 
-		if (ioti.identifier == tok!"" || interest <= 0)
+		if (ioti.identifier == tok!"" || !interest.length)
 			return;
 		if (scopes[$ - 1].canFind(ioti.identifier.text))
-			addErrorMessage(ioti.identifier.line, ioti.identifier.column, KEY, MESSAGE);
+			addErrorMessage(interest[$ - 1], KEY, MESSAGE);
 	}
 
 	override void visit(const IdentifierChain ic)
 	{
 		import std.algorithm.searching : canFind;
 
-		if (ic.identifiers.length == 0 || interest <= 0)
+		if (ic.identifiers.length == 0 || !interest.length)
 			return;
 		if (scopes[$ - 1].canFind(ic.identifiers[0].text))
-			addErrorMessage(ic.identifiers[0].line, ic.identifiers[0].column, KEY, MESSAGE);
+			addErrorMessage(interest[$ - 1], KEY, MESSAGE);
 	}
 
 	alias visit = BaseAnalyzer.visit;
@@ -86,12 +86,7 @@ private:
 	enum string MESSAGE = "Assignment to auto-ref function parameter.";
 	enum string KEY = "dscanner.suspicious.auto_ref_assignment";
 
-	invariant
-	{
-		assert(interest >= 0);
-	}
-
-	int interest;
+	const(AssignExpression)[] interest;
 
 	void addSymbol(string symbolName)
 	{
@@ -123,7 +118,8 @@ unittest
 	assertAnalyzerWarnings(q{
 		int doStuff(T)(auto ref int a)
 		{
-			a = 10; // [warn]: %s
+			a = 10; /+
+			^^^^^^ [warn]: %s +/
 		}
 
 		int doStuff(T)(ref int a)

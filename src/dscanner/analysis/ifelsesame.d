@@ -34,8 +34,13 @@ final class IfElseSameCheck : BaseAnalyzer
 	override void visit(const IfStatement ifStatement)
 	{
 		if (ifStatement.thenStatement && (ifStatement.thenStatement == ifStatement.elseStatement))
-			addErrorMessage(ifStatement.line, ifStatement.column,
+		{
+			const(Token)[] tokens = ifStatement.elseStatement.tokens;
+			// extend 1 past, so we include the `else` token
+			tokens = (tokens.ptr - 1)[0 .. tokens.length + 1];
+			addErrorMessage(tokens,
 					"dscanner.bugs.if_else_same", "'Else' branch is identical to 'Then' branch.");
+		}
 		ifStatement.accept(this);
 	}
 
@@ -45,7 +50,7 @@ final class IfElseSameCheck : BaseAnalyzer
 		if (e !is null && assignExpression.operator == tok!"="
 				&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{
-			addErrorMessage(assignExpression.line, assignExpression.column, "dscanner.bugs.self_assignment",
+			addErrorMessage(assignExpression, "dscanner.bugs.self_assignment",
 					"Left side of assignment operatior is identical to the right side.");
 		}
 		assignExpression.accept(this);
@@ -56,7 +61,7 @@ final class IfElseSameCheck : BaseAnalyzer
 		if (andAndExpression.left !is null && andAndExpression.right !is null
 				&& andAndExpression.left == andAndExpression.right)
 		{
-			addErrorMessage(andAndExpression.line, andAndExpression.column,
+			addErrorMessage(andAndExpression.right,
 					"dscanner.bugs.logic_operator_operands",
 					"Left side of logical and is identical to right side.");
 		}
@@ -68,7 +73,7 @@ final class IfElseSameCheck : BaseAnalyzer
 		if (orOrExpression.left !is null && orOrExpression.right !is null
 				&& orOrExpression.left == orOrExpression.right)
 		{
-			addErrorMessage(orOrExpression.line, orOrExpression.column,
+			addErrorMessage(orOrExpression.right,
 					"dscanner.bugs.logic_operator_operands",
 					"Left side of logical or is identical to right side.");
 		}
@@ -86,10 +91,13 @@ unittest
 		void testSizeT()
 		{
 			string person = "unknown";
-			if (person == "unknown") // [warn]: 'Else' branch is identical to 'Then' branch.
-				person = "bobrick"; // same
+			if (person == "unknown")
+				person = "bobrick"; /* same */
 			else
-				person = "bobrick"; // same
+				person = "bobrick"; /* same */ /+
+^^^^^^^^^^^^^^^^^^^^^^^ [warn]: 'Else' branch is identical to 'Then' branch. +/
+			// note: above ^^^ line spans over multiple lines, so it starts at start of line, since we don't have any way to test this here
+			// look at the tests using 1-wide tab width for accurate visuals.
 
 			if (person == "unknown") // ok
 				person = "ricky"; // not same

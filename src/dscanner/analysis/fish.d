@@ -34,7 +34,7 @@ final class FloatOperatorCheck : BaseAnalyzer
 				|| r.operator == tok!"!<" || r.operator == tok!"!<>="
 				|| r.operator == tok!"!>=" || r.operator == tok!"!<=")
 		{
-			addErrorMessage(r.line, r.column, KEY,
+			addErrorMessage(r, KEY,
 					"Avoid using the deprecated floating-point operators.");
 		}
 		r.accept(this);
@@ -52,14 +52,22 @@ unittest
 		{
 			float z = 1.5f;
 			bool a;
-			a = z !<>= z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z !<> z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z <> z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z <>= z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z !> z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z !>= z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z !< z; // [warn]: Avoid using the deprecated floating-point operators.
-			a = z !<= z; // [warn]: Avoid using the deprecated floating-point operators.
+			a = z !<>= z; /+
+			    ^^^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z !<> z; /+
+			    ^^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z <> z; /+
+			    ^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z <>= z; /+
+			    ^^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z !> z; /+
+			    ^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z !>= z; /+
+			    ^^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z !< z; /+
+			    ^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
+			a = z !<= z; /+
+			    ^^^^^^^ [warn]: Avoid using the deprecated floating-point operators. +/
 		}
 	}c, sac);
 

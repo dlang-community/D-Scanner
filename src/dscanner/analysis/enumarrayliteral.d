@@ -45,7 +45,7 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 					continue;
 				if (part.initializer.nonVoidInitializer.arrayInitializer is null)
 					continue;
-				addErrorMessage(part.identifier.line, part.identifier.column,
+				addErrorMessage(part.initializer.nonVoidInitializer,
 						"dscanner.performance.enum_array_literal",
 						"This enum may lead to unnecessary allocation at run-time."
 						~ " Use 'static immutable "

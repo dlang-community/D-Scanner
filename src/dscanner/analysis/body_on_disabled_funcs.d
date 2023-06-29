@@ -83,7 +83,7 @@ private:
 					&& dec.functionDeclaration.functionBody !is null
 					&& dec.functionDeclaration.functionBody.missingFunctionBody is null)
 		{
-			addErrorMessage(dec.functionDeclaration.name.line, dec.functionDeclaration.name.column,
+			addErrorMessage(dec.functionDeclaration.functionBody,
 					KEY, "Function marked with '@disabled' should not have a body");
 		}
 		else if (dec.constructor !is null
@@ -91,7 +91,7 @@ private:
 					&& dec.constructor.functionBody !is null
 					&& dec.constructor.functionBody.missingFunctionBody is null)
 		{
-			addErrorMessage(dec.constructor.line, dec.constructor.column,
+			addErrorMessage(dec.constructor.functionBody,
 					KEY, "Constructor marked with '@disabled' should not have a body");
 		}
 		else if (dec.destructor !is null
@@ -99,7 +99,7 @@ private:
 					&& dec.destructor.functionBody !is null
 					&& dec.destructor.functionBody.missingFunctionBody is null)
 		{
-			addErrorMessage(dec.destructor.line, dec.destructor.column,
+			addErrorMessage(dec.destructor.functionBody,
 					KEY, "Destructor marked with '@disabled' should not have a body");
 		}
 	}
@@ -159,9 +159,12 @@ unittest
 			}
 		}
 
-		this() {} // [warn]: Constructor marked with '@disabled' should not have a body
-		void doThing() {} // [warn]: Function marked with '@disabled' should not have a body
-		~this() {} // [warn]: Destructor marked with '@disabled' should not have a body
+		this() {} /+
+		       ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
+		void doThing() {} /+
+		               ^^ [warn]: Function marked with '@disabled' should not have a body +/
+		~this() {} /+
+		        ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
 
 		this();
 		void doThing();
@@ -170,18 +173,28 @@ unittest
 
 	class C2
 	{
-		@disable this() {} // [warn]: Constructor marked with '@disabled' should not have a body
-		@disable { this() {} } // [warn]: Constructor marked with '@disabled' should not have a body
-		this() @disable {} // [warn]: Constructor marked with '@disabled' should not have a body
+		@disable this() {} /+
+		                ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
+		@disable { this() {} } /+
+		                  ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
+		this() @disable {} /+
+		                ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
 
-		@disable void doThing() {} // [warn]: Function marked with '@disabled' should not have a body
-		@disable doThing() {} // [warn]: Function marked with '@disabled' should not have a body
-		@disable { void doThing() {} } // [warn]: Function marked with '@disabled' should not have a body
-		void doThing() @disable {} // [warn]: Function marked with '@disabled' should not have a body
+		@disable void doThing() {} /+
+		                        ^^ [warn]: Function marked with '@disabled' should not have a body +/
+		@disable doThing() {} /+
+		                   ^^ [warn]: Function marked with '@disabled' should not have a body +/
+		@disable { void doThing() {} } /+
+		                          ^^ [warn]: Function marked with '@disabled' should not have a body +/
+		void doThing() @disable {} /+
+		                        ^^ [warn]: Function marked with '@disabled' should not have a body +/
 
-		@disable ~this() {} // [warn]: Destructor marked with '@disabled' should not have a body
-		@disable { ~this() {} } // [warn]: Destructor marked with '@disabled' should not have a body
-		~this() @disable {} // [warn]: Destructor marked with '@disabled' should not have a body
+		@disable ~this() {} /+
+		                 ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
+		@disable { ~this() {} } /+
+		                   ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
+		~this() @disable {} /+
+		                 ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
 
 		@disable this();
 		@disable { this(); }

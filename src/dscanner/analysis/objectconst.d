@@ -68,8 +68,7 @@ final class ObjectConstCheck : BaseAnalyzer
 			if (inAggregate && !constColon && !constBlock && !isDeclationDisabled
 					&& isInteresting(fd.name.text) && !hasConst(fd.memberFunctionAttributes))
 			{
-				addErrorMessage(d.functionDeclaration.name.line,
-						d.functionDeclaration.name.column, "dscanner.suspicious.object_const",
+				addErrorMessage(d.functionDeclaration.name, "dscanner.suspicious.object_const",
 						"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
 			}
 		}
@@ -157,22 +156,26 @@ unittest
 			// Will warn, because none are const
 			class Dog
 			{
-				bool opEquals(Object a, Object b) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
+				bool opEquals(Object a, Object b) /+
+				     ^^^^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
 				{
 					return true;
 				}
 
-				int opCmp(Object o) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
+				int opCmp(Object o) /+
+				    ^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
 				{
 					return 1;
 				}
 
-				hash_t toHash() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
+				hash_t toHash() /+
+				       ^^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
 				{
 					return 0;
 				}
 
-				string toString() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
+				string toString() /+
+				       ^^^^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
 				{
 					return "Dog";
 				}

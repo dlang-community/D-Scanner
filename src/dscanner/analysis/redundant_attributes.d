@@ -103,8 +103,7 @@ private:
 		auto match = currentAttributes.find!(a => a.attribute.type == attr.attribute.type);
 		if (!match.empty)
 		{
-			auto token = attr.attribute;
-			addErrorMessage(token.line, token.column, KEY,
+			addErrorMessage(attr, KEY,
 					text("same visibility attribute used as defined on line ",
 						match.front.attribute.line.to!string, "."));
 			return false;
@@ -194,12 +193,15 @@ unittest
 unittest
 {
 private:
-	private int blah; // [warn]: same visibility attribute used as defined on line 4.
+	private int blah; /+
+	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
 protected
 {
-	protected int blah; // [warn]: same visibility attribute used as defined on line 6.
+	protected int blah; /+
+	^^^^^^^^^ [warn]: same visibility attribute used as defined on line 7. +/
 }
-	private int blah; // [warn]: same visibility attribute used as defined on line 4.
+	private int blah; /+
+	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
 }}c, sac);
 
 	// test labels vs. block attributes
@@ -207,11 +209,14 @@ protected
 unittest
 {
 	private:
-	private: // [warn]: same visibility attribute used as defined on line 4.
+	private: /+
+	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
 	public:
 		private int a;
-		public int b; // [warn]: same visibility attribute used as defined on line 6.
-		public // [warn]: same visibility attribute used as defined on line 6.
+		public int b; /+
+		^^^^^^ [warn]: same visibility attribute used as defined on line 7. +/
+		public /+
+		^^^^^^ [warn]: same visibility attribute used as defined on line 7. +/
 		{
 			int c;
 		}
@@ -222,8 +227,10 @@ unittest
 unittest
 {
 private:
-	private int foo2; // [warn]: same visibility attribute used as defined on line 4.
-	private void foo() // [warn]: same visibility attribute used as defined on line 4.
+	private int foo2; /+
+	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+	private void foo() /+
+	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
 	{
 		private int blah;
 	}
@@ -235,7 +242,8 @@ unittest
 {
 private:
 	public int a;
-private: // [warn]: same visibility attribute used as defined on line 4.
+private: /+
+^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
 }}c, sac);
 
 	// test conditional compilation
@@ -245,7 +253,8 @@ unittest
 version(unittest)
 {
 	private:
-	private int foo; // [warn]: same visibility attribute used as defined on line 6.
+	private int foo; /+
+	^^^^^^^ [warn]: same visibility attribute used as defined on line 6. +/
 }
 private int foo2;
 }}c, sac);
@@ -263,7 +272,8 @@ public:
 	{
 		public int b;
 	}
-	public int b; // [warn]: same visibility attribute used as defined on line 4.
+	public int b; /+
+	^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
 }}c, sac);
 }
 

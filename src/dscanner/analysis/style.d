@@ -36,7 +36,7 @@ final class StyleChecker : BaseAnalyzer
 		foreach (part; dec.moduleName.identifiers)
 		{
 			if (part.text.matchFirst(moduleNameRegex).length == 0)
-				addErrorMessage(part.line, part.column, KEY,
+				addErrorMessage(part, KEY,
 						"Module/package name '" ~ part.text ~ "' does not match style guidelines.");
 		}
 	}
@@ -102,7 +102,7 @@ final class StyleChecker : BaseAnalyzer
 	void checkLowercaseName(string type, ref const Token name)
 	{
 		if (name.text.length > 0 && name.text.matchFirst(varFunNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, KEY,
+			addErrorMessage(name, KEY,
 					type ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
 
@@ -135,7 +135,7 @@ final class StyleChecker : BaseAnalyzer
 	void checkAggregateName(string aggregateType, ref const Token name)
 	{
 		if (name.text.length > 0 && name.text.matchFirst(aggregateNameRegex).length == 0)
-			addErrorMessage(name.line, name.column, KEY,
+			addErrorMessage(name, KEY,
 					aggregateType ~ " name '" ~ name.text ~ "' does not match style guidelines.");
 	}
 
@@ -166,17 +166,22 @@ unittest
 	sac.style_check = Check.enabled;
 
 	assertAnalyzerWarnings(q{
-		module AMODULE; // [warn]: Module/package name 'AMODULE' does not match style guidelines.
+		module AMODULE; /+
+		       ^^^^^^^ [warn]: Module/package name 'AMODULE' does not match style guidelines. +/
 
 		bool A_VARIABLE; // FIXME:
 		bool a_variable; // ok
 		bool aVariable; // ok
 
 		void A_FUNCTION() {} // FIXME:
-		class cat {} // [warn]: Class name 'cat' does not match style guidelines.
-		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines.
-		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
-		enum racoon { a } // [warn]: Enum name 'racoon' does not match style guidelines.
+		class cat {} /+
+		      ^^^ [warn]: Class name 'cat' does not match style guidelines. +/
+		interface puma {} /+
+		          ^^^^ [warn]: Interface name 'puma' does not match style guidelines. +/
+		struct dog {} /+
+		       ^^^ [warn]: Struct name 'dog' does not match style guidelines. +/
+		enum racoon { a } /+
+		     ^^^^^^ [warn]: Enum name 'racoon' does not match style guidelines. +/
 		enum bool something = false;
 		enum bool someThing = false;
 		enum Cat { fritz, }
@@ -194,7 +199,8 @@ unittest
 	assertAnalyzerWarnings(q{
 		extern(Windows)
 		{
-			extern(D) bool Fun2(); // [warn]: Function name 'Fun2' does not match style guidelines.
+			extern(D) bool Fun2(); /+
+			               ^^^^ [warn]: Function name 'Fun2' does not match style guidelines. +/
 			bool Fun3();
 		}
 	}c, sac);
@@ -203,8 +209,10 @@ unittest
 		extern(Windows)
 		{
 			extern(C):
-				extern(D) bool Fun4(); // [warn]: Function name 'Fun4' does not match style guidelines.
-				bool Fun5(); // [warn]: Function name 'Fun5' does not match style guidelines.
+				extern(D) bool Fun4(); /+
+				               ^^^^ [warn]: Function name 'Fun4' does not match style guidelines. +/
+				bool Fun5(); /+
+				     ^^^^ [warn]: Function name 'Fun5' does not match style guidelines. +/
 		}
 	}c, sac);
 
@@ -214,12 +222,14 @@ unittest
 			bool Fun7();
 		extern(D):
 			void okOkay();
-			void NotReallyOkay(); // [warn]: Function name 'NotReallyOkay' does not match style guidelines.
+			void NotReallyOkay(); /+
+			     ^^^^^^^^^^^^^ [warn]: Function name 'NotReallyOkay' does not match style guidelines. +/
 	}c, sac);
 
 	assertAnalyzerWarnings(q{
 		extern(Windows):
-			bool WinButWithBody(){} // [warn]: Function name 'WinButWithBody' does not match style guidelines.
+			bool WinButWithBody(){} /+
+			     ^^^^^^^^^^^^^^ [warn]: Function name 'WinButWithBody' does not match style guidelines. +/
 	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");

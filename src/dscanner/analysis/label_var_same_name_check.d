@@ -106,7 +106,7 @@ private:
 			{
 				immutable thisKind = fromLabel ? "Label" : "Variable";
 				immutable otherKind = thing.isVar ? "variable" : "label";
-				addErrorMessage(name.line, name.column, "dscanner.suspicious.label_var_same_name",
+				addErrorMessage(name, "dscanner.suspicious.label_var_same_name",
 						thisKind ~ " \"" ~ fqn ~ "\" has the same name as a "
 						~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
 			}
@@ -178,14 +178,16 @@ unittest
 unittest
 {
 blah:
-	int blah; // [warn]: Variable "blah" has the same name as a label defined on line 4.
+	int blah; /+
+	    ^^^^ [warn]: Variable "blah" has the same name as a label defined on line 4. +/
 }
 int blah;
 unittest
 {
 	static if (stuff)
 		int a;
-	int a; // [warn]: Variable "a" has the same name as a variable defined on line 11.
+	int a; /+
+	    ^ [warn]: Variable "a" has the same name as a variable defined on line 12. +/
 }
 
 unittest
@@ -202,7 +204,8 @@ unittest
 		int a = 10;
 	else
 		int a = 20;
-	int a; // [warn]: Variable "a" has the same name as a variable defined on line 28.
+	int a; /+
+	    ^ [warn]: Variable "a" has the same name as a variable defined on line 30. +/
 }
 template T(stuff)
 {
@@ -225,7 +228,8 @@ unittest
 		int c = 10;
 	else
 		int c = 20;
-	int c; // [warn]: Variable "c" has the same name as a variable defined on line 51.
+	int c; /+
+	    ^ [warn]: Variable "c" has the same name as a variable defined on line 54. +/
 }
 
 unittest
@@ -263,7 +267,8 @@ unittest
 	interface A
 	{
 		int a;
-		int a; // [warn]: Variable "A.a" has the same name as a variable defined on line 89.
+		int a; /+
+		    ^ [warn]: Variable "A.a" has the same name as a variable defined on line 93. +/
 	}
 }
 

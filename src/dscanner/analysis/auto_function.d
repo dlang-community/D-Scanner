@@ -11,7 +11,7 @@ import dparse.ast;
 import dparse.lexer;
 
 import std.stdio;
-import std.algorithm.searching : any;
+import std.algorithm : map, filter;
 
 /**
  * Checks for auto functions without return statement.
@@ -26,7 +26,8 @@ final class AutoFunctionChecker : BaseAnalyzer
 private:
 
 	enum string KEY = "dscanner.suspicious.missing_return";
-	enum string MESSAGE = "Auto function without return statement, prefer an explicit void";
+	enum string MESSAGE = "Auto function without return statement, prefer replacing auto with void";
+	enum string MESSAGE_INSERT = "Auto function without return statement, prefer inserting void to be explicit";
 
 	bool[] _returns;
 	size_t _mixinDepth;
@@ -44,19 +45,41 @@ public:
 		super(fileName, null, skipTests);
 	}
 
+	package static const(Token)[] findAutoReturnType(const(FunctionDeclaration) decl)
+	{
+		auto autoFunTokens = decl.storageClasses
+			.map!(a => a.token.type == tok!"auto"
+					? [a.token]
+					: a.atAttribute
+						? a.atAttribute.tokens
+						: null)
+			.filter!(a => a.length > 0);
+		return autoFunTokens.empty ? null : autoFunTokens.front;
+	}
+
 	override void visit(const(FunctionDeclaration) decl)
 	{
 		_returns.length += 1;
 		scope(exit) _returns.length -= 1;
 		_returns[$-1] = false;
 
-		const bool autoFun = decl.storageClasses
-			.any!(a => a.token.type == tok!"auto" || a.atAttribute !is null);
+		auto autoTokens = findAutoReturnType(decl);
+		bool isAtAttribute = autoTokens.length > 1;
 
 		decl.accept(this);
 
-		if (decl.functionBody.specifiedFunctionBody && autoFun && !_returns[$-1])
-			addErrorMessage(decl.name.line, decl.name.column, KEY, MESSAGE);
+		if (decl.functionBody.specifiedFunctionBody && autoTokens.length && !_returns[$-1])
+		{
+			if (isAtAttribute)
+			{
+				// highlight on the whitespace between attribute and function name
+				auto tok = autoTokens[$ - 1];
+				auto whitespace = tok.column + (tok.text.length ? tok.text.length : str(tok.type).length);
+				addErrorMessage(tok.line, whitespace, whitespace + 1, KEY, MESSAGE_INSERT);
+			}
+			else
+				addErrorMessage(autoTokens, KEY, MESSAGE);
+		}
 	}
 
 	override void visit(const(ReturnStatement) rst)
@@ -165,9 +188,12 @@ unittest
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.auto_function_check = Check.enabled;
 	assertAnalyzerWarnings(q{
-		auto ref doStuff(){} // [warn]: %s
-		auto doStuff(){} // [warn]: %s
-		int doStuff(){auto doStuff(){}} // [warn]: %s
+		auto ref doStuff(){} /+
+		^^^^ [warn]: %s +/
+		auto doStuff(){} /+
+		^^^^ [warn]: %s +/
+		int doStuff(){auto doStuff(){}} /+
+		              ^^^^ [warn]: %s +/
 		auto doStuff(){return 0;}
 		int doStuff(){/*error but not the aim*/}
 	}c.format(
@@ -177,55 +203,63 @@ unittest
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		auto doStuff(){assert(true);} // [warn]: %s
+		auto doStuff(){assert(true);} /+
+		^^^^ [warn]: %s +/
 		auto doStuff(){assert(false);}
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		auto doStuff(){assert(1);} // [warn]: %s
+		auto doStuff(){assert(1);} /+
+		^^^^ [warn]: %s +/
 		auto doStuff(){assert(0);}
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		auto doStuff(){mixin("0+0");} // [warn]: %s
+		auto doStuff(){mixin("0+0");} /+
+		^^^^ [warn]: %s +/
 		auto doStuff(){mixin("return 0;");}
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		auto doStuff(){mixin("0+0");} // [warn]: %s
+		auto doStuff(){mixin("0+0");} /+
+		^^^^ [warn]: %s +/
 		auto doStuff(){mixin("static if (true)" ~ "  return " ~ 0.stringof ~ ";");}
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		auto doStuff(){} // [warn]: %s
+		auto doStuff(){} /+
+		^^^^ [warn]: %s +/
 		extern(C) auto doStuff();
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		auto doStuff(){} // [warn]: %s
+		auto doStuff(){} /+
+		^^^^ [warn]: %s +/
 		@disable auto doStuff();
 	}c.format(
 		AutoFunctionChecker.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		@property doStuff(){} // [warn]: %s
-		@safe doStuff(){} // [warn]: %s
+		@property doStuff(){} /+
+		         ^ [warn]: %s +/
+		@safe doStuff(){} /+
+		     ^ [warn]: %s +/
 		@disable doStuff();
 		@safe void doStuff();
 	}c.format(
-		AutoFunctionChecker.MESSAGE,
-		AutoFunctionChecker.MESSAGE,
+		AutoFunctionChecker.MESSAGE_INSERT,
+		AutoFunctionChecker.MESSAGE_INSERT,
 	), sac);
 
 	assertAnalyzerWarnings(q{

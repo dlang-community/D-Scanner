@@ -4,14 +4,15 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 module dscanner.analysis.unused_result;
 
+import dparse.ast;
+import dparse.lexer;
 import dscanner.analysis.base;
-import dscanner.analysis.mismatched_args : resolveSymbol, IdentVisitor;
+import dscanner.analysis.mismatched_args : IdentVisitor, resolveSymbol;
 import dscanner.utils;
 import dsymbol.scope_;
 import dsymbol.symbol;
-import dparse.ast, dparse.lexer;
-import std.algorithm.searching : canFind;
-import std.range: retro;
+import std.algorithm : canFind, countUntil;
+import std.range : retro;
 
 /**
  * Checks for function call statements which call non-void functions.
@@ -93,7 +94,13 @@ public:
                 return;
         }
 
-        addErrorMessage(decl.expression.line, decl.expression.column, KEY, MSG);
+        const(Token)[] tokens = fce.unaryExpression
+            ? fce.unaryExpression.tokens
+            : fce.type
+            ? fce.type.tokens
+            : fce.tokens;
+
+        addErrorMessage(tokens, KEY, MSG);
     }
 }
 
@@ -128,7 +135,8 @@ unittest
         int fun() { return 1; }
         void main()
         {
-            fun(); // [warn]: %s
+            fun(); /+
+            ^^^ [warn]: %s +/
         }
     }c.format(UnusedResultChecker.MSG), sac);
 
@@ -143,7 +151,8 @@ unittest
         alias Bar = Foo;
         void main()
         {
-            Bar.get(); // [warn]: %s
+            Bar.get(); /+
+            ^^^^^^^ [warn]: %s +/
         }
     }c.format(UnusedResultChecker.MSG), sac);
 
@@ -160,7 +169,8 @@ unittest
         void main()
         {
             int fun() { return 1; }
-            fun(); // [warn]: %s
+            fun(); /+
+            ^^^ [warn]: %s +/
         }
     }c.format(UnusedResultChecker.MSG), sac);
 

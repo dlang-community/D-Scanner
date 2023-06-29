@@ -9,6 +9,7 @@ import dparse.lexer;
 import dparse.formatter;
 import dscanner.analysis.base;
 import dsymbol.scope_ : Scope;
+import std.typecons : Rebindable, rebindable;
 
 final class IfStatementCheck : BaseAnalyzer
 {
@@ -81,12 +82,12 @@ private:
 		immutable size_t prevLocation = alreadyChecked(app.data, line, column);
 		if (prevLocation != size_t.max)
 		{
-			addErrorMessage(line, column, KEY, "Expression %s is true: already checked on line %d.".format(
+			addErrorMessage(expressions[prevLocation].astNode, KEY, "Expression %s is true: already checked on line %d.".format(
 					expressions[prevLocation].formatted, expressions[prevLocation].line));
 		}
 		else
 		{
-			expressions ~= ExpressionInfo(app.data, line, column, depth);
+			expressions ~= ExpressionInfo(app.data, line, column, depth, (cast(const BaseNode) expression).rebindable);
 			sort(expressions);
 		}
 	}
@@ -124,4 +125,5 @@ private struct ExpressionInfo
 	size_t line;
 	size_t column;
 	int depth;
+	Rebindable!(const BaseNode) astNode;
 }

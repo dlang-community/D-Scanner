@@ -58,9 +58,11 @@ private:
 
 	void triggerError(ref const Token tok)
 	{
+		import std.algorithm : max;
+
 		if (tok.line != lastErrorLine)
 		{
-			addErrorMessage(tok.line, tok.column, KEY, message);
+			addErrorMessage(tok.line, maxLineLength, max(maxLineLength + 1, tok.column + 1), KEY, message);
 			lastErrorLine = tok.line;
 		}
 	}

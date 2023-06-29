@@ -81,8 +81,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 	{
 		if (inInterface && dec.attribute.attribute == tok!"abstract")
 		{
-			addErrorMessage(dec.attribute.attribute.line,
-					dec.attribute.attribute.column, KEY, ABSTRACT_MESSAGE);
+			addErrorMessage(dec.attribute, KEY, ABSTRACT_MESSAGE);
 		}
 	}
 
@@ -105,7 +104,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 			}
 			if (foundProperty && !foundConst)
 			{
-				addErrorMessage(dec.name.line, dec.name.column, KEY,
+				addErrorMessage(dec.name, KEY,
 						"Zero-parameter '@property' function should be"
 						~ " marked 'const', 'inout', or 'immutable'.");
 			}
@@ -124,7 +123,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 				continue;
 			if (attr.attribute == tok!"abstract" && inInterface)
 			{
-				addErrorMessage(attr.attribute.line, attr.attribute.column, KEY, ABSTRACT_MESSAGE);
+				addErrorMessage(attr.attribute, KEY, ABSTRACT_MESSAGE);
 				continue;
 			}
 			if (attr.attribute == tok!"static")
@@ -137,8 +136,7 @@ final class FunctionAttributeCheck : BaseAnalyzer
 				import std.string : format;
 
 				immutable string attrString = str(attr.attribute.type);
-				addErrorMessage(dec.functionDeclaration.name.line,
-						dec.functionDeclaration.name.column, KEY, format(
+				addErrorMessage(attr.attribute, KEY, format(
 							"'%s' is not an attribute of the return type." ~ " Place it after the parameter list to clarify.",
 							attrString));
 			}
@@ -172,31 +170,37 @@ unittest
 		int foo() @property { return 0; }
 
 		class ClassName {
-			const int confusingConst() { return 0; } // [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify.
+			const int confusingConst() { return 0; } /+
+			^^^^^ [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify. +/
 
-			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int bar() @property { return 0; } /+
+			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
 			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		struct StructName {
-			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int bar() @property { return 0; } /+
+			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
 			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		union UnionName {
-			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int bar() @property { return 0; } /+
+			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
 			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		interface InterfaceName {
-			int bar() @property; // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
+			int bar() @property; /+
+			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
 			static int barStatic() @property { return 0; }
 			int barConst() const @property;
 
-			abstract int method(); // [warn]: 'abstract' attribute is redundant in interface declarations
+			abstract int method(); /+
+			^^^^^^^^ [warn]: 'abstract' attribute is redundant in interface declarations +/
 		}
 	}c, sac);
 

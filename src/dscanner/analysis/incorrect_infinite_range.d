@@ -10,6 +10,8 @@ import dscanner.analysis.helpers;
 import dparse.ast;
 import dparse.lexer;
 
+import std.typecons : Rebindable;
+
 /**
  * Checks for incorrect infinite range definitions
  */
@@ -36,9 +38,10 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 	{
 		if (inStruct > 0 && fd.name.text == "empty")
 		{
-			line = fd.name.line;
-			column = fd.name.column;
+			auto old = parentFunc;
+			parentFunc = fd;
 			fd.accept(this);
+			parentFunc = old;
 		}
 	}
 
@@ -63,7 +66,7 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 
 	override void visit(const ReturnStatement rs)
 	{
-		if (inStruct == 0 || line == size_t.max) // not within a struct yet
+		if (inStruct == 0 || parentFunc == null) // not within a struct yet
 			return;
 		visitReturnExpression(rs.expression);
 	}
@@ -79,7 +82,7 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 			return;
 		if (unary.primaryExpression.primary != tok!"false")
 			return;
-		addErrorMessage(line, column, KEY, MESSAGE);
+		addErrorMessage(parentFunc.get, KEY, MESSAGE);
 	}
 
 	override void visit(const Unittest u)
@@ -90,8 +93,7 @@ private:
 	uint inStruct;
 	enum string KEY = "dscanner.suspicious.incorrect_infinite_range";
 	enum string MESSAGE = "Use `enum bool empty = false;` to define an infinite range.";
-	size_t line = size_t.max;
-	size_t column;
+	Rebindable!(const FunctionDeclaration) parentFunc;
 }
 
 unittest
@@ -104,10 +106,12 @@ unittest
 	sac.incorrect_infinite_range_check = Check.enabled;
 	assertAnalyzerWarnings(q{struct InfiniteRange
 {
-	bool empty() // [warn]: %1$s
+	bool empty()
 	{
 		return false;
-	}
+	} /+
+^^ [warn]: %1$s+/
+	// TODO: test for multiline issues like this
 
 	bool stuff()
 	{
@@ -128,7 +132,8 @@ unittest
 
 struct InfiniteRange
 {
-	bool empty() => false; // [warn]: %1$s
+	bool empty() => false; /+
+	^^^^^^^^^^^^^^^^^^^^^^ [warn]: %1$s +/
 	bool stuff() => false;
 	unittest
 	{
@@ -143,7 +148,8 @@ struct InfiniteRange
 }
 
 bool empty() { return false; }
-class C { bool empty() { return false; } } // [warn]: %1$s
+class C { bool empty() { return false; } } /+
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [warn]: %1$s +/
 
 }c
 			.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);

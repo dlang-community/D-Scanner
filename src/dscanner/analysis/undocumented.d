@@ -100,15 +100,14 @@ final class UndocumentedDeclarationCheck : BaseAnalyzer
 			return;
 		if (variable.autoDeclaration !is null)
 		{
-			addMessage(variable.autoDeclaration.parts[0].identifier.line,
-					variable.autoDeclaration.parts[0].identifier.column,
+			addMessage(variable.autoDeclaration.parts[0].identifier,
 					variable.autoDeclaration.parts[0].identifier.text);
 			return;
 		}
 		foreach (dec; variable.declarators)
 		{
 			if (dec.comment.ptr is null)
-				addMessage(dec.name.line, dec.name.column, dec.name.text);
+				addMessage(dec.name, dec.name.text);
 			return;
 		}
 	}
@@ -174,20 +173,25 @@ private:
 									|| isGetterOrSetter(declaration.name.text)
 									|| isProperty(declaration)))
 							{
-								addMessage(declaration.name.line,
-										declaration.name.column, declaration.name.text);
+								addMessage(declaration.name, declaration.name.text);
 							}
 						}
 						else
 						{
 							if (declaration.name.type != tok!"")
-								addMessage(declaration.name.line,
-										declaration.name.column, declaration.name.text);
+								addMessage(declaration.name, declaration.name.text);
 						}
 					}
 					else
 					{
-						addMessage(declaration.line, declaration.column, null);
+						import std.algorithm : countUntil;
+
+						// like constructors
+						auto tokens = declaration.tokens.findTokenForDisplay(tok!"this");
+						auto earlyEnd = tokens.countUntil!(a => a == tok!"{" || a == tok!"(" || a == tok!";");
+						if (earlyEnd != -1)
+							tokens = tokens[0 .. earlyEnd];
+						addMessage(tokens, null);
 					}
 				}
 				static if (!(is(T == TemplateDeclaration) || is(T == FunctionDeclaration)))
@@ -215,11 +219,11 @@ private:
 		return false;
 	}
 
-	void addMessage(size_t line, size_t column, string name)
+	void addMessage(T)(T range, string name)
 	{
 		import std.string : format;
 
-		addErrorMessage(line, column, "dscanner.style.undocumented_declaration", name is null
+		addErrorMessage(range, "dscanner.style.undocumented_declaration", name is null
 				? "Public declaration is undocumented."
 				: format("Public declaration '%s' is undocumented.", name));
 	}
@@ -315,13 +319,20 @@ unittest
 	sac.undocumented_declaration_check = Check.enabled;
 
 	assertAnalyzerWarnings(q{
-		class C{} // [warn]: Public declaration 'C' is undocumented.
-		interface I{} // [warn]: Public declaration 'I' is undocumented.
-		enum e = 0; // [warn]: Public declaration 'e' is undocumented.
-		void f(){} // [warn]: Public declaration 'f' is undocumented.
-		struct S{} // [warn]: Public declaration 'S' is undocumented.
-		template T(){} // [warn]: Public declaration 'T' is undocumented.
-		union U{} // [warn]: Public declaration 'U' is undocumented.
+		class C{} /+
+		      ^ [warn]: Public declaration 'C' is undocumented. +/
+		interface I{} /+
+		          ^ [warn]: Public declaration 'I' is undocumented. +/
+		enum e = 0; /+
+		     ^ [warn]: Public declaration 'e' is undocumented. +/
+		void f(){} /+
+		     ^ [warn]: Public declaration 'f' is undocumented. +/
+		struct S{} /+
+		       ^ [warn]: Public declaration 'S' is undocumented. +/
+		template T(){} /+
+		         ^ [warn]: Public declaration 'T' is undocumented. +/
+		union U{} /+
+		      ^ [warn]: Public declaration 'U' is undocumented. +/
 	}, sac);
 
 	assertAnalyzerWarnings(q{
