@@ -159,7 +159,9 @@ private string formatContext(Message.Diagnostic diagnostic, scope const(char)[] 
 version (Windows)
 void enableColoredOutput()
 {
-	import core.sys.windows.windows;
+	import core.sys.windows.windows : DWORD, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+		GetConsoleMode, GetStdHandle, HANDLE, INVALID_HANDLE_VALUE,
+		SetConsoleMode, STD_OUTPUT_HANDLE;
 
 	// Set output mode to handle virtual terminal sequences
 	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
