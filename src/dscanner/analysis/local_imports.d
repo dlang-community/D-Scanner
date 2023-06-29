@@ -58,8 +58,7 @@ final class LocalImportCheck : BaseAnalyzer
 			{
 				if (singleImport.rename.text.length == 0)
 				{
-					addErrorMessage(singleImport.identifierChain.identifiers[0].line,
-							singleImport.identifierChain.identifiers[0].column,
+					addErrorMessage(singleImport,
 							"dscanner.suspicious.local_imports", "Local imports should specify"
 							~ " the symbols being imported to avoid hiding local symbols.");
 				}
@@ -93,7 +92,8 @@ unittest
 	assertAnalyzerWarnings(q{
 		void testLocalImport()
 		{
-			import std.stdio; // [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols.
+			import std.stdio; /+
+			       ^^^^^^^^^ [warn]: Local imports should specify the symbols being imported to avoid hiding local symbols. +/
 			import std.fish : scales, head;
 			import DAGRON = std.experimental.dragon;
 		}

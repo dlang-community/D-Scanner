@@ -105,7 +105,7 @@ final class CyclomaticComplexityCheck : BaseAnalyzer
 			inLoop.length--;
 		}
 		fun.functionBody.accept(this);
-		testComplexity(fun.name.line, fun.name.column);
+		testComplexity(fun.name);
 	}
 
 	override void visit(const Unittest unittest_)
@@ -120,7 +120,7 @@ final class CyclomaticComplexityCheck : BaseAnalyzer
 				inLoop.length--;
 			}
 			unittest_.accept(this);
-			testComplexity(unittest_.line, unittest_.column);
+			testComplexity(unittest_.findTokenForDisplay(tok!"unittest"));
 		}
 	}
 
@@ -129,12 +129,12 @@ private:
 	int[] complexityStack = [0];
 	bool[] inLoop = [false];
 
-	void testComplexity(size_t line, size_t column)
+	void testComplexity(T)(T annotatable)
 	{
 		auto complexity = complexityStack[$ - 1];
 		if (complexity > maxCyclomaticComplexity)
 		{
-			addErrorMessage(line, column, KEY, format!MESSAGE(complexity));
+			addErrorMessage(annotatable, KEY, format!MESSAGE(complexity));
 		}
 	}
 
@@ -169,24 +169,28 @@ unittest
 	sac.cyclomatic_complexity = Check.enabled;
 	sac.max_cyclomatic_complexity = 0;
 	assertAnalyzerWarnings(q{
-unittest // [warn]: Cyclomatic complexity of this function is 1.
+unittest /+
+^^^^^^^^ [warn]: Cyclomatic complexity of this function is 1. +/
 {
 }
 
-unittest // [warn]: Cyclomatic complexity of this function is 1.
+unittest /+
+^^^^^^^^ [warn]: Cyclomatic complexity of this function is 1. +/
 {
 	writeln("hello");
 	writeln("world");
 }
 
-void main(string[] args) // [warn]: Cyclomatic complexity of this function is 3.
+void main(string[] args) /+
+     ^^^^ [warn]: Cyclomatic complexity of this function is 3. +/
 {
 	if (!args.length)
 		return;
 	writeln("hello ", args);
 }
 
-unittest // [warn]: Cyclomatic complexity of this function is 1.
+unittest /+
+^^^^^^^^ [warn]: Cyclomatic complexity of this function is 1. +/
 {
 	// static if / static foreach does not increase cyclomatic complexity
 	static if (stuff)
@@ -194,7 +198,8 @@ unittest // [warn]: Cyclomatic complexity of this function is 1.
 	int a;
 }
 
-unittest // [warn]: Cyclomatic complexity of this function is 2.
+unittest /+
+^^^^^^^^ [warn]: Cyclomatic complexity of this function is 2. +/
 {
 	foreach (i; 0 .. 2)
 	{
@@ -202,7 +207,8 @@ unittest // [warn]: Cyclomatic complexity of this function is 2.
 	int a;
 }
 
-unittest // [warn]: Cyclomatic complexity of this function is 3.
+unittest /+
+^^^^^^^^ [warn]: Cyclomatic complexity of this function is 3. +/
 {
 	foreach (i; 0 .. 2)
 	{
@@ -211,7 +217,8 @@ unittest // [warn]: Cyclomatic complexity of this function is 3.
 	int a;
 }
 
-unittest // [warn]: Cyclomatic complexity of this function is 2.
+unittest /+
+^^^^^^^^ [warn]: Cyclomatic complexity of this function is 2. +/
 {
 	switch (x)
 	{
@@ -223,7 +230,8 @@ unittest // [warn]: Cyclomatic complexity of this function is 2.
 	int a;
 }
 
-bool shouldRun(check : BaseAnalyzer)( // [warn]: Cyclomatic complexity of this function is 20.
+bool shouldRun(check : BaseAnalyzer)( /+
+     ^^^^^^^^^ [warn]: Cyclomatic complexity of this function is 20. +/
 	string moduleName, const ref StaticAnalysisConfig config)
 {
 	enum string a = check.name;

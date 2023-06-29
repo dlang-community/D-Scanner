@@ -31,7 +31,11 @@ final class LambdaReturnCheck : BaseAnalyzer
 		{
 			return;
 		}
-		addErrorMessage(fLit.line, fLit.column, KEY, "This lambda returns a lambda. Add parenthesis to clarify.");
+		auto start = &fLit.tokens[0];
+		auto endIncl = &fe.specifiedFunctionBody.tokens[0];
+		assert(endIncl >= start);
+		auto tokens = start[0 .. endIncl - start + 1];
+		addErrorMessage(tokens, KEY, "This lambda returns a lambda. Add parenthesis to clarify.");
 	}
 
 private:
@@ -52,9 +56,12 @@ unittest
 		void main()
 		{
 			int[] b;
-			auto a = b.map!(a => { return a * a + 2; }).array(); // [warn]: This lambda returns a lambda. Add parenthesis to clarify.
-			pragma(msg, typeof(a => { return a; })); // [warn]: This lambda returns a lambda. Add parenthesis to clarify.
-			pragma(msg, typeof((a) => { return a; })); // [warn]: This lambda returns a lambda. Add parenthesis to clarify.
+			auto a = b.map!(a => { return a * a + 2; }).array(); /+
+			                ^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
+			pragma(msg, typeof(a => { return a; })); /+
+			                   ^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
+			pragma(msg, typeof((a) => { return a; })); /+
+			                   ^^^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
 			pragma(msg, typeof({ return a; }));
 			pragma(msg, typeof(a => () { return a; }));
 		}`c;

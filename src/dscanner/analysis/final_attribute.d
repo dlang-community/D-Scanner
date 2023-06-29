@@ -54,12 +54,10 @@ private:
 	bool _blockStatic;
 	Parent _parent = Parent.module_;
 
-	void addError(T)(T t, string msg)
+	void addError(T)(const Token finalToken, T t, string msg)
 	{
 		import std.format : format;
-		const size_t lne = t.name.line;
-		const size_t col = t.name.column;
-		addErrorMessage(lne, col, KEY, MSGB.format(msg));
+		addErrorMessage(finalToken.type ? finalToken : t.name, KEY, MSGB.format(msg));
 	}
 
 public:
@@ -178,6 +176,11 @@ public:
 
 		const bool isFinal = d.attributes
 			.canFind!(a => a.attribute.type == tok!"final");
+		const Token finalToken = isFinal
+			? d.attributes
+				.filter!(a => a.attribute.type == tok!"final")
+				.front.attribute
+			: Token.init;
 
 		const bool isStaticOnce = d.attributes
 			.canFind!(a => a.attribute.type == tok!"static");
@@ -203,9 +206,9 @@ public:
 			if (_finalAggregate && savedParent == Parent.module_)
 			{
 				if (d.structDeclaration)
-					addError(d.structDeclaration, MESSAGE.struct_i);
+					addError(finalToken, d.structDeclaration, MESSAGE.struct_i);
 				else if (d.unionDeclaration)
-					addError(d.unionDeclaration, MESSAGE.union_i);
+					addError(finalToken, d.unionDeclaration, MESSAGE.union_i);
 			}
 		}
 
@@ -220,29 +223,29 @@ public:
 		{
 		case Parent.class_:
 			if (fd.templateParameters)
-				addError(fd, MESSAGE.class_t);
+				addError(finalToken, fd, MESSAGE.class_t);
 			if (isPrivate)
-				addError(fd, MESSAGE.class_p);
+				addError(finalToken, fd, MESSAGE.class_p);
 			else if (isStaticOnce || _alwaysStatic || _blockStatic)
-				addError(fd, MESSAGE.class_s);
+				addError(finalToken, fd, MESSAGE.class_s);
 			else if (_finalAggregate)
-				addError(fd, MESSAGE.class_f);
+				addError(finalToken, fd, MESSAGE.class_f);
 			break;
 		case Parent.interface_:
 			if (fd.templateParameters)
-				addError(fd, MESSAGE.interface_t);
+				addError(finalToken, fd, MESSAGE.interface_t);
 			break;
 		case Parent.struct_:
-			addError(fd, MESSAGE.struct_f);
+			addError(finalToken, fd, MESSAGE.struct_f);
 			break;
 		case Parent.union_:
-			addError(fd, MESSAGE.union_f);
+			addError(finalToken, fd, MESSAGE.union_f);
 			break;
 		case Parent.function_:
-			addError(fd, MESSAGE.func_n);
+			addError(finalToken, fd, MESSAGE.func_n);
 			break;
 		case Parent.module_:
-			addError(fd, MESSAGE.func_g);
+			addError(finalToken, fd, MESSAGE.func_g);
 			break;
 		}
 	}
@@ -317,13 +320,15 @@ public:
 	// fail
 
 	assertAnalyzerWarnings(q{
-		final void foo(){} // [warn]: %s
+		final void foo(){} /+
+		^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.func_g)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		void foo(){final void foo(){}} // [warn]: %s
+		void foo(){final void foo(){}} /+
+		           ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.func_n)
 	), sac);
@@ -332,56 +337,65 @@ public:
 		void foo()
 		{
 			static if (true)
-			final class A{ private: final protected void foo(){}} // [warn]: %s
+			final class A{ private: final protected void foo(){}} /+
+			                        ^^^^^ [warn]: %s +/
 		}
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_f)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		final struct Foo{} // [warn]: %s
+		final struct Foo{} /+
+		^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.struct_i)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		final union Foo{} // [warn]: %s
+		final union Foo{} /+
+		^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.union_i)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		class Foo{private final void foo(){}} // [warn]: %s
+		class Foo{private final void foo(){}} /+
+		                  ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		class Foo{private: final void foo(){}} // [warn]: %s
+		class Foo{private: final void foo(){}} /+
+		                   ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		interface Foo{final void foo(T)(){}} // [warn]: %s
+		interface Foo{final void foo(T)(){}} /+
+		              ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.interface_t)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		final class Foo{final void foo(){}} // [warn]: %s
+		final class Foo{final void foo(){}} /+
+		                ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_f)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		private: final class Foo {public: private final void foo(){}} // [warn]: %s
+		private: final class Foo {public: private final void foo(){}} /+
+		                                          ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
 	), sac);
 
 	assertAnalyzerWarnings(q{
-		class Foo {final static void foo(){}} // [warn]: %s
+		class Foo {final static void foo(){}} /+
+		           ^^^^^ [warn]: %s +/
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
 	), sac);
@@ -390,7 +404,8 @@ public:
 		class Foo
 		{
 			void foo(){}
-			static: final void foo(){} // [warn]: %s
+			static: final void foo(){} /+
+			        ^^^^^ [warn]: %s +/
 		}
 	}c.format(
 		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
@@ -400,7 +415,8 @@ public:
 		class Foo
 		{
 			void foo(){}
-			static{ final void foo(){}} // [warn]: %s
+			static{ final void foo(){}} /+
+			        ^^^^^ [warn]: %s +/
 			void foo(){}
 		}
 	}c.format(

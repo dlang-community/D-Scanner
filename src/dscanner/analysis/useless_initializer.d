@@ -155,14 +155,18 @@ public:
 
 			version(unittest)
 			{
-				enum warn = q{addErrorMessage(declarator.name.line,
-					declarator.name.column, key, msg);};
+				void warn(const BaseNode range)
+				{
+					addErrorMessage(range, key, msg);
+				}
 			}
 			else
 			{
 				import std.format : format;
-				enum warn = q{addErrorMessage(declarator.name.line,
-				declarator.name.column, key, msg.format(declarator.name.text));};
+				void warn(const BaseNode range)
+				{
+					addErrorMessage(range, key, msg.format(declarator.name.text));
+				}
 			}
 
 			// ---  Info about the declaration type --- //
@@ -203,32 +207,32 @@ public:
 					case tok!"cent",    tok!"ucent":
 					case tok!"bool":
 						if (intDefs.canFind(value.text) || value == tok!"false")
-							mixin(warn);
+							warn(nvi);
 						goto default;
 					default:
 					// check for BasicType.init
 						if (ue.primaryExpression.basicType.type == decl.type.type2.builtinType &&
 							ue.primaryExpression.primary.text == "init" &&
 							!ue.primaryExpression.expression)
-							mixin(warn);
+							warn(nvi);
 					}
 				}
 				else if (isSzInt)
 				{
 					if (intDefs.canFind(value.text))
-						mixin(warn);
+						warn(nvi);
 				}
 				else if (isPtr || isStr)
 				{
 					if (str(value.type) == "null")
-						mixin(warn);
+						warn(nvi);
 				}
 				else if (isArr)
 				{
 					if (str(value.type) == "null")
-						mixin(warn);
+						warn(nvi);
 					else if (nvi.arrayInitializer && nvi.arrayInitializer.arrayMemberInitializations.length == 0)
-						mixin(warn);
+						warn(nvi);
 				}
 			}
 
@@ -242,7 +246,7 @@ public:
 					if (customType.text in _structCanBeInit)
 					{
 						if  (!_structCanBeInit[customType.text])
-							mixin(warn);
+							warn(nvi);
 					}
 				}
 			}
@@ -251,7 +255,7 @@ public:
 			else if (nvi.arrayInitializer && (isArr || isStr))
 			{
 				if (nvi.arrayInitializer.arrayMemberInitializations.length == 0)
-					mixin(warn);
+					warn(nvi);
 			}
 		}
 
@@ -271,25 +275,44 @@ public:
 	// fails
 	assertAnalyzerWarnings(q{
 		struct S {}
-		ubyte a = 0x0;      // [warn]: X
-		int a = 0;          // [warn]: X
-		ulong a = 0;        // [warn]: X
-		int* a = null;      // [warn]: X
-		Foo* a = null;      // [warn]: X
-		int[] a = null;     // [warn]: X
-		int[] a = [];       // [warn]: X
-		string a = null;    // [warn]: X
-		string a = null;    // [warn]: X
-		wstring a = null;   // [warn]: X
-		dstring a = null;   // [warn]: X
-		size_t a = 0;       // [warn]: X
-		ptrdiff_t a = 0;    // [warn]: X
-		string a = [];      // [warn]: X
-		char[] a = null;    // [warn]: X
-		int a = int.init;   // [warn]: X
-		char a = char.init; // [warn]: X
-		S s = S.init;       // [warn]: X
-		bool a = false;     // [warn]: X
+		ubyte a = 0x0;      /+
+		          ^^^ [warn]: X +/
+		int a = 0;          /+
+		        ^ [warn]: X +/
+		ulong a = 0;        /+
+		          ^ [warn]: X +/
+		int* a = null;      /+
+		         ^^^^ [warn]: X +/
+		Foo* a = null;      /+
+		         ^^^^ [warn]: X +/
+		int[] a = null;     /+
+		          ^^^^ [warn]: X +/
+		int[] a = [];       /+
+		          ^^ [warn]: X +/
+		string a = null;    /+
+		           ^^^^ [warn]: X +/
+		string a = null;    /+
+		           ^^^^ [warn]: X +/
+		wstring a = null;   /+
+		            ^^^^ [warn]: X +/
+		dstring a = null;   /+
+		            ^^^^ [warn]: X +/
+		size_t a = 0;       /+
+		           ^ [warn]: X +/
+		ptrdiff_t a = 0;    /+
+		              ^ [warn]: X +/
+		string a = [];      /+
+		           ^^ [warn]: X +/
+		char[] a = null;    /+
+		           ^^^^ [warn]: X +/
+		int a = int.init;   /+
+		        ^^^^^^^^ [warn]: X +/
+		char a = char.init; /+
+		         ^^^^^^^^^ [warn]: X +/
+		S s = S.init;       /+
+		      ^^^^^^ [warn]: X +/
+		bool a = false;     /+
+		         ^^^^^ [warn]: X +/
 	}, sac);
 
 	// passes

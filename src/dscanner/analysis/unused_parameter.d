@@ -41,8 +41,7 @@ final class UnusedParameterCheck : UnusedStorageCheck
 			immutable bool isPtr = parameter.type && !parameter.type
 				.typeSuffixes.filter!(a => a.star != tok!"").empty;
 
-			variableDeclared(parameter.name.text, parameter.name.line,
-					parameter.name.column, isRef | isPtr);
+			variableDeclared(parameter.name.text, parameter.name, isRef | isPtr);
 
 			if (parameter.default_ !is null)
 			{
@@ -72,9 +71,11 @@ final class UnusedParameterCheck : UnusedStorageCheck
 			is(StringTypeOf!R));
 	}
 
-	void inPSC(in int a){} // [warn]: Parameter a is never used.
+	void inPSC(in int a){} /+
+	                  ^ [warn]: Parameter a is never used. +/
 
-	void doStuff(int a, int b) // [warn]: Parameter b is never used.
+	void doStuff(int a, int b) /+
+	                        ^ [warn]: Parameter b is never used. +/
 	{
 		return a;
 	}
@@ -95,7 +96,8 @@ final class UnusedParameterCheck : UnusedStorageCheck
 	{
 		auto cb1 = delegate(size_t _) {};
 		cb1(3);
-		auto cb2 = delegate(size_t a) {}; // [warn]: Parameter a is never used.
+		auto cb2 = delegate(size_t a) {}; /+
+		                           ^ [warn]: Parameter a is never used. +/
 		cb2(3);
 	}
 

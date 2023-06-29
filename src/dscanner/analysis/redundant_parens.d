@@ -37,8 +37,7 @@ final class RedundantParenCheck : BaseAnalyzer
 			goto end;
 		if (unary.primaryExpression.expression is null)
 			goto end;
-		addErrorMessage(unary.primaryExpression.expression.line,
-				unary.primaryExpression.expression.column, KEY, "Redundant parenthesis.");
+		addErrorMessage(unary.primaryExpression, KEY, "Redundant parenthesis.");
 	end:
 		statement.accept(this);
 	}
@@ -55,8 +54,7 @@ final class RedundantParenCheck : BaseAnalyzer
 			goto end;
 		if (unary.primaryExpression.expression is null)
 			goto end;
-		addErrorMessage(primaryExpression.expression.line,
-				primaryExpression.expression.column, KEY, "Redundant parenthesis.");
+		addErrorMessage(primaryExpression, KEY, "Redundant parenthesis.");
 	end:
 		primaryExpression.accept(this);
 	}

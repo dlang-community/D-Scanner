@@ -3,6 +3,7 @@ module dscanner.analysis.constructors;
 import dparse.ast;
 import dparse.lexer;
 import std.stdio;
+import std.typecons : Rebindable;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_ : Scope;
@@ -20,19 +21,25 @@ final class ConstructorCheck : BaseAnalyzer
 
 	override void visit(const ClassDeclaration classDeclaration)
 	{
-		immutable bool oldHasDefault = hasDefaultArgConstructor;
-		immutable bool oldHasNoArg = hasNoArgConstructor;
-		hasNoArgConstructor = false;
-		hasDefaultArgConstructor = false;
+		const oldHasDefault = hasDefaultArgConstructor;
+		const oldHasNoArg = hasNoArgConstructor;
+		hasNoArgConstructor = null;
+		hasDefaultArgConstructor = null;
 		immutable State prev = state;
 		state = State.inClass;
 		classDeclaration.accept(this);
 		if (hasNoArgConstructor && hasDefaultArgConstructor)
 		{
-			addErrorMessage(classDeclaration.name.line,
-					classDeclaration.name.column, "dscanner.confusing.constructor_args",
+			addErrorMessage(
+				Message.Diagnostic.from(fileName, classDeclaration.name,
 					"This class has a zero-argument constructor as well as a"
-					~ " constructor with one default argument. This can be confusing.");
+					~ " constructor with one default argument. This can be confusing."),
+				[
+					Message.Diagnostic.from(fileName, hasNoArgConstructor, "zero-argument constructor defined here"),
+					Message.Diagnostic.from(fileName, hasDefaultArgConstructor, "default argument constructor defined here")
+				],
+				"dscanner.confusing.constructor_args"
+			);
 		}
 		hasDefaultArgConstructor = oldHasDefault;
 		hasNoArgConstructor = oldHasNoArg;
@@ -55,7 +62,11 @@ final class ConstructorCheck : BaseAnalyzer
 			if (constructor.parameters.parameters.length == 1
 					&& constructor.parameters.parameters[0].default_ !is null)
 			{
-				addErrorMessage(constructor.line, constructor.column,
+				const(Token)[] tokens = constructor.parameters.parameters[0].default_.tokens;
+				assert(tokens.length);
+				// we extend the token range to the `=` sign, since it's continuous
+				tokens = (tokens.ptr - 1)[0 .. tokens.length + 1];
+				addErrorMessage(tokens,
 						"dscanner.confusing.struct_constructor_default_args",
 						"This struct constructor can never be called with its "
 						~ "default argument.");
@@ -65,10 +76,10 @@ final class ConstructorCheck : BaseAnalyzer
 			if (constructor.parameters.parameters.length == 1
 					&& constructor.parameters.parameters[0].default_ !is null)
 			{
-				hasDefaultArgConstructor = true;
+				hasDefaultArgConstructor = constructor;
 			}
 			else if (constructor.parameters.parameters.length == 0)
-				hasNoArgConstructor = true;
+				hasNoArgConstructor = constructor;
 			break;
 		case State.ignoring:
 			break;
@@ -86,8 +97,8 @@ private:
 
 	State state;
 
-	bool hasNoArgConstructor;
-	bool hasDefaultArgConstructor;
+	Rebindable!(const Constructor) hasNoArgConstructor;
+	Rebindable!(const Constructor) hasDefaultArgConstructor;
 }
 
 unittest
@@ -96,8 +107,10 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.constructor_check = Check.enabled;
+	// TODO: test supplemental diagnostics
 	assertAnalyzerWarnings(q{
-		class Cat // [warn]: This class has a zero-argument constructor as well as a constructor with one default argument. This can be confusing.
+		class Cat /+
+		      ^^^ [warn]: This class has a zero-argument constructor as well as a constructor with one default argument. This can be confusing. +/
 		{
 			this() {}
 			this(string name = "kittie") {}
@@ -106,7 +119,8 @@ unittest
 		struct Dog
 		{
 			this() {}
-			this(string name = "doggie") {} // [warn]: This struct constructor can never be called with its default argument.
+			this(string name = "doggie") {} /+
+			                 ^^^^^^^^^^ [warn]: This struct constructor can never be called with its default argument. +/
 		}
 	}c, sac);
 

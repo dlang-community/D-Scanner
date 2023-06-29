@@ -5,12 +5,13 @@
 
 module dscanner.analysis.opequals_without_tohash;
 
-import std.stdio;
 import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 import dsymbol.scope_ : Scope;
+import std.stdio;
+import std.typecons : Rebindable;
 
 /**
  * Checks for when a class/struct has the method opEquals without toHash, or
@@ -41,9 +42,9 @@ final class OpEqualsWithoutToHashCheck : BaseAnalyzer
 
 	private void actualCheck(const Token name, const StructBody structBody)
 	{
-		bool hasOpEquals;
-		bool hasToHash;
-		bool hasOpCmp;
+		Rebindable!(const Declaration) hasOpEquals;
+		Rebindable!(const Declaration) hasToHash;
+		Rebindable!(const Declaration) hasOpCmp;
 
 		// Just return if missing children
 		if (!structBody || !structBody.declarations || name is Token.init)
@@ -72,24 +73,36 @@ final class OpEqualsWithoutToHashCheck : BaseAnalyzer
 			// Check if opEquals or toHash
 			immutable string methodName = declaration.functionDeclaration.name.text;
 			if (methodName == "opEquals")
-				hasOpEquals = true;
+				hasOpEquals = declaration;
 			else if (methodName == "toHash")
-				hasToHash = true;
+				hasToHash = declaration;
 			else if (methodName == "opCmp")
-				hasOpCmp = true;
+				hasOpCmp = declaration;
 		}
 
 		// Warn if has opEquals, but not toHash
 		if (hasOpEquals && !hasToHash)
 		{
 			string message = "'" ~ name.text ~ "' has method 'opEquals', but not 'toHash'.";
-			addErrorMessage(name.line, name.column, KEY, message);
+			addErrorMessage(
+				Message.Diagnostic.from(fileName, name, message),
+				[
+					Message.Diagnostic.from(fileName, hasOpEquals.get, "'opEquals' defined here")
+				],
+				KEY
+			);
 		}
 		// Warn if has toHash, but not opEquals
 		else if (!hasOpEquals && hasToHash)
 		{
 			string message = "'" ~ name.text ~ "' has method 'toHash', but not 'opEquals'.";
-			addErrorMessage(name.line, name.column, KEY, message);
+			addErrorMessage(
+				Message.Diagnostic.from(fileName, name, message),
+				[
+					Message.Diagnostic.from(fileName, hasToHash.get, "'toHash' defined here")
+				],
+				KEY
+			);
 		}
 	}
 
@@ -102,6 +115,7 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.opequals_tohash_check = Check.enabled;
+	// TODO: test supplemental diagnostics
 	assertAnalyzerWarnings(q{
 		// Success because it has opEquals and toHash
 		class Chimp
@@ -127,7 +141,8 @@ unittest
 		}
 
 		// Fail on class opEquals
-		class Rabbit // [warn]: 'Rabbit' has method 'opEquals', but not 'toHash'.
+		class Rabbit /+
+		      ^^^^^^ [warn]: 'Rabbit' has method 'opEquals', but not 'toHash'. +/
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -136,7 +151,8 @@ unittest
 		}
 
 		// Fail on class toHash
-		class Kangaroo // [warn]: 'Kangaroo' has method 'toHash', but not 'opEquals'.
+		class Kangaroo /+
+		      ^^^^^^^^ [warn]: 'Kangaroo' has method 'toHash', but not 'opEquals'. +/
 		{
 			override const hash_t toHash()
 			{
@@ -145,7 +161,8 @@ unittest
 		}
 
 		// Fail on struct opEquals
-		struct Tarantula // [warn]: 'Tarantula' has method 'opEquals', but not 'toHash'.
+		struct Tarantula /+
+		       ^^^^^^^^^ [warn]: 'Tarantula' has method 'opEquals', but not 'toHash'. +/
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -154,7 +171,8 @@ unittest
 		}
 
 		// Fail on struct toHash
-		struct Puma // [warn]: 'Puma' has method 'toHash', but not 'opEquals'.
+		struct Puma /+
+		       ^^^^ [warn]: 'Puma' has method 'toHash', but not 'opEquals'. +/
 		{
 			const nothrow @safe hash_t toHash()
 			{

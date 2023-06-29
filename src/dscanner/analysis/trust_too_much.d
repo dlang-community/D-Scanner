@@ -39,10 +39,7 @@ public:
 	override void visit(const AtAttribute d)
 	{
 		if (checkAtAttribute && d.identifier.text == "trusted")
-		{
-			const Token t = d.identifier;
-			addErrorMessage(t.line, t.column, KEY, MESSAGE);
-		}
+			addErrorMessage(d, KEY, MESSAGE);
 		d.accept(this);
 	}
 
@@ -91,17 +88,20 @@ unittest
 	//--- fail cases ---//
 
 	assertAnalyzerWarnings(q{
-	@trusted: // [warn]: %s
+	@trusted: /+
+	^^^^^^^^ [warn]: %s +/
 		void test();
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@trusted @nogc: // [warn]: %s
+	@trusted @nogc: /+
+	^^^^^^^^ [warn]: %s +/
 		void test();
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@trusted { // [warn]: %s
+	@trusted { /+
+	^^^^^^^^ [warn]: %s +/
 		void test();
 		void test();
 	}
@@ -109,27 +109,31 @@ unittest
 
 	assertAnalyzerWarnings(q{
 	@safe {
-		@trusted @nogc { // [warn]: %s
+		@trusted @nogc { /+
+		^^^^^^^^ [warn]: %s +/
 		void test();
 		void test();
 	}}
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@nogc @trusted { // [warn]: %s
+	@nogc @trusted { /+
+	      ^^^^^^^^ [warn]: %s +/
 		void test();
 		void test();
 	}
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
-	@trusted template foo(){ // [warn]: %s
+	@trusted template foo(){ /+
+	^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(msg), sac);
 
 	assertAnalyzerWarnings(q{
 	struct foo{
-	@trusted:  // [warn]: %s
+	@trusted:  /+
+	^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(msg), sac);
 	//--- pass cases ---//

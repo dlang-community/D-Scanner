@@ -42,7 +42,7 @@ final class BuiltinPropertyNameCheck : BaseAnalyzer
 	{
 		if (depth > 0 && isBuiltinProperty(fd.name.text))
 		{
-			addErrorMessage(fd.name.line, fd.name.column, KEY, generateErrorMessage(fd.name.text));
+			addErrorMessage(fd.name, KEY, generateErrorMessage(fd.name.text));
 		}
 		fd.accept(this);
 	}
@@ -62,14 +62,14 @@ final class BuiltinPropertyNameCheck : BaseAnalyzer
 			foreach (i; ad.parts.map!(a => a.identifier))
 			{
 				if (isBuiltinProperty(i.text))
-					addErrorMessage(i.line, i.column, KEY, generateErrorMessage(i.text));
+					addErrorMessage(i, KEY, generateErrorMessage(i.text));
 			}
 	}
 
 	override void visit(const Declarator d)
 	{
 		if (depth > 0 && isBuiltinProperty(d.name.text))
-			addErrorMessage(d.name.line, d.name.column, KEY, generateErrorMessage(d.name.text));
+			addErrorMessage(d.name, KEY, generateErrorMessage(d.name.text));
 	}
 
 	override void visit(const StructBody sb)
@@ -111,9 +111,12 @@ unittest
 	assertAnalyzerWarnings(q{
 class SomeClass
 {
-	void init(); // [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
-	int init; // [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
-	auto init = 10; // [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
+	void init(); /+
+	     ^^^^ [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type. +/
+	int init; /+
+	    ^^^^ [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type. +/
+	auto init = 10; /+
+	     ^^^^ [warn]: Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type. +/
 }
 	}c, sac);
 

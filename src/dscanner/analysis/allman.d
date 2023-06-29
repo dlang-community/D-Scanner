@@ -47,7 +47,7 @@ final class AllManCheck : BaseAnalyzer
 					continue;
 				// ignore inline { } braces
 				if (curLine != tokens[i + 1].line)
-					addErrorMessage(tokens[i].line, tokens[i].column, KEY, MESSAGE);
+					addErrorMessage(tokens[i], KEY, MESSAGE);
 			}
 			if (tokens[i].type == tok!"}" && curLine == prevTokenLine)
 			{
@@ -56,7 +56,7 @@ final class AllManCheck : BaseAnalyzer
 					continue;
 				// ignore inline { } braces
 				if (!tokens[0 .. i].retro.until!(t => t.line != curLine).canFind!(t => t.type == tok!"{"))
-					addErrorMessage(tokens[i].line, tokens[i].column, KEY, MESSAGE);
+					addErrorMessage(tokens[i], KEY, MESSAGE);
 			}
 		}
 	}
@@ -79,7 +79,8 @@ unittest
 	assertAnalyzerWarnings(q{
 		void testAllman()
 		{
-			while (true) { // [warn]: %s
+			while (true) { /+
+			             ^ [warn]: %s +/
 				auto f = 1;
 			}
 

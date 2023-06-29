@@ -41,7 +41,7 @@ final class LogicPrecedenceCheck : BaseAnalyzer
 			return;
 		if ((left !is null && left.right is null) && (right !is null && right.right is null))
 			return;
-		addErrorMessage(orOr.line, orOr.column, KEY,
+		addErrorMessage(orOr, KEY,
 				"Use parenthesis to clarify this expression.");
 		orOr.accept(this);
 	}
@@ -56,9 +56,11 @@ unittest
 	assertAnalyzerWarnings(q{
 		void testFish()
 		{
-			if (a && b || c) {} // [warn]: Use parenthesis to clarify this expression.
+			if (a && b || c) {} /+
+			    ^^^^^^^^^^^ [warn]: Use parenthesis to clarify this expression. +/
 			if ((a && b) || c) {} // Good
-			if (b || c && d) {} // [warn]: Use parenthesis to clarify this expression.
+			if (b || c && d) {} /+
+			    ^^^^^^^^^^^ [warn]: Use parenthesis to clarify this expression. +/
 			if (b || (c && d)) {} // Good
 		}
 	}c, sac);

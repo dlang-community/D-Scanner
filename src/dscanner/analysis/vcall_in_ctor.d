@@ -136,7 +136,7 @@ private:
         {
             if (call == vm)
             {
-                addErrorMessage(call.line, call.column, KEY, MSG);
+                addErrorMessage(call, KEY, MSG);
                 break;
             }
         }
@@ -306,7 +306,8 @@ unittest
     assertAnalyzerWarnings(q{
         class Bar
         {
-            this(){foo();} // [warn]: %s
+            this(){foo();} /+
+                   ^^^ [warn]: %s +/
             private:
             public
             void foo(){}
@@ -319,8 +320,10 @@ unittest
         {
             this()
             {
-                foo(); // [warn]: %s
-                foo(); // [warn]: %s
+                foo(); /+
+                ^^^ [warn]: %s +/
+                foo(); /+
+                ^^^ [warn]: %s +/
                 bar();
             }
             private: void bar();
@@ -334,7 +337,8 @@ unittest
             this()
             {
                 foo();
-                bar(); // [warn]: %s
+                bar(); /+
+                ^^^ [warn]: %s +/
             }
             private: public void bar();
             public private {void foo(){}}

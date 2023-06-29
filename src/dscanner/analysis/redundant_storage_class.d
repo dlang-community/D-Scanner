@@ -59,7 +59,7 @@ final class RedundantStorageClassCheck : BaseAnalyzer
 				return;
 			auto t = vd.declarators[0].name;
 			string message = REDUNDANT_VARIABLE_ATTRIBUTES.format(t.text, globalAttributes);
-			addErrorMessage(t.line, t.column, "dscanner.unnecessary.duplicate_attribute", message);
+			addErrorMessage(t, "dscanner.unnecessary.duplicate_attribute", message);
 		}
 	}
 }

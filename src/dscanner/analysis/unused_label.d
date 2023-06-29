@@ -57,16 +57,15 @@ final class UnusedLabelCheck : BaseAnalyzer
 
 	override void visit(const LabeledStatement labeledStatement)
 	{
-		auto token = &labeledStatement.identifier;
+		auto token = labeledStatement.identifier;
 		Label* label = token.text in current;
 		if (label is null)
 		{
-			current[token.text] = Label(token.text, token.line, token.column, false);
+			current[token.text] = Label(token.text, token, false);
 		}
 		else
 		{
-			label.line = token.line;
-			label.column = token.column;
+			label.token = token;
 		}
 		if (labeledStatement.declarationOrStatement !is null)
 			labeledStatement.declarationOrStatement.accept(this);
@@ -119,8 +118,7 @@ private:
 	static struct Label
 	{
 		string name;
-		size_t line;
-		size_t column;
+		Token token;
 		bool used;
 	}
 
@@ -140,13 +138,13 @@ private:
 	{
 		foreach (label; current.byValue())
 		{
-			if (label.line == size_t.max || label.column == size_t.max)
+			if (label.token is Token.init)
 			{
 				// TODO: handle unknown labels
 			}
 			else if (!label.used)
 			{
-				addErrorMessage(label.line, label.column, "dscanner.suspicious.unused_label",
+				addErrorMessage(label.token, "dscanner.suspicious.unused_label",
 						"Label \"" ~ label.name ~ "\" is not used.");
 			}
 		}
@@ -157,7 +155,7 @@ private:
 	{
 		Label* entry = name in current;
 		if (entry is null)
-			current[name] = Label(name, size_t.max, size_t.max, true);
+			current[name] = Label(name, Token.init, true);
 		else
 			entry.used = true;
 	}
@@ -174,14 +172,16 @@ unittest
 		int testUnusedLabel()
 		{
 		    int x = 0;
-		A: // [warn]: Label "A" is not used.
+		A: /+
+		^ [warn]: Label "A" is not used. +/
 			if (x) goto B;
 			x++;
 		B:
 			goto C;
 			void foo()
 			{
-			C: // [warn]: Label "C" is not used.
+			C: /+
+			^ [warn]: Label "C" is not used. +/
 				return;
 			}
 		C:
@@ -191,10 +191,12 @@ unittest
 			D:
 				return;
 			}
-		D: // [warn]: Label "D" is not used.
+		D: /+
+		^ [warn]: Label "D" is not used. +/
 			goto E;
 			() {
-			E: // [warn]: Label "E" is not used.
+			E: /+
+			^ [warn]: Label "E" is not used. +/
 				return;
 			}();
 		E:
@@ -203,9 +205,11 @@ unittest
 			F:
 				return;
 			}();
-		F: // [warn]: Label "F" is not used.
+		F: /+
+		^ [warn]: Label "F" is not used. +/
 			return x;
-		G: // [warn]: Label "G" is not used.
+		G: /+
+		^ [warn]: Label "G" is not used. +/
 		}
 	}c, sac);
 
@@ -221,7 +225,8 @@ unittest
 		void testAsm()
 		{
 			asm { mov RAX,1;}
-			lbl: // [warn]: Label "lbl" is not used.
+			lbl: /+
+			^^^ [warn]: Label "lbl" is not used. +/
 		}
 	}c, sac);
 

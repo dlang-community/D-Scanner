@@ -59,10 +59,24 @@ class DScannerJsonReporter
 		JSONValue js = JSONValue([
 			"key": JSONValue(issue.message.key),
 			"fileName": JSONValue(issue.message.fileName),
-			"line": JSONValue(issue.message.line),
-			"column": JSONValue(issue.message.column),
+			"line": JSONValue(issue.message.startLine),
+			"column": JSONValue(issue.message.startColumn),
+			"endLine": JSONValue(issue.message.endLine),
+			"endColumn": JSONValue(issue.message.endColumn),
 			"message": JSONValue(issue.message.message),
-			"type": JSONValue(issue.type)
+			"type": JSONValue(issue.type),
+			"supplemental": JSONValue(
+				issue.message.supplemental.map!(a =>
+					JSONValue([
+						"fileName": JSONValue(a.fileName),
+						"line": JSONValue(a.startLine),
+						"column": JSONValue(a.startColumn),
+						"endLine": JSONValue(a.endLine),
+						"endColumn": JSONValue(a.endColumn),
+						"message": JSONValue(a.message),
+					])
+				).array
+			)
 		]);
 		// dfmt on
 
@@ -129,10 +143,10 @@ class SonarQubeGenericIssueDataReporter
 
 	struct TextRange
 	{
-		// SonarQube Generic Issue only allows specifying start line only
-		// or the complete range, for which start and end has to differ
-		// D-Scanner does not provide the complete range info
 		long startLine;
+		long endLine;
+		long startColumn;
+		long endColumn;
 	}
 
 	private Appender!(Issue[]) _issues;
@@ -160,6 +174,20 @@ class SonarQubeGenericIssueDataReporter
 		return result.toPrettyString();
 	}
 
+	private static JSONValue toJson(Location location)
+	{
+		return JSONValue([
+			"message": JSONValue(location.message),
+			"filePath": JSONValue(location.filePath),
+			"textRange": JSONValue([
+				"startLine": JSONValue(location.textRange.startLine),
+				"endLine": JSONValue(location.textRange.endLine),
+				"startColumn": JSONValue(location.textRange.startColumn),
+				"endColumn": JSONValue(location.textRange.endColumn)
+			]),
+		]);
+	}
+
 	private static JSONValue toJson(Issue issue)
 	{
 		// dfmt off
@@ -168,13 +196,8 @@ class SonarQubeGenericIssueDataReporter
 			"ruleId": JSONValue(issue.ruleId),
 			"severity": JSONValue(issue.severity),
 			"type": JSONValue(issue.type),
-			"primaryLocation": JSONValue([
-				"message": JSONValue(issue.primaryLocation.message),
-				"filePath": JSONValue(issue.primaryLocation.filePath),
-				"textRange": JSONValue([
-					"startLine": JSONValue(issue.primaryLocation.textRange.startLine)
-				]),
-			]),
+			"primaryLocation": toJson(issue.primaryLocation),
+			"secondaryLocations": JSONValue(issue.secondaryLocations.map!toJson.array),
 		]);
 		// dfmt on
 	}
@@ -189,18 +212,20 @@ class SonarQubeGenericIssueDataReporter
 		// dfmt off
 		Issue issue = {
 			engineId: "dscanner",
-			ruleId : message.key,
-			severity : (isError) ? Severity.blocker : getSeverity(message.key),
-			type : getType(message.key),
-			primaryLocation : getPrimaryLocation(message)
+			ruleId: message.key,
+			severity: (isError) ? Severity.blocker : getSeverity(message.key),
+			type: getType(message.key),
+			primaryLocation: getLocation(message.diagnostic),
+			secondaryLocations: message.supplemental.map!getLocation.array
 		};
 		// dfmt on
 		return issue;
 	}
 
-	private static Location getPrimaryLocation(Message message)
+	private static Location getLocation(Message.Diagnostic diag)
 	{
-		return Location(message.message, message.fileName, TextRange(message.line));
+		return Location(diag.message, diag.fileName,
+			TextRange(diag.startLine, diag.endLine, diag.startColumn, diag.endColumn));
 	}
 
 	private static string getSeverity(string key)

@@ -5,7 +5,7 @@ import dscanner.utils : safeAccess;
 import dsymbol.scope_;
 import dsymbol.symbol;
 import dparse.ast;
-import dparse.lexer : tok;
+import dparse.lexer : tok, Token;
 import dsymbol.builtin.names;
 
 /// Checks for mismatched argument and parameter names
@@ -42,8 +42,7 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 
 		static struct ErrorMessage
 		{
-			size_t line;
-			size_t column;
+			const(Token)[] range;
 			string message;
 		}
 
@@ -60,17 +59,16 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 				matched = true;
 			else
 			{
-				foreach (size_t i, ref const mm; mismatches)
+				foreach (ref const mm; mismatches)
 				{
-					messages ~= ErrorMessage(argVisitor.lines[i],
-							argVisitor.columns[i], createWarningFromMismatch(mm));
+					messages ~= ErrorMessage(argVisitor.tokens[mm.argIndex], createWarningFromMismatch(mm));
 				}
 			}
 		}
 
 		if (!matched)
 			foreach (m; messages)
-				addErrorMessage(m.line, m.column, KEY, m.message);
+				addErrorMessage(m.range, KEY, m.message);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -123,8 +121,7 @@ final class ArgVisitor : ASTVisitor
 				// if we didn't get an identifier in the unary expression,
 				// assume it's a good argument
 				args ~= istring.init;
-				lines ~= a.tokens.length ? a.tokens[0].line : size_t.max;
-				columns ~= a.tokens.length ? a.tokens[0].column : size_t.max;
+				tokens ~= a.tokens;
 			}
 		}
 	}
@@ -138,16 +135,14 @@ final class ArgVisitor : ASTVisitor
 			if (iot.identifier == tok!"")
 				return;
 			immutable t = iot.identifier;
-			lines ~= t.line;
-			columns ~= t.column;
+			tokens ~= [t];
 			args ~= internString(t.text);
 		}
 	}
 
 	alias visit = ASTVisitor.visit;
 
-	size_t[] lines;
-	size_t[] columns;
+	const(Token[])[] tokens;
 	istring[] args;
 }
 
@@ -271,14 +266,19 @@ unittest
 		{
 			int x = 1;
 			int y = 2;
-			foo(y, x); // [warn]: Argument 2 is named 'x', but this is the name of parameter 1
-			foo(y + 1, x); // [warn]: Argument 2 is named 'x', but this is the name of parameter 1
+			foo(y, x); /+
+			       ^ [warn]: Argument 2 is named 'x', but this is the name of parameter 1 +/
+			foo(y + 1, x); /+
+			           ^ [warn]: Argument 2 is named 'x', but this is the name of parameter 1 +/
 			foo(y + 1, f(x));
 			foo(x: y, y: x);
+			foo(y, 0); /+
+			    ^ [warn]: Argument 1 is named 'y', but this is the name of parameter 2 +/
 
 			// foo(y: y, x); // TODO: this shouldn't error
 			foo(x, y: x); // TODO: this should error
-			foo(y, y: x); // [warn]: Argument 1 is named 'y', but this is the name of parameter 2
+			foo(y, y: x); /+
+			    ^ [warn]: Argument 1 is named 'y', but this is the name of parameter 2 +/
 		}
 	}c, sac);
 	stderr.writeln("Unittest for MismatchedArgumentCheck passed.");

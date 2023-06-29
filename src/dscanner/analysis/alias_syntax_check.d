@@ -29,8 +29,7 @@ final class AliasSyntaxCheck : BaseAnalyzer
 			return;
 		assert(ad.declaratorIdentifierList.identifiers.length > 0,
 				"Identifier list length is zero, libdparse has a bug");
-		addErrorMessage(ad.declaratorIdentifierList.identifiers[0].line,
-				ad.declaratorIdentifierList.identifiers[0].column, KEY,
+		addErrorMessage(ad, KEY,
 				"Prefer the new \"'alias' identifier '=' type ';'\" syntax"
 				~ " to the  old \"'alias' type identifier ';'\" syntax.");
 	}
@@ -48,7 +47,8 @@ unittest
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.alias_syntax_check = Check.enabled;
 	assertAnalyzerWarnings(q{
-		alias int abcde; // [warn]: Prefer the new "'alias' identifier '=' type ';'" syntax to the  old "'alias' type identifier ';'" syntax.
+		alias int abcde; /+
+		^^^^^^^^^^^^^^^^ [warn]: Prefer the new "'alias' identifier '=' type ';'" syntax to the  old "'alias' type identifier ';'" syntax.+/
 		alias abcde = int;
 	}c, sac);
 

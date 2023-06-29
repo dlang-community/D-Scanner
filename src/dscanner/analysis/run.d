@@ -106,8 +106,10 @@ void messageFunctionFormat(string format, Message message, bool isError)
 	auto s = format;
 
 	s = s.replace("{filepath}", message.fileName);
-	s = s.replace("{line}", to!string(message.line));
-	s = s.replace("{column}", to!string(message.column));
+	s = s.replace("{line}", to!string(message.startLine));
+	s = s.replace("{column}", to!string(message.startColumn));
+	s = s.replace("{endLine}", to!string(message.endLine));
+	s = s.replace("{endColumn}", to!string(message.endColumn));
 	s = s.replace("{type}", isError ? "error" : "warn");
 	s = s.replace("{message}", message.message);
     s = s.replace("{name}", message.checkName);
@@ -122,7 +124,7 @@ void messageFunction(Message message, bool isError)
 
 void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
 {
-	writeJSON(Message(fileName, line, column, "dscanner.syntax", message));
+	writeJSON(Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"));
 }
 
 void writeJSON(Message message)
@@ -138,9 +140,35 @@ void writeJSON(Message message)
 		writeln(`      "name": "`, message.checkName, `",`);
 	}
 	writeln(`      "fileName": "`, message.fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
-	writeln(`      "line": `, message.line, `,`);
-	writeln(`      "column": `, message.column, `,`);
-	writeln(`      "message": "`, message.message.replace("\\", "\\\\").replace(`"`, `\"`), `"`);
+	writeln(`      "line": `, message.startLine, `,`);
+	writeln(`      "column": `, message.startColumn, `,`);
+	writeln(`      "endLine": `, message.endLine, `,`);
+	writeln(`      "endColumn": `, message.endColumn, `,`);
+	writeln(`      "message": "`, message.message.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
+	if (message.supplemental.length)
+	{
+		writeln(`      "supplemental": [`);
+		foreach (i, suppl; message.supplemental)
+		{
+			if (i != 0)
+				writeln(",");
+			writeln(`        {`);
+			if (message.fileName != suppl.fileName)
+				writeln(`          "fileName": `, suppl.fileName, `,`);
+			if (suppl.message.length)
+				writeln(`          "message": `, suppl.message, `,`);
+			writeln(`          "line": `, suppl.startLine, `,`);
+			writeln(`          "column": `, suppl.startColumn, `,`);
+			writeln(`          "endLine": `, suppl.endLine, `,`);
+			writeln(`          "endColumn": `, suppl.endColumn);
+			write(`        }`);
+		}
+		if (message.supplemental.length)
+			writeln();
+		writeln(`      ]`);
+	}
+	else
+		writeln(`      "supplemental": []`);
 	write("    }");
 }
 
@@ -156,7 +184,9 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 	auto reporter = new DScannerJsonReporter();
 
 	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
-		reporter.addMessage(Message(fileName, line, column, "dscanner.syntax", message), isError);
+		reporter.addMessage(
+			Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"),
+			isError);
 	};
 
 	first = true;
@@ -194,7 +224,9 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
 	auto reporter = new SonarQubeGenericIssueDataReporter();
 
 	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
-		reporter.addMessage(Message(fileName, line, column, "dscanner.syntax", message), isError);
+		reporter.addMessage(
+			Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"),
+			isError);
 	};
 
 	foreach (fileName; fileNames)
@@ -280,7 +312,9 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {
 	auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
-		return messageFunctionFormat(errorFormat, Message(fileName, line, column, "dscanner.syntax", message), isError);
+		return messageFunctionFormat(errorFormat,
+			Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"),
+			isError);
 	};
 
 	return parseModule(fileName, code, p, cache, tokens,

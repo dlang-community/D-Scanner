@@ -32,7 +32,7 @@ final class AsmStyleCheck : BaseAnalyzer
 		if (brExp.asmBrExp !is null && brExp.asmBrExp.asmUnaExp !is null
 				&& brExp.asmBrExp.asmUnaExp.asmPrimaryExp !is null)
 		{
-			addErrorMessage(brExp.line, brExp.column, "dscanner.confusing.brexp",
+			addErrorMessage(brExp, "dscanner.confusing.brexp",
 					"This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.");
 		}
 		brExp.accept(this);
@@ -50,7 +50,8 @@ unittest
 		{
 			asm
 			{
-				mov a, someArray[1]; // [warn]: This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.
+				mov a, someArray[1]; /+
+				       ^^^^^^^^^^^^ [warn]: This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify. +/
 				add near ptr [EAX], 3;
 			}
 		}
