@@ -157,8 +157,10 @@ void writeJSON(Message message)
 	writeln(`      "fileName": "`, message.fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
 	writeln(`      "line": `, message.startLine, `,`);
 	writeln(`      "column": `, message.startColumn, `,`);
+	writeln(`      "index": `, message.startIndex, `,`);
 	writeln(`      "endLine": `, message.endLine, `,`);
 	writeln(`      "endColumn": `, message.endColumn, `,`);
+	writeln(`      "endIndex": `, message.endIndex, `,`);
 	writeln(`      "message": "`, message.message.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
 	if (message.supplemental.length)
 	{

@@ -61,8 +61,10 @@ class DScannerJsonReporter
 			"fileName": JSONValue(issue.message.fileName),
 			"line": JSONValue(issue.message.startLine),
 			"column": JSONValue(issue.message.startColumn),
+			"index": JSONValue(issue.message.startIndex),
 			"endLine": JSONValue(issue.message.endLine),
 			"endColumn": JSONValue(issue.message.endColumn),
+			"endIndex": JSONValue(issue.message.endIndex),
 			"message": JSONValue(issue.message.message),
 			"type": JSONValue(issue.type),
 			"supplemental": JSONValue(
@@ -71,8 +73,10 @@ class DScannerJsonReporter
 						"fileName": JSONValue(a.fileName),
 						"line": JSONValue(a.startLine),
 						"column": JSONValue(a.startColumn),
+						"index": JSONValue(a.startIndex),
 						"endLine": JSONValue(a.endLine),
 						"endColumn": JSONValue(a.endColumn),
+						"endIndex": JSONValue(a.endIndex),
 						"message": JSONValue(a.message),
 					])
 				).array
