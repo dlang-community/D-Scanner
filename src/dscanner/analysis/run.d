@@ -101,6 +101,16 @@ private alias ASTAllocator = CAllocatorImpl!(
 
 immutable string defaultErrorFormat = "{filepath}({line}:{column})[{type}]: {message}";
 
+string[string] errorFormatMap()
+{
+	static string[string] ret;
+	if (ret is null)
+		ret = [
+			"github": "::{type2} file={filepath},line={line},endLine={endLine},col={column},endColumn={endColumn},title={Type2} ({name})::{message}"
+		];
+	return ret;
+}
+
 void messageFunctionFormat(string format, Message message, bool isError)
 {
 	auto s = format;
@@ -111,6 +121,11 @@ void messageFunctionFormat(string format, Message message, bool isError)
 	s = s.replace("{endLine}", to!string(message.endLine));
 	s = s.replace("{endColumn}", to!string(message.endColumn));
 	s = s.replace("{type}", isError ? "error" : "warn");
+	s = s.replace("{Type}", isError ? "Error" : "Warn");
+	s = s.replace("{TYPE}", isError ? "ERROR" : "WARN");
+	s = s.replace("{type2}", isError ? "error" : "warning");
+	s = s.replace("{Type2}", isError ? "Error" : "Warning");
+	s = s.replace("{TYPE2}", isError ? "ERROR" : "WARNING");
 	s = s.replace("{message}", message.message);
     s = s.replace("{name}", message.checkName);
 
