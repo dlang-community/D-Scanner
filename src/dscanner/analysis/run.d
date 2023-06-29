@@ -106,28 +106,115 @@ string[string] errorFormatMap()
 	static string[string] ret;
 	if (ret is null)
 		ret = [
-			"github": "::{type2} file={filepath},line={line},endLine={endLine},col={column},endColumn={endColumn},title={Type2} ({name})::{message}"
+			"github": "::{type2} file={filepath},line={line},endLine={endLine},col={column},endColumn={endColumn},title={Type2} ({name})::{message}",
+			"pretty": "\x1B[1m{filepath}({line}:{column}): {Type2}: \x1B[0m{message} \x1B[2m({name})\x1B[0m{context}{supplemental}"
 		];
 	return ret;
 }
 
-void messageFunctionFormat(string format, Message message, bool isError)
+private string formatBase(string format, Message.Diagnostic diagnostic, scope const(ubyte)[] code, bool color)
 {
 	auto s = format;
+	s = s.replace("{filepath}", diagnostic.fileName);
+	s = s.replace("{line}", to!string(diagnostic.startLine));
+	s = s.replace("{column}", to!string(diagnostic.startColumn));
+	s = s.replace("{endLine}", to!string(diagnostic.endLine));
+	s = s.replace("{endColumn}", to!string(diagnostic.endColumn));
+	s = s.replace("{message}", diagnostic.message);
+	s = s.replace("{context}", diagnostic.formatContext(cast(const(char)[]) code, color));
+	return s;
+}
 
-	s = s.replace("{filepath}", message.fileName);
-	s = s.replace("{line}", to!string(message.startLine));
-	s = s.replace("{column}", to!string(message.startColumn));
-	s = s.replace("{endLine}", to!string(message.endLine));
-	s = s.replace("{endColumn}", to!string(message.endColumn));
-	s = s.replace("{type}", isError ? "error" : "warn");
-	s = s.replace("{Type}", isError ? "Error" : "Warn");
-	s = s.replace("{TYPE}", isError ? "ERROR" : "WARN");
-	s = s.replace("{type2}", isError ? "error" : "warning");
-	s = s.replace("{Type2}", isError ? "Error" : "Warning");
-	s = s.replace("{TYPE2}", isError ? "ERROR" : "WARNING");
-	s = s.replace("{message}", message.message);
-    s = s.replace("{name}", message.checkName);
+private string formatContext(Message.Diagnostic diagnostic, scope const(char)[] code, bool color)
+{
+	import std.string : indexOf, lastIndexOf;
+
+	if (diagnostic.startIndex >= diagnostic.endIndex || diagnostic.endIndex > code.length
+		|| diagnostic.startColumn >= diagnostic.endColumn || diagnostic.endColumn == 0)
+		return null;
+
+	auto lineStart = code.lastIndexOf('\n', diagnostic.startIndex) + 1;
+	auto lineEnd = code.indexOf('\n', diagnostic.endIndex);
+	if (lineEnd == -1)
+		lineEnd = code.length;
+
+	auto ret = appender!string;
+	ret.reserve((lineEnd - lineStart) + diagnostic.endColumn + (color ? 30 : 10));
+	ret ~= '\n';
+	if (color)
+		ret ~= "\x1B[m"; // reset
+	ret ~= code[lineStart .. lineEnd].replace('\t', ' ');
+	ret ~= '\n';
+	if (color)
+		ret ~= "\x1B[0;33m"; // reset, yellow
+	foreach (_; 0 .. diagnostic.startColumn - 1)
+		ret ~= ' ';
+	foreach (_; 0 .. diagnostic.endColumn - diagnostic.startColumn)
+		ret ~= '^';
+	if (color)
+		ret ~= "\x1B[m"; // reset
+	return ret.data;
+}
+
+version (Windows)
+void enableColoredOutput()
+{
+	import core.sys.windows.windows;
+
+	// Set output mode to handle virtual terminal sequences
+	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (hOut == INVALID_HANDLE_VALUE)
+		return;
+
+	DWORD dwMode;
+	if (!GetConsoleMode(hOut, &dwMode))
+		return;
+
+	dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+	if (!SetConsoleMode(hOut, dwMode))
+		return;
+}
+
+void messageFunctionFormat(string format, Message message, bool isError, scope const(ubyte)[] code = null)
+{
+	bool color = format.canFind("\x1B[");
+	if (color)
+	{
+		version (Windows)
+			enableColoredOutput();
+	}
+
+	auto s = format.formatBase(message.diagnostic, code, color);
+
+	string formatType(string s, string type, string colorCode)
+	{
+		import std.ascii : toUpper;
+		import std.string : representation;
+
+		string upperFirst(string s) { return s[0].toUpper ~ s[1 .. $]; }
+		string upper(string s) { return s.representation.map!(a => toUpper(cast(char) a)).array; }
+
+		string type2 = type;
+		if (type2 == "warn")
+			type2 = "warning";
+
+		s = s.replace("{type}", color ? (colorCode ~ type ~ "\x1B[m") : type);
+		s = s.replace("{Type}", color ? (colorCode ~ upperFirst(type) ~ "\x1B[m") : upperFirst(type));
+		s = s.replace("{TYPE}", color ? (colorCode ~ upper(type) ~ "\x1B[m") : upper(type));
+		s = s.replace("{type2}", color ? (colorCode ~ type2 ~ "\x1B[m") : type2);
+		s = s.replace("{Type2}", color ? (colorCode ~ upperFirst(type2) ~ "\x1B[m") : upperFirst(type2));
+		s = s.replace("{TYPE2}", color ? (colorCode ~ upper(type2) ~ "\x1B[m") : upper(type2));
+
+		return s;
+	}
+
+	s = formatType(s, isError ? "error" : "warn", isError ? "\x1B[31m" : "\x1B[33m");
+	s = s.replace("{name}", message.checkName);
+	s = s.replace("{supplemental}", message.supplemental.map!(a => "\n\t"
+		~ formatType(format.formatBase(a, code, color), "hint", "\x1B[35m")
+			.replace("{name}", "").replace("{supplemental}", "")
+			.replace("\n", "\n\t"))
+		.join());
 
 	writefln("%s", s);
 }
@@ -303,7 +390,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		foreach (result; results[])
 		{
 			hasErrors = true;
-			messageFunctionFormat(errorFormat, result, false);
+			messageFunctionFormat(errorFormat, result, false, code);
 		}
 	}
 	return hasErrors;
@@ -334,7 +421,7 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		// TODO: proper index and column ranges
 		return messageFunctionFormat(errorFormat,
 			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
-			isError);
+			isError, code);
 	};
 
 	return parseModule(fileName, code, p, cache, tokens,
