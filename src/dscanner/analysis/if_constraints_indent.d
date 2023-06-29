@@ -33,12 +33,12 @@ final class IfConstraintsIndentCheck : BaseAnalyzer
 			// t.line (unsigned) may be 0 if the token is uninitialized/broken, so don't subtract from it
 			// equivalent to: firstSymbolAtLine.length < t.line - 1
 			while (firstSymbolAtLine.length + 1 < t.line)
-				firstSymbolAtLine ~= Pos(1);
+				firstSymbolAtLine ~= Pos(1, t.index);
 
 			// insert a new line with positions if new line is reached
 			// (previous while pads skipped lines)
 			if (firstSymbolAtLine.length < t.line)
-				firstSymbolAtLine ~= Pos(t.column, t.type == tok!"if");
+				firstSymbolAtLine ~= Pos(t.column, t.index, t.type == tok!"if");
 		}
 	}
 
@@ -96,6 +96,7 @@ private:
 	static struct Pos
 	{
 		size_t column;
+		size_t index;
 		bool isIf;
 	}
 
@@ -123,7 +124,7 @@ private:
 		if (r.empty)
 			addErrorMessage(if_, KEY, MESSAGE);
 		else if (pDecl.column != r.front.column)
-			addErrorMessage(if_.line, min(if_.column, pDecl.column), if_.column + 2, KEY, MESSAGE);
+			addErrorMessage([min(if_.index, pDecl.index), if_.index + 2], if_.line, [min(if_.column, pDecl.column), if_.column + 2], KEY, MESSAGE);
 	}
 }
 

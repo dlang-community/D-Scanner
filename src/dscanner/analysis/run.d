@@ -139,7 +139,7 @@ void messageFunction(Message message, bool isError)
 
 void messageFunctionJSON(string fileName, size_t line, size_t column, string message, bool)
 {
-	writeJSON(Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"));
+	writeJSON(Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"));
 }
 
 void writeJSON(Message message)
@@ -199,8 +199,9 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 	auto reporter = new DScannerJsonReporter();
 
 	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
+		// TODO: proper index and column ranges
 		reporter.addMessage(
-			Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"),
+			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
 			isError);
 	};
 
@@ -239,8 +240,9 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
 	auto reporter = new SonarQubeGenericIssueDataReporter();
 
 	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
+		// TODO: proper index and column ranges
 		reporter.addMessage(
-			Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"),
+			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
 			isError);
 	};
 
@@ -327,8 +329,9 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		ulong* linesOfCode = null, uint* errorCount = null, uint* warningCount = null)
 {
 	auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
+		// TODO: proper index and column ranges
 		return messageFunctionFormat(errorFormat,
-			Message(Message.Diagnostic.from(fileName, line, column, column, message), "dscanner.syntax"),
+			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
 			isError);
 	};
 

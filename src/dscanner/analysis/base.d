@@ -13,6 +13,8 @@ struct Message
 	{
 		/// Name of the file where the warning was triggered.
 		string fileName;
+		/// Byte index from start of file the warning was triggered.
+		size_t startIndex, endIndex;
 		/// Line number where the warning was triggered, 1-based.
 		size_t startLine, endLine;
 		/// Column number where the warning was triggered. (in bytes)
@@ -33,7 +35,11 @@ struct Message
 		static Diagnostic from(string fileName, const Token token, string message)
 		{
 			auto text = token.text.length ? token.text : str(token.type);
-			return from(fileName, token.line, token.column, token.column + text.length, message);
+			return from(fileName,
+				[token.index, token.index + text.length],
+				token.line,
+				[token.column, token.column + text.length],
+				message);
 		}
 
 		static Diagnostic from(string fileName, const Token[] tokens, string message)
@@ -41,17 +47,21 @@ struct Message
 			auto start = tokens.length ? tokens[0] : Token.init;
 			auto end = tokens.length ? tokens[$ - 1] : Token.init;
 			auto endText = end.text.length ? end.text : str(end.type);
-			return from(fileName, start.line, end.line, start.column, end.column + endText.length, message);
+			return from(fileName,
+				[start.index, end.index + endText.length],
+				[start.line, end.line],
+				[start.column, end.column + endText.length],
+				message);
 		}
 
-		static Diagnostic from(string fileName, size_t line, size_t startColumn, size_t endColumn, string message)
+		static Diagnostic from(string fileName, size_t[2] index, size_t line, size_t[2] columns, string message)
 		{
-			return Message.Diagnostic(fileName, line, line, startColumn, endColumn, message);
+			return Message.Diagnostic(fileName, index[0], index[1], line, line, columns[0], columns[1], message);
 		}
 
-		static Diagnostic from(string fileName, size_t startLine, size_t endLine, size_t startColumn, size_t endColumn, string message)
+		static Diagnostic from(string fileName, size_t[2] index, size_t[2] lines, size_t[2] columns, string message)
 		{
-			return Message.Diagnostic(fileName, startLine, endLine, startColumn, endColumn, message);
+			return Message.Diagnostic(fileName, index[0], index[1], lines[0], lines[1], columns[0], columns[1], message);
 		}
 	}
 
@@ -177,14 +187,14 @@ protected:
 		addErrorMessage(Message.Diagnostic.from(fileName, tokens, message), key);
 	}
 
-	void addErrorMessage(size_t line, size_t startColumn, size_t endColumn, string key, string message)
+	void addErrorMessage(size_t[2] index, size_t line, size_t[2] columns, string key, string message)
 	{
-		addErrorMessage(line, line, startColumn, endColumn, key, message);
+		addErrorMessage(index, [line, line], columns, key, message);
 	}
 
-	void addErrorMessage(size_t startLine, size_t endLine, size_t startColumn, size_t endColumn, string key, string message)
+	void addErrorMessage(size_t[2] index, size_t[2] lines, size_t[2] columns, string key, string message)
 	{
-		auto d = Message.Diagnostic(fileName, startLine, endLine, startColumn, endColumn, message);
+		auto d = Message.Diagnostic.from(fileName, index, lines, columns, message);
 		_messages.insert(Message(d, key, getName()));
 	}
 
