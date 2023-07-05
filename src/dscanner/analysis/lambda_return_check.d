@@ -23,6 +23,8 @@ final class LambdaReturnCheck : BaseAnalyzer
 
 	override void visit(const FunctionLiteralExpression fLit)
 	{
+		import std.algorithm : find;
+
 		auto fe = safeAccess(fLit).assignExpression.as!UnaryExpression
 			.primaryExpression.functionLiteralExpression.unwrap;
 
@@ -35,7 +37,22 @@ final class LambdaReturnCheck : BaseAnalyzer
 		auto endIncl = &fe.specifiedFunctionBody.tokens[0];
 		assert(endIncl >= start);
 		auto tokens = start[0 .. endIncl - start + 1];
-		addErrorMessage(tokens, KEY, "This lambda returns a lambda. Add parenthesis to clarify.");
+		auto arrow = tokens.find!(a => a.type == tok!"=>");
+
+		AutoFix[] autofixes;
+		if (arrow.length)
+		{
+			if (fLit.tokens[0] == tok!"(")
+				autofixes ~= AutoFix.replacement(arrow[0], "", "Remove arrow (use function body)");
+			else
+				autofixes ~= AutoFix.insertionBefore(fLit.tokens[0], "(", "Remove arrow (use function body)")
+					.concat(AutoFix.insertionAfter(fLit.tokens[0], ")"))
+					.concat(AutoFix.replacement(arrow[0], ""));
+		}
+		autofixes ~= AutoFix.insertionBefore(*endIncl, "(", "Add parenthesis (return delegate)")
+			.concat(AutoFix.insertionAfter(fe.specifiedFunctionBody.tokens[$ - 1], ")"));
+		addErrorMessage(tokens, KEY, "This lambda returns a lambda. Add parenthesis to clarify.",
+			autofixes);
 	}
 
 private:

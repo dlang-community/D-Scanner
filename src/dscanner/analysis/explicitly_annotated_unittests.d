@@ -44,7 +44,14 @@ final class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 				}
 			}
 			if (!isSafeOrSystem)
-				addErrorMessage(decl.unittest_.findTokenForDisplay(tok!"unittest"), KEY, MESSAGE);
+			{
+				auto token = decl.unittest_.findTokenForDisplay(tok!"unittest");
+				addErrorMessage(token, KEY, MESSAGE,
+					[
+						AutoFix.insertionBefore(token[0], "@safe ", "Mark unittest @safe"),
+						AutoFix.insertionBefore(token[0], "@system ", "Mark unittest @system")
+					]);
+			}
 		}
 		decl.accept(this);
 	}

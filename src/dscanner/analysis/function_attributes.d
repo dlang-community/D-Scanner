@@ -104,9 +104,15 @@ final class FunctionAttributeCheck : BaseAnalyzer
 			}
 			if (foundProperty && !foundConst)
 			{
+				auto paren = dec.parameters.tokens.length ? dec.parameters.tokens[$ - 1] : Token.init;
+				auto autofixes = paren is Token.init ? null : [
+					AutoFix.insertionAfter(paren, " const", "Mark function `const`"),
+					AutoFix.insertionAfter(paren, " inout", "Mark function `inout`"),
+					AutoFix.insertionAfter(paren, " immutable", "Mark function `immutable`"),
+				];
 				addErrorMessage(dec.name, KEY,
 						"Zero-parameter '@property' function should be"
-						~ " marked 'const', 'inout', or 'immutable'.");
+						~ " marked 'const', 'inout', or 'immutable'.", autofixes);
 			}
 		}
 		dec.accept(this);
@@ -123,7 +129,8 @@ final class FunctionAttributeCheck : BaseAnalyzer
 				continue;
 			if (attr.attribute == tok!"abstract" && inInterface)
 			{
-				addErrorMessage(attr.attribute, KEY, ABSTRACT_MESSAGE);
+				addErrorMessage(attr.attribute, KEY, ABSTRACT_MESSAGE,
+					[AutoFix.replacement(attr.attribute, "")]);
 				continue;
 			}
 			if (attr.attribute == tok!"static")
@@ -136,9 +143,21 @@ final class FunctionAttributeCheck : BaseAnalyzer
 				import std.string : format;
 
 				immutable string attrString = str(attr.attribute.type);
+				AutoFix[] autofixes;
+				if (dec.functionDeclaration.parameters)
+					autofixes ~= AutoFix.replacement(
+							attr.attribute, "",
+							"Move " ~ str(attr.attribute.type) ~ " after parameter list")
+						.concat(AutoFix.insertionAfter(
+							dec.functionDeclaration.parameters.tokens[$ - 1],
+							" " ~ str(attr.attribute.type)));
+				if (dec.functionDeclaration.returnType)
+					autofixes ~= AutoFix.insertionAfter(attr.attribute, "(", "Make return type const")
+							.concat(AutoFix.insertionAfter(dec.functionDeclaration.returnType.tokens[$ - 1], ")"));
 				addErrorMessage(attr.attribute, KEY, format(
-							"'%s' is not an attribute of the return type." ~ " Place it after the parameter list to clarify.",
-							attrString));
+							"'%s' is not an attribute of the return type."
+							~ " Place it after the parameter list to clarify.",
+							attrString), autofixes);
 			}
 		}
 	end:

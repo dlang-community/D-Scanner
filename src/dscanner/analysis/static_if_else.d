@@ -48,7 +48,11 @@ final class StaticIfElse : BaseAnalyzer
 		auto tokens = ifStmt.tokens[0 .. 1];
 		// extend one token to include `else` before this if
 		tokens = (tokens.ptr - 1)[0 .. 2];
-		addErrorMessage(tokens, KEY, "Mismatched static if. Use 'else static if' here.");
+		addErrorMessage(tokens, KEY, "Mismatched static if. Use 'else static if' here.",
+			[
+				AutoFix.insertionBefore(tokens[$ - 1], "static "),
+				// TODO: make if explicit with block {}, using correct indentation
+			]);
 	}
 
 	const(IfStatement) getIfStatement(const ConditionalStatement cc)

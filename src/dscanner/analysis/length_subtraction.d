@@ -41,7 +41,10 @@ final class LengthSubtractionCheck : BaseAnalyzer
 					|| l.identifierOrTemplateInstance.identifier.text != "length")
 				goto end;
 			addErrorMessage(addExpression, "dscanner.suspicious.length_subtraction",
-					"Avoid subtracting from '.length' as it may be unsigned.");
+					"Avoid subtracting from '.length' as it may be unsigned.",
+					[
+						AutoFix.insertionBefore(l.tokens[0], "cast(ptrdiff_t) ", "Cast to ptrdiff_t")
+					]);
 		}
 	end:
 		addExpression.accept(this);
