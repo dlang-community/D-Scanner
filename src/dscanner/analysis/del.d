@@ -28,7 +28,9 @@ final class DeleteCheck : BaseAnalyzer
 	override void visit(const DeleteExpression d)
 	{
 		addErrorMessage(d.tokens[0], "dscanner.deprecated.delete_keyword",
-				"Avoid using the 'delete' keyword.");
+				"Avoid using the 'delete' keyword.",
+				[AutoFix.replacement(d.tokens[0], `destroy(`, "Replace delete with destroy()")
+					.concat(AutoFix.insertionAfter(d.tokens[$ - 1], ")"))]);
 		d.accept(this);
 	}
 }

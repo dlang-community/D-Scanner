@@ -76,10 +76,12 @@ public:
 				auto tok = autoTokens[$ - 1];
 				auto whitespace = tok.column + (tok.text.length ? tok.text.length : str(tok.type).length);
 				auto whitespaceIndex = tok.index + (tok.text.length ? tok.text.length : str(tok.type).length);
-				addErrorMessage([whitespaceIndex, whitespaceIndex + 1], tok.line, [whitespace, whitespace + 1], KEY, MESSAGE_INSERT);
+				addErrorMessage([whitespaceIndex, whitespaceIndex + 1], tok.line, [whitespace, whitespace + 1], KEY, MESSAGE_INSERT,
+					[AutoFix.insertionAt(whitespaceIndex + 1, "void ")]);
 			}
 			else
-				addErrorMessage(autoTokens, KEY, MESSAGE);
+				addErrorMessage(autoTokens, KEY, MESSAGE,
+					[AutoFix.replacement(autoTokens[0], "void")]);
 		}
 	}
 

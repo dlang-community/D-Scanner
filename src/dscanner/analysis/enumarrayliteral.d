@@ -8,7 +8,7 @@ module dscanner.analysis.enumarrayliteral;
 import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
-import std.algorithm : canFind, map;
+import std.algorithm : find, map;
 import dsymbol.scope_ : Scope;
 
 void doNothing(string, size_t, size_t, string, bool)
@@ -35,7 +35,8 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 
 	override void visit(const AutoDeclaration autoDec)
 	{
-		if (autoDec.storageClasses.canFind!(a => a.token == tok!"enum"))
+		auto enumToken = autoDec.storageClasses.find!(a => a.token == tok!"enum");
+		if (enumToken.length)
 		{
 			foreach (part; autoDec.parts)
 			{
@@ -49,7 +50,10 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 						"dscanner.performance.enum_array_literal",
 						"This enum may lead to unnecessary allocation at run-time."
 						~ " Use 'static immutable "
-						~ part.identifier.text ~ " = [ ...' instead.");
+						~ part.identifier.text ~ " = [ ...' instead.",
+						[
+							AutoFix.replacement(enumToken[0].token, "static immutable")
+						]);
 			}
 		}
 		autoDec.accept(this);

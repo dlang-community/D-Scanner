@@ -93,7 +93,8 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 		if (hasAttribute)
 		{
 			string message = "Attribute '%s' is duplicated.".format(attributeName);
-			addErrorMessage(tokens, "dscanner.unnecessary.duplicate_attribute", message);
+			addErrorMessage(tokens, "dscanner.unnecessary.duplicate_attribute", message,
+				[AutoFix.replacement(tokens, "", "Remove second attribute " ~ attributeName)]);
 		}
 
 		// Mark it as having that attribute

@@ -57,7 +57,8 @@ private:
 	void addError(T)(const Token finalToken, T t, string msg)
 	{
 		import std.format : format;
-		addErrorMessage(finalToken.type ? finalToken : t.name, KEY, MSGB.format(msg));
+		addErrorMessage(finalToken.type ? finalToken : t.name, KEY, MSGB.format(msg),
+				[AutoFix.replacement(finalToken, "")]);
 	}
 
 public:
