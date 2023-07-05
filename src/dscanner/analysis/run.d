@@ -163,6 +163,11 @@ void enableColoredOutput()
 		GetConsoleMode, GetStdHandle, HANDLE, INVALID_HANDLE_VALUE,
 		SetConsoleMode, STD_OUTPUT_HANDLE;
 
+	static bool enabledColor = false;
+	if (enabledColor)
+		return;
+	enabledColor = true;
+
 	// Set output mode to handle virtual terminal sequences
 	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (hOut == INVALID_HANDLE_VALUE)
