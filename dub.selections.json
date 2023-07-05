@@ -6,7 +6,7 @@
 		"emsi_containers": "0.9.0",
 		"inifiled": "1.3.3",
 		"libddoc": "0.8.0",
-		"libdparse": "0.23.1",
+		"libdparse": "0.23.2",
 		"stdx-allocator": "2.77.5"
 	}
 }
