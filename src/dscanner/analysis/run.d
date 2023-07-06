@@ -107,7 +107,8 @@ string[string] errorFormatMap()
 	if (ret is null)
 		ret = [
 			"github": "::{type2} file={filepath},line={line},endLine={endLine},col={column},endColumn={endColumn},title={Type2} ({name})::{message}",
-			"pretty": "\x1B[1m{filepath}({line}:{column}): {Type2}: \x1B[0m{message} \x1B[2m({name})\x1B[0m{context}{supplemental}"
+			"pretty": "\x1B[1m{filepath}({line}:{column}): {Type2}: \x1B[0m{message} \x1B[2m({name})\x1B[0m{context}{supplemental}",
+			"digitalmars": "{filepath}({line},{column}): {Type2}: {message}",
 		];
 	return ret;
 }
