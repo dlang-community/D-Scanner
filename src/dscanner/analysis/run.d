@@ -119,8 +119,10 @@ private string formatBase(string format, Message.Diagnostic diagnostic, scope co
 	s = s.replace("{filepath}", diagnostic.fileName);
 	s = s.replace("{line}", to!string(diagnostic.startLine));
 	s = s.replace("{column}", to!string(diagnostic.startColumn));
+	s = s.replace("{startIndex}", to!string(diagnostic.startIndex));
 	s = s.replace("{endLine}", to!string(diagnostic.endLine));
 	s = s.replace("{endColumn}", to!string(diagnostic.endColumn));
+	s = s.replace("{endIndex}", to!string(diagnostic.endIndex));
 	s = s.replace("{message}", diagnostic.message);
 	s = s.replace("{context}", diagnostic.formatContext(cast(const(char)[]) code, color));
 	return s;
