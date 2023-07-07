@@ -11,13 +11,14 @@ import std.string;
 import std.traits;
 
 import dparse.ast;
+import dparse.lexer : tok, Token;
 import dparse.rollback_allocator;
-import dsymbol.modulecache : ModuleCache;
+import dscanner.analysis.base;
 import dscanner.analysis.config;
 import dscanner.analysis.run;
-import dscanner.analysis.base;
-import std.experimental.allocator.mallocator;
+import dsymbol.modulecache : ModuleCache;
 import std.experimental.allocator;
+import std.experimental.allocator.mallocator;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
@@ -38,6 +39,20 @@ S after(S)(S value, S separator) if (isSomeString!S)
 	if (i == -1)
 		return "";
 	return value[i + separator.length .. $];
+}
+
+string getLineIndentation(scope const(char)[] rawCode, scope const(Token)[] tokens, size_t line)
+{
+	import std.algorithm : countUntil;
+	import std.string : lastIndexOfAny;
+
+	auto idx = tokens.countUntil!(a => a.line == line);
+	if (idx == -1)
+		return "";
+
+	auto indent = rawCode[0 .. tokens[idx].index];
+	auto nl = indent.lastIndexOfAny("\r\n");
+	return indent[nl + 1 .. $].idup;
 }
 
 /**
@@ -195,6 +210,10 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	}
 }
 
+/// EOL inside this project, for tests
+private static immutable fileEol = q{
+};
+
 /**
  * This assert function will analyze the passed in code, get the warnings, and
  * apply all specified autofixes all at once.
@@ -206,6 +225,7 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
  * available suggestion.
  */
 void assertAutoFix(string before, string after, const StaticAnalysisConfig config,
+		const AutoFixFormatting formattingConfig = AutoFixFormatting(AutoFixFormatting.BraceStyle.otbs, "\t", 4, fileEol),
 		string file = __FILE__, size_t line = __LINE__)
 {
 	import dparse.lexer : StringCache, Token;
@@ -291,7 +311,8 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 		AutoFix fix = message.autofixes[pair[1]];
 		replacements ~= fix.autofix.match!(
 			(AutoFix.CodeReplacement[] r) => r,
-			(AutoFix.ResolveContext context) => resolveAutoFix(message, context, "test", moduleCache, tokens, m, config)
+			(AutoFix.ResolveContext context) => resolveAutoFix(message, context,
+				"test", moduleCache, before, tokens, m, config, formattingConfig)
 		);
 	}
 
@@ -308,10 +329,24 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 
 	if (newCode != after)
 	{
+		bool onlyWhitespaceDiffers = newCode.replace("\t", "").replace(" ", "")
+			== after.replace("\t", "").replace(" ", "").replace("\r", "");
+
+		string formatDisplay(string code)
+		{
+			string ret = code.lineSplitter!(KeepTerminator.yes).map!(a => "\t" ~ a).join;
+			if (onlyWhitespaceDiffers)
+				ret = ret
+					.replace("\r", "\x1B[2m\\r\x1B[m")
+					.replace("\t", "\x1B[2m→   \x1B[m")
+					.replace(" ", "\x1B[2m⸱\x1B[m");
+			return ret;
+		}
+
 		throw new AssertError("Applying autofix didn't yield expected results. Expected:\n"
-			~ after.lineSplitter!(KeepTerminator.yes).map!(a => "\t" ~ a).join
+			~ formatDisplay(after)
 			~ "\n\nActual:\n"
-			~ newCode.lineSplitter!(KeepTerminator.yes).map!(a => "\t" ~ a).join,
+			~ formatDisplay(newCode),
 			file, line);
 	}
 }

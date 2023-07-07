@@ -51,13 +51,42 @@ final class StaticIfElse : BaseAnalyzer
 		addErrorMessage(tokens, KEY, "Mismatched static if. Use 'else static if' here.",
 			[
 				AutoFix.insertionBefore(tokens[$ - 1], "static "),
-				// TODO: make if explicit with block {}, using correct indentation
+				AutoFix.resolveLater("Wrap '{}' block around 'if'", [tokens[0].index, ifStmt.tokens[$ - 1].index, 0])
 			]);
 	}
 
 	const(IfStatement) getIfStatement(const ConditionalStatement cc)
 	{
 		return safeAccess(cc).falseStatement.statement.statementNoCaseNoDefault.ifStatement;
+	}
+
+	override AutoFix.CodeReplacement[] resolveAutoFix(
+		const Module mod,
+		scope const(char)[] rawCode,
+		scope const(Token)[] tokens,
+		const Message message,
+		const AutoFix.ResolveContext context,
+		const AutoFixFormatting formatting,
+	)
+	{
+		import dscanner.analysis.helpers : getLineIndentation;
+		import std.algorithm : countUntil;
+
+		auto beforeElse = tokens.countUntil!(a => a.index == context.params[0]);
+		auto lastToken = tokens.countUntil!(a => a.index == context.params[1]);
+		if (beforeElse == -1 || lastToken == -1)
+			throw new Exception("got different tokens than what was used to generate this autofix");
+
+		auto indentation = getLineIndentation(rawCode, tokens, tokens[beforeElse].line);
+
+		string beforeIf = formatting.getWhitespaceBeforeOpeningBrace(indentation, false)
+			~ "{" ~ formatting.eol ~ indentation;
+		string afterIf = formatting.eol ~ indentation ~ "}";
+
+		return AutoFix.replacement([tokens[beforeElse].index + 4, tokens[beforeElse + 1].index], beforeIf, "")
+			.concat(AutoFix.indentLines(tokens[beforeElse + 1 .. lastToken + 1], formatting))
+			.concat(AutoFix.insertionAfter(tokens[lastToken], afterIf))
+			.expectReplacements;
 	}
 
 	enum KEY = "dscanner.suspicious.static_if_else";
@@ -96,15 +125,45 @@ unittest
 		void foo() {
 			static if (false)
 				auto a = 0;
-			else if (true) // fix
+			else if (true) // fix:0
 				auto b = 1;
+		}
+		void bar() {
+			static if (false)
+				auto a = 0;
+			else if (true) // fix:1
+				auto b = 1;
+		}
+		void baz() {
+			static if (false)
+				auto a = 0;
+			else if (true) { // fix:1
+				auto b = 1;
+			}
 		}
 	}c, q{
 		void foo() {
 			static if (false)
 				auto a = 0;
-			else static if (true) // fix
+			else static if (true) // fix:0
 				auto b = 1;
+		}
+		void bar() {
+			static if (false)
+				auto a = 0;
+			else {
+				if (true) // fix:1
+					auto b = 1;
+			}
+		}
+		void baz() {
+			static if (false)
+				auto a = 0;
+			else {
+				if (true) { // fix:1
+					auto b = 1;
+				}
+			}
 		}
 	}c, sac);
 

@@ -775,8 +775,10 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 
 AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
 	const AutoFix.ResolveContext resolve, string fileName,
-	ref ModuleCache moduleCache, const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig)
+	ref ModuleCache moduleCache, scope const(char)[] rawCode,
+	scope const(Token)[] tokens, const Module m,
+	const StaticAnalysisConfig analysisConfig,
+	const AutoFixFormatting formattingConfig)
 {
 	import dsymbol.symbol : DSymbol;
 
@@ -797,7 +799,7 @@ AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
 	{
 		if (check.getName() == message.checkName)
 		{
-			return check.resolveAutoFix(m, tokens, message, resolve);
+			return check.resolveAutoFix(m, rawCode, tokens, message, resolve, formattingConfig);
 		}
 	}
 
