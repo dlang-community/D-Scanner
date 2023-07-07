@@ -220,6 +220,69 @@ struct StaticAnalysisConfig
 
 	@INI("Module-specific filters")
 	ModuleFilters filters;
+
+	@INI("Formatting brace style for automatic fixes (allman, otbs, stroustrup, knr)")
+	string brace_style = "allman";
+
+	@INI("Formatting indentation style for automatic fixes (tab, space)")
+	string indentation_style = "tab";
+
+	@INI("Formatting indentation width for automatic fixes (space count, otherwise how wide a tab is)")
+	int indentation_width = 4;
+
+	@INI("Formatting line ending character (lf, cr, crlf)")
+	string eol_style = "lf";
+
+	auto getAutoFixFormattingConfig() const
+	{
+		import dscanner.analysis.base : AutoFixFormatting;
+		import std.array : array;
+		import std.conv : to;
+		import std.range : repeat;
+
+		if (indentation_width < 0)
+			throw new Exception("invalid negative indentation_width");
+
+		AutoFixFormatting ret;
+		ret.braceStyle = brace_style.to!(AutoFixFormatting.BraceStyle);
+		ret.indentationWidth = indentation_width;
+
+		switch (indentation_style)
+		{
+		case "tab":
+			ret.indentation = "\t";
+			break;
+		case "space":
+			static immutable string someSpaces = "                ";
+			if (indentation_width < someSpaces.length)
+				ret.indentation = someSpaces[0 .. indentation_width];
+			else
+				ret.indentation = ' '.repeat(indentation_width).array;
+			break;
+		default:
+			throw new Exception("invalid indentation_style: '" ~ indentation_style ~ "' (expected tab or space)");
+		}
+
+		switch (eol_style)
+		{
+		case "lf":
+		case "LF":
+			ret.eol = "\n";
+			break;
+		case "cr":
+		case "CR":
+			ret.eol = "\r";
+			break;
+		case "crlf":
+		case "CRLF":
+			ret.eol = "\r\n";
+			break;
+		default:
+			throw new Exception("invalid eol_style: '" ~ eol_style ~ "' (expected lf, cr or crlf)");
+		}
+
+		return ret;
+	}
 }
 
 private template ModuleFiltersMixin(A)

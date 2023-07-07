@@ -7,19 +7,19 @@ module dscanner.analysis.run;
 
 import core.memory : GC;
 
-import std.stdio;
-import std.array;
-import std.conv;
-import std.algorithm;
-import std.range;
-import std.array;
-import std.functional : toDelegate;
-import std.file : mkdirRecurse;
-import std.path : dirName;
+import dparse.ast;
 import dparse.lexer;
 import dparse.parser;
-import dparse.ast;
 import dparse.rollback_allocator;
+import std.algorithm;
+import std.array;
+import std.array;
+import std.conv;
+import std.file : mkdirRecurse;
+import std.functional : toDelegate;
+import std.path : dirName;
+import std.range;
+import std.stdio;
 import std.typecons : scoped;
 
 import std.experimental.allocator : CAllocatorImpl;
@@ -404,6 +404,140 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 	return hasErrors;
 }
 
+/**
+ * Interactive automatic issue fixing for multiple files
+ *
+ * Returns: true if there were parse errors.
+ */
+bool autofix(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
+		ref StringCache cache, ref ModuleCache moduleCache, bool autoApplySingle,
+		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
+{
+	import std.format : format;
+
+	bool hasErrors;
+	foreach (fileName; fileNames)
+	{
+		auto code = readFile(fileName);
+		// Skip files that could not be read and continue with the rest
+		if (code.length == 0)
+			continue;
+		RollbackAllocator r;
+		uint errorCount;
+		uint warningCount;
+		const(Token)[] tokens;
+		const Module m = parseModule(fileName, code, &r, errorFormat, cache, false, tokens,
+				null, &errorCount, &warningCount);
+		assert(m);
+		if (errorCount > 0)
+			hasErrors = true;
+		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true, true, overrideFormattingConfig);
+		if (results is null)
+			continue;
+
+		AutoFix.CodeReplacement[] changes;
+		size_t index;
+		auto numAutofixes = results[].filter!(a => a.autofixes.length > (autoApplySingle ? 1 : 0)).count;
+		foreach (result; results[])
+		{
+			if (autoApplySingle && result.autofixes.length == 1)
+			{
+				changes ~= result.autofixes[0].expectReplacements;
+			}
+			else if (result.autofixes.length)
+			{
+				index++;
+				string fileProgress = format!"[%d / %d] "(index, numAutofixes);
+				messageFunctionFormat(fileProgress ~ errorFormat, result, false, code);
+
+				UserSelect selector;
+				selector.addSpecial(-1, "Skip", "0", "n", "s");
+				auto item = selector.show(result.autofixes.map!"a.name");
+				switch (item)
+				{
+				case -1:
+					break; // skip
+				default:
+					changes ~= result.autofixes[item].expectReplacements;
+					break;
+				}
+			}
+		}
+		if (changes.length)
+		{
+			changes.sort!"a.range[0] < b.range[0]";
+			improveAutoFixWhitespace(cast(const(char)[]) code, changes);
+			foreach_reverse (change; changes)
+				code = code[0 .. change.range[0]]
+					~ cast(const(ubyte)[])change.newText
+					~ code[change.range[1] .. $];
+			writeln("Writing changes to ", fileName);
+			writeFileSafe(fileName, code);
+		}
+	}
+	return hasErrors;
+}
+
+private struct UserSelect
+{
+	import std.string : strip;
+
+	struct SpecialAction
+	{
+		int id;
+		string title;
+		string[] shorthands;
+	}
+
+	SpecialAction[] specialActions;
+
+	void addSpecial(int id, string title, string[] shorthands...)
+	{
+		specialActions ~= SpecialAction(id, title, shorthands.dup);
+	}
+
+	/// Returns an integer in the range 0 - regularItems.length or a
+	/// SpecialAction id or -1 when EOF or empty.
+	int show(R)(R regularItems)
+	{
+		// TODO: implement interactive preview
+		// TODO: implement apply/skip all occurrences (per file or globally)
+		foreach (special; specialActions)
+			writefln("%s) %s", special.shorthands[0], special.title);
+		size_t i;
+		foreach (autofix; regularItems)
+			writefln("%d) %s", ++i, autofix);
+
+		while (true)
+		{
+			try
+			{
+				write(" > ");
+				stdout.flush();
+				string input = readln().strip;
+				if (!input.length)
+				{
+					writeln();
+					return -1;
+				}
+
+				foreach (special; specialActions)
+					if (special.shorthands.canFind(input))
+						return special.id;
+
+				int item = input.to!int;
+				if (item < 0 || item > regularItems.length)
+					throw new Exception("Selected option number out of range.");
+				return item;
+			}
+			catch (ConvException e)
+			{
+				writeln("Invalid selection, try again. ", e.message);
+			}
+		}
+	}
+}
+
 const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 		ref StringCache cache, ref const(Token)[] tokens,
 		MessageDelegate dlgMessage, ulong* linesOfCode = null,
@@ -742,12 +876,19 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 }
 
 MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
-		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true)
+		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true,
+		bool resolveAutoFixes = false,
+		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
 {
 	import dsymbol.symbol : DSymbol;
 
 	if (!staticAnalyze)
 		return null;
+
+	const(AutoFixFormatting) formattingConfig =
+		(resolveAutoFixes && overrideFormattingConfig is AutoFixFormatting.invalid)
+			? analysisConfig.getAutoFixFormattingConfig()
+			: overrideFormattingConfig;
 
 	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
 	first.run();
@@ -763,14 +904,40 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		GC.enable;
 
 	MessageSet set = new MessageSet;
-	foreach (check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
+	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
 	{
 		check.visit(m);
 		foreach (message; check.messages)
+		{
+			if (resolveAutoFixes)
+				message.resolveMessageFromCheck(check, m, tokens, formattingConfig);
 			set.insert(message);
+		}
 	}
 
 	return set;
+}
+
+private void resolveMessageFromCheck(
+	ref Message message,
+	BaseAnalyzer check,
+	const Module m,
+	scope const(Token)[] tokens,
+	const AutoFixFormatting formattingConfig
+)
+{
+	import std.sumtype : match;
+
+	foreach (ref autofix; message.autofixes)
+	{
+		autofix.replacements.match!(
+			(AutoFix.ResolveContext context) {
+				autofix.replacements = check.resolveAutoFix(m, tokens,
+					message, context, formattingConfig);
+			},
+			(_) {}
+		);
+	}
 }
 
 AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
@@ -778,9 +945,14 @@ AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
 	ref ModuleCache moduleCache, scope const(char)[] rawCode,
 	scope const(Token)[] tokens, const Module m,
 	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting formattingConfig)
+	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
 {
 	import dsymbol.symbol : DSymbol;
+
+	const(AutoFixFormatting) formattingConfig =
+		overrideFormattingConfig is AutoFixFormatting.invalid
+			? analysisConfig.getAutoFixFormattingConfig()
+			: overrideFormattingConfig;
 
 	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
 	first.run();
@@ -799,7 +971,7 @@ AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
 	{
 		if (check.getName() == message.checkName)
 		{
-			return check.resolveAutoFix(m, rawCode, tokens, message, resolve, formattingConfig);
+			return check.resolveAutoFix(m, tokens, message, resolve, formattingConfig);
 		}
 	}
 

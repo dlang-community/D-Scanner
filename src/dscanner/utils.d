@@ -80,6 +80,19 @@ ubyte[] readFile(string fileName)
 	return sourceCode;
 }
 
+void writeFileSafe(string filename, scope const(ubyte)[] content)
+{
+	import std.file : copy, PreserveAttributes, remove, write;
+	import std.path : baseName, buildPath, dirName;
+
+	string tempName = buildPath(filename.dirName, "." ~ filename.baseName ~ "~");
+
+	// FIXME: we are removing the optional BOM here
+	copy(filename, tempName, PreserveAttributes.yes);
+	write(filename, content);
+	remove(tempName);
+}
+
 string[] expandArgs(string[] args)
 {
 	import std.file : isFile, FileException, dirEntries, SpanMode;

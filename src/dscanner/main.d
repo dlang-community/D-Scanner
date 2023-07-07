@@ -44,6 +44,7 @@ version (unittest)
 else
 	int main(string[] args)
 {
+	bool autofix;
 	bool sloc;
 	bool highlight;
 	bool ctags;
@@ -62,6 +63,7 @@ else
 	bool defaultConfig;
 	bool report;
 	bool skipTests;
+	bool applySingleFixes;
 	string reportFormat;
 	string reportFile;
 	string symbolName;
@@ -96,6 +98,7 @@ else
 				"report", &report,
 				"reportFormat", &reportFormat,
 				"reportFile", &reportFile,
+				"applySingle", &applySingleFixes,
 				"I", &importPaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
@@ -165,12 +168,25 @@ else
 		return 0;
 	}
 
-	if (args.length > 1 && args[1] == "lint")
+	if (args.length > 1)
 	{
-		args = args[0] ~ args[2 .. $];
-		styleCheck = true;
-		if (!errorFormat.length)
-			errorFormat = "pretty";
+		switch (args[1])
+		{
+		case "lint":
+			args = args[0] ~ args[2 .. $];
+			styleCheck = true;
+			if (!errorFormat.length)
+				errorFormat = "pretty";
+			break;
+		case "fix":
+			args = args[0] ~ args[2 .. $];
+			autofix = true;
+			if (!errorFormat.length)
+				errorFormat = "pretty";
+			break;
+		default:
+			break;
+		}
 	}
 
 	if (!errorFormat.length)
@@ -195,9 +211,11 @@ else
 	if (reportFormat.length || reportFile.length)
 		report = true;
 
-	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount, syntaxCheck, ast, imports,
-			outline, tokenDump, styleCheck, defaultConfig, report,
-			symbolName !is null, etags, etagsAll, recursiveImports]);
+	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
+			syntaxCheck, ast, imports, outline, tokenDump, styleCheck,
+			defaultConfig, report, autofix,
+			symbolName !is null, etags, etagsAll, recursiveImports,
+	]);
 	if (optionCount > 1)
 	{
 		stderr.writeln("Too many options specified");
@@ -268,7 +286,7 @@ else
 	{
 		stdout.printEtags(etagsAll, expandArgs(args));
 	}
-	else if (styleCheck)
+	else if (styleCheck || autofix)
 	{
 		StaticAnalysisConfig config = defaultStaticAnalysisConfig();
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
@@ -276,7 +294,12 @@ else
 			readINIFile(config, s);
 		if (skipTests)
 			config.enabled2SkipTests;
-		if (report)
+
+		if (autofix)
+		{
+			return .autofix(expandArgs(args), config, errorFormat, cache, moduleCache, applySingleFixes) ? 1 : 0;
+		}
+		else if (report)
 		{
 			switch (reportFormat)
 			{
@@ -368,6 +391,9 @@ void printHelp(string programName)
 
 Human-readable output:
     %1$s lint <options> <files...>
+
+Interactively fixing issues
+    %1$s fix [--applySingle] <files...>
 
 Parsable outputs:
     %1$s -S <options> <files...>
@@ -494,7 +520,11 @@ Options:
 
     --skipTests
         Does not analyze code in unittests. Only works if --styleCheck
-        is specified.`,
+        is specified.
+
+    --applySingle
+        when running "dscanner fix", automatically apply all fixes that have
+        only one auto-fix.`,
 
     programName, defaultErrorFormat, errorFormatMap);
 }

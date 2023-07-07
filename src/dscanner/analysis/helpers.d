@@ -41,18 +41,22 @@ S after(S)(S value, S separator) if (isSomeString!S)
 	return value[i + separator.length .. $];
 }
 
-string getLineIndentation(scope const(char)[] rawCode, scope const(Token)[] tokens, size_t line)
+string getLineIndentation(scope const(Token)[] tokens, size_t line, const AutoFixFormatting formatting)
 {
 	import std.algorithm : countUntil;
+	import std.array : array;
+	import std.range : repeat;
 	import std.string : lastIndexOfAny;
 
 	auto idx = tokens.countUntil!(a => a.line == line);
-	if (idx == -1)
+	if (idx == -1 || tokens[idx].column <= 1 || !formatting.indentation.length)
 		return "";
 
-	auto indent = rawCode[0 .. tokens[idx].index];
-	auto nl = indent.lastIndexOfAny("\r\n");
-	return indent[nl + 1 .. $].idup;
+	auto indent = tokens[idx].column - 1;
+	if (formatting.indentation[0] == '\t')
+		return (cast(immutable)'\t').repeat(indent).array;
+	else
+		return (cast(immutable)' ').repeat(indent).array;
 }
 
 /**
@@ -243,7 +247,7 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 	ModuleCache moduleCache;
 
 	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);
+	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens, true, true, formattingConfig);
 	string[] codeLines = before.splitLines();
 
 	Tuple!(Message, int)[] toApply;
@@ -309,11 +313,7 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 	{
 		Message message = pair[0];
 		AutoFix fix = message.autofixes[pair[1]];
-		replacements ~= fix.autofix.match!(
-			(AutoFix.CodeReplacement[] r) => r,
-			(AutoFix.ResolveContext context) => resolveAutoFix(message, context,
-				"test", moduleCache, before, tokens, m, config, formattingConfig)
-		);
+		replacements ~= fix.expectReplacements;
 	}
 
 	replacements.sort!"a.range[0] < b.range[0]";

@@ -57,6 +57,32 @@ dscanner lint source/
 
 to view a human readable list of issues.
 
+Diagnostic types can be enabled/disabled using a configuration file, check out
+the `--config` argument / `dscanner.ini` file for more info. Tip: some IDEs that
+integrate D-Scanner may have helpers to configure the diagnostics or help
+generate the dscanner.ini file.
+<!--
+IDE list for overview:
+code-d has an "insert default dscanner.ini content" command + proprietary
+	disabling per-line (we really need to bring that into standard D-Scanner)
+-->
+
+## Auto-Fixing issues
+
+Use
+
+```sh
+dscanner fix source/
+```
+
+to interactively fix all fixable issues within the source directory. Call with
+`--applySingle` to automatically apply fixes that don't have multiple automatic
+solutions.
+
+## Tooling integration
+
+Many D editors already ship with D-Scanner.
+
 For a CLI / tool parsable output use either
 
 ```sh
@@ -74,16 +100,6 @@ dscanner -S -f github source/
 # custom format:
 dscanner -S -f '{filepath}({line}:{column})[{type}]: {message}' source/
 ```
-
-Diagnostic types can be enabled/disabled using a configuration file, check out
-the `--config` argument / `dscanner.ini` file for more info. Tip: some IDEs that
-integrate D-Scanner may have helpers to configure the diagnostics or help
-generate the dscanner.ini file.
-<!--
-IDE list for overview:
-code-d has an "insert default dscanner.ini content" command + proprietary
-	disabling per-line (we really need to bring that into standard D-Scanner)
--->
 
 ## Other features
 
