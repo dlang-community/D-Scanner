@@ -57,6 +57,14 @@ struct AutoFix
 		);
 	}
 
+	static AutoFix resolveLater(string name, ulong[3] params, string extraInfo = null)
+	{
+		AutoFix ret;
+		ret.name = name;
+		ret.autofix = ResolveContext(params, extraInfo);
+		return ret;
+	}
+
 	static AutoFix replacement(const Token token, string newText, string name = null)
 	{
 		if (!name.length)
@@ -118,30 +126,106 @@ struct AutoFix
 		return ret;
 	}
 
+	static AutoFix indentLines(scope const(Token)[] tokens, const AutoFixFormatting formatting, string name = "Indent code")
+	{
+		CodeReplacement[] inserts;
+		size_t line = -1;
+		foreach (token; tokens)
+		{
+			if (line != token.line)
+			{
+				line = token.line;
+				inserts ~= CodeReplacement([token.index, token.index], formatting.indentation);
+			}
+		}
+		AutoFix ret;
+		ret.name = name;
+		ret.autofix = inserts;
+		return ret;
+	}
+
 	AutoFix concat(AutoFix other) const
 	{
 		import std.algorithm : sort;
 
+		static immutable string errorMsg = "Cannot concatenate code replacement with late-resolve";
+
 		AutoFix ret;
 		ret.name = name;
-		CodeReplacement[] concatenated;
-		autofix.match!(
-			(const CodeReplacement[] replacement)
-			{
-				concatenated = replacement.dup;
-			},
-			_ => assert(false, "Cannot concatenate code replacement with late-resolve")
-		);
-		other.autofix.match!(
-			(const CodeReplacement[] concat)
-			{
-				concatenated ~= concat.dup;
-			},
-			_ => assert(false, "Cannot concatenate code replacement with late-resolve")
-		);
+		CodeReplacement[] concatenated = expectReplacements(errorMsg).dup
+			~ other.expectReplacements(errorMsg);
 		concatenated.sort!"a.range[0] < b.range[0]";
 		ret.autofix = concatenated;
 		return ret;
+	}
+
+	CodeReplacement[] expectReplacements(
+		string errorMsg = "Expected available code replacements, not something to resolve later"
+	) @safe pure nothrow @nogc
+	{
+		return autofix.match!(
+			(replacement)
+			{
+				if (false) return CodeReplacement[].init;
+				static if (is(immutable typeof(replacement) == immutable CodeReplacement[]))
+					return replacement;
+				else
+					assert(false, errorMsg);
+			}
+		);
+	}
+
+	const(CodeReplacement[]) expectReplacements(
+		string errorMsg = "Expected available code replacements, not something to resolve later"
+	) const @safe pure nothrow @nogc
+	{
+		return autofix.match!(
+			(const replacement)
+			{
+				if (false) return CodeReplacement[].init;
+				static if (is(immutable typeof(replacement) == immutable CodeReplacement[]))
+					return replacement;
+				else
+					assert(false, errorMsg);
+			}
+		);
+	}
+}
+
+/// Formatting style for autofix generation (only available for resolve autofix)
+struct AutoFixFormatting
+{
+	enum BraceStyle
+	{
+		/// $(LINK https://en.wikipedia.org/wiki/Indent_style#Allman_style)
+		allman,
+		/// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS)
+		otbs,
+		/// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_Stroustrup)
+		stroustrup,
+		/// $(LINK https://en.wikipedia.org/wiki/Indentation_style#K&R_style)
+		knr,
+	}
+
+	BraceStyle braceStyle;
+	string indentation = "\t";
+	string eol = "\n";
+
+	string getWhitespaceBeforeOpeningBrace(string lastLineIndent, bool isFuncDecl) pure nothrow @safe const
+	{
+		final switch (braceStyle)
+		{
+		case BraceStyle.knr:
+			if (isFuncDecl)
+				goto case BraceStyle.allman;
+			else
+				goto case BraceStyle.otbs;
+		case BraceStyle.otbs:
+		case BraceStyle.stroustrup:
+			return " ";
+		case BraceStyle.allman:
+			return eol ~ lastLineIndent;
+		}
 	}
 }
 
@@ -302,15 +386,19 @@ public:
 
 	AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
-		const(Token)[] tokens,
+		scope const(char)[] rawCode,
+		scope const(Token)[] tokens,
 		const Message message,
-		const AutoFix.ResolveContext context
+		const AutoFix.ResolveContext context,
+		const AutoFixFormatting formatting,
 	)
 	{
 		cast(void) mod;
+		cast(void) rawCode;
 		cast(void) tokens;
 		cast(void) message;
 		cast(void) context;
+		cast(void) formatting;
 		assert(0);
 	}
 
