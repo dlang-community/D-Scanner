@@ -407,14 +407,12 @@ public:
 	AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
 		scope const(Token)[] tokens,
-		const Message message,
 		const AutoFix.ResolveContext context,
 		const AutoFixFormatting formatting,
 	)
 	{
 		cast(void) mod;
 		cast(void) tokens;
-		cast(void) message;
 		cast(void) context;
 		cast(void) formatting;
 		assert(0);

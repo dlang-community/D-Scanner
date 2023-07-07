@@ -996,7 +996,8 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		foreach (message; check.messages)
 		{
 			if (resolveAutoFixes)
-				message.resolveMessageFromCheck(check, m, tokens, formattingConfig);
+				foreach (ref autofix; message.autofixes)
+					autofix.resolveAutoFixFromCheck(check, m, tokens, formattingConfig);
 			set.insert(message);
 		}
 	}
@@ -1004,8 +1005,8 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	return set;
 }
 
-private void resolveMessageFromCheck(
-	ref Message message,
+private void resolveAutoFixFromCheck(
+	ref AutoFix autofix,
 	BaseAnalyzer check,
 	const Module m,
 	scope const(Token)[] tokens,
@@ -1014,19 +1015,39 @@ private void resolveMessageFromCheck(
 {
 	import std.sumtype : match;
 
-	foreach (ref autofix; message.autofixes)
-	{
-		autofix.replacements.match!(
-			(AutoFix.ResolveContext context) {
-				autofix.replacements = check.resolveAutoFix(m, tokens,
-					message, context, formattingConfig);
-			},
-			(_) {}
-		);
-	}
+	autofix.replacements.match!(
+		(AutoFix.ResolveContext context) {
+			autofix.replacements = check.resolveAutoFix(m, tokens, context, formattingConfig);
+		},
+		(_) {}
+	);
 }
 
 void resolveAutoFixes(ref Message message, string fileName,
+	ref ModuleCache moduleCache,
+	scope const(Token)[] tokens, const Module m,
+	const StaticAnalysisConfig analysisConfig,
+	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
+{
+	resolveAutoFixes(message.checkName, message.autofixes, fileName, moduleCache,
+		tokens, m, analysisConfig, overrideFormattingConfig);
+}
+
+AutoFix.CodeReplacement[] resolveAutoFix(string messageCheckName, AutoFix.ResolveContext context,
+	string fileName,
+	ref ModuleCache moduleCache,
+	scope const(Token)[] tokens, const Module m,
+	const StaticAnalysisConfig analysisConfig,
+	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
+{
+	AutoFix temp;
+	temp.replacements = context;
+	resolveAutoFixes(messageCheckName, (&temp)[0 .. 1], fileName, moduleCache,
+		tokens, m, analysisConfig, overrideFormattingConfig);
+	return temp.expectReplacements("resolving didn't work?!");
+}
+
+void resolveAutoFixes(string messageCheckName, AutoFix[] autofixes, string fileName,
 	ref ModuleCache moduleCache,
 	scope const(Token)[] tokens, const Module m,
 	const StaticAnalysisConfig analysisConfig,
@@ -1054,14 +1075,15 @@ void resolveAutoFixes(ref Message message, string fileName,
 
 	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
 	{
-		if (check.getName() == message.checkName)
+		if (check.getName() == messageCheckName)
 		{
-			resolveMessageFromCheck(message, check, m, tokens, formattingConfig);
+			foreach (ref autofix; autofixes)
+				autofix.resolveAutoFixFromCheck(check, m, tokens, formattingConfig);
 			return;
 		}
 	}
 
-	throw new Exception("Cannot find analyzer " ~ message.checkName
+	throw new Exception("Cannot find analyzer " ~ messageCheckName
 		~ " to resolve autofix with.");
 }
 

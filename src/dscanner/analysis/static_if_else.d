@@ -63,7 +63,6 @@ final class StaticIfElse : BaseAnalyzer
 	override AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
 		scope const(Token)[] tokens,
-		const Message message,
 		const AutoFix.ResolveContext context,
 		const AutoFixFormatting formatting,
 	)
