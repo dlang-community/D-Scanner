@@ -461,6 +461,8 @@ Options:
         - {endLine}: end line number, 1-based, inclusive
         - {column}: start column on start line, 1-based, in bytes
         - {endColumn}: end column on end line, 1-based, in bytes, exclusive
+        - {startIndex}: start file byte offset, 0-based
+        - {endIndex}: end file byte offset, 0-based
         - {type}: "error" or "warn", uppercase variants: {Type}, {TYPE},
         - {type2}: "error" or "warning", uppercase variants: {Type2}, {TYPE2}
         - {message}: human readable message such as "Variable c is never used."
