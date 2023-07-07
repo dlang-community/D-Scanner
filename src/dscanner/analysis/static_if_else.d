@@ -62,7 +62,6 @@ final class StaticIfElse : BaseAnalyzer
 
 	override AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
-		scope const(char)[] rawCode,
 		scope const(Token)[] tokens,
 		const Message message,
 		const AutoFix.ResolveContext context,
@@ -77,7 +76,7 @@ final class StaticIfElse : BaseAnalyzer
 		if (beforeElse == -1 || lastToken == -1)
 			throw new Exception("got different tokens than what was used to generate this autofix");
 
-		auto indentation = getLineIndentation(rawCode, tokens, tokens[beforeElse].line);
+		auto indentation = getLineIndentation(tokens, tokens[beforeElse].line, formatting);
 
 		string beforeIf = formatting.getWhitespaceBeforeOpeningBrace(indentation, false)
 			~ "{" ~ formatting.eol ~ indentation;

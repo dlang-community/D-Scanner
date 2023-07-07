@@ -41,11 +41,11 @@ struct AutoFix
 	/// `CodeReplacement[]` should be applied to the code in reverse, otherwise
 	/// an offset to the following start indices must be calculated and be kept
 	/// track of.
-	SumType!(CodeReplacement[], ResolveContext) autofix;
+	SumType!(CodeReplacement[], ResolveContext) replacements;
 
 	invariant
 	{
-		autofix.match!(
+		replacements.match!(
 			(const CodeReplacement[] replacement)
 			{
 				import std.algorithm : all, isSorted;
@@ -61,7 +61,7 @@ struct AutoFix
 	{
 		AutoFix ret;
 		ret.name = name;
-		ret.autofix = ResolveContext(params, extraInfo);
+		ret.replacements = ResolveContext(params, extraInfo);
 		return ret;
 	}
 
@@ -94,7 +94,7 @@ struct AutoFix
 	{
 		AutoFix ret;
 		ret.name = name;
-		ret.autofix = [
+		ret.replacements = [
 			AutoFix.CodeReplacement(range, newText)
 		];
 		return ret;
@@ -120,7 +120,7 @@ struct AutoFix
 			: content.strip.length
 				? "Insert `" ~ content.strip ~ "`"
 				: "Insert whitespace";
-		ret.autofix = [
+		ret.replacements = [
 			AutoFix.CodeReplacement([index, index], content)
 		];
 		return ret;
@@ -140,7 +140,7 @@ struct AutoFix
 		}
 		AutoFix ret;
 		ret.name = name;
-		ret.autofix = inserts;
+		ret.replacements = inserts;
 		return ret;
 	}
 
@@ -155,7 +155,7 @@ struct AutoFix
 		CodeReplacement[] concatenated = expectReplacements(errorMsg).dup
 			~ other.expectReplacements(errorMsg);
 		concatenated.sort!"a.range[0] < b.range[0]";
-		ret.autofix = concatenated;
+		ret.replacements = concatenated;
 		return ret;
 	}
 
@@ -163,7 +163,7 @@ struct AutoFix
 		string errorMsg = "Expected available code replacements, not something to resolve later"
 	) @safe pure nothrow @nogc
 	{
-		return autofix.match!(
+		return replacements.match!(
 			(replacement)
 			{
 				if (false) return CodeReplacement[].init;
@@ -179,7 +179,7 @@ struct AutoFix
 		string errorMsg = "Expected available code replacements, not something to resolve later"
 	) const @safe pure nothrow @nogc
 	{
-		return autofix.match!(
+		return replacements.match!(
 			(const replacement)
 			{
 				if (false) return CodeReplacement[].init;
@@ -195,8 +195,12 @@ struct AutoFix
 /// Formatting style for autofix generation (only available for resolve autofix)
 struct AutoFixFormatting
 {
+	enum AutoFixFormatting invalid = AutoFixFormatting(BraceStyle.invalid, null, 0, null);
+
 	enum BraceStyle
 	{
+		/// invalid, shouldn't appear in usable configs
+		invalid,
 		/// $(LINK https://en.wikipedia.org/wiki/Indent_style#Allman_style)
 		allman,
 		/// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS)
@@ -207,14 +211,30 @@ struct AutoFixFormatting
 		knr,
 	}
 
-	BraceStyle braceStyle;
+	/// Brace style config
+	BraceStyle braceStyle = BraceStyle.allman;
+	/// String to insert on indentations
 	string indentation = "\t";
+	/// For calculating indentation size
+	uint indentationWidth = 4;
+	/// String to insert on line endings
 	string eol = "\n";
+
+	invariant
+	{
+		import std.algorithm : all;
+
+		assert(!indentation.length
+			|| indentation == "\t"
+			|| indentation.all!(c => c == ' '));
+	}
 
 	string getWhitespaceBeforeOpeningBrace(string lastLineIndent, bool isFuncDecl) pure nothrow @safe const
 	{
 		final switch (braceStyle)
 		{
+		case BraceStyle.invalid:
+			assert(false, "invalid formatter config");
 		case BraceStyle.knr:
 			if (isFuncDecl)
 				goto case BraceStyle.allman;
@@ -386,7 +406,6 @@ public:
 
 	AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
-		scope const(char)[] rawCode,
 		scope const(Token)[] tokens,
 		const Message message,
 		const AutoFix.ResolveContext context,
@@ -394,7 +413,6 @@ public:
 	)
 	{
 		cast(void) mod;
-		cast(void) rawCode;
 		cast(void) tokens;
 		cast(void) message;
 		cast(void) context;
