@@ -480,6 +480,90 @@ bool autofix(string[] fileNames, const StaticAnalysisConfig config, string error
 	return hasErrors;
 }
 
+void listAutofixes(
+	StaticAnalysisConfig config,
+	string resolveMessage,
+	bool usingStdin,
+	string fileName,
+	StringCache* cache,
+	ref ModuleCache moduleCache
+)
+{
+	import dparse.parser : parseModule;
+	import dscanner.analysis.base : Message;
+	import std.format : format;
+	import std.json : JSONValue;
+
+	union RequestedLocation
+	{
+		struct
+		{
+			uint line, column;
+		}
+		ulong bytes;
+	}
+
+	RequestedLocation req;
+	bool isBytes = resolveMessage[0] == 'b';
+	if (isBytes)
+		req.bytes = resolveMessage[1 .. $].to!ulong;
+	else
+	{
+		auto parts = resolveMessage.findSplit(":");
+		req.line = parts[0].to!uint;
+		req.column = parts[2].to!uint;
+	}
+
+	bool matchesCursor(Message m)
+	{
+		return isBytes
+			? req.bytes >= m.startIndex && req.bytes <= m.endIndex
+			: req.line >= m.startLine && req.line <= m.endLine
+				&& (req.line > m.startLine || req.column >= m.startColumn)
+				&& (req.line < m.endLine || req.column <= m.endColumn);
+	}
+
+	RollbackAllocator rba;
+	LexerConfig lexerConfig;
+	lexerConfig.fileName = fileName;
+	lexerConfig.stringBehavior = StringBehavior.source;
+	auto tokens = getTokensForParser(usingStdin ? readStdin()
+			: readFile(fileName), lexerConfig, cache);
+	auto mod = parseModule(tokens, fileName, &rba, toDelegate(&doNothing));
+
+	auto messages = analyze(fileName, mod, config, moduleCache, tokens);
+
+	with (stdout.lockingTextWriter)
+	{
+		put("[");
+		foreach (message; messages[].filter!matchesCursor)
+		{
+			resolveAutoFixes(message, fileName, moduleCache, tokens, mod, config);
+
+			foreach (i, autofix; message.autofixes)
+			{
+				put(i == 0 ? "\n" : ",\n");
+				put("\t{\n");
+				put(format!"\t\t\"name\": %s,\n"(JSONValue(autofix.name)));
+				put("\t\t\"replacements\": [");
+				foreach (j, replacement; autofix.expectReplacements)
+				{
+					put(j == 0 ? "\n" : ",\n");
+					put(format!"\t\t\t{\"range\": [%d, %d], \"newText\": %s}"(
+						replacement.range[0],
+						replacement.range[1],
+						JSONValue(replacement.newText)));
+				}
+				put("\n");
+				put("\t\t]\n");
+				put("\t}");
+			}
+		}
+		put("\n]");
+	}
+	stdout.flush();
+}
+
 private struct UserSelect
 {
 	import std.string : strip;
@@ -942,9 +1026,8 @@ private void resolveMessageFromCheck(
 	}
 }
 
-AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
-	const AutoFix.ResolveContext resolve, string fileName,
-	ref ModuleCache moduleCache, scope const(char)[] rawCode,
+void resolveAutoFixes(ref Message message, string fileName,
+	ref ModuleCache moduleCache,
 	scope const(Token)[] tokens, const Module m,
 	const StaticAnalysisConfig analysisConfig,
 	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
@@ -973,7 +1056,8 @@ AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
 	{
 		if (check.getName() == message.checkName)
 		{
-			return check.resolveAutoFix(m, tokens, message, resolve, formattingConfig);
+			resolveMessageFromCheck(message, check, m, tokens, formattingConfig);
+			return;
 		}
 	}
 

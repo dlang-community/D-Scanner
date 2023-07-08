@@ -64,6 +64,7 @@ else
 	bool report;
 	bool skipTests;
 	bool applySingleFixes;
+	string resolveMessage;
 	string reportFormat;
 	string reportFile;
 	string symbolName;
@@ -98,6 +99,7 @@ else
 				"report", &report,
 				"reportFormat", &reportFormat,
 				"reportFile", &reportFile,
+				"resolveMessage", &resolveMessage,
 				"applySingle", &applySingleFixes,
 				"I", &importPaths,
 				"version", &printVersion,
@@ -213,7 +215,7 @@ else
 
 	immutable optionCount = count!"a"([sloc, highlight, ctags, tokenCount,
 			syntaxCheck, ast, imports, outline, tokenDump, styleCheck,
-			defaultConfig, report, autofix,
+			defaultConfig, report, autofix, resolveMessage.length,
 			symbolName !is null, etags, etagsAll, recursiveImports,
 	]);
 	if (optionCount > 1)
@@ -286,7 +288,7 @@ else
 	{
 		stdout.printEtags(etagsAll, expandArgs(args));
 	}
-	else if (styleCheck || autofix)
+	else if (styleCheck || autofix || resolveMessage.length)
 	{
 		StaticAnalysisConfig config = defaultStaticAnalysisConfig();
 		string s = configLocation is null ? getConfigurationLocation() : configLocation;
@@ -298,6 +300,11 @@ else
 		if (autofix)
 		{
 			return .autofix(expandArgs(args), config, errorFormat, cache, moduleCache, applySingleFixes) ? 1 : 0;
+		}
+		else if (resolveMessage.length)
+		{
+			listAutofixes(config, resolveMessage, usingStdin, usingStdin ? "stdin" : args[1], &cache, moduleCache);
+			return 0;
 		}
 		else if (report)
 		{
