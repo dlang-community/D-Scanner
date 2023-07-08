@@ -146,6 +146,11 @@ jobs:
           fi
           "./bin/dscanner$EXE" --styleCheck -f "$FORMAT" src
 
+      - name: Integration Tests
+        run: ./it.sh
+        working-directory: tests
+        shell: bash
+
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
         uses: actions/checkout@v2
