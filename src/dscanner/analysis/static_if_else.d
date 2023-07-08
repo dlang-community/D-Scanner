@@ -65,8 +65,8 @@ final class StaticIfElse : BaseAnalyzer
 
 unittest
 {
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
@@ -89,6 +89,22 @@ unittest
 				if (true)
 					auto b = 1;
 			}
+		}
+	}c, sac);
+
+	assertAutoFix(q{
+		void foo() {
+			static if (false)
+				auto a = 0;
+			else if (true) // fix
+				auto b = 1;
+		}
+	}c, q{
+		void foo() {
+			static if (false)
+				auto a = 0;
+			else static if (true) // fix
+				auto b = 1;
 		}
 	}c, sac);
 

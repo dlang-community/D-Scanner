@@ -270,5 +270,16 @@ unittest
 		auto doStuff(){ mixin(_genSave);}
 	}, sac);
 
+
+	assertAutoFix(q{
+		auto doStuff(){} // fix
+		@property doStuff(){} // fix
+		@safe doStuff(){} // fix
+	}c, q{
+		void doStuff(){} // fix
+		@property void doStuff(){} // fix
+		@safe void doStuff(){} // fix
+	}c, sac);
+
 	stderr.writeln("Unittest for AutoFunctionChecker passed.");
 }

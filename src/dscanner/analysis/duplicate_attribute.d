@@ -227,5 +227,40 @@ unittest
 		}
 	}c, sac);
 
+
+	assertAutoFix(q{
+		class ExampleAttributes
+		{
+			@property @property bool aaa() {} // fix
+			bool bbb() @safe @safe {} // fix
+			@system bool ccc() @system {} // fix
+			@trusted bool ddd() @trusted {} // fix
+		}
+
+		class ExamplePureNoThrow
+		{
+			pure pure bool bbb() {} // fix
+			bool ccc() pure pure {} // fix
+			nothrow nothrow bool ddd() {} // fix
+			bool eee() nothrow nothrow {} // fix
+		}
+	}c, q{
+		class ExampleAttributes
+		{
+			@property bool aaa() {} // fix
+			bool bbb() @safe {} // fix
+			@system bool ccc() {} // fix
+			@trusted bool ddd() {} // fix
+		}
+
+		class ExamplePureNoThrow
+		{
+			pure bool bbb() {} // fix
+			bool ccc() pure {} // fix
+			nothrow bool ddd() {} // fix
+			bool eee() nothrow {} // fix
+		}
+	}c, sac);
+
 	stderr.writeln("Unittest for DuplicateAttributeCheck passed.");
 }

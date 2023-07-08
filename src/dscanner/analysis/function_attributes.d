@@ -223,5 +223,58 @@ unittest
 		}
 	}c, sac);
 
+
+	assertAutoFix(q{
+		int foo() @property { return 0; }
+
+		class ClassName {
+			const int confusingConst() { return 0; } // fix:0
+			const int confusingConst() { return 0; } // fix:1
+
+			int bar() @property { return 0; } // fix:0
+			int bar() @property { return 0; } // fix:1
+			int bar() @property { return 0; } // fix:2
+		}
+
+		struct StructName {
+			int bar() @property { return 0; } // fix:0
+		}
+
+		union UnionName {
+			int bar() @property { return 0; } // fix:0
+		}
+
+		interface InterfaceName {
+			int bar() @property; // fix:0
+
+			abstract int method(); // fix
+		}
+	}c, q{
+		int foo() @property { return 0; }
+
+		class ClassName {
+			int confusingConst() const { return 0; } // fix:0
+			const(int) confusingConst() { return 0; } // fix:1
+
+			int bar() const @property { return 0; } // fix:0
+			int bar() inout @property { return 0; } // fix:1
+			int bar() immutable @property { return 0; } // fix:2
+		}
+
+		struct StructName {
+			int bar() const @property { return 0; } // fix:0
+		}
+
+		union UnionName {
+			int bar() const @property { return 0; } // fix:0
+		}
+
+		interface InterfaceName {
+			int bar() const @property; // fix:0
+
+			int method(); // fix
+		}
+	}c, sac);
+
 	stderr.writeln("Unittest for FunctionAttributeCheck passed.");
 }

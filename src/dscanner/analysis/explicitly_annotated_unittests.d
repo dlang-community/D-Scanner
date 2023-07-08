@@ -62,10 +62,10 @@ final class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
 
 unittest
 {
-	import std.stdio : stderr;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
 	import std.format : format;
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.explicitly_annotated_unittests = Check.enabled;
@@ -100,6 +100,28 @@ unittest
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
 		ExplicitlyAnnotatedUnittestCheck.MESSAGE,
 	), sac);
+
+
+	// nested
+	assertAutoFix(q{
+		unittest {} // fix:0
+		pure nothrow @nogc unittest {} // fix:0
+
+		struct Foo
+		{
+			unittest {} // fix:1
+			pure nothrow @nogc unittest {} // fix:1
+		}
+	}c, q{
+		@safe unittest {} // fix:0
+		pure nothrow @nogc @safe unittest {} // fix:0
+
+		struct Foo
+		{
+			@system unittest {} // fix:1
+			pure nothrow @nogc @system unittest {} // fix:1
+		}
+	}c, sac);
 
 	stderr.writeln("Unittest for ExplicitlyAnnotatedUnittestCheck passed.");
 }

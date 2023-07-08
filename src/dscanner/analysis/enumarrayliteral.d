@@ -59,3 +59,25 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 		autoDec.accept(this);
 	}
 }
+
+unittest
+{
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
+	import std.stdio : stderr;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.enum_array_literal_check = Check.enabled;
+	assertAnalyzerWarnings(q{
+		enum x = [1, 2, 3]; /+
+		         ^^^^^^^^^ [warn]: This enum may lead to unnecessary allocation at run-time. Use 'static immutable x = [ ...' instead. +/
+	}c, sac);
+
+	assertAutoFix(q{
+		enum x = [1, 2, 3]; // fix
+	}c, q{
+		static immutable x = [1, 2, 3]; // fix
+	}c, sac);
+
+	stderr.writeln("Unittest for EnumArrayLiteralCheck passed.");
+}
