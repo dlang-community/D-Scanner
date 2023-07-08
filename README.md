@@ -101,6 +101,48 @@ dscanner -S -f github source/
 dscanner -S -f '{filepath}({line}:{column})[{type}]: {message}' source/
 ```
 
+To collect automatic issue fixes for a given location use
+
+```sh
+# collecting automatic issue fixes
+# --resolveMessage <line>:<column> <filename>
+dscanner --resolveMessage 11:3 file.d
+# --resolveMessage b<byteIndex> <filename>
+dscanner --resolveMessage b512 file.d
+# <filename> may be omitted to read from stdin
+```
+
+outputs JSON:
+
+```json
+// list of available auto-fixes at the given location
+[
+	{
+		"name": "Make function const",
+		// byte range `[start, end)` what code to replace
+		// this is sorted by range[0]
+		"replacements": [
+			// replace: range[0] < range[1], newText != ""
+			{"range": [10, 14], "newText": "const "},
+			// insert: range[0] == range[1], newText != ""
+			{"range": [20, 20], "newText": "auto"},
+			// remove: range[0] < range[1], newText == ""
+			{"range": [30, 40], "newText": ""},
+		]
+	}
+]
+```
+
+Algorithm to apply replacements:
+```d
+foreach_reverse (r; replacements)
+	codeBytes = codeBytes[0 .. r.range[0]] ~ r.newText ~ codeBytes[r.range[1] .. $];
+```
+
+Replacements are non-overlapping, sorted by `range[0]` in ascending order. When
+combining multiple different replacements, you first need to sort them by
+`range[0]` to apply using the algorithm above.
+
 ## Other features
 
 ### Token Count
