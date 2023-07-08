@@ -1,0 +1,26 @@
+{
+	"classCount": 0,
+	"functionCount": 1,
+	"interfaceCount": 0,
+	"issues": [
+		{
+			"column": 6,
+			"endColumn": 12,
+			"endIndex": 22,
+			"endLine": 3,
+			"fileName": "it\/source_autofix.d",
+			"index": 16,
+			"key": "dscanner.confusing.function_attributes",
+			"line": 3,
+			"message": "Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.",
+			"name": "function_attribute_check",
+			"supplemental": [],
+			"type": "warn"
+		}
+	],
+	"lineOfCodeCount": 0,
+	"statementCount": 0,
+	"structCount": 1,
+	"templateCount": 0,
+	"undocumentedPublicSymbols": 0
+}
