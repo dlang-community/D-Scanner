@@ -98,7 +98,7 @@ class DScannerJsonReporter
 									"newText": JSONValue(r.newText)
 								])).array
 							),
-							(const AutoFix.ResolveContext context) => JSONValue(
+							(const AutoFix.ResolveContext _) => JSONValue(
 								"resolvable"
 							)
 						)
