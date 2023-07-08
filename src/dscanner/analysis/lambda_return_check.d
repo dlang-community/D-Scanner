@@ -62,14 +62,14 @@ private:
 version(Windows) {/*because of newline in code*/} else
 unittest
 {
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.lambda_return_check = Check.enabled;
 
-	auto code = `
+	assertAnalyzerWarnings(q{
 		void main()
 		{
 			int[] b;
@@ -81,7 +81,33 @@ unittest
 			                   ^^^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
 			pragma(msg, typeof({ return a; }));
 			pragma(msg, typeof(a => () { return a; }));
-		}`c;
-	assertAnalyzerWarnings(code, sac);
+		}
+	}c, sac);
+
+
+	assertAutoFix(q{
+		void main()
+		{
+			int[] b;
+			auto a = b.map!(a => { return a * a + 2; }).array(); // fix:0
+			auto a = b.map!(a => { return a * a + 2; }).array(); // fix:1
+			pragma(msg, typeof(a => { return a; })); // fix:0
+			pragma(msg, typeof(a => { return a; })); // fix:1
+			pragma(msg, typeof((a) => { return a; })); // fix:0
+			pragma(msg, typeof((a) => { return a; })); // fix:1
+		}
+	}c, q{
+		void main()
+		{
+			int[] b;
+			auto a = b.map!((a) { return a * a + 2; }).array(); // fix:0
+			auto a = b.map!(a => ({ return a * a + 2; })).array(); // fix:1
+			pragma(msg, typeof((a) { return a; })); // fix:0
+			pragma(msg, typeof(a => ({ return a; }))); // fix:1
+			pragma(msg, typeof((a) { return a; })); // fix:0
+			pragma(msg, typeof((a) => ({ return a; }))); // fix:1
+		}
+	}c, sac);
+
 	stderr.writeln("Unittest for LambdaReturnCheck passed.");
 }

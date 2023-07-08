@@ -510,36 +510,22 @@ unittest
 	assert(test("std.bar.foo", "-barr,+bar"));
 }
 
-MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
-		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true)
+private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
+	const(Token)[] tokens, const Module m,
+	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
 {
-	import dsymbol.symbol : DSymbol;
-
-	if (!staticAnalyze)
-		return null;
-
 	version (unittest)
 		enum ut = true;
 	else
 		enum ut = false;
+
+	BaseAnalyzer[] checks;
 
 	string moduleName;
 	if (m !is null && m.moduleDeclaration !is null &&
 		  m.moduleDeclaration.moduleName !is null &&
 		  m.moduleDeclaration.moduleName.identifiers !is null)
 		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
-
-	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
-	first.run();
-
-	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
-	auto moduleScope = first.moduleScope;
-	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
-	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
-	scope(exit) typeid(Scope).destroy(first.moduleScope);
-	BaseAnalyzer[] checks;
-
-	GC.disable;
 
 	if (moduleName.shouldRun!AsmStyleCheck(analysisConfig))
 		checks ~= new AsmStyleCheck(fileName, moduleScope,
@@ -752,17 +738,71 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 			checks ~= new IfStatementCheck(fileName, moduleScope,
 			analysisConfig.redundant_if_check == Check.skipTests && !ut);
 
+	return checks;
+}
+
+MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
+		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true)
+{
+	import dsymbol.symbol : DSymbol;
+
+	if (!staticAnalyze)
+		return null;
+
+	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
+	first.run();
+
+	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
+	auto moduleScope = first.moduleScope;
+	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
+	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
+	scope(exit) typeid(Scope).destroy(first.moduleScope);
+
+	GC.disable;
+	scope (exit)
+		GC.enable;
+
 	MessageSet set = new MessageSet;
-	foreach (check; checks)
+	foreach (check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
 	{
 		check.visit(m);
 		foreach (message; check.messages)
 			set.insert(message);
 	}
 
-	GC.enable;
-
 	return set;
+}
+
+AutoFix.CodeReplacement[] resolveAutoFix(const Message message,
+	const AutoFix.ResolveContext resolve, string fileName,
+	ref ModuleCache moduleCache, const(Token)[] tokens, const Module m,
+	const StaticAnalysisConfig analysisConfig)
+{
+	import dsymbol.symbol : DSymbol;
+
+	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
+	first.run();
+
+	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
+	auto moduleScope = first.moduleScope;
+	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
+	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
+	scope(exit) typeid(Scope).destroy(first.moduleScope);
+
+	GC.disable;
+	scope (exit)
+		GC.enable;
+
+	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
+	{
+		if (check.getName() == message.checkName)
+		{
+			return check.resolveAutoFix(m, tokens, message, resolve);
+		}
+	}
+
+	throw new Exception("Cannot find analyzer " ~ message.checkName
+		~ " to resolve autofix with.");
 }
 
 void improveAutoFixWhitespace(scope const(char)[] code, AutoFix.CodeReplacement[] replacements)

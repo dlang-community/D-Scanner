@@ -37,8 +37,8 @@ final class DeleteCheck : BaseAnalyzer
 
 unittest
 {
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.delete_check = Check.enabled;
@@ -52,6 +52,26 @@ unittest
 			auto a = new Class();
 			delete a; /+
 			^^^^^^ [warn]: Avoid using the 'delete' keyword. +/
+		}
+	}c, sac);
+
+	assertAutoFix(q{
+		void testDelete()
+		{
+			int[int] data = [1 : 2];
+			delete data[1]; // fix
+
+			auto a = new Class();
+			delete a; // fix
+		}
+	}c, q{
+		void testDelete()
+		{
+			int[int] data = [1 : 2];
+			destroy(data[1]); // fix
+
+			auto a = new Class();
+			destroy(a); // fix
 		}
 	}c, sac);
 

@@ -254,10 +254,10 @@ public:
 
 @system unittest
 {
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
-	import std.stdio : stderr;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
 	import std.format : format;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.final_attribute_check = Check.enabled;
@@ -430,6 +430,63 @@ public:
 		{
 			final class UsesEH{}
 			final void comeFrom(){}
+		}
+	}, sac);
+
+
+	assertAutoFix(q{
+		final void foo(){} // fix
+		void foo(){final void foo(){}} // fix
+		void foo()
+		{
+			static if (true)
+			final class A{ private: final protected void foo(){}} // fix
+		}
+		final struct Foo{} // fix
+		final union Foo{} // fix
+		class Foo{private final void foo(){}} // fix
+		class Foo{private: final void foo(){}} // fix
+		interface Foo{final void foo(T)(){}} // fix
+		final class Foo{final void foo(){}} // fix
+		private: final class Foo {public: private final void foo(){}} // fix
+		class Foo {final static void foo(){}} // fix
+		class Foo
+		{
+			void foo(){}
+			static: final void foo(){} // fix
+		}
+		class Foo
+		{
+			void foo(){}
+			static{ final void foo(){}} // fix
+			void foo(){}
+		}
+	}, q{
+		void foo(){} // fix
+		void foo(){ void foo(){}} // fix
+		void foo()
+		{
+			static if (true)
+			final class A{ private: protected void foo(){}} // fix
+		}
+		struct Foo{} // fix
+		union Foo{} // fix
+		class Foo{private void foo(){}} // fix
+		class Foo{private: void foo(){}} // fix
+		interface Foo{ void foo(T)(){}} // fix
+		final class Foo{ void foo(){}} // fix
+		private: final class Foo {public: private void foo(){}} // fix
+		class Foo { static void foo(){}} // fix
+		class Foo
+		{
+			void foo(){}
+			static: void foo(){} // fix
+		}
+		class Foo
+		{
+			void foo(){}
+			static{ void foo(){}} // fix
+			void foo(){}
 		}
 	}, sac);
 

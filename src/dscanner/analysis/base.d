@@ -276,7 +276,7 @@ public:
 		_messages = new MessageSet;
 	}
 
-	protected string getName()
+	string getName()
 	{
 		assert(0);
 	}
