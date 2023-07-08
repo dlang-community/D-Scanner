@@ -15,7 +15,45 @@
 			"message": "Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.",
 			"name": "function_attribute_check",
 			"supplemental": [],
-			"type": "warn"
+			"type": "warn",
+			"autofixes": [
+				{
+					"name": "Mark function `const`",
+					"replacements": [
+						{
+							"newText": " const",
+							"range": [
+								24,
+								24
+							]
+						}
+					]
+				},
+				{
+					"name": "Mark function `inout`",
+					"replacements": [
+						{
+							"newText": " inout",
+							"range": [
+								24,
+								24
+							]
+						}
+					]
+				},
+				{
+					"name": "Mark function `immutable`",
+					"replacements": [
+						{
+							"newText": " immutable",
+							"range": [
+								24,
+								24
+							]
+						}
+					]
+				}
+			]
 		}
 	],
 	"lineOfCodeCount": 0,

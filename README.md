@@ -91,6 +91,11 @@ dscanner -S source/
 dscanner --report source/
 ```
 
+The `--report` switch includes all information, plus cheap to compute autofixes
+that are already resolved ahead of time, as well as the names for the autofixes
+that need to be resolved using the `--resolveMessage` switch like described
+below.
+
 You can also specify custom formats using `-f` / `--errorFormat`, where there
 are also built-in formats for GitHub Actions:
 
@@ -101,7 +106,7 @@ dscanner -S -f github source/
 dscanner -S -f '{filepath}({line}:{column})[{type}]: {message}' source/
 ```
 
-To collect automatic issue fixes for a given location use
+To resolve automatic issue fixes for a given location use
 
 ```sh
 # collecting automatic issue fixes
