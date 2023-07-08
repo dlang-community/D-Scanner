@@ -765,6 +765,149 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	return set;
 }
 
+void improveAutoFixWhitespace(scope const(char)[] code, AutoFix.CodeReplacement[] replacements)
+{
+	import std.ascii : isWhite;
+	import std.string : strip;
+	import std.utf : stride, strideBack;
+
+	enum WS
+	{
+		none, tab, space, newline
+	}
+
+	WS getWS(size_t i)
+	{
+		if (cast(ptrdiff_t) i < 0 || i >= code.length)
+			return WS.newline;
+		switch (code[i])
+		{
+		case '\n':
+		case '\r':
+			return WS.newline;
+		case '\t':
+			return WS.tab;
+		case ' ':
+			return WS.space;
+		default:
+			return WS.none;
+		}
+	}
+
+	foreach (ref replacement; replacements)
+	{
+		assert(replacement.range[0] >= 0 && replacement.range[0] < code.length
+			&& replacement.range[1] >= 0 && replacement.range[1] < code.length
+			&& replacement.range[0] <= replacement.range[1], "trying to autofix whitespace on code that doesn't match with what the replacements were generated for");
+
+		void growRight()
+		{
+			// this is basically: replacement.range[1]++;
+			if (code[replacement.range[1] .. $].startsWith("\r\n"))
+				replacement.range[1] += 2;
+			else if (replacement.range[1] < code.length)
+				replacement.range[1] += code.stride(replacement.range[1]);
+		}
+
+		void growLeft()
+		{
+			// this is basically: replacement.range[0]--;
+			if (code[0 .. replacement.range[0]].endsWith("\r\n"))
+				replacement.range[0] -= 2;
+			else if (replacement.range[0] > 0)
+				replacement.range[0] -= code.strideBack(replacement.range[0]);
+		}
+
+		if (replacement.newText.strip.length)
+		{
+			if (replacement.newText.startsWith(" "))
+			{
+				// we insert with leading space, but there is a space/NL/SOF before
+				// remove to-be-inserted space
+				if (getWS(replacement.range[0] - 1))
+					replacement.newText = replacement.newText[1 .. $];
+			}
+			if (replacement.newText.startsWith("]", ")"))
+			{
+				// when inserting `)`, consume regular space before
+				if (getWS(replacement.range[0] - 1) == WS.space)
+					growLeft();
+			}
+			if (replacement.newText.endsWith(" "))
+			{
+				// we insert with trailing space, but there is a space/NL/EOF after, chomp off
+				if (getWS(replacement.range[1]))
+					replacement.newText = replacement.newText[0 .. $ - 1];
+			}
+			if (replacement.newText.endsWith("[", "("))
+			{
+				if (getWS(replacement.range[1]))
+					growRight();
+			}
+		}
+		else if (!replacement.newText.length)
+		{
+			// after removing code and ending up with whitespace on both sides,
+			// collapse 2 whitespace into one
+			switch (getWS(replacement.range[1]))
+			{
+			case WS.newline:
+				switch (getWS(replacement.range[0] - 1))
+				{
+				case WS.newline:
+					// after removal we have NL ~ NL or SOF ~ NL,
+					// remove right NL
+					growRight();
+					break;
+				case WS.space:
+				case WS.tab:
+					// after removal we have space ~ NL,
+					// remove the space
+					growLeft();
+					break;
+				default:
+					break;
+				}
+				break;
+			case WS.space:
+			case WS.tab:
+				// for NL ~ space, SOF ~ space, space ~ space, tab ~ space,
+				// for NL ~ tab, SOF ~ tab, space ~ tab, tab ~ tab
+				// remove right space/tab
+				if (getWS(replacement.range[0] - 1))
+					growRight();
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+unittest
+{
+	AutoFix.CodeReplacement r(int start, int end, string s)
+	{
+		return AutoFix.CodeReplacement([start, end], s);
+	}
+
+	string test(string code, AutoFix.CodeReplacement[] replacements...)
+	{
+		replacements.sort!"a.range[0] < b.range[0]";
+		improveAutoFixWhitespace(code, replacements);
+		foreach_reverse (r; replacements)
+			code = code[0 .. r.range[0]] ~ r.newText ~ code[r.range[1] .. $];
+		return code;
+	}
+
+	assert(test("import a;\nimport b;", r(0, 9, "")) == "import b;");
+	assert(test("import a;\r\nimport b;", r(0, 9, "")) == "import b;");
+	assert(test("import a;\nimport b;", r(8, 9, "")) == "import a\nimport b;");
+	assert(test("import a;\nimport b;", r(7, 8, "")) == "import ;\nimport b;");
+	assert(test("import a;\r\nimport b;", r(7, 8, "")) == "import ;\r\nimport b;");
+	assert(test("a b c", r(2, 3, "")) == "a c");
+}
+
 version (unittest)
 {
 	shared static this()
