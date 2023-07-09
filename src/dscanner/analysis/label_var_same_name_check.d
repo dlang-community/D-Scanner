@@ -13,7 +13,7 @@ import dscanner.analysis.helpers;
 /**
  * Checks for labels and variables that have the same name.
  */
-final class LabelVarNameCheck : BaseAnalyzer
+final class LabelVarNameCheck : ScopedBaseAnalyzer
 {
 	mixin AnalyzerInfo!"label_var_same_name_check";
 
@@ -21,14 +21,6 @@ final class LabelVarNameCheck : BaseAnalyzer
 	{
 		super(fileName, sc, skipTests);
 	}
-
-	mixin ScopedVisit!Module;
-	mixin ScopedVisit!BlockStatement;
-	mixin ScopedVisit!StructBody;
-	mixin ScopedVisit!CaseStatement;
-	mixin ScopedVisit!ForStatement;
-	mixin ScopedVisit!IfStatement;
-	mixin ScopedVisit!TemplateDeclaration;
 
 	mixin AggregateVisit!ClassDeclaration;
 	mixin AggregateVisit!StructDeclaration;
@@ -64,7 +56,7 @@ final class LabelVarNameCheck : BaseAnalyzer
 		--conditionalDepth;
 	}
 
-	alias visit = BaseAnalyzer.visit;
+	alias visit = ScopedBaseAnalyzer.visit;
 
 private:
 
@@ -77,16 +69,6 @@ private:
 			pushAggregateName(n.name);
 			n.accept(this);
 			popAggregateName();
-		}
-	}
-
-	template ScopedVisit(NodeType)
-	{
-		override void visit(const NodeType n)
-		{
-			pushScope();
-			n.accept(this);
-			popScope();
 		}
 	}
 
@@ -128,12 +110,12 @@ private:
 		return stack[$ - 1];
 	}
 
-	void pushScope()
+	protected override void pushScope()
 	{
 		stack.length++;
 	}
 
-	void popScope()
+	protected override void popScope()
 	{
 		stack.length--;
 	}
@@ -276,6 +258,21 @@ unittest
 {
 	int aa;
 	struct a { int a; }
+}
+
+unittest
+{
+	switch (1) {
+	case 1:
+		int x, c1;
+		break;
+	case 2:
+		int x, c2;
+		break;
+	default:
+		int x, def;
+		break;
+	}
 }
 
 }c, sac);

@@ -17,7 +17,7 @@ import std.range : empty, front, walkLength;
 /**
  * Checks for redundant attributes. At the moment only visibility attributes.
  */
-final class RedundantAttributesCheck : BaseAnalyzer
+final class RedundantAttributesCheck : ScopedBaseAnalyzer
 {
 	mixin AnalyzerInfo!"redundant_attributes_check";
 
@@ -67,15 +67,8 @@ final class RedundantAttributesCheck : BaseAnalyzer
 		}
 	}
 
-	alias visit = BaseAnalyzer.visit;
+	alias visit = ScopedBaseAnalyzer.visit;
 
-	mixin ScopedVisit!Module;
-	mixin ScopedVisit!BlockStatement;
-	mixin ScopedVisit!StructBody;
-	mixin ScopedVisit!CaseStatement;
-	mixin ScopedVisit!ForStatement;
-	mixin ScopedVisit!IfStatement;
-	mixin ScopedVisit!TemplateDeclaration;
 	mixin ScopedVisit!ConditionalDeclaration;
 
 private:
@@ -153,22 +146,12 @@ private:
 		return currentAttributes.map!(a => a.attribute.type.str).joiner(",").to!string;
 	}
 
-	template ScopedVisit(NodeType)
-	{
-		override void visit(const NodeType n)
-		{
-			pushScope();
-			n.accept(this);
-			popScope();
-		}
-	}
-
-	void pushScope()
+	protected override void pushScope()
 	{
 		stack.length++;
 	}
 
-	void popScope()
+	protected override void popScope()
 	{
 		stack.length--;
 	}

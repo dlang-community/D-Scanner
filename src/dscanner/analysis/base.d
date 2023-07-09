@@ -5,6 +5,7 @@ import dparse.lexer : IdType, str, Token;
 import dsymbol.scope_ : Scope;
 import std.array;
 import std.container;
+import std.meta : AliasSeq;
 import std.string;
 import std.sumtype;
 
@@ -497,4 +498,308 @@ const(Token)[] findTokenForDisplay(const Token[] tokens, IdType type, const(Toke
 		if (token.type == type)
 			return tokens[i .. i + 1];
 	return fallback is null ? tokens : fallback;
+}
+
+abstract class ScopedBaseAnalyzer : BaseAnalyzer
+{
+public:
+	this(string fileName, const Scope* sc, bool skipTests = false)
+	{
+		super(fileName, sc, skipTests);
+	}
+
+
+	template ScopedVisit(NodeType)
+	{
+		override void visit(const NodeType n)
+		{
+			pushScopeImpl();
+			scope (exit)
+				popScopeImpl();
+			n.accept(this);
+		}
+	}
+
+	alias visit = BaseAnalyzer.visit;
+
+	mixin ScopedVisit!BlockStatement;
+	mixin ScopedVisit!ForeachStatement;
+	mixin ScopedVisit!ForStatement;
+	mixin ScopedVisit!IfStatement;
+	mixin ScopedVisit!Module;
+	mixin ScopedVisit!StructBody;
+	mixin ScopedVisit!TemplateDeclaration;
+	mixin ScopedVisit!WithStatement;
+	mixin ScopedVisit!WhileStatement;
+
+	override void visit(const SwitchStatement switchStatement)
+	{
+		switchStack.length++;
+		scope (exit)
+			switchStack.length--;
+		switchStatement.accept(this);
+	}
+
+	static foreach (T; AliasSeq!(CaseStatement, DefaultStatement, CaseRangeStatement))
+		override void visit(const T stmt)
+		{
+			// case and default statements always open new scopes and close
+			// previous case scopes
+			bool close = switchStack.length && switchStack[$ - 1].inCase;
+			bool b = switchStack[$ - 1].inCase;
+			switchStack[$ - 1].inCase = true;
+			scope (exit)
+				switchStack[$ - 1].inCase = b;
+			if (close)
+			{
+				popScope();
+				pushScope();
+				stmt.accept(this);
+			}
+			else
+			{
+				pushScope();
+				stmt.accept(this);
+				popScope();
+			}
+		}
+
+protected:
+	/// Called on new scopes, which includes for example:
+	///
+	/// - `module m; /* here, entire file */`
+	/// - `{ /* here */ }`
+	/// - `if () { /* here */ } else { /* here */ }`
+	/// - `foreach (...) { /* here */ }`
+	/// - `case 1: /* here */ break;`
+	/// - `case 1: /* here, up to next case */ goto case; case 2: /* here 2 */ break;`
+	/// - `default: /* here */ break;`
+	/// - `struct S { /* here */ }`
+	///
+	/// But doesn't include:
+	///
+	/// - `static if (x) { /* not a separate scope */ }` (use `mixin ScopedVisit!ConditionalDeclaration;`)
+	///
+	/// You can `mixin ScopedVisit!NodeType` to automatically call push/popScope
+	/// on occurences of that NodeType.
+	abstract void pushScope();
+	/// ditto
+	abstract void popScope();
+
+	void pushScopeImpl()
+	{
+		if (switchStack.length)
+			switchStack[$ - 1].scopeDepth++;
+		pushScope();
+	}
+
+	void popScopeImpl()
+	{
+		if (switchStack.length)
+			switchStack[$ - 1].scopeDepth--;
+		popScope();
+	}
+
+	struct SwitchStack
+	{
+		int scopeDepth;
+		bool inCase;
+	}
+
+	SwitchStack[] switchStack;
+}
+
+unittest
+{
+	import core.exception : AssertError;
+	import dparse.lexer : getTokensForParser, LexerConfig, StringCache;
+	import dparse.parser : parseModule;
+	import dparse.rollback_allocator : RollbackAllocator;
+	import std.conv : to;
+	import std.exception : assertThrown;
+
+	// test where we can:
+	// call `depth(1);` to check that the scope depth is at 1
+	// if calls are syntactically not valid, define `auto depth = 1;`
+	//
+	// call `isNewScope();` to check that the scope hasn't been checked with isNewScope before
+	// if calls are syntactically not valid, define `auto isNewScope = void;`
+	//
+	// call `isOldScope();` to check that the scope has already been checked with isNewScope
+	// if calls are syntactically not valid, define `auto isOldScope = void;`
+
+	class TestScopedAnalyzer : ScopedBaseAnalyzer
+	{
+		this(size_t codeLine)
+		{
+			super("stdin", null, false);
+
+			this.codeLine = codeLine;
+		}
+
+		override void visit(const FunctionCallExpression f)
+		{
+			int depth = cast(int) stack.length;
+			if (f.unaryExpression && f.unaryExpression.primaryExpression
+				&& f.unaryExpression.primaryExpression.identifierOrTemplateInstance)
+			{
+				auto fname = f.unaryExpression.primaryExpression.identifierOrTemplateInstance.identifier.text;
+				if (fname == "depth")
+				{
+					assert(f.arguments.tokens.length == 3);
+					auto expected = f.arguments.tokens[1].text.to!int;
+					assert(expected == depth, "Expected depth="
+						~ expected.to!string ~ " in line " ~ (codeLine + f.tokens[0].line).to!string
+						~ ", but got depth=" ~ depth.to!string);
+				}
+				else if (fname == "isNewScope")
+				{
+					assert(!stack[$ - 1]);
+					stack[$ - 1] = true;
+				}
+				else if (fname == "isOldScope")
+				{
+					assert(stack[$ - 1]);
+				}
+			}
+		}
+
+		override void visit(const AutoDeclarationPart p)
+		{
+			int depth = cast(int) stack.length;
+
+			if (p.identifier.text == "depth")
+			{
+				assert(p.initializer.tokens.length == 1);
+				auto expected = p.initializer.tokens[0].text.to!int;
+				assert(expected == depth, "Expected depth="
+					~ expected.to!string ~ " in line " ~ (codeLine + p.tokens[0].line).to!string
+					~ ", but got depth=" ~ depth.to!string);
+			}
+			else if (p.identifier.text == "isNewScope")
+			{
+				assert(!stack[$ - 1]);
+				stack[$ - 1] = true;
+			}
+			else if (p.identifier.text == "isOldScope")
+			{
+				assert(stack[$ - 1]);
+			}
+		}
+
+		override void pushScope()
+		{
+			stack.length++;
+		}
+
+		override void popScope()
+		{
+			stack.length--;
+		}
+
+		alias visit = ScopedBaseAnalyzer.visit;
+
+		bool[] stack;
+		size_t codeLine;
+	}
+
+	void testScopes(string code, size_t codeLine = __LINE__ - 1)
+	{
+		StringCache cache = StringCache(4096);
+		LexerConfig config;
+		RollbackAllocator rba;
+		auto tokens = getTokensForParser(code, config, &cache);
+		Module m = parseModule(tokens, "stdin", &rba);
+
+		auto analyzer = new TestScopedAnalyzer(codeLine);
+		analyzer.visit(m);
+	}
+
+	testScopes(q{
+		auto isNewScope = void;
+		auto depth = 1;
+		auto isOldScope = void;
+	});
+
+	assertThrown!AssertError(testScopes(q{
+		auto isNewScope = void;
+		auto isNewScope = void;
+	}));
+
+	assertThrown!AssertError(testScopes(q{
+		auto isOldScope = void;
+	}));
+
+	assertThrown!AssertError(testScopes(q{
+		auto depth = 2;
+	}));
+
+	testScopes(q{
+		auto isNewScope = void;
+		auto depth = 1;
+		
+		void foo() {
+			isNewScope();
+			isOldScope();
+			depth(2);
+			switch (a)
+			{
+			case 1:
+				isNewScope();
+				depth(4);
+				break;
+				depth(4);
+				isOldScope();
+			case 2:
+				isNewScope();
+				depth(4);
+				if (a)
+				{
+					isNewScope();
+					depth(6);
+				default:
+					isNewScope();
+					depth(6); // since cases/default opens new scope
+					break;
+				case 3:
+					isNewScope();
+					depth(6); // since cases/default opens new scope
+					break;
+				default:
+					isNewScope();
+					depth(6); // since cases/default opens new scope
+					break;
+				}
+				break;
+				depth(4);
+			default:
+				isNewScope();
+				depth(4);
+				break;
+				depth(4);
+			}
+
+			isOldScope();
+			depth(2);
+
+			switch (a)
+			{
+				isNewScope();
+				depth(3);
+				isOldScope();
+			default:
+				isNewScope();
+				depth(4);
+				break;
+				isOldScope();
+			case 1:
+				isNewScope();
+				depth(4);
+				break;
+				isOldScope();
+			}
+		}
+
+		auto isOldScope = void;
+	});
 }
