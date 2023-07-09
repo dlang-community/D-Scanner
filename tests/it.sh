@@ -27,6 +27,10 @@ echo '2. test no changes for simple enter pressing'
 cp -v it/autofix_cli/source.d it/autofix_cli/test.d
 printf "\n" | ../bin/dscanner fix it/autofix_cli/test.d
 diff it/autofix_cli/test.d it/autofix_cli/source.d
+echo '2.1. test no changes entering 0'
+cp -v it/autofix_cli/source.d it/autofix_cli/test.d
+printf "0\n" | ../bin/dscanner fix it/autofix_cli/test.d
+diff it/autofix_cli/test.d it/autofix_cli/source.d
 echo '3. test change applies automatically with --applySingle'
 cp -v it/autofix_cli/source.d it/autofix_cli/test.d
 ../bin/dscanner fix --applySingle it/autofix_cli/test.d | grep -F 'Writing changes to it/autofix_cli/test.d'
@@ -34,5 +38,9 @@ diff it/autofix_cli/test.d it/autofix_cli/fixed.d
 echo '4. test change apply when entering "1"'
 cp -v it/autofix_cli/source.d it/autofix_cli/test.d
 printf "1\n" | ../bin/dscanner fix it/autofix_cli/test.d | grep -F 'Writing changes to it/autofix_cli/test.d'
+diff it/autofix_cli/test.d it/autofix_cli/fixed.d
+echo '5. test invalid selection reasks what to apply'
+cp -v it/autofix_cli/source.d it/autofix_cli/test.d
+printf "2\n-1\n1000\na\n1\n" | ../bin/dscanner fix it/autofix_cli/test.d | grep -F 'Writing changes to it/autofix_cli/test.d'
 diff it/autofix_cli/test.d it/autofix_cli/fixed.d
 

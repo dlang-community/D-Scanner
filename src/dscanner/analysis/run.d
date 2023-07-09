@@ -616,7 +616,7 @@ private struct UserSelect
 					throw new Exception("Selected option number out of range.");
 				return item;
 			}
-			catch (ConvException e)
+			catch (Exception e)
 			{
 				writeln("Invalid selection, try again. ", e.message);
 			}
