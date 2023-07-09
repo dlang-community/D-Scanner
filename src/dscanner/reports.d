@@ -55,6 +55,9 @@ class DScannerJsonReporter
 
 	private static JSONValue toJson(Issue issue)
 	{
+		import std.sumtype : match;
+		import dscanner.analysis.base : AutoFix;
+
 		// dfmt off
 		JSONValue js = JSONValue([
 			"key": JSONValue(issue.message.key),
@@ -78,6 +81,27 @@ class DScannerJsonReporter
 						"endColumn": JSONValue(a.endColumn),
 						"endIndex": JSONValue(a.endIndex),
 						"message": JSONValue(a.message),
+					])
+				).array
+			),
+			"autofixes": JSONValue(
+				issue.message.autofixes.map!(a =>
+					JSONValue([
+						"name": JSONValue(a.name),
+						"replacements": a.replacements.match!(
+							(const AutoFix.CodeReplacement[] replacements) => JSONValue(
+								replacements.map!(r => JSONValue([
+									"range": JSONValue([
+										JSONValue(r.range[0]),
+										JSONValue(r.range[1])
+									]),
+									"newText": JSONValue(r.newText)
+								])).array
+							),
+							(const AutoFix.ResolveContext _) => JSONValue(
+								"resolvable"
+							)
+						)
 					])
 				).array
 			)
