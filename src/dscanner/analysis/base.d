@@ -525,12 +525,14 @@ public:
 	mixin ScopedVisit!BlockStatement;
 	mixin ScopedVisit!ForeachStatement;
 	mixin ScopedVisit!ForStatement;
-	mixin ScopedVisit!IfStatement;
 	mixin ScopedVisit!Module;
 	mixin ScopedVisit!StructBody;
 	mixin ScopedVisit!TemplateDeclaration;
 	mixin ScopedVisit!WithStatement;
 	mixin ScopedVisit!WhileStatement;
+	mixin ScopedVisit!DoStatement;
+	// mixin ScopedVisit!SpecifiedFunctionBody; // covered by BlockStatement
+	mixin ScopedVisit!ShortenedFunctionBody;
 
 	override void visit(const SwitchStatement switchStatement)
 	{
@@ -538,6 +540,23 @@ public:
 		scope (exit)
 			switchStack.length--;
 		switchStatement.accept(this);
+	}
+
+	override void visit(const IfStatement ifStatement)
+	{
+		pushScopeImpl();
+		if (ifStatement.condition)
+			ifStatement.condition.accept(this);
+		if (ifStatement.thenStatement)
+			ifStatement.thenStatement.accept(this);
+		popScopeImpl();
+
+		if (ifStatement.elseStatement)
+		{
+			pushScopeImpl();
+			ifStatement.elseStatement.accept(this);
+			popScopeImpl();
+		}
 	}
 
 	static foreach (T; AliasSeq!(CaseStatement, DefaultStatement, CaseRangeStatement))
