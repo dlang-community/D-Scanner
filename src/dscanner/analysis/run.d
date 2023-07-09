@@ -611,12 +611,12 @@ private struct UserSelect
 					if (special.shorthands.canFind(input))
 						return special.id;
 
-				int item = input.to!int;
-				if (item < 0 || item > regularItems.length)
+				int item = input.to!int - 1;
+				if (item < 0 || item >= regularItems.length)
 					throw new Exception("Selected option number out of range.");
 				return item;
 			}
-			catch (ConvException e)
+			catch (Exception e)
 			{
 				writeln("Invalid selection, try again. ", e.message);
 			}
