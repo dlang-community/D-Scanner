@@ -47,14 +47,15 @@ public:
 
 	package static const(Token)[] findAutoReturnType(const(FunctionDeclaration) decl)
 	{
-		auto autoFunTokens = decl.storageClasses
-			.map!(a => a.token.type == tok!"auto"
-					? [a.token]
-					: a.atAttribute
-						? a.atAttribute.tokens
-						: null)
-			.filter!(a => a.length > 0);
-		return autoFunTokens.empty ? null : autoFunTokens.front;
+		const(Token)[] lastAtAttribute;
+		foreach (storageClass; decl.storageClasses)
+		{
+			if (storageClass.token.type == tok!"auto")
+				return storageClass.tokens;
+			else if (storageClass.atAttribute)
+				lastAtAttribute = storageClass.atAttribute.tokens;
+		}
+		return lastAtAttribute;
 	}
 
 	override void visit(const(FunctionDeclaration) decl)
@@ -195,11 +196,15 @@ unittest
 		^^^^ [warn]: %s +/
 		auto doStuff(){} /+
 		^^^^ [warn]: %s +/
+		@Custom
+		auto doStuff(){} /+
+		^^^^ [warn]: %s +/
 		int doStuff(){auto doStuff(){}} /+
 		              ^^^^ [warn]: %s +/
 		auto doStuff(){return 0;}
 		int doStuff(){/*error but not the aim*/}
 	}c.format(
+		AutoFunctionChecker.MESSAGE,
 		AutoFunctionChecker.MESSAGE,
 		AutoFunctionChecker.MESSAGE,
 		AutoFunctionChecker.MESSAGE,
@@ -275,10 +280,14 @@ unittest
 		auto doStuff(){} // fix
 		@property doStuff(){} // fix
 		@safe doStuff(){} // fix
+		@Custom
+		auto doStuff(){} // fix
 	}c, q{
 		void doStuff(){} // fix
 		@property void doStuff(){} // fix
 		@safe void doStuff(){} // fix
+		@Custom
+		void doStuff(){} // fix
 	}c, sac);
 
 	stderr.writeln("Unittest for AutoFunctionChecker passed.");
