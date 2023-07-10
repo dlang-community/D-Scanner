@@ -133,7 +133,8 @@ private string formatContext(Message.Diagnostic diagnostic, scope const(char)[] 
 	import std.string : indexOf, lastIndexOf;
 
 	if (diagnostic.startIndex >= diagnostic.endIndex || diagnostic.endIndex > code.length
-		|| diagnostic.startColumn >= diagnostic.endColumn || diagnostic.endColumn == 0)
+		|| diagnostic.startColumn >= diagnostic.endColumn || diagnostic.endColumn == 0
+		|| diagnostic.startColumn == 0)
 		return null;
 
 	auto lineStart = code.lastIndexOf('\n', diagnostic.startIndex) + 1;
