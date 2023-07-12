@@ -49,8 +49,7 @@ final class LambdaReturnCheck : BaseAnalyzer
 					.concat(AutoFix.insertionAfter(fLit.tokens[0], ")"))
 					.concat(AutoFix.replacement(arrow[0], ""));
 		}
-		autofixes ~= AutoFix.insertionBefore(*endIncl, "(", "Add parenthesis (return delegate)")
-			.concat(AutoFix.insertionAfter(fe.specifiedFunctionBody.tokens[$ - 1], ")"));
+		autofixes ~= AutoFix.insertionBefore(*endIncl, "() ", "Add parenthesis (return delegate)");
 		addErrorMessage(tokens, KEY, "This lambda returns a lambda. Add parenthesis to clarify.",
 			autofixes);
 	}
@@ -101,11 +100,11 @@ unittest
 		{
 			int[] b;
 			auto a = b.map!((a) { return a * a + 2; }).array(); // fix:0
-			auto a = b.map!(a => ({ return a * a + 2; })).array(); // fix:1
+			auto a = b.map!(a => () { return a * a + 2; }).array(); // fix:1
 			pragma(msg, typeof((a) { return a; })); // fix:0
-			pragma(msg, typeof(a => ({ return a; }))); // fix:1
+			pragma(msg, typeof(a => () { return a; })); // fix:1
 			pragma(msg, typeof((a) { return a; })); // fix:0
-			pragma(msg, typeof((a) => ({ return a; }))); // fix:1
+			pragma(msg, typeof((a) => () { return a; })); // fix:1
 		}
 	}c, sac);
 
