@@ -82,7 +82,8 @@ public:
 			}
 			else
 				addErrorMessage(autoTokens, KEY, MESSAGE,
-					[AutoFix.replacement(autoTokens[0], "void")]);
+					[AutoFix.replacement(autoTokens[0], "", "Replace `auto` with `void`")
+						.concat(AutoFix.insertionAt(decl.name.index, "void "))]);
 		}
 	}
 
@@ -277,12 +278,14 @@ unittest
 
 
 	assertAutoFix(q{
+		auto ref doStuff(){} // fix
 		auto doStuff(){} // fix
 		@property doStuff(){} // fix
 		@safe doStuff(){} // fix
 		@Custom
 		auto doStuff(){} // fix
 	}c, q{
+		ref void doStuff(){} // fix
 		void doStuff(){} // fix
 		@property void doStuff(){} // fix
 		@safe void doStuff(){} // fix
