@@ -165,7 +165,7 @@ struct StaticAnalysisConfig
 	string lambda_return_check = Check.enabled;
 
 	@INI("Check for auto function without return statement")
-	string auto_function_check = Check.enabled;
+	string auto_function_check = Check.disabled;
 
 	@INI("Check for sortedness of imports")
 	string imports_sortedness = Check.disabled;
