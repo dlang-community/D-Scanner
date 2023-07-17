@@ -125,6 +125,12 @@ final class UnusedVariableCheck : UnusedStorageCheck
 		__traits(isPOD);
 	}
 
+	void unitthreaded()
+	{
+		auto testVar = foo.sort!myComp;
+		genVar.should == testVar;
+	}
+
 	}c, sac);
 	stderr.writeln("Unittest for UnusedVariableCheck passed.");
 }

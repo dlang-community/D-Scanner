@@ -79,6 +79,13 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 	mixin PartsUseVariables!ThrowExpression;
 	mixin PartsUseVariables!CastExpression;
 
+	override void dynamicDispatch(const ExpressionNode n)
+	{
+		interestDepth++;
+		super.dynamicDispatch(n);
+		interestDepth--;
+	}
+
 	override void visit(const SwitchStatement switchStatement)
 	{
 		if (switchStatement.expression !is null)
