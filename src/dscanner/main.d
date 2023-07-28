@@ -64,6 +64,7 @@ else
 	bool report;
 	bool skipTests;
 	bool applySingleFixes;
+	string theme;
 	string resolveMessage;
 	string reportFormat;
 	string reportFile;
@@ -81,6 +82,7 @@ else
 		getopt(args, std.getopt.config.caseSensitive,
 				"sloc|l", &sloc,
 				"highlight", &highlight,
+				"theme", &theme,
 				"ctags|c", &ctags,
 				"help|h", &help,
 				"etags|e", &etags,
@@ -253,7 +255,7 @@ else
 		if (highlight)
 		{
 			auto tokens = byToken(bytes, config, &cache);
-			dscanner.highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1]);
+			dscanner.highlighter.highlight(tokens, args.length == 1 ? "stdin" : args[1], theme);
 			return 0;
 		}
 		else if (tokenDump)
