@@ -202,7 +202,7 @@ To avoid these cases, it's possible to pass the "--skipTests" option.
 #### Configuration
 By default all checks are enabled. Individual checks can be enabled or disabled
 by using a configuration file. Such a file can be placed, for example, is the root directory of your project.
-Running ```dscanner --defaultConfig``` will generate a default configuration file and print the file's location.
+Running `dscanner --defaultConfig` will generate a default configuration file and print the file's location.
 You can also specify the path to a configuration file by using the "--config" option if
 you want to override the default or the local settings.
 
@@ -306,8 +306,15 @@ and case tokens in the file.
 
 ### Syntax Highlighting
 The "--highlight" option prints the given source file as syntax-highlighted HTML
-to the standard output. The CSS styling is currently hard-coded to use the
-[Solarized](http://ethanschoonover.com/solarized) color scheme.
+to the standard output. The CSS styling uses the [Solarized](http://ethanschoonover.com/solarized)
+color scheme by default, but can be customised using the "--theme" option.
+
+The following themes are available:
+
+- `solarized`
+- `solarized-dark`
+- `gruvbox`
+- `gruvbox-dark`
 
 	No example. It would take up too much space
 

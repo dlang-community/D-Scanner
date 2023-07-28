@@ -10,8 +10,10 @@ import std.array;
 import dparse.lexer;
 
 // http://ethanschoonover.com/solarized
-void highlight(R)(ref R tokens, string fileName)
+void highlight(R)(ref R tokens, string fileName, string themeName)
 {
+	immutable(Theme)* theme = getTheme(themeName);
+
 	stdout.writeln(q"[
 <!DOCTYPE html>
 <html>
@@ -20,17 +22,19 @@ void highlight(R)(ref R tokens, string fileName)
 	stdout.writeln("<title>", fileName, "</title>");
 	stdout.writeln(q"[</head>
 <body>
-<style type="text/css">
-html  { background-color: #fdf6e3; color: #002b36; }
-.kwrd { color: #b58900; font-weight: bold;  }
-.com  { color: #93a1a1; font-style: italic; }
-.num  { color: #dc322f; font-weight: bold;  }
-.str  { color: #2aa198; font-style: italic; }
-.op   { color: #586e75; font-weight: bold;  }
-.type { color: #268bd2; font-weight: bold;  }
-.cons { color: #859900; font-weight: bold;  }
+<style type="text/css">]");
+	stdout.writefln("
+html  { background-color: %s; color: %s; }
+.kwrd { color: %s; font-weight: bold;  }
+.com  { color: %s; font-style: italic; }
+.num  { color: %s; font-weight: bold;  }
+.str  { color: %s; font-style: italic; }
+.op   { color: %s; font-weight: bold;  }
+.type { color: %s; font-weight: bold;  }
+.cons { color: %s; font-weight: bold;  }
 </style>
-<pre>]");
+<pre>", theme.bg, theme.fg, theme.kwrd, theme.com, theme.num, theme.str,
+			theme.op, theme.type, theme.cons);
 
 	while (!tokens.empty)
 	{
@@ -75,4 +79,38 @@ void writeSpan(string cssClass, string value)
 	else
 		stdout.write(`<span class="`, cssClass, `">`, value.replace("&",
 				"&amp;").replace("<", "&lt;"), `</span>`);
+}
+
+struct Theme
+{
+	string bg;
+	string fg;
+	string kwrd;
+	string com;
+	string num;
+	string str;
+	string op;
+	string type;
+	string cons;
+}
+
+immutable(Theme)* getTheme(string themeName)
+{
+	immutable Theme[string] themes = [
+		"solarized": Theme("#fdf6e3", "#002b36", "#b58900", "#93a1a1", "#dc322f", "#2aa198", "#586e75",
+				"#268bd2", "#859900"),
+		"solarized-dark": Theme("#002b36", "#fdf6e3", "#b58900", "#586e75", "#dc322f", "#2aa198",
+				"#93a1a1", "#268bd2", "#859900"),
+		"gruvbox": Theme("#fbf1c7", "#282828", "#b57614", "#a89984", "#9d0006", "#427b58",
+				"#504945", "#076678", "#79740e"),
+		"gruvbox-dark": Theme("#282828", "#fbf1c7", "#d79921", "#7c6f64",
+				"#cc241d", "#689d6a", "#a89984", "#458588", "#98971a")
+	];
+
+	immutable(Theme)* theme = themeName in themes;
+	// Default theme
+	if (theme is null)
+		theme = &themes["solarized"];
+
+	return theme;
 }
