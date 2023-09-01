@@ -73,6 +73,7 @@ import dscanner.analysis.final_attribute;
 import dscanner.analysis.vcall_in_ctor;
 import dscanner.analysis.useless_initializer;
 import dscanner.analysis.allman;
+import dscanner.analysis.always_curly;
 import dscanner.analysis.redundant_attributes;
 import dscanner.analysis.has_public_example;
 import dscanner.analysis.assert_without_msg;
@@ -916,6 +917,10 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	if (moduleName.shouldRun!AllManCheck(analysisConfig))
 		checks ~= new AllManCheck(fileName, tokens,
 		analysisConfig.allman_braces_check == Check.skipTests && !ut);
+
+	if (moduleName.shouldRun!AlwaysCurlyCheck(analysisConfig))
+		checks ~= new AlwaysCurlyCheck(fileName, tokens,
+		analysisConfig.always_curly_check == Check.skipTests && !ut);
 
 	if (moduleName.shouldRun!RedundantAttributesCheck(analysisConfig))
 		checks ~= new RedundantAttributesCheck(fileName, moduleScope,
