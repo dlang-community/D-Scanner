@@ -5,20 +5,21 @@
 
 module dscanner.main;
 
-import std.algorithm;
-import std.array;
-import std.conv;
-import std.file;
-import std.getopt;
-import std.path;
-import std.stdio;
-import std.range;
-import std.experimental.lexer;
-import std.typecons : scoped;
-import std.functional : toDelegate;
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
+import std.algorithm;
+import std.array;
+import std.conv;
+import std.experimental.lexer;
+import std.file;
+import std.functional : toDelegate;
+import std.getopt;
+import std.path;
+import std.range;
+import std.stdio;
+import std.string : chomp, splitLines;
+import std.typecons : scoped;
 
 import dscanner.highlighter;
 import dscanner.stats;
@@ -74,6 +75,9 @@ else
 	bool explore;
 	bool verbose;
 	string errorFormat;
+
+	if (args.length == 2 && args[1].startsWith("@"))
+		args = args[0] ~ readText(args[1][1 .. $]).chomp.splitLines;
 
 	try
 	{
