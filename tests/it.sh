@@ -6,11 +6,10 @@ function section {
 	e=$'\e'
 	if [ ! -z "${GITHUB_ACTION:-}" ]; then
 		echo "::endgroup::"
-	fi
-	if [ ! -z "${GITHUB_ACTION:-}" ]; then
 		echo "::group::$@"
+	else
+		echo "$e[1m$@$e[m"
 	fi
-	echo "$e[1m$@$e[m"
 }
 
 function error {
