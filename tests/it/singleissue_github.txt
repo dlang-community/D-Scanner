@@ -1,0 +1,1 @@
+::warning file=it/singleissue.d,line=1,endLine=1,col=5,endColumn=20,title=Warning (style_check)::Variable name 'NonMatchingName' does not match style guidelines.
