@@ -72,6 +72,7 @@ else
 	string symbolName;
 	string configLocation;
 	string[] importPaths;
+	string[] excludePaths;
 	bool printVersion;
 	bool explore;
 	bool verbose;
@@ -108,6 +109,7 @@ else
 				"resolveMessage", &resolveMessage,
 				"applySingle", &applySingleFixes,
 				"I", &importPaths,
+				"exclude", &excludePaths,
 				"version", &printVersion,
 				"muffinButton", &muffin,
 				"explore", &explore,
@@ -197,6 +199,21 @@ else
 		}
 	}
 
+	if (excludePaths.length)
+	{
+		args  = expandArgs(args);
+
+		string[] newArgs = [args[0]];
+		foreach(arg; args[1 .. $])
+		{
+			if(!excludePaths.map!(p => arg.isSubpathOf(p))
+							.fold!((a, b) => a || b))
+				newArgs ~= arg;
+		}
+
+		args = newArgs;
+	}
+
 	if (!errorFormat.length)
 		errorFormat = defaultErrorFormat;
 	else if (auto errorFormatSuppl = errorFormat in errorFormatMap)
@@ -208,8 +225,7 @@ else
 			.replace("\\n", "\n")
 			.replace("\\t", "\t");
 
-	const(string[]) absImportPaths = importPaths.map!(a => a.absolutePath()
-			.buildNormalizedPath()).array();
+	const(string[]) absImportPaths = importPaths.map!absoluteNormalizedPath.array;
 
 	ModuleCache moduleCache;
 
@@ -449,6 +465,9 @@ Options:
         Specify that the given directory should be searched for imported
         modules. This option can be passed multiple times to specify multiple
         directories.
+
+    --exclude <file | directory>..., <file | directory>
+        Specify files or directories that will be ignored by D-Scanner.
 
     --syntaxCheck <file>, -s <file>
         Lexes and parses sourceFile, printing the line and column number of
