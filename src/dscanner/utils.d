@@ -6,6 +6,7 @@ import std.conv : to;
 import std.encoding : BOM, BOMSeq, EncodingException, getBOM;
 import std.format : format;
 import std.file : exists, read;
+import std.path: isValidPath;
 
 private void processBOM(ref ubyte[] sourceCode, string fname)
 {
@@ -126,6 +127,55 @@ string[] expandArgs(string[] args)
 			}
 	}
 	return rVal;
+}
+
+package string absoluteNormalizedPath(in string path)
+{
+	import std.path: absolutePath, buildNormalizedPath;
+
+	return path.absolutePath().buildNormalizedPath();
+}
+
+private bool areSamePath(in string path1, in string path2)
+in(path1.isValidPath && path2.isValidPath)
+{
+	return path1.absoluteNormalizedPath() == path2.absoluteNormalizedPath();
+}
+
+unittest
+{
+	assert(areSamePath("/abc/efg", "/abc/efg"));
+	assert(areSamePath("/abc/../abc/efg", "/abc/efg"));
+	assert(!areSamePath("/abc/../abc/../efg", "/abc/efg"));
+}
+
+package bool isSubpathOf(in string potentialSubPath, in string base)
+in(base.isValidPath && potentialSubPath.isValidPath)
+{
+	import std.path: isValidPath, relativePath;
+	import std.algorithm: canFind;
+
+	if(areSamePath(base, potentialSubPath))
+		return true;
+
+	const relative = relativePath(
+		potentialSubPath.absoluteNormalizedPath(),
+		base.absoluteNormalizedPath()
+	);
+
+	// No '..' in the relative paths means that potentialSubPath
+	// is actually a descendant of base
+	return !relative.canFind("..");
+}
+
+unittest
+{
+	const base = "/abc/efg";
+	assert("/abc/efg/".isSubpathOf(base));
+	assert("/abc/efg/hij/".isSubpathOf(base));
+	assert("/abc/efg/hij/../kel".isSubpathOf(base));
+	assert(!"/abc/kel".isSubpathOf(base));
+	assert(!"/abc/efg/../kel".isSubpathOf(base));
 }
 
 /**
