@@ -92,7 +92,24 @@ public:
 	override void visit(const(Declaration) decl)
 	{
 		_inStruct.insert(decl.structDeclaration !is null);
+
+		const msgDisabled = () {
+			foreach(attr; decl.attributes)
+			{
+				if(this.isCheckDisabled(attr))
+				{
+					disableErrorMessage();
+					return true;
+				}
+			}
+			return false;
+		}();
+
 		decl.accept(this);
+
+		if(msgDisabled)
+			reenableErrorMessage();
+
 		if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
 			((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||
 			!decl.constructor.parameters))
