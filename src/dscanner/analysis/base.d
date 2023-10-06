@@ -1,7 +1,7 @@
 module dscanner.analysis.base;
 
 import dparse.ast;
-import dparse.lexer : IdType, str, Token;
+import dparse.lexer : IdType, str, Token, tok;
 import dsymbol.scope_ : Scope;
 import std.array;
 import std.container;
@@ -405,6 +405,44 @@ public:
 			unittest_.accept(this);
 	}
 
+  bool isCheckDisabled(const Attribute attr)
+  {
+    if(attr is null)
+      return false;
+
+    const atAttr = attr.atAttribute;
+    if(atAttr is null)
+      return false;
+
+    auto ident = atAttr.identifier;
+    auto argumentList = atAttr.argumentList;
+
+    if(!ident.text.empty)
+      return false;
+
+    if(argumentList is null)
+      return false;
+
+    foreach(nodeExpr; argumentList.items)
+    {
+      if(auto unaryExpr = cast(UnaryExpression) nodeExpr)
+      {
+        auto primaryExpression = unaryExpr.primaryExpression;
+        if(primaryExpression is null)
+          continue;
+
+        if(primaryExpression.primary != tok!"stringLiteral")
+          continue;
+
+        const string uda = primaryExpression.primary.text.strip("\"");
+        if(uda == "NOLINT(" ~ getName() ~ ")")
+          return true;
+      }
+    }
+
+    return false;
+  }
+
 	AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
 		scope const(Token)[] tokens,
@@ -423,6 +461,7 @@ protected:
 
 	bool inAggregate;
 	bool skipTests;
+	int errorMsgDisabled;
 
 	template visitTemplate(T)
 	{
@@ -437,43 +476,75 @@ protected:
 	deprecated("Use the overload taking start and end locations or a Node instead")
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
+		if(!errorMsgEnabled())
+			return;
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
 
 	void addErrorMessage(const BaseNode node, string key, string message, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, node, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token token, string key, string message, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, token, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token[] tokens, string key, string message, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, tokens, message), key, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t line, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		addErrorMessage(index, [line, line], columns, key, message, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t[2] lines, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		auto d = Message.Diagnostic.from(fileName, index, lines, columns, message);
 		_messages.insert(Message(d, key, getName(), autofixes));
 	}
 
 	void addErrorMessage(Message.Diagnostic diagnostic, string key, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		_messages.insert(Message(diagnostic, key, getName(), autofixes));
 	}
 
 	void addErrorMessage(Message.Diagnostic diagnostic, Message.Diagnostic[] supplemental, string key, AutoFix[] autofixes = null)
 	{
+		if(!errorMsgEnabled())
+			return;
 		_messages.insert(Message(diagnostic, supplemental, key, getName(), autofixes));
+	}
+
+	void disableErrorMessage()
+	{
+		this.errorMsgDisabled++;
+	}
+
+	void reenableErrorMessage()
+	in(this.errorMsgDisabled > 0)
+	{
+		this.errorMsgDisabled--;
+	}
+
+	bool errorMsgEnabled() const
+	{
+		return this.errorMsgDisabled == 0;
 	}
 
 	/**
