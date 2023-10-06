@@ -405,44 +405,6 @@ public:
 			unittest_.accept(this);
 	}
 
-  bool isCheckDisabled(const Attribute attr)
-  {
-    if(attr is null)
-      return false;
-
-    const atAttr = attr.atAttribute;
-    if(atAttr is null)
-      return false;
-
-    auto ident = atAttr.identifier;
-    auto argumentList = atAttr.argumentList;
-
-    if(!ident.text.empty)
-      return false;
-
-    if(argumentList is null)
-      return false;
-
-    foreach(nodeExpr; argumentList.items)
-    {
-      if(auto unaryExpr = cast(UnaryExpression) nodeExpr)
-      {
-        auto primaryExpression = unaryExpr.primaryExpression;
-        if(primaryExpression is null)
-          continue;
-
-        if(primaryExpression.primary != tok!"stringLiteral")
-          continue;
-
-        const string uda = primaryExpression.primary.text.strip("\"");
-        if(uda == "NOLINT(" ~ getName() ~ ")")
-          return true;
-      }
-    }
-
-    return false;
-  }
-
 	AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
 		scope const(Token)[] tokens,
@@ -531,11 +493,6 @@ protected:
 		_messages.insert(Message(diagnostic, supplemental, key, getName(), autofixes));
 	}
 
-	void disableErrorMessage()
-	{
-		this.errorMsgDisabled++;
-	}
-
 	void reenableErrorMessage()
 	in(this.errorMsgDisabled > 0)
 	{
@@ -545,6 +502,62 @@ protected:
 	bool errorMsgEnabled() const
 	{
 		return this.errorMsgDisabled == 0;
+	}
+
+	// Disable error message if declaration contains UDA : @("NOLINT(..)")
+	// that indicates to skip linting on this declaration
+	// Return wheter the message is actually disabled or not
+	bool maybeDisableErrorMessage(const Declaration decl)
+	{
+		bool isNoLintUDA(const Attribute attr)
+		{
+			if(attr is null)
+				return false;
+
+			const atAttr = attr.atAttribute;
+			if(atAttr is null)
+				return false;
+
+			auto ident = atAttr.identifier;
+			auto argumentList = atAttr.argumentList;
+
+			if(!ident.text.empty)
+				return false;
+
+			if(argumentList is null)
+				return false;
+
+			foreach(nodeExpr; argumentList.items)
+			{
+				if(auto unaryExpr = cast(UnaryExpression) nodeExpr)
+				{
+					auto primaryExpression = unaryExpr.primaryExpression;
+					if(primaryExpression is null)
+						continue;
+
+					if(primaryExpression.primary != tok!"stringLiteral")
+						continue;
+
+					const string uda = primaryExpression.primary.text.strip("\"");
+
+					if(uda == "NOLINT(" ~ getName() ~ ")")
+						return true;
+				}
+			}
+
+			return false;
+		}
+
+		foreach(attr; decl.attributes)
+		{
+			if(isNoLintUDA(attr))
+			{
+				this.errorMsgDisabled++;
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

@@ -93,17 +93,7 @@ public:
 	{
 		_inStruct.insert(decl.structDeclaration !is null);
 
-		const msgDisabled = () {
-			foreach(attr; decl.attributes)
-			{
-				if(this.isCheckDisabled(attr))
-				{
-					disableErrorMessage();
-					return true;
-				}
-			}
-			return false;
-		}();
+		const msgDisabled = maybeDisableErrorMessage(decl);
 
 		decl.accept(this);
 
