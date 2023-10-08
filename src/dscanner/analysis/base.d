@@ -405,6 +405,21 @@ public:
 			unittest_.accept(this);
 	}
 
+	/**
+	* Visits a declaration.
+	*
+	* When overriden, make sure to disable and reenable error messages
+	*/
+	override void visit(const(Declaration) decl)
+	{
+		const msgDisabled = maybeDisableErrorMessage(decl);
+
+		decl.accept(this);
+
+		if(msgDisabled)
+			reenableErrorMessage();
+	}
+
 	AutoFix.CodeReplacement[] resolveAutoFix(
 		const Module mod,
 		scope const(Token)[] tokens,
