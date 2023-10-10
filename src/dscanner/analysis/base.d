@@ -6,6 +6,7 @@ import dsymbol.scope_ : Scope;
 import std.array;
 import std.container;
 import std.meta : AliasSeq;
+import std.regex: regex, matchAll;
 import std.string;
 import std.sumtype;
 
@@ -370,6 +371,63 @@ mixin template AnalyzerInfo(string checkName)
 	}
 }
 
+
+auto isNoLintUDAForCurrentCheck(in string udaContent, in string check)
+{
+	import std.algorithm: map;
+	import std.ascii: toUpper;
+	import std.conv: to;
+
+	auto re = regex(`\w+`, "gi");
+	auto matches = matchAll(udaContent, re);
+
+	if(!matches)
+		return false;
+
+	const udaName = matches.hit;
+	if(udaName.map!(c => c.toUpper).to!string != "NOLINT")
+		return false;
+
+	matches.popFront;
+
+	while(matches)
+	{
+		const currCheck = matches.hit;
+		if(currCheck == check)
+			return true;
+		matches.popFront;
+	}
+
+	return false;
+}
+
+unittest
+{
+	const s1 = "NOLINT(abc)";
+	const s2 = "NOLINT(abc, efg, hij)";
+	const s3 = "nolint(abc)";
+	const s4 = "    NOLINT   (   abc ,  efg  )    ";
+	const s5 = "OtherUda(abc)";
+
+	assert(isNoLintUDAForCurrentCheck(s1, "abc"));
+	assert(!isNoLintUDAForCurrentCheck(s1, "efg"));
+
+	assert(isNoLintUDAForCurrentCheck(s2, "abc"));
+	assert(isNoLintUDAForCurrentCheck(s2, "efg"));
+	assert(isNoLintUDAForCurrentCheck(s2, "hij"));
+	assert(!isNoLintUDAForCurrentCheck(s2, "kel"));
+
+	assert(isNoLintUDAForCurrentCheck(s3, "abc"));
+	assert(!isNoLintUDAForCurrentCheck(s3, "efg"));
+
+	assert(isNoLintUDAForCurrentCheck(s4, "abc"));
+	assert(isNoLintUDAForCurrentCheck(s4, "efg"));
+	assert(!isNoLintUDAForCurrentCheck(s4, "hij"));
+
+	assert(!isNoLintUDAForCurrentCheck(s5, "abc"));
+}
+
+
 abstract class BaseAnalyzer : ASTVisitor
 {
 public:
@@ -555,7 +613,7 @@ protected:
 
 					const string uda = primaryExpression.primary.text.strip("\"");
 
-					if(uda == "NOLINT(" ~ getName() ~ ")")
+					if(isNoLintUDAForCurrentCheck(uda, getName()))
 						return true;
 				}
 			}
