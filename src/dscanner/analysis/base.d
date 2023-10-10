@@ -374,18 +374,14 @@ mixin template AnalyzerInfo(string checkName)
 
 auto isNoLintUDAForCurrentCheck(in string udaContent, in string check)
 {
-	import std.algorithm: map;
-	import std.ascii: toUpper;
-	import std.conv: to;
-
-	auto re = regex(`\w+`, "gi");
+	auto re = regex(`\w+`, "g");
 	auto matches = matchAll(udaContent, re);
 
 	if(!matches)
 		return false;
 
 	const udaName = matches.hit;
-	if(udaName.map!(c => c.toUpper).to!string != "NOLINT")
+	if(udaName != "nolint")
 		return false;
 
 	matches.popFront;
@@ -403,11 +399,10 @@ auto isNoLintUDAForCurrentCheck(in string udaContent, in string check)
 
 unittest
 {
-	const s1 = "NOLINT(abc)";
-	const s2 = "NOLINT(abc, efg, hij)";
-	const s3 = "nolint(abc)";
-	const s4 = "    NOLINT   (   abc ,  efg  )    ";
-	const s5 = "OtherUda(abc)";
+	const s1 = "nolint(abc)";
+	const s2 = "nolint(abc, efg, hij)";
+	const s3 = "    nolint (   abc ,  efg  )    ";
+	const s4 = "OtherUda(abc)";
 
 	assert(isNoLintUDAForCurrentCheck(s1, "abc"));
 	assert(!isNoLintUDAForCurrentCheck(s1, "efg"));
@@ -418,13 +413,10 @@ unittest
 	assert(!isNoLintUDAForCurrentCheck(s2, "kel"));
 
 	assert(isNoLintUDAForCurrentCheck(s3, "abc"));
-	assert(!isNoLintUDAForCurrentCheck(s3, "efg"));
+	assert(isNoLintUDAForCurrentCheck(s3, "efg"));
+	assert(!isNoLintUDAForCurrentCheck(s3, "hij"));
 
-	assert(isNoLintUDAForCurrentCheck(s4, "abc"));
-	assert(isNoLintUDAForCurrentCheck(s4, "efg"));
-	assert(!isNoLintUDAForCurrentCheck(s4, "hij"));
-
-	assert(!isNoLintUDAForCurrentCheck(s5, "abc"));
+	assert(!isNoLintUDAForCurrentCheck(s4, "abc"));
 }
 
 
@@ -577,7 +569,7 @@ protected:
 		return this.errorMsgDisabled == 0;
 	}
 
-	// Disable error message if declaration contains UDA : @("NOLINT(..)")
+	// Disable error message if declaration contains UDA : @("nolint(..)")
 	// that indicates to skip linting on this declaration
 	// Return wheter the message is actually disabled or not
 	bool maybeDisableErrorMessage(const Declaration decl)

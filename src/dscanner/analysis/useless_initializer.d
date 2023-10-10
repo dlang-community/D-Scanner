@@ -370,12 +370,12 @@ public:
 
 	// passes
 	assertAnalyzerWarnings(q{
-    	  	@("NOLINT(useless_initializer)")
+			@("nolint(useless_initializer)")
 			int a = 0;
 		    ubyte a = 0x0;      /+
 		              ^^^ [warn]: X +/
 
-    	  	@("NOLINT(useless_initializer)")
+			@("nolint(useless_initializer)")
 			int f() {
 				int a = 0;
 			}
