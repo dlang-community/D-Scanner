@@ -199,20 +199,23 @@ else
 		}
 	}
 
-	if (excludePaths.length)
-	{
-		args  = expandArgs(args);
-
-		string[] newArgs = [args[0]];
-		foreach(arg; args[1 .. $])
+	auto expandedArgs = () {
+		auto expanded = expandArgs(args);
+		if (excludePaths.length)
 		{
-			if(!excludePaths.map!(p => arg.isSubpathOf(p))
-							.fold!((a, b) => a || b))
-				newArgs ~= arg;
-		}
+			string[] newArgs = [expanded[0]];
+			foreach(arg; args[1 .. $])
+			{
+				if(!excludePaths.map!(p => arg.isSubpathOf(p))
+								.fold!((a, b) => a || b))
+					newArgs ~= arg;
+			}
 
-		args = newArgs;
-	}
+			return newArgs;
+		}
+		else
+			return expanded;
+	}();
 
 	if (!errorFormat.length)
 		errorFormat = defaultErrorFormat;
@@ -300,15 +303,15 @@ else
 	}
 	else if (symbolName !is null)
 	{
-		stdout.findDeclarationOf(symbolName, expandArgs(args));
+		stdout.findDeclarationOf(symbolName, expandedArgs);
 	}
 	else if (ctags)
 	{
-		stdout.printCtags(expandArgs(args));
+		stdout.printCtags(expandedArgs);
 	}
 	else if (etags || etagsAll)
 	{
-		stdout.printEtags(etagsAll, expandArgs(args));
+		stdout.printEtags(etagsAll, expandedArgs);
 	}
 	else if (styleCheck || autofix || resolveMessage.length)
 	{
@@ -321,7 +324,7 @@ else
 
 		if (autofix)
 		{
-			return .autofix(expandArgs(args), config, errorFormat, cache, moduleCache, applySingleFixes) ? 1 : 0;
+			return .autofix(expandedArgs, config, errorFormat, cache, moduleCache, applySingleFixes) ? 1 : 0;
 		}
 		else if (resolveMessage.length)
 		{
@@ -337,19 +340,19 @@ else
 					goto case;
 				case "":
 				case "dscanner":
-					generateReport(expandArgs(args), config, cache, moduleCache, reportFile);
+					generateReport(expandedArgs, config, cache, moduleCache, reportFile);
 					break;
 				case "sonarQubeGenericIssueData":
-					generateSonarQubeGenericIssueDataReport(expandArgs(args), config, cache, moduleCache, reportFile);
+					generateSonarQubeGenericIssueDataReport(expandedArgs, config, cache, moduleCache, reportFile);
 					break;
 			}
 		}
 		else
-			return analyze(expandArgs(args), config, errorFormat, cache, moduleCache, true) ? 1 : 0;
+			return analyze(expandedArgs, config, errorFormat, cache, moduleCache, true) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(usingStdin ? ["stdin"] : expandArgs(args), errorFormat, cache, moduleCache) ? 1 : 0;
+		return .syntaxCheck(usingStdin ? ["stdin"] : expandedArgs, errorFormat, cache, moduleCache) ? 1 : 0;
 	}
 	else
 	{
@@ -368,7 +371,7 @@ else
 			else
 			{
 				ulong count;
-				foreach (f; expandArgs(args))
+				foreach (f; expandedArgs)
 				{
 
 					LexerConfig config;
