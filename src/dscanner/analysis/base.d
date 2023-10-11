@@ -569,7 +569,8 @@ protected:
 		return this.errorMsgDisabled == 0;
 	}
 
-	// Disable error message if declaration contains UDA : @("nolint(..)")
+	// Disable error message if declaration contains UDA :
+	// @("nolint(..)") and @nolint(".."), ..
 	// that indicates to skip linting on this declaration
 	// Return wheter the message is actually disabled or not
 	bool maybeDisableErrorMessage(const Declaration decl)
@@ -586,9 +587,6 @@ protected:
 			auto ident = atAttr.identifier;
 			auto argumentList = atAttr.argumentList;
 
-			if(!ident.text.empty)
-				return false;
-
 			if(argumentList is null)
 				return false;
 
@@ -603,7 +601,15 @@ protected:
 					if(primaryExpression.primary != tok!"stringLiteral")
 						continue;
 
-					const string uda = primaryExpression.primary.text.strip("\"");
+					const string uda = () {
+						// @nolint("...")
+						if(ident.text.length)
+							return ident.text ~ "(" ~  primaryExpression.primary.text.strip("\"") ~ ")";
+
+						// @("nolint(..)")
+						else
+							return primaryExpression.primary.text.strip("\"");
+					}();
 
 					if(isNoLintUDAForCurrentCheck(uda, getName()))
 						return true;

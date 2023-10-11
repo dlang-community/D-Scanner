@@ -379,6 +379,13 @@ public:
 			int f() {
 				int a = 0;
 			}
+
+			struct nolint { string s; }
+
+			@nolint("useless_initializer")
+			int a = 0;
+		    ubyte a = 0x0;      /+
+		              ^^^ [warn]: X +/
 	}, sac);
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
