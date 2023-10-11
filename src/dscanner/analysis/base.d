@@ -407,6 +407,19 @@ public:
 	}
 
 	/**
+	* Visits a module declaration.
+	*
+	* When overriden, make sure to keep this structure
+	*/
+	override void visit(const(ModuleDeclaration) moduleDeclaration)
+	{
+		if(stopLinting(moduleDeclaration))
+			return;
+
+		moduleDeclaration.accept(this);
+	}
+
+	/**
 	* Visits a declaration.
 	*
 	* When overriden, make sure to disable and reenable error messages
@@ -526,14 +539,26 @@ protected:
 	// Return wheter the message is actually disabled or not
 	bool maybeDisableErrorMessage(const Declaration decl)
 	{
-		auto noLint = NoLintFactory.fromDeclaration(decl);
-		if(!noLint.isNull && noLint.get.containsCheck(this.getName()))
+		if(stopLinting(decl))
 		{
 			this.errorMsgDisabled++;
 			return true;
 		}
 		else
 			return false;
+	}
+
+	bool stopLinting(AstNode)(const AstNode node)
+	{
+		import std.typecons: Nullable;
+		Nullable!NoLint noLint;
+
+		static if(is(AstNode == ModuleDeclaration))
+			noLint = NoLintFactory.fromModuleDeclaration(node);
+		else static if(is(AstNode == Declaration))
+			noLint = NoLintFactory.fromDeclaration(node);
+
+		return !noLint.isNull && noLint.get.containsCheck(this.getName());
 	}
 
 	/**

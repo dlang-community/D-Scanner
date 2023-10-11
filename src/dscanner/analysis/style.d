@@ -33,6 +33,9 @@ final class StyleChecker : BaseAnalyzer
 
 	override void visit(const ModuleDeclaration dec)
 	{
+		if(stopLinting(dec))
+			return;
+
 		foreach (part; dec.moduleName.identifiers)
 		{
 			if (part.text.matchFirst(moduleNameRegex).length == 0)
@@ -230,6 +233,11 @@ unittest
 		extern(Windows):
 			bool WinButWithBody(){} /+
 			     ^^^^^^^^^^^^^^ [warn]: Function name 'WinButWithBody' does not match style guidelines. +/
+	}c, sac);
+
+	assertAnalyzerWarnings(q{
+		@("nolint(style_check)")
+		module AMODULE;
 	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");

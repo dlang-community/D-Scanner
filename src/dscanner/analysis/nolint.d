@@ -39,6 +39,19 @@ private:
 
 struct NoLintFactory
 {
+	static Nullable!NoLint fromModuleDeclaration(in ModuleDeclaration moduleDeclaration)
+	{
+		NoLint noLint;
+
+		foreach(atAttribute; moduleDeclaration.atAttributes)
+			noLint.merge(NoLintFactory.fromAtAttribute(atAttribute));
+
+		if(!noLint.getDisabledChecks.length)
+			return nullNoLint;
+
+		return noLint.nullable;
+	}
+
 	static Nullable!NoLint fromDeclaration(in Declaration declaration)
 	{
 		NoLint noLint;
