@@ -372,8 +372,8 @@ public:
 	assertAnalyzerWarnings(q{
 			@("nolint(useless_initializer)")
 			int a = 0;
-		    ubyte a = 0x0;      /+
-		              ^^^ [warn]: X +/
+      int a = 0;      /+
+              ^ [warn]: X +/
 
 			@("nolint(useless_initializer)")
 			int f() {
@@ -384,8 +384,15 @@ public:
 
 			@nolint("useless_initializer")
 			int a = 0;
-		    ubyte a = 0x0;      /+
-		              ^^^ [warn]: X +/
+      int a = 0;      /+
+              ^ [warn]: X +/
+
+			@("nolint(other_check, useless_initializer, another_one)")
+			int a = 0;
+
+			@nolint("other_check", "another_one", "useless_initializer")
+			int a = 0;
+
 	}, sac);
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
