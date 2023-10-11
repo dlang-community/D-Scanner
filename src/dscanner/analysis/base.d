@@ -1,12 +1,12 @@
 module dscanner.analysis.base;
 
+import dscanner.analysis.nolint;
 import dparse.ast;
 import dparse.lexer : IdType, str, Token, tok;
 import dsymbol.scope_ : Scope;
 import std.array;
 import std.container;
 import std.meta : AliasSeq;
-import std.regex: regex, matchAll;
 import std.string;
 import std.sumtype;
 
@@ -371,55 +371,6 @@ mixin template AnalyzerInfo(string checkName)
 	}
 }
 
-
-auto isNoLintUDAForCurrentCheck(in string udaContent, in string check)
-{
-	auto re = regex(`\w+`, "g");
-	auto matches = matchAll(udaContent, re);
-
-	if(!matches)
-		return false;
-
-	const udaName = matches.hit;
-	if(udaName != "nolint")
-		return false;
-
-	matches.popFront;
-
-	while(matches)
-	{
-		const currCheck = matches.hit;
-		if(currCheck == check)
-			return true;
-		matches.popFront;
-	}
-
-	return false;
-}
-
-unittest
-{
-	const s1 = "nolint(abc)";
-	const s2 = "nolint(abc, efg, hij)";
-	const s3 = "    nolint (   abc ,  efg  )    ";
-	const s4 = "OtherUda(abc)";
-
-	assert(isNoLintUDAForCurrentCheck(s1, "abc"));
-	assert(!isNoLintUDAForCurrentCheck(s1, "efg"));
-
-	assert(isNoLintUDAForCurrentCheck(s2, "abc"));
-	assert(isNoLintUDAForCurrentCheck(s2, "efg"));
-	assert(isNoLintUDAForCurrentCheck(s2, "hij"));
-	assert(!isNoLintUDAForCurrentCheck(s2, "kel"));
-
-	assert(isNoLintUDAForCurrentCheck(s3, "abc"));
-	assert(isNoLintUDAForCurrentCheck(s3, "efg"));
-	assert(!isNoLintUDAForCurrentCheck(s3, "hij"));
-
-	assert(!isNoLintUDAForCurrentCheck(s4, "abc"));
-}
-
-
 abstract class BaseAnalyzer : ASTVisitor
 {
 public:
@@ -575,60 +526,14 @@ protected:
 	// Return wheter the message is actually disabled or not
 	bool maybeDisableErrorMessage(const Declaration decl)
 	{
-		bool isNoLintUDA(const Attribute attr)
+		auto noLint = NoLintFactory.fromDeclaration(decl);
+		if(!noLint.isNull && noLint.get.containsCheck(this.getName()))
 		{
-			if(attr is null)
-				return false;
-
-			const atAttr = attr.atAttribute;
-			if(atAttr is null)
-				return false;
-
-			auto ident = atAttr.identifier;
-			auto argumentList = atAttr.argumentList;
-
-			if(argumentList is null)
-				return false;
-
-			foreach(nodeExpr; argumentList.items)
-			{
-				if(auto unaryExpr = cast(UnaryExpression) nodeExpr)
-				{
-					auto primaryExpression = unaryExpr.primaryExpression;
-					if(primaryExpression is null)
-						continue;
-
-					if(primaryExpression.primary != tok!"stringLiteral")
-						continue;
-
-					const string uda = () {
-						// @nolint("...")
-						if(ident.text.length)
-							return ident.text ~ "(" ~  primaryExpression.primary.text.strip("\"") ~ ")";
-
-						// @("nolint(..)")
-						else
-							return primaryExpression.primary.text.strip("\"");
-					}();
-
-					if(isNoLintUDAForCurrentCheck(uda, getName()))
-						return true;
-				}
-			}
-
+			this.errorMsgDisabled++;
+			return true;
+		}
+		else
 			return false;
-		}
-
-		foreach(attr; decl.attributes)
-		{
-			if(isNoLintUDA(attr))
-			{
-				this.errorMsgDisabled++;
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**
