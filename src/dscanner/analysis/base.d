@@ -415,10 +415,8 @@ public:
 	{
 		if(mod.moduleDeclaration !is null)
 		{
-			auto currNoLint = NoLintFactory.fromModuleDeclaration(mod.moduleDeclaration);
-			noLint.push(currNoLint);
-			scope(exit) noLint.pop(currNoLint);
-			mod.accept(this);
+		with(noLint.push(NoLintFactory.fromModuleDeclaration(mod.moduleDeclaration)))
+				mod.accept(this);
 		}
 		else
 			mod.accept(this);
@@ -431,11 +429,8 @@ public:
 	*/
 	override void visit(const(Declaration) decl)
 	{
-		auto currNoLint = NoLintFactory.fromDeclaration(decl);
-		noLint.push(currNoLint);
-		scope(exit) noLint.pop(currNoLint);
-
-		decl.accept(this);
+		with(noLint.push(NoLintFactory.fromDeclaration(decl)))
+			decl.accept(this);
 	}
 
 	AutoFix.CodeReplacement[] resolveAutoFix(

@@ -8,13 +8,24 @@ import std.regex: regex, matchAll;
 import std.string: strip;
 import std.typecons;
 
-
 struct NoLint
 {
 	bool containsCheck(in string check) const
 	{
 		return (check in disabledChecks) !is null &&
 				disabledChecks[check] > 0;
+	}
+
+	// automatic pop when returned value goes out of scope
+	Poppable push(in Nullable!NoLint other)
+	{
+		if(other.isNull)
+			return Poppable((){});
+
+		foreach(item; other.get.getDisabledChecks.byKeyValue)
+			this.disabledChecks[item.key] += item.value;
+
+		return Poppable(() => this.pop(other));
 	}
 
 package:
@@ -28,7 +39,7 @@ package:
 		disabledChecks[check]++;
 	}
 
-	void push(in Nullable!NoLint other)
+	void merge(in Nullable!NoLint other)
 	{
 		if(other.isNull)
 			return;
@@ -37,6 +48,7 @@ package:
 			this.disabledChecks[item.key] += item.value;
 	}
 
+private:
 	void pop(in Nullable!NoLint other)
 	{
 		if(other.isNull)
@@ -51,9 +63,15 @@ package:
 		}
 	}
 
+	struct Poppable {
+		void delegate() onPop;
 
-private:
-		int[string] disabledChecks;
+		~this() {
+			onPop();
+		}
+	}
+
+	int[string] disabledChecks;
 }
 
 struct NoLintFactory
@@ -63,7 +81,7 @@ struct NoLintFactory
 		NoLint noLint;
 
 		foreach(atAttribute; moduleDeclaration.atAttributes)
-			noLint.push(NoLintFactory.fromAtAttribute(atAttribute));
+			noLint.merge(NoLintFactory.fromAtAttribute(atAttribute));
 
 		if(!noLint.getDisabledChecks.length)
 			return nullNoLint;
@@ -75,7 +93,7 @@ struct NoLintFactory
 	{
 		NoLint noLint;
 		foreach(attribute; declaration.attributes)
-			noLint.push(NoLintFactory.fromAttribute(attribute));
+			noLint.merge(NoLintFactory.fromAttribute(attribute));
 
 		if(!noLint.getDisabledChecks.length)
 			return nullNoLint;
@@ -163,7 +181,7 @@ private:
 
 				auto str = primaryExpression.primary.text.strip("\"");
 				Nullable!NoLint currNoLint = NoLintFactory.fromString(str);
-				noLint.push(currNoLint);
+				noLint.merge(currNoLint);
 			}
 		}
 

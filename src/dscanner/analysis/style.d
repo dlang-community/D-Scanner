@@ -34,9 +34,8 @@ final class StyleChecker : BaseAnalyzer
 
 	override void visit(const ModuleDeclaration dec)
 	{
-		auto currNoLint = NoLintFactory.fromModuleDeclaration(dec);
-		noLint.push(currNoLint);
-		scope(exit) noLint.pop(currNoLint);
+		with(noLint.push(NoLintFactory.fromModuleDeclaration(dec)))
+			dec.accept(this);
 
 		foreach (part; dec.moduleName.identifiers)
 		{
