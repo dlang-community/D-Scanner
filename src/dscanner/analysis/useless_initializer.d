@@ -5,6 +5,7 @@
 module dscanner.analysis.useless_initializer;
 
 import dscanner.analysis.base;
+import dscanner.analysis.nolint;
 import dscanner.utils : safeAccess;
 import containers.dynamicarray;
 import containers.hashmap;
@@ -93,12 +94,11 @@ public:
 	{
 		_inStruct.insert(decl.structDeclaration !is null);
 
-		const msgDisabled = maybeDisableErrorMessage(decl);
+		auto currNoLint = NoLintFactory.fromDeclaration(decl);
+		noLint.push(currNoLint);
+		scope(exit) noLint.pop(currNoLint);
 
 		decl.accept(this);
-
-		if(msgDisabled)
-			reenableErrorMessage();
 
 		if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
 			((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||

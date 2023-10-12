@@ -13,28 +13,47 @@ struct NoLint
 {
 	bool containsCheck(in string check) const
 	{
-		return disabledChecks.canFind(check);
+		return (check in disabledChecks) !is null &&
+				disabledChecks[check] > 0;
 	}
 
 package:
-	const(string[]) getDisabledChecks() const
+	const(int[string]) getDisabledChecks() const
 	{
 		return this.disabledChecks;
 	}
 
-	void addCheck(in string check)
+	void pushCheck(in string check)
 	{
-		disabledChecks ~= check;
+		disabledChecks[check]++;
 	}
 
-	void merge(in Nullable!NoLint other)
+	void push(in Nullable!NoLint other)
 	{
-		if(!other.isNull)
-			this.disabledChecks ~= other.get.getDisabledChecks();
+		if(other.isNull)
+			return;
+
+		foreach(item; other.get.getDisabledChecks.byKeyValue)
+			this.disabledChecks[item.key] += item.value;
 	}
+
+	void pop(in Nullable!NoLint other)
+	{
+		if(other.isNull)
+			return;
+
+		foreach(item; other.get.getDisabledChecks.byKeyValue)
+		{
+			assert((item.key in disabledChecks) !is null &&
+					this.disabledChecks[item.key] >= item.value);
+
+			this.disabledChecks[item.key] -= item.value;
+		}
+	}
+
 
 private:
-		string[] disabledChecks;
+		int[string] disabledChecks;
 }
 
 struct NoLintFactory
@@ -44,7 +63,7 @@ struct NoLintFactory
 		NoLint noLint;
 
 		foreach(atAttribute; moduleDeclaration.atAttributes)
-			noLint.merge(NoLintFactory.fromAtAttribute(atAttribute));
+			noLint.push(NoLintFactory.fromAtAttribute(atAttribute));
 
 		if(!noLint.getDisabledChecks.length)
 			return nullNoLint;
@@ -56,7 +75,7 @@ struct NoLintFactory
 	{
 		NoLint noLint;
 		foreach(attribute; declaration.attributes)
-			noLint.merge(NoLintFactory.fromAttribute(attribute));
+			noLint.push(NoLintFactory.fromAttribute(attribute));
 
 		if(!noLint.getDisabledChecks.length)
 			return nullNoLint;
@@ -115,7 +134,7 @@ private:
 				if(primaryExpression.primary != tok!"stringLiteral")
 					continue;
 
-				noLint.addCheck(primaryExpression.primary.text.strip("\""));
+				noLint.pushCheck(primaryExpression.primary.text.strip("\""));
 			}
 		}
 
@@ -144,7 +163,7 @@ private:
 
 				auto str = primaryExpression.primary.text.strip("\"");
 				Nullable!NoLint currNoLint = NoLintFactory.fromString(str);
-				noLint.merge(currNoLint);
+				noLint.push(currNoLint);
 			}
 		}
 
@@ -175,7 +194,7 @@ private:
 
 		while(matches)
 		{
-			noLint.addCheck(matches.hit);
+			noLint.pushCheck(matches.hit);
 			matches.popFront;
 		}
 
@@ -195,8 +214,14 @@ unittest
 	const s3 = "    nolint (   abc ,  efg  )    ";
 	const s4 = "OtherUda(abc)";
 
-	assert(NoLintFactory.fromString(s1).get == NoLint(["abc"]));
-	assert(NoLintFactory.fromString(s2).get == NoLint(["abc", "efg", "hij"]));
-	assert(NoLintFactory.fromString(s3).get == NoLint(["abc", "efg"]));
+	assert(NoLintFactory.fromString(s1).get.containsCheck("abc"));
+
+	assert(NoLintFactory.fromString(s2).get.containsCheck("abc"));
+	assert(NoLintFactory.fromString(s2).get.containsCheck("efg"));
+	assert(NoLintFactory.fromString(s2).get.containsCheck("hij"));
+
+	assert(NoLintFactory.fromString(s3).get.containsCheck("abc"));
+	assert(NoLintFactory.fromString(s3).get.containsCheck("efg"));
+
 	assert(NoLintFactory.fromString(s4).isNull);
 }

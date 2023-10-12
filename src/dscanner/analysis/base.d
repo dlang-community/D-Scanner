@@ -1,8 +1,8 @@
 module dscanner.analysis.base;
 
-import dscanner.analysis.nolint;
 import dparse.ast;
 import dparse.lexer : IdType, str, Token, tok;
+import dscanner.analysis.nolint;
 import dsymbol.scope_ : Scope;
 import std.array;
 import std.container;
@@ -413,8 +413,9 @@ public:
 	*/
 	override void visit(const(ModuleDeclaration) moduleDeclaration)
 	{
-		if(stopLinting(moduleDeclaration))
-			return;
+		auto currNoLint = NoLintFactory.fromModuleDeclaration(moduleDeclaration);
+		noLint.push(currNoLint);
+		scope(exit) noLint.pop(currNoLint);
 
 		moduleDeclaration.accept(this);
 	}
@@ -426,12 +427,11 @@ public:
 	*/
 	override void visit(const(Declaration) decl)
 	{
-		const msgDisabled = maybeDisableErrorMessage(decl);
+		auto currNoLint = NoLintFactory.fromDeclaration(decl);
+		noLint.push(currNoLint);
+		scope(exit) noLint.pop(currNoLint);
 
 		decl.accept(this);
-
-		if(msgDisabled)
-			reenableErrorMessage();
 	}
 
 	AutoFix.CodeReplacement[] resolveAutoFix(
@@ -452,7 +452,7 @@ protected:
 
 	bool inAggregate;
 	bool skipTests;
-	int errorMsgDisabled;
+	NoLint noLint;
 
 	template visitTemplate(T)
 	{
@@ -467,42 +467,42 @@ protected:
 	deprecated("Use the overload taking start and end locations or a Node instead")
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
 
 	void addErrorMessage(const BaseNode node, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, node, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token token, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, token, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token[] tokens, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, tokens, message), key, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t line, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		addErrorMessage(index, [line, line], columns, key, message, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t[2] lines, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		auto d = Message.Diagnostic.from(fileName, index, lines, columns, message);
 		_messages.insert(Message(d, key, getName(), autofixes));
@@ -510,55 +510,16 @@ protected:
 
 	void addErrorMessage(Message.Diagnostic diagnostic, string key, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		_messages.insert(Message(diagnostic, key, getName(), autofixes));
 	}
 
 	void addErrorMessage(Message.Diagnostic diagnostic, Message.Diagnostic[] supplemental, string key, AutoFix[] autofixes = null)
 	{
-		if(!errorMsgEnabled())
+		if(noLint.containsCheck(this.getName()))
 			return;
 		_messages.insert(Message(diagnostic, supplemental, key, getName(), autofixes));
-	}
-
-	void reenableErrorMessage()
-	in(this.errorMsgDisabled > 0)
-	{
-		this.errorMsgDisabled--;
-	}
-
-	bool errorMsgEnabled() const
-	{
-		return this.errorMsgDisabled == 0;
-	}
-
-	// Disable error message if declaration contains UDA :
-	// @("nolint(..)") and @nolint(".."), ..
-	// that indicates to skip linting on this declaration
-	// Return wheter the message is actually disabled or not
-	bool maybeDisableErrorMessage(const Declaration decl)
-	{
-		if(stopLinting(decl))
-		{
-			this.errorMsgDisabled++;
-			return true;
-		}
-		else
-			return false;
-	}
-
-	bool stopLinting(AstNode)(const AstNode node)
-	{
-		import std.typecons: Nullable;
-		Nullable!NoLint noLint;
-
-		static if(is(AstNode == ModuleDeclaration))
-			noLint = NoLintFactory.fromModuleDeclaration(node);
-		else static if(is(AstNode == Declaration))
-			noLint = NoLintFactory.fromDeclaration(node);
-
-		return !noLint.isNull && noLint.get.containsCheck(this.getName());
 	}
 
 	/**

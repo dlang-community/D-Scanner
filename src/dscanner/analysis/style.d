@@ -14,6 +14,7 @@ import std.conv;
 import std.format;
 import dscanner.analysis.helpers;
 import dscanner.analysis.base;
+import dscanner.analysis.nolint;
 import dsymbol.scope_ : Scope;
 
 final class StyleChecker : BaseAnalyzer
@@ -33,8 +34,9 @@ final class StyleChecker : BaseAnalyzer
 
 	override void visit(const ModuleDeclaration dec)
 	{
-		if(stopLinting(dec))
-			return;
+		auto currNoLint = NoLintFactory.fromModuleDeclaration(dec);
+		noLint.push(currNoLint);
+		scope(exit) noLint.pop(currNoLint);
 
 		foreach (part; dec.moduleName.identifiers)
 		{
