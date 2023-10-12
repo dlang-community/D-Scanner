@@ -411,13 +411,17 @@ public:
 	*
 	* When overriden, make sure to keep this structure
 	*/
-	override void visit(const(ModuleDeclaration) moduleDeclaration)
+	override void visit(const(Module) mod)
 	{
-		auto currNoLint = NoLintFactory.fromModuleDeclaration(moduleDeclaration);
-		noLint.push(currNoLint);
-		scope(exit) noLint.pop(currNoLint);
-
-		moduleDeclaration.accept(this);
+		if(mod.moduleDeclaration !is null)
+		{
+			auto currNoLint = NoLintFactory.fromModuleDeclaration(mod.moduleDeclaration);
+			noLint.push(currNoLint);
+			scope(exit) noLint.pop(currNoLint);
+			mod.accept(this);
+		}
+		else
+			mod.accept(this);
 	}
 
 	/**

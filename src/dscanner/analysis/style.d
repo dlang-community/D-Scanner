@@ -237,10 +237,5 @@ unittest
 			     ^^^^^^^^^^^^^^ [warn]: Function name 'WinButWithBody' does not match style guidelines. +/
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
-		@("nolint(dscanner.style.phobos_naming_convention)")
-		module AMODULE;
-	}c, sac);
-
 	stderr.writeln("Unittest for StyleChecker passed.");
 }

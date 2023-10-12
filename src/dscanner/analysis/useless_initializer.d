@@ -395,6 +395,18 @@ public:
 
 	}, sac);
 
+	// passes (disable check at module level)
+	assertAnalyzerWarnings(q{
+		@("nolint(dscanner.useless-initializer)")
+		module my_module;
+
+		int a = 0;
+
+		int f() {
+			int a = 0;
+		}
+	}, sac);
+
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
 }
 
