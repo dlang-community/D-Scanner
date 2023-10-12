@@ -178,7 +178,7 @@ private:
 	// into a NoLint struct
 	static Nullable!NoLint fromString(in string str)
 	{
-		auto re = regex(`\w+`, "g");
+		auto re = regex(`[\w-_.]+`, "g");
 		auto matches = matchAll(str, re);
 
 		if(!matches)
@@ -212,7 +212,8 @@ unittest
 	const s1 = "nolint(abc)";
 	const s2 = "nolint(abc, efg, hij)";
 	const s3 = "    nolint (   abc ,  efg  )    ";
-	const s4 = "OtherUda(abc)";
+	const s4 = "nolint(dscanner.style.abc_efg-ijh)";
+	const s5 = "OtherUda(abc)";
 
 	assert(NoLintFactory.fromString(s1).get.containsCheck("abc"));
 
@@ -223,5 +224,10 @@ unittest
 	assert(NoLintFactory.fromString(s3).get.containsCheck("abc"));
 	assert(NoLintFactory.fromString(s3).get.containsCheck("efg"));
 
-	assert(NoLintFactory.fromString(s4).isNull);
+	assert(NoLintFactory.fromString(s4).get.containsCheck("dscanner.style.abc_efg-ijh"));
+
+	assert(NoLintFactory.fromString(s5).isNull);
+
+	import std.stdio: stderr, writeln;
+	stderr.writeln("Unittest for NoLint passed.");
 }

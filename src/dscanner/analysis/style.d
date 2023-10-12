@@ -238,7 +238,7 @@ unittest
 	}c, sac);
 
 	assertAnalyzerWarnings(q{
-		@("nolint(style_check)")
+		@("nolint(dscanner.style.phobos_naming_convention)")
 		module AMODULE;
 	}c, sac);
 

@@ -370,28 +370,28 @@ public:
 
 	// passes
 	assertAnalyzerWarnings(q{
-			@("nolint(useless_initializer)")
+		@("nolint(dscanner.useless-initializer)")
+		int a = 0;
+		int a = 0;          /+
+		        ^ [warn]: X +/
+
+		@("nolint(dscanner.useless-initializer)")
+		int f() {
 			int a = 0;
-      int a = 0;      /+
-              ^ [warn]: X +/
+		}
 
-			@("nolint(useless_initializer)")
-			int f() {
-				int a = 0;
-			}
+		struct nolint { string s; }
 
-			struct nolint { string s; }
+		@nolint("dscanner.useless-initializer")
+		int a = 0;
+		int a = 0;          /+
+		        ^ [warn]: X +/
 
-			@nolint("useless_initializer")
-			int a = 0;
-      int a = 0;      /+
-              ^ [warn]: X +/
+		@("nolint(other_check, dscanner.useless-initializer, another_one)")
+		int a = 0;
 
-			@("nolint(other_check, useless_initializer, another_one)")
-			int a = 0;
-
-			@nolint("other_check", "another_one", "useless_initializer")
-			int a = 0;
+		@nolint("other_check", "another_one", "dscanner.useless-initializer")
+		int a = 0;
 
 	}, sac);
 
