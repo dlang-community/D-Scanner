@@ -34,7 +34,7 @@ final class StyleChecker : BaseAnalyzer
 
 	override void visit(const ModuleDeclaration dec)
 	{
-		with(noLint.push(NoLintFactory.fromModuleDeclaration(dec)))
+		with (noLint.push(NoLintFactory.fromModuleDeclaration(dec)))
 			dec.accept(this);
 
 		foreach (part; dec.moduleName.identifiers)

@@ -1,29 +1,30 @@
 module dscanner.analysis.nolint;
 
+@safe:
+
 import dparse.ast;
 import dparse.lexer;
 
-import std.algorithm: canFind;
-import std.regex: regex, matchAll;
-import std.string: strip;
+import std.algorithm : canFind;
+import std.regex : matchAll, regex;
+import std.string : strip;
 import std.typecons;
 
 struct NoLint
 {
 	bool containsCheck(in string check) const
 	{
-		return (check in disabledChecks) !is null &&
-				disabledChecks[check] > 0;
+		return disabledChecks.get(check, 0) > 0;
 	}
 
 	// automatic pop when returned value goes out of scope
-	Poppable push(in Nullable!NoLint other)
+	Poppable push(in Nullable!NoLint other) scope
 	{
-		if(other.isNull)
-			return Poppable((){});
+		if (other.isNull)
+			return Poppable(null);
 
-		foreach(item; other.get.getDisabledChecks.byKeyValue)
-			this.disabledChecks[item.key] += item.value;
+		foreach (key, value; other.get.getDisabledChecks)
+			this.disabledChecks[key] += value;
 
 		return Poppable(() => this.pop(other));
 	}
@@ -41,34 +42,38 @@ package:
 
 	void merge(in Nullable!NoLint other)
 	{
-		if(other.isNull)
+		if (other.isNull)
 			return;
 
-		foreach(item; other.get.getDisabledChecks.byKeyValue)
-			this.disabledChecks[item.key] += item.value;
+		foreach (key, value; other.get.getDisabledChecks)
+			this.disabledChecks[key] += value;
 	}
 
 private:
 	void pop(in Nullable!NoLint other)
 	{
-		if(other.isNull)
+		if (other.isNull)
 			return;
 
-		foreach(item; other.get.getDisabledChecks.byKeyValue)
+		foreach (key, value; other.get.getDisabledChecks)
 		{
-			assert((item.key in disabledChecks) !is null &&
-					this.disabledChecks[item.key] >= item.value);
+			assert(this.disabledChecks.get(key, 0) >= value);
 
-			this.disabledChecks[item.key] -= item.value;
+			this.disabledChecks[key] -= value;
 		}
 	}
 
-	struct Poppable {
-		void delegate() onPop;
-
-		~this() {
-			onPop();
+	static struct Poppable
+	{
+		~this()
+		{
+			if (onPop)
+				onPop();
+			onPop = null;
 		}
+
+	private:
+		void delegate() onPop;
 	}
 
 	int[string] disabledChecks;
@@ -80,10 +85,10 @@ struct NoLintFactory
 	{
 		NoLint noLint;
 
-		foreach(atAttribute; moduleDeclaration.atAttributes)
+		foreach (atAttribute; moduleDeclaration.atAttributes)
 			noLint.merge(NoLintFactory.fromAtAttribute(atAttribute));
 
-		if(!noLint.getDisabledChecks.length)
+		if (!noLint.getDisabledChecks.length)
 			return nullNoLint;
 
 		return noLint.nullable;
@@ -92,20 +97,19 @@ struct NoLintFactory
 	static Nullable!NoLint fromDeclaration(in Declaration declaration)
 	{
 		NoLint noLint;
-		foreach(attribute; declaration.attributes)
+		foreach (attribute; declaration.attributes)
 			noLint.merge(NoLintFactory.fromAttribute(attribute));
 
-		if(!noLint.getDisabledChecks.length)
+		if (!noLint.getDisabledChecks.length)
 			return nullNoLint;
 
 		return noLint.nullable;
 	}
 
-
 private:
 	static Nullable!NoLint fromAttribute(const(Attribute) attribute)
 	{
-		if(attribute is null)
+		if (attribute is null)
 			return nullNoLint;
 
 		return NoLintFactory.fromAtAttribute(attribute.atAttribute);
@@ -114,15 +118,15 @@ private:
 
 	static Nullable!NoLint fromAtAttribute(const(AtAttribute) atAttribute)
 	{
-		if(atAttribute is null)
+		if (atAttribute is null)
 			return nullNoLint;
 
 		auto ident = atAttribute.identifier;
 		auto argumentList = atAttribute.argumentList;
 
-		if(argumentList !is null)
+		if (argumentList !is null)
 		{
-			if(ident.text.length)
+			if (ident.text.length)
 				return NoLintFactory.fromStructUda(ident, argumentList);
 			else
 				return NoLintFactory.fromStringUda(argumentList);
@@ -134,29 +138,29 @@ private:
 
 	// @nolint("..")
 	static Nullable!NoLint fromStructUda(in Token ident, in ArgumentList argumentList)
-	in(ident.text.length && argumentList !is null)
+	in (ident.text.length && argumentList !is null)
 	{
-		if(ident.text != "nolint")
+		if (ident.text != "nolint")
 			return nullNoLint;
 
 		NoLint noLint;
 
-		foreach(nodeExpr; argumentList.items)
+		foreach (nodeExpr; argumentList.items)
 		{
-			if(auto unaryExpr = cast(UnaryExpression) nodeExpr)
+			if (auto unaryExpr = cast(const UnaryExpression) nodeExpr)
 			{
 				auto primaryExpression = unaryExpr.primaryExpression;
-				if(primaryExpression is null)
+				if (primaryExpression is null)
 					continue;
 
-				if(primaryExpression.primary != tok!"stringLiteral")
+				if (primaryExpression.primary != tok!"stringLiteral")
 					continue;
 
 				noLint.pushCheck(primaryExpression.primary.text.strip("\""));
 			}
 		}
 
-		if(!noLint.getDisabledChecks().length)
+		if (!noLint.getDisabledChecks().length)
 			return nullNoLint;
 
 		return noLint.nullable;
@@ -164,19 +168,19 @@ private:
 
 	// @("nolint(..)")
 	static Nullable!NoLint fromStringUda(in ArgumentList argumentList)
-	in(argumentList !is null)
+	in (argumentList !is null)
 	{
 		NoLint noLint;
 
-		foreach(nodeExpr; argumentList.items)
+		foreach (nodeExpr; argumentList.items)
 		{
-			if(auto unaryExpr = cast(UnaryExpression) nodeExpr)
+			if (auto unaryExpr = cast(const UnaryExpression) nodeExpr)
 			{
 				auto primaryExpression = unaryExpr.primaryExpression;
-				if(primaryExpression is null)
+				if (primaryExpression is null)
 					continue;
 
-				if(primaryExpression.primary != tok!"stringLiteral")
+				if (primaryExpression.primary != tok!"stringLiteral")
 					continue;
 
 				auto str = primaryExpression.primary.text.strip("\"");
@@ -185,7 +189,7 @@ private:
 			}
 		}
 
-		if(!noLint.getDisabledChecks().length)
+		if (!noLint.getDisabledChecks().length)
 			return nullNoLint;
 
 		return noLint.nullable;
@@ -196,27 +200,27 @@ private:
 	// into a NoLint struct
 	static Nullable!NoLint fromString(in string str)
 	{
-		auto re = regex(`[\w-_.]+`, "g");
+		static immutable re = regex(`[\w-_.]+`, "g");
 		auto matches = matchAll(str, re);
 
-		if(!matches)
+		if (!matches)
 			return nullNoLint;
 
 		const udaName = matches.hit;
-		if(udaName != "nolint")
+		if (udaName != "nolint")
 			return nullNoLint;
 
 		matches.popFront;
 
 		NoLint noLint;
 
-		while(matches)
+		while (matches)
 		{
 			noLint.pushCheck(matches.hit);
 			matches.popFront;
 		}
 
-		if(!noLint.getDisabledChecks.length)
+		if (!noLint.getDisabledChecks.length)
 			return nullNoLint;
 
 		return noLint.nullable;
@@ -246,6 +250,7 @@ unittest
 
 	assert(NoLintFactory.fromString(s5).isNull);
 
-	import std.stdio: stderr, writeln;
-	stderr.writeln("Unittest for NoLint passed.");
+	import std.stdio : stderr, writeln;
+
+	(() @trusted => stderr.writeln("Unittest for NoLint passed."))();
 }

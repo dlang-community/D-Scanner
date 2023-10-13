@@ -413,13 +413,15 @@ public:
 	*/
 	override void visit(const(Module) mod)
 	{
-		if(mod.moduleDeclaration !is null)
+		if (mod.moduleDeclaration !is null)
 		{
-		with(noLint.push(NoLintFactory.fromModuleDeclaration(mod.moduleDeclaration)))
+			with (noLint.push(NoLintFactory.fromModuleDeclaration(mod.moduleDeclaration)))
 				mod.accept(this);
 		}
 		else
+		{
 			mod.accept(this);
+		}
 	}
 
 	/**
@@ -429,7 +431,7 @@ public:
 	*/
 	override void visit(const(Declaration) decl)
 	{
-		with(noLint.push(NoLintFactory.fromDeclaration(decl)))
+		with (noLint.push(NoLintFactory.fromDeclaration(decl)))
 			decl.accept(this);
 	}
 
@@ -466,42 +468,42 @@ protected:
 	deprecated("Use the overload taking start and end locations or a Node instead")
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
 
 	void addErrorMessage(const BaseNode node, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, node, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token token, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, token, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token[] tokens, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, tokens, message), key, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t line, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		addErrorMessage(index, [line, line], columns, key, message, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t[2] lines, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		auto d = Message.Diagnostic.from(fileName, index, lines, columns, message);
 		_messages.insert(Message(d, key, getName(), autofixes));
@@ -509,14 +511,14 @@ protected:
 
 	void addErrorMessage(Message.Diagnostic diagnostic, string key, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		_messages.insert(Message(diagnostic, key, getName(), autofixes));
 	}
 
 	void addErrorMessage(Message.Diagnostic diagnostic, Message.Diagnostic[] supplemental, string key, AutoFix[] autofixes = null)
 	{
-		if(noLint.containsCheck(key))
+		if (noLint.containsCheck(key))
 			return;
 		_messages.insert(Message(diagnostic, supplemental, key, getName(), autofixes));
 	}
@@ -801,7 +803,7 @@ unittest
 	testScopes(q{
 		auto isNewScope = void;
 		auto depth = 1;
-		
+
 		void foo() {
 			isNewScope();
 			isOldScope();

@@ -94,7 +94,7 @@ public:
 	{
 		_inStruct.insert(decl.structDeclaration !is null);
 
-		with(noLint.push(NoLintFactory.fromDeclaration(decl)))
+		with (noLint.push(NoLintFactory.fromDeclaration(decl)))
 			decl.accept(this);
 
 		if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
