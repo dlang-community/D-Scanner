@@ -5,6 +5,7 @@
 module dscanner.analysis.useless_initializer;
 
 import dscanner.analysis.base;
+import dscanner.analysis.nolint;
 import dscanner.utils : safeAccess;
 import containers.dynamicarray;
 import containers.hashmap;
@@ -92,7 +93,10 @@ public:
 	override void visit(const(Declaration) decl)
 	{
 		_inStruct.insert(decl.structDeclaration !is null);
-		decl.accept(this);
+
+		with (noLint.push(NoLintFactory.fromDeclaration(decl)))
+			decl.accept(this);
+
 		if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
 			((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||
 			!decl.constructor.parameters))
@@ -359,6 +363,45 @@ public:
 		D d = D.init;
 		E e = E.init;
 		NotKnown nk = NotKnown.init;
+	}, sac);
+
+	// passes
+	assertAnalyzerWarnings(q{
+		@("nolint(dscanner.useless-initializer)")
+		int a = 0;
+		int a = 0;          /+
+		        ^ [warn]: X +/
+
+		@("nolint(dscanner.useless-initializer)")
+		int f() {
+			int a = 0;
+		}
+
+		struct nolint { string s; }
+
+		@nolint("dscanner.useless-initializer")
+		int a = 0;
+		int a = 0;          /+
+		        ^ [warn]: X +/
+
+		@("nolint(other_check, dscanner.useless-initializer, another_one)")
+		int a = 0;
+
+		@nolint("other_check", "another_one", "dscanner.useless-initializer")
+		int a = 0;
+
+	}, sac);
+
+	// passes (disable check at module level)
+	assertAnalyzerWarnings(q{
+		@("nolint(dscanner.useless-initializer)")
+		module my_module;
+
+		int a = 0;
+
+		int f() {
+			int a = 0;
+		}
 	}, sac);
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
