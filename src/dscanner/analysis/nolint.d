@@ -7,14 +7,24 @@ import dparse.lexer;
 
 import std.algorithm : canFind;
 import std.regex : matchAll, regex;
-import std.string : strip;
+import std.string : lastIndexOf, strip;
 import std.typecons;
 
 struct NoLint
 {
-	bool containsCheck(in string check) const
+	bool containsCheck(scope const(char)[] check) const
 	{
-		return disabledChecks.get(check, 0) > 0;
+		while (true)
+		{
+			if (disabledChecks.get((() @trusted => cast(string) check)(), 0) > 0)
+				return true;
+
+			auto dot = check.lastIndexOf('.');
+			if (dot == -1)
+				break;
+			check = check[0 .. dot];
+		}
+		return false;
 	}
 
 	// automatic pop when returned value goes out of scope
@@ -236,6 +246,7 @@ unittest
 	const s3 = "    nolint (   abc ,  efg  )    ";
 	const s4 = "nolint(dscanner.style.abc_efg-ijh)";
 	const s5 = "OtherUda(abc)";
+	const s6 = "nolint(dscanner)";
 
 	assert(NoLintFactory.fromString(s1).get.containsCheck("abc"));
 
@@ -249,6 +260,10 @@ unittest
 	assert(NoLintFactory.fromString(s4).get.containsCheck("dscanner.style.abc_efg-ijh"));
 
 	assert(NoLintFactory.fromString(s5).isNull);
+
+	assert(NoLintFactory.fromString(s6).get.containsCheck("dscanner"));
+	assert(!NoLintFactory.fromString(s6).get.containsCheck("dscanner2"));
+	assert(NoLintFactory.fromString(s6).get.containsCheck("dscanner.foo"));
 
 	import std.stdio : stderr, writeln;
 
