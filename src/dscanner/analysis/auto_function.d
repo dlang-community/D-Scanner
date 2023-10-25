@@ -40,9 +40,9 @@ public:
 	mixin AnalyzerInfo!"auto_function_check";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	package static const(Token)[] findAutoReturnType(const(FunctionDeclaration) decl)

@@ -20,9 +20,9 @@ final class IfConstraintsIndentCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"if_constraints_indent";
 
 	///
-	this(string fileName, const(Token)[] tokens, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 
 		// convert tokens to a list of token starting positions per line
 

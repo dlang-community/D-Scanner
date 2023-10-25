@@ -19,7 +19,7 @@ import dscanner.utils : safeAccess;
  * } else if (bar) {
  * }
  * ---
- * 
+ *
  * However, it's more likely that this is a mistake.
  */
 final class StaticIfElse : BaseAnalyzer
@@ -28,9 +28,9 @@ final class StaticIfElse : BaseAnalyzer
 
 	mixin AnalyzerInfo!"static_if_else_check";
 
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const ConditionalStatement cc)

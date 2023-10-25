@@ -17,9 +17,9 @@ final class LabelVarNameCheck : ScopedBaseAnalyzer
 {
 	mixin AnalyzerInfo!"label_var_same_name_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	mixin AggregateVisit!ClassDeclaration;

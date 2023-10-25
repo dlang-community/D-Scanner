@@ -22,9 +22,9 @@ final class HasPublicExampleCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"has_public_example";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const Module mod)

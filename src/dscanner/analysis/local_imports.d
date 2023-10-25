@@ -25,9 +25,9 @@ final class LocalImportCheck : BaseAnalyzer
 	/**
 	 * Construct with the given file name.
 	 */
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	mixin visitThing!StructBody;

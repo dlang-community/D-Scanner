@@ -41,9 +41,9 @@ public:
     const(DSymbol)* noreturn_;
 
     ///
-    this(string fileName, const(Scope)* sc, bool skipTests = false)
+    this(BaseAnalyzerArguments args)
     {
-        super(fileName, sc, skipTests);
+        super(args);
         void_ = sc.getSymbolsByName(internString("void"))[0];
         auto symbols = sc.getSymbolsByName(internString("noreturn"));
         if (symbols.length > 0)

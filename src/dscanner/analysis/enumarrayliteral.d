@@ -21,9 +21,9 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"enum_array_literal_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	bool looking;

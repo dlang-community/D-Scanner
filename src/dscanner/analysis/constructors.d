@@ -14,9 +14,9 @@ final class ConstructorCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"constructor_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const ClassDeclaration classDeclaration)

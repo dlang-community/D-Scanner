@@ -23,9 +23,9 @@ final class UndocumentedDeclarationCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"undocumented_declaration_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const Module mod)

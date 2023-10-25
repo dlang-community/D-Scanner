@@ -23,9 +23,9 @@ final class UnusedParameterCheck : UnusedStorageCheck
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests, "Parameter", "unused_parameter");
+		super(args, "Parameter", "unused_parameter");
 	}
 
 	override void visit(const Parameter parameter)

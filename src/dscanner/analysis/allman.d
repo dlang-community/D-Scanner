@@ -30,9 +30,9 @@ final class AllManCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"allman_braces_check";
 
 	///
-	this(string fileName, const(Token)[] tokens, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 		foreach (i; 1 .. tokens.length - 1)
 		{
 			const curLine = tokens[i].line;

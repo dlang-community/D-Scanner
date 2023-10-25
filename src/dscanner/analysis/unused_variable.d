@@ -23,9 +23,9 @@ final class UnusedVariableCheck : UnusedStorageCheck
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests, "Variable", "unused_variable");
+		super(args, "Variable", "unused_variable");
 	}
 
 	override void visit(const VariableDeclaration variableDeclaration)

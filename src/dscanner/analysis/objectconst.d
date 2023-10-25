@@ -24,9 +24,9 @@ final class ObjectConstCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"object_const_check";
 
 	///
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	mixin visitTemplate!ClassDeclaration;

@@ -20,12 +20,10 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 	/**
-	 * Params:
-	 *     fileName = the name of the file being analyzed
 	 */
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 		re = regex("[\\p{Alphabetic}_][\\w_]*");
 	}
 
@@ -421,15 +419,13 @@ abstract class UnusedStorageCheck : UnusedIdentifierCheck
 
 	/**
 	 * Params:
-	 *      fileName	= the name of the file being analyzed
-	 *		sc			= the scope
-	 *		skipTest	= whether tests should be analyzed
-	 *		publicType	= declaration kind used in error messages, e.g. "Variable"s
-	 *		reportType	= declaration kind used in error reports, e.g. "unused_variable"
+	 *     args       = commonly shared analyzer arguments
+	 *     publicType = declaration kind used in error messages, e.g. "Variable"s
+	 *     reportType = declaration kind used in error reports, e.g. "unused_variable"
 	 */
-	this(string fileName, const(Scope)* sc, bool skipTests = false, string publicType = null, string reportType = null)
+	this(BaseAnalyzerArguments args, string publicType = null, string reportType = null)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 		this.publicType = publicType;
 		this.reportType = reportType;
 	}

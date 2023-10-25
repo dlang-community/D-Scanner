@@ -13,9 +13,10 @@ final class StatsCollector : BaseAnalyzer
 {
 	alias visit = ASTVisitor.visit;
 
-	this(string fileName)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null);
+		args.skipTests = false; // old behavior compatibility
+		super(args);
 	}
 
 	override void visit(const Statement statement)

@@ -16,9 +16,9 @@ final class LambdaReturnCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"lambda_return_check";
 
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const FunctionLiteralExpression fLit)

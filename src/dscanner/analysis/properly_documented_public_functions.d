@@ -41,9 +41,9 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	mixin AnalyzerInfo!"properly_documented_public_functions";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const Module mod)

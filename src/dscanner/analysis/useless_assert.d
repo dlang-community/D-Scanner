@@ -30,9 +30,9 @@ final class UselessAssertCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"useless_assert_check";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const AssertExpression ae)

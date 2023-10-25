@@ -371,14 +371,41 @@ mixin template AnalyzerInfo(string checkName)
 	}
 }
 
+struct BaseAnalyzerArguments
+{
+	string fileName;
+	const(Token)[] tokens;
+	const Scope* sc;
+	bool skipTests = false;
+
+	BaseAnalyzerArguments setSkipTests(bool v)
+	{
+		auto ret = this;
+		ret.skipTests = v;
+		return ret;
+	}
+}
+
 abstract class BaseAnalyzer : ASTVisitor
 {
 public:
+	deprecated("Don't use this constructor, use the one taking BaseAnalyzerArguments")
 	this(string fileName, const Scope* sc, bool skipTests = false)
 	{
-		this.sc = sc;
-		this.fileName = fileName;
-		this.skipTests = skipTests;
+		BaseAnalyzerArguments args = {
+			fileName: fileName,
+			sc: sc,
+			skipTests: skipTests
+		};
+		this(args);
+	}
+
+	this(BaseAnalyzerArguments args)
+	{
+		this.sc = args.sc;
+		this.tokens = args.tokens;
+		this.fileName = args.fileName;
+		this.skipTests = args.skipTests;
 		_messages = new MessageSet;
 	}
 
@@ -453,6 +480,7 @@ protected:
 
 	bool inAggregate;
 	bool skipTests;
+	const(Token)[] tokens;
 	NoLint noLint;
 
 	template visitTemplate(T)
@@ -550,9 +578,9 @@ const(Token)[] findTokenForDisplay(const Token[] tokens, IdType type, const(Toke
 abstract class ScopedBaseAnalyzer : BaseAnalyzer
 {
 public:
-	this(string fileName, const Scope* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 
@@ -698,7 +726,7 @@ unittest
 	{
 		this(size_t codeLine)
 		{
-			super("stdin", null, false);
+			super(BaseAnalyzerArguments("stdin"));
 
 			this.codeLine = codeLine;
 		}

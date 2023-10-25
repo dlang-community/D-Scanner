@@ -31,9 +31,9 @@ public:
 	mixin AnalyzerInfo!"trust_too_much";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const AtAttribute d)

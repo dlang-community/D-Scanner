@@ -21,9 +21,9 @@ final class UnmodifiedFinder : BaseAnalyzer
 	mixin AnalyzerInfo!"could_be_immutable_check";
 
 	///
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const Module mod)

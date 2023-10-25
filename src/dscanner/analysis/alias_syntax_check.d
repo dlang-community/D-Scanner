@@ -18,9 +18,9 @@ final class AliasSyntaxCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"alias_syntax_check";
 
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const AliasDeclaration ad)

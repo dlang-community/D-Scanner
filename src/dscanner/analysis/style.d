@@ -27,9 +27,9 @@ final class StyleChecker : BaseAnalyzer
 	enum string KEY = "dscanner.style.phobos_naming_convention";
 	mixin AnalyzerInfo!"style_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const ModuleDeclaration dec)

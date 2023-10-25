@@ -22,9 +22,9 @@ final class FloatOperatorCheck : BaseAnalyzer
 	enum string KEY = "dscanner.deprecated.floating_point_operators";
 	mixin AnalyzerInfo!"float_operator_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const RelExpression r)

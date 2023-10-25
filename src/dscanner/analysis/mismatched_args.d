@@ -14,9 +14,9 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"mismatched_args_check";
 
 	///
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const FunctionCallExpression fce)

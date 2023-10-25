@@ -28,9 +28,9 @@ final class FunctionAttributeCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"function_attribute_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const InterfaceDeclaration dec)

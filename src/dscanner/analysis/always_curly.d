@@ -21,9 +21,9 @@ final class AlwaysCurlyCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 
 	///
-	this(string fileName, const(Token)[] tokens, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	void test(L, B)(L loc, B s, string stmtKind)
