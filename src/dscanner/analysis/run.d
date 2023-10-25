@@ -750,9 +750,9 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
 
 	BaseAnalyzerArguments args = BaseAnalyzerArguments(
-		fileName: fileName,
-		tokens: tokens,
-		sc: moduleScope
+		fileName,
+		tokens,
+		moduleScope
 	);
 
 	if (moduleName.shouldRun!AsmStyleCheck(analysisConfig))
