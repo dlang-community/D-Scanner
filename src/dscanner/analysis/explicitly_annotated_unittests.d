@@ -20,9 +20,9 @@ final class ExplicitlyAnnotatedUnittestCheck : BaseAnalyzer
     mixin AnalyzerInfo!"explicitly_annotated_unittests";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const Declaration decl)

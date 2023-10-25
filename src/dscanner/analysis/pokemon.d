@@ -31,9 +31,9 @@ final class PokemonExceptionCheck : BaseAnalyzer
 
 	alias visit = BaseAnalyzer.visit;
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const LastCatch lc)

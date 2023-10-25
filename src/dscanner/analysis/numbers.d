@@ -26,9 +26,9 @@ public:
 	/**
 	 * Constructs the style checker with the given file name.
 	 */
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const Token t)

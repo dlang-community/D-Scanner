@@ -20,10 +20,9 @@ final class LineLengthCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"long_line_check";
 
 	///
-	this(string fileName, const(Token)[] tokens, int maxLineLength, bool skipTests = false)
+	this(BaseAnalyzerArguments args, int maxLineLength)
 	{
-		super(fileName, null, skipTests);
-		this.tokens = tokens;
+		super(args);
 		this.maxLineLength = maxLineLength;
 	}
 
@@ -94,9 +93,9 @@ private:
 
 	unittest
 	{
-		assert(new LineLengthCheck(null, null, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
-		assert(new LineLengthCheck(null, null, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
-		assert(new LineLengthCheck(null, null, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
+		assert(new LineLengthCheck(BaseAnalyzerArguments.init, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		", 0, 0, 0)) == 8);
+		assert(new LineLengthCheck(BaseAnalyzerArguments.init, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		\na", 0, 0, 0)) == 2);
+		assert(new LineLengthCheck(BaseAnalyzerArguments.init, 120).checkMultiLineToken(Token(tok!"stringLiteral", "		\n	", 0, 0, 0)) == 5);
 	}
 
 	static size_t tokenByteLength()(auto ref const Token tok)
@@ -165,7 +164,6 @@ private:
 
 	enum string KEY = "dscanner.style.long_line";
 	const int maxLineLength;
-	const(Token)[] tokens;
 }
 
 @system unittest

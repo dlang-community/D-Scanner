@@ -22,9 +22,9 @@ final class RedundantStorageClassCheck : BaseAnalyzer
 	enum string REDUNDANT_VARIABLE_ATTRIBUTES = "Variable declaration for `%s` has redundant attributes (%-(`%s`%|, %)).";
 	mixin AnalyzerInfo!"redundant_storage_classes";
 
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const Declaration node)

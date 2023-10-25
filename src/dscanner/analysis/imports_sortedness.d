@@ -20,9 +20,9 @@ final class ImportSortednessCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"imports_sortedness";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	mixin ScopedVisit!Module;

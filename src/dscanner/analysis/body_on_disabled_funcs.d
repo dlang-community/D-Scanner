@@ -12,9 +12,9 @@ final class BodyOnDisabledFuncsCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"body_on_disabled_func_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	static foreach (AggregateType; AliasSeq!(InterfaceDeclaration, ClassDeclaration,

@@ -20,9 +20,9 @@ final class RedundantParenCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"redundant_parens_check";
 
 	///
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const IfStatement statement)

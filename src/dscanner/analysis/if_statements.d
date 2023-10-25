@@ -16,9 +16,9 @@ final class IfStatementCheck : BaseAnalyzer
 	alias visit = BaseAnalyzer.visit;
 	mixin AnalyzerInfo!"redundant_if_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const IfStatement ifStatement)

@@ -56,9 +56,9 @@ private:
 public:
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 		_inStruct.insert(false);
 	}
 

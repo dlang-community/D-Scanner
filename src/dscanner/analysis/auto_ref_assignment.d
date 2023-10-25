@@ -17,9 +17,9 @@ final class AutoRefAssignmentCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"auto_ref_assignment_check";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const Module m)

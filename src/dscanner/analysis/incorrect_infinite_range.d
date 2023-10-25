@@ -22,9 +22,9 @@ final class IncorrectInfiniteRangeCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"incorrect_infinite_range_check";
 
 	///
-	this(string fileName, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, null, skipTests);
+		super(args);
 	}
 
 	override void visit(const StructBody structBody)

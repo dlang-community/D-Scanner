@@ -21,9 +21,9 @@ final class UnusedLabelCheck : BaseAnalyzer
 	mixin AnalyzerInfo!"unused_label_check";
 
 	///
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const Module mod)

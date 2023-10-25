@@ -22,9 +22,9 @@ final class LengthSubtractionCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"length_subtraction_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const AddExpression addExpression)

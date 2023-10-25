@@ -26,9 +26,9 @@ final class IfElseSameCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"if_else_same_check";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const IfStatement ifStatement)

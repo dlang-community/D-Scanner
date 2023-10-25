@@ -53,10 +53,9 @@ final class CyclomaticComplexityCheck : BaseAnalyzer
 	int maxCyclomaticComplexity;
 
 	///
-	this(string fileName, const(Scope)* sc, bool skipTests = false,
-		int maxCyclomaticComplexity = 50)
+	this(BaseAnalyzerArguments args, int maxCyclomaticComplexity = 50)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 		this.maxCyclomaticComplexity = maxCyclomaticComplexity;
 	}
 

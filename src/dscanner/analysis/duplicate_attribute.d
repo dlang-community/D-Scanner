@@ -23,9 +23,9 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 
 	mixin AnalyzerInfo!"duplicate_attribute";
 
-	this(string fileName, const(Scope)* sc, bool skipTests = false)
+	this(BaseAnalyzerArguments args)
 	{
-		super(fileName, sc, skipTests);
+		super(args);
 	}
 
 	override void visit(const Declaration node)
