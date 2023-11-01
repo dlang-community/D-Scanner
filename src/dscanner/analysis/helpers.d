@@ -502,14 +502,14 @@ void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, b
 
 	global.params.useUnitTests = true;
 	global.path = new Strings();
-	global.path.push((dmdParentDir ~ "/dmd").ptr);
-	global.path.push((dmdParentDir ~ "/dmd/druntime/src").ptr);
+	global.path.push((dmdParentDir ~ "/dmd" ~ "\0").ptr);
+	global.path.push((dmdParentDir ~ "/dmd/druntime/src" ~ "\0").ptr);
 
 	initDMD();
 
 	auto input = cast(char[]) code;
 	input ~= '\0';
-	auto t = dmd.frontend.parseModule(cast(const(char)[]) file, cast(const (char)[]) input);		
+	auto t = dmd.frontend.parseModule(cast(const(char)[]) file, cast(const (char)[]) input);
 	if (semantic)
 		t.module_.fullSemantic();
 
