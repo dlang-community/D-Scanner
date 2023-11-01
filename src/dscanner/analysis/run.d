@@ -405,8 +405,8 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 
 		global.params.useUnitTests = true;
 		global.path = new Strings();
-		global.path.push((dmdParentDir ~ "/dmd").ptr);
-		global.path.push((dmdParentDir ~ "/dmd/druntime/src").ptr);
+		global.path.push((dmdParentDir ~ "/dmd" ~ "\0").ptr);
+		global.path.push((dmdParentDir ~ "/dmd/druntime/src" ~ "\0").ptr);
 
 		initDMD();
 
@@ -1245,7 +1245,7 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 
 	if (moduleName.shouldRunDmd!(FinalAttributeChecker!ASTCodegen)(config))
 		visitors ~= new FinalAttributeChecker!ASTCodegen(fileName);
-	
+
 	if (moduleName.shouldRunDmd!(ImportSortednessCheck!ASTCodegen)(config))
 		visitors ~= new ImportSortednessCheck!ASTCodegen(fileName);
 
@@ -1254,10 +1254,10 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 
 	if (moduleName.shouldRunDmd!(RedundantAttributesCheck!ASTCodegen)(config))
 		visitors ~= new RedundantAttributesCheck!ASTCodegen(fileName);
-		
+
 	if (moduleName.shouldRunDmd!(LengthSubtractionCheck!ASTCodegen)(config))
 		visitors ~= new LengthSubtractionCheck!ASTCodegen(fileName);
-		
+
 	if (moduleName.shouldRunDmd!(AliasSyntaxCheck!ASTCodegen)(config))
 		visitors ~= new AliasSyntaxCheck!ASTCodegen(fileName);
 
@@ -1266,7 +1266,7 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 
 	if (moduleName.shouldRunDmd!(ConstructorCheck!ASTCodegen)(config))
 		visitors ~= new ConstructorCheck!ASTCodegen(fileName);
-		
+
 	if (moduleName.shouldRunDmd!(AssertWithoutMessageCheck!ASTCodegen)(config))
 		visitors ~= new AssertWithoutMessageCheck!ASTCodegen(
 			fileName,
@@ -1287,22 +1287,22 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 			fileName,
 			config.trust_too_much == Check.skipTests && !ut
 		);
-		
+
 	if (moduleName.shouldRunDmd!(AutoRefAssignmentCheck!ASTCodegen)(config))
 		visitors ~= new AutoRefAssignmentCheck!ASTCodegen(fileName);
-		
+
 	if (moduleName.shouldRunDmd!(LogicPrecedenceCheck!ASTCodegen)(config))
 		visitors ~= new LogicPrecedenceCheck!ASTCodegen(
 			fileName,
 			config.logical_precedence_check == Check.skipTests && !ut
 		);
-	
+
 	if (moduleName.shouldRunDmd!(UnusedLabelCheck!ASTCodegen)(config))
 		visitors ~= new UnusedLabelCheck!ASTCodegen(
 			fileName,
 			config.unused_label_check == Check.skipTests && !ut
 		);
-	
+
 	if (moduleName.shouldRunDmd!(BuiltinPropertyNameCheck!ASTCodegen)(config))
 		visitors ~= new BuiltinPropertyNameCheck!ASTCodegen(fileName);
 
@@ -1335,7 +1335,7 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 			fileName,
 			config.static_if_else_check == Check.skipTests && !ut
 		);
-		
+
 	if (moduleName.shouldRunDmd!(UselessAssertCheck!ASTCodegen)(config))
 		visitors ~= new UselessAssertCheck!ASTCodegen(
 			fileName,
@@ -1345,7 +1345,7 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 	foreach (visitor; visitors)
 	{
 		m.accept(visitor);
-		
+
 		foreach (message; visitor.messages)
 			set.insert(message);
 	}
