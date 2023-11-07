@@ -6,39 +6,58 @@
 module dscanner.analysis.asm_style;
 
 import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
+import dmd.tokens;
 
 /**
  * Checks for confusing asm expressions.
  * See_also: $(LINK https://issues.dlang.org/show_bug.cgi?id=9738)
  */
-final class AsmStyleCheck : BaseAnalyzer
+extern (C++) class AsmStyleCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"asm_style_check";
 
-	this(BaseAnalyzerArguments args)
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const AsmBrExp brExp)
+	override void visit(AST.AsmStatement asmStatement)
 	{
-		if (brExp.asmBrExp !is null && brExp.asmBrExp.asmUnaExp !is null
-				&& brExp.asmBrExp.asmUnaExp.asmPrimaryExp !is null)
+		for (Token* token = asmStatement.tokens; token !is null; token = token.next)
 		{
-			addErrorMessage(brExp, KEY,
-					"This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.");
+			if (isConfusingStatement(token))
+			{
+				auto lineNum = cast(ulong) token.loc.linnum;
+				auto charNum = cast(ulong) token.loc.charnum;
+				addErrorMessage(lineNum, charNum, KEY, MESSAGE);
+			}
 		}
-		brExp.accept(this);
 	}
 
-	private enum string KEY = "dscanner.confusing.brexp";
+	private bool isConfusingStatement(Token* token)
+	{
+		if (token.next is null)
+			return false;
+
+		if (token.next.next is null)
+			return false;
+
+		TOK tok1 = token.value;
+		TOK tok2 = token.next.value;
+		TOK tok3 = token.next.next.value;
+
+		if (tok1 == TOK.leftBracket && tok2 == TOK.int32Literal && tok3 == TOK.rightBracket)
+			return true;
+
+		return false;
+	}
+
+private:
+	enum string KEY = "dscanner.confusing.brexp";
+	enum string MESSAGE = "This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.";
 }
 
 unittest
@@ -47,13 +66,12 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.asm_style_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testAsm()
 		{
 			asm
 			{
-				mov a, someArray[1]; /+
-				       ^^^^^^^^^^^^ [warn]: This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify. +/
+				mov a, someArray[1]; // [warn]: This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.
 				add near ptr [EAX], 3;
 			}
 		}
