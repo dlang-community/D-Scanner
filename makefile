@@ -86,8 +86,6 @@ else ifneq (,$(findstring gdc, $(DC)))
 	WRITE_TO_TARGET_NAME = -o $@
 endif
 
-SHELL:=/usr/bin/env bash
-
 GITHASH = bin/githash.txt
 
 
