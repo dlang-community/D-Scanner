@@ -183,7 +183,7 @@ unittest
  * in other languages. In the chain, any $(D null) member that is a class instance
  * or that returns one, has for effect to shortcut the complete evaluation.
  *
- * This function is copied from https://github.com/BBasile/iz to avoid a new submodule.
+ * This function is copied from https://gitlab.com/basile.b/iz/-/blob/master/import/iz/sugar.d?ref_type=heads#L1543 to avoid a new submodule.
  * Any change made to this copy should also be applied to the origin.
  *
  * Params:
