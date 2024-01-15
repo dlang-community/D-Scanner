@@ -913,10 +913,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new IfConstraintsIndentCheck(args.setSkipTests(
 		analysisConfig.if_constraints_indent == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!RedundantStorageClassCheck(analysisConfig))
-		checks ~= new RedundantStorageClassCheck(args.setSkipTests(
-		analysisConfig.redundant_storage_classes == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!UnusedResultChecker(analysisConfig))
 		checks ~= new UnusedResultChecker(args.setSkipTests(
 		analysisConfig.unused_result == Check.skipTests && !ut));
@@ -1342,6 +1338,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new AsmStyleCheck!ASTCodegen(
 			fileName,
 			config.asm_style_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(RedundantStorageClassCheck!ASTCodegen)(config))
+		visitors ~= new RedundantStorageClassCheck!ASTCodegen(
+			fileName,
+			config.redundant_storage_classes == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
