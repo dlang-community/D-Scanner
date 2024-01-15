@@ -5,74 +5,68 @@
 
 module dscanner.analysis.redundant_storage_class;
 
-import std.stdio;
 import std.string;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
 
 /**
  * Checks for redundant storage classes such immutable and __gshared, static and __gshared
  */
-final class RedundantStorageClassCheck : BaseAnalyzer
+extern (C++) class RedundantStorageClassCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-	enum string REDUNDANT_VARIABLE_ATTRIBUTES = "Variable declaration for `%s` has redundant attributes (%-(`%s`%|, %)).";
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"redundant_storage_classes";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.unnecessary.duplicate_attribute";
+	private enum string REDUNDANT_VARIABLE_ATTRIBUTES = "Variable declaration for `%s` has redundant attributes (%-(`%s`%|, %)).";
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const Declaration node)
+	override void visit(AST.VarDeclaration varDecl)
 	{
-		checkAttributes(node);
-		node.accept(this);
+		import dmd.astenums : STC;
+
+		if (varDecl.storage_class & STC.immutable_ && varDecl.storage_class & STC.shared_)
+			addErrorFor(varDecl, "immutable", "shared");
+
+		if (varDecl.storage_class & STC.immutable_ && varDecl.storage_class & STC.gshared)
+			addErrorFor(varDecl, "immutable", "__gshared");
+
+		if (varDecl.storage_class & STC.static_ && varDecl.storage_class & STC.gshared)
+			addErrorFor(varDecl, "static", "__gshared");
 	}
 
-	void checkAttributes(const Declaration node)
+	extern (D) private void addErrorFor(AST.VarDeclaration varDecl, string attr1, string attr2)
 	{
-		if (node.variableDeclaration !is null && node.attributes !is null)
-			checkVariableDeclaration(node.variableDeclaration, node.attributes);
-	}
-
-	void checkVariableDeclaration(const VariableDeclaration vd, const Attribute[] attributes)
-	{
-		import std.algorithm.comparison : among;
-		import std.algorithm.searching: all;
-
-		string[] globalAttributes;
-		foreach (attrib; attributes)
-		{
-			if (attrib.attribute.type.among(tok!"shared", tok!"static", tok!"__gshared", tok!"immutable"))
-				globalAttributes ~= attrib.attribute.type.str;
-		}
-		if (globalAttributes.length > 1)
-		{
-			if (globalAttributes.length == 2 && (
-					globalAttributes.all!(a => a.among("shared", "static")) ||
-					globalAttributes.all!(a => a.among("static", "immutable"))
-			))
-				return;
-			auto t = vd.declarators[0].name;
-			string message = REDUNDANT_VARIABLE_ATTRIBUTES.format(t.text, globalAttributes);
-			addErrorMessage(t, "dscanner.unnecessary.duplicate_attribute", message);
-		}
+		auto lineNum = cast(ulong) varDecl.loc.linnum;
+		auto charNum = cast(ulong) varDecl.loc.charnum;
+		auto varName = varDecl.ident.toString();
+		auto errorMsg = REDUNDANT_VARIABLE_ATTRIBUTES.format(varName, [
+			attr1, attr2
+		]);
+		addErrorMessage(lineNum, charNum, KEY, errorMsg);
 	}
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
+	import std.stdio : stderr;
+	import std.format : format;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.redundant_storage_classes = Check.enabled;
 
+	enum string erorMsg = "Variable declaration for `%s` has redundant attributes (%-(`%s`%|, %)).";
+	auto immutableSharedMsg = erorMsg.format("a", ["immutable", "shared"]);
+	auto immutableGSharedMsg = erorMsg.format("a", ["immutable", "__gshared"]);
+	auto staticGSharedMsg = erorMsg.format("a", ["static", "__gshared"]);
+
 	// https://github.com/dlang-community/D-Scanner/issues/438
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		immutable int a;
 
 		immutable shared int a; // [warn]: %s
@@ -91,13 +85,8 @@ unittest
 		enum int a;
 		extern(C++) immutable int a;
 		immutable int function(immutable int, shared int) a;
-	}c.format(
-		RedundantStorageClassCheck.REDUNDANT_VARIABLE_ATTRIBUTES.format("a", ["immutable", "shared"]),
-		RedundantStorageClassCheck.REDUNDANT_VARIABLE_ATTRIBUTES.format("a", ["shared", "immutable"]),
-		RedundantStorageClassCheck.REDUNDANT_VARIABLE_ATTRIBUTES.format("a", ["immutable", "__gshared"]),
-		RedundantStorageClassCheck.REDUNDANT_VARIABLE_ATTRIBUTES.format("a", ["__gshared", "immutable"]),
-		RedundantStorageClassCheck.REDUNDANT_VARIABLE_ATTRIBUTES.format("a", ["__gshared", "static"]),
-	), sac);
+	}c.format(immutableSharedMsg, immutableSharedMsg, immutableGSharedMsg,
+			immutableGSharedMsg, staticGSharedMsg), sac);
 
 	stderr.writeln("Unittest for RedundantStorageClassCheck passed.");
 }
