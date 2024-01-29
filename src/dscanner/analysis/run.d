@@ -106,6 +106,10 @@ version (unittest)
 else
 	enum ut = false;
 
+void doNothing(string, size_t, size_t, string, bool)
+{
+}
+
 private alias ASTAllocator = CAllocatorImpl!(
 		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
 
