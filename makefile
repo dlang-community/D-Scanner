@@ -14,8 +14,37 @@ DMD_ROOT_SRC := \
 DMD_FRONTEND_SRC := \
 	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
 	$(shell find dmd/compiler/src/dmd/root -name "*.d")\
-	$(shell find dmd/compiler/src/dmd/backend -name "*.d")\
-	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" ! -name "mars.d" )
+	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" \
+		! -name "mars.d" \
+		! -name "dmsc.d" \
+		! -name "e2ir.d" \
+		! -name "eh.d" \
+		! -name "glue.d" \
+		! -name "iasm.d" \
+		! -name "iasmdmd.d" \
+		! -name "iasmgcc.d" \
+		! -name "irstate.d" \
+		! -name "lib.d" \
+		! -name "libelf.d" \
+		! -name "libmach.d" \
+		! -name "libmscoff.d" \
+		! -name "libomf.d" \
+		! -name "link.d" \
+		! -name "objc_glue.d" \
+		! -name "s2ir.d" \
+		! -name "scanelf.d" \
+		! -name "scanmach.d" \
+		! -name "scanmscoff.d" \
+		! -name "scanomf.d" \
+		! -name "tocsym.d" \
+		! -name "toctype.d" \
+		! -name "tocvdebug.d" \
+		! -name "toobj.d" \
+		! -name "todt.d" \
+		! -name "toir.d" \
+	)
+	#$(shell find dmd/compiler/src/dmd/backend -name "*.d")\
+	#$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" ! -name "mars.d" )
 
 DMD_LEXER_SRC := \
 	dmd/compiler/src/dmd/console.d \
@@ -83,7 +112,7 @@ INCLUDE_PATHS = \
 	-Ilibddoc/common/source \
 	-Idmd/compiler/src
 
-DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS
+DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS -version=NoBackend -version=NoMain
 DMD_DEBUG_VERSIONS = -version=dparse_verbose
 LDC_VERSIONS = -d-version=StdLoggerDisableWarning -d-version=CallbackAPI -d-version=DMDLIB -d-version=MARS
 LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
@@ -125,16 +154,18 @@ SHELL:=/usr/bin/env bash
 
 GITHASH = bin/githash.txt
 
-FIRST_RUN_FLAG := $(OBJ_DIR)/$(DC)/first_run.flag
+FIRST_RUN_FLAG := bin/first_run.flag
 
-$(OBJ_DIR)/$(DC)/%.o: %.d
+$(FIRST_RUN_FLAG):
 	if [ ! -f $(FIRST_RUN_FLAG) ]; then \
-		${DC} -run dmd/config.d bin VERSION /etc; \
+		${DC}  -run dmd/config.d bin VERSION /etc; \
 		touch $(FIRST_RUN_FLAG); \
 	fi
+
+$(OBJ_DIR)/$(DC)/%.o: %.d ${FIRST_RUN_FLAG}
 	${DC} ${DC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
-$(UT_OBJ_DIR)/$(DC)/%.o: %.d
+$(UT_OBJ_DIR)/$(DC)/%.o: %.d ${FIRST_RUN_FLAG}
 	${DC} ${DC_TEST_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
 ${DSCANNER_BIN}: ${GITHASH} ${OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
@@ -174,7 +205,7 @@ ${UT_DSCANNER_LIB}: ${LIB_SRC} | ${UT_DSCANNER_LIB_DIR}
 
 test: ${UT_DSCANNER_BIN}
 
-${UT_DSCANNER_BIN}: ${UT_DSCANNER_LIB} ${GITHASH} ${UT_OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
+${UT_DSCANNER_BIN}: ${GITHASH} ${UT_OBJ_BY_DC} ${UT_DSCANNER_LIB} | ${DSCANNER_BIN_DIR}
 	${DC} ${UT_DSCANNER_LIB} ${UT_OBJ_BY_DC} ${WRITE_TO_TARGET_NAME}
 	./${UT_DSCANNER_BIN}
 
