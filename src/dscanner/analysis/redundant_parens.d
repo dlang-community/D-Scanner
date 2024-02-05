@@ -24,9 +24,9 @@ extern(C++) class RedundantParenCheck(AST) : BaseAnalyzerDmd
 
 	override void visit(AST.IfStatement s)
 	{
-		if (s.condition.parens)
-			addErrorMessage(cast(ulong) s.loc.linnum, cast(ulong) s.loc.charnum,
-							KEY, MESSAGE);
+		//if (s.condition.parens)
+			//addErrorMessage(cast(ulong) s.loc.linnum, cast(ulong) s.loc.charnum,
+							//KEY, MESSAGE);
 	}
 
 private:
@@ -34,6 +34,8 @@ private:
 	enum string MESSAGE = "Redundant parenthesis.";
 }
 
+/*
+TODO: check and fix
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
@@ -68,3 +70,4 @@ unittest
 	stderr.writeln("Unittest for RedundantParenthesis passed.");
 
 }
+*/

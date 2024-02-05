@@ -383,7 +383,7 @@ void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, b
 	auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
 
 	global.params.useUnitTests = true;
-	global.path = new Strings();
+	global.path = Strings();
 	global.path.push((dmdParentDir ~ "/dmd" ~ "\0").ptr);
 	global.path.push((dmdParentDir ~ "/dmd/druntime/src" ~ "\0").ptr);
 
