@@ -29,7 +29,6 @@ DMD_FRONTEND_SRC := \
 		! -name "libmach.d" \
 		! -name "libmscoff.d" \
 		! -name "libomf.d" \
-		! -name "link.d" \
 		! -name "objc_glue.d" \
 		! -name "s2ir.d" \
 		! -name "scanelf.d" \
@@ -162,10 +161,10 @@ $(FIRST_RUN_FLAG):
 		touch $(FIRST_RUN_FLAG); \
 	fi
 
-$(OBJ_DIR)/$(DC)/%.o: %.d ${FIRST_RUN_FLAG}
+$(OBJ_DIR)/$(DC)/%.o: %.d | ${FIRST_RUN_FLAG}
 	${DC} ${DC_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
-$(UT_OBJ_DIR)/$(DC)/%.o: %.d ${FIRST_RUN_FLAG}
+$(UT_OBJ_DIR)/$(DC)/%.o: %.d | ${FIRST_RUN_FLAG}
 	${DC} ${DC_TEST_FLAGS} ${VERSIONS} ${INCLUDE_PATHS} -c $< ${WRITE_TO_TARGET_NAME}
 
 ${DSCANNER_BIN}: ${GITHASH} ${OBJ_BY_DC} | ${DSCANNER_BIN_DIR}
