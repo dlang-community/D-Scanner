@@ -51,8 +51,9 @@ extern(C++) class LogicPrecedenceCheck(AST) : BaseAnalyzerDmd
 		if ((left !is null && left.e2 is null) && (right !is null && right.e2 is null))
 			goto END;
 
-		addErrorMessage(cast(ulong) le.loc.linnum, cast(ulong) le.loc.charnum, KEY,
-				"Use parenthesis to clarify this expression.");
+        // TODO: fixme
+		//addErrorMessage(cast(ulong) le.loc.linnum, cast(ulong) le.loc.charnum, KEY,
+				//"Use parenthesis to clarify this expression.");
 		
 END:
 		super.visit(le);
