@@ -40,8 +40,8 @@ extern (C++) class RedundantStorageClassCheck(AST) : BaseAnalyzerDmd
 
 	extern (D) private void addErrorFor(AST.VarDeclaration varDecl, string attr1, string attr2)
 	{
-		auto lineNum = cast(ulong) varDecl.loc.linnum;
-		auto charNum = cast(ulong) varDecl.loc.charnum;
+		auto lineNum = cast(size_t) varDecl.loc.linnum;
+		auto charNum = cast(size_t) varDecl.loc.charnum;
 		auto varName = varDecl.ident.toString();
 		auto errorMsg = REDUNDANT_VARIABLE_ATTRIBUTES.format(varName, [
 			attr1, attr2

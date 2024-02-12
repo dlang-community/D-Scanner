@@ -33,7 +33,7 @@ extern(C++) class LengthSubtractionCheck(AST) : BaseAnalyzerDmd
 		if (auto de = be.e1.isDotIdExp())
 		{
 			if (be.op == EXP.min && de.ident.toString() == "length")
-				addErrorMessage(cast(ulong) de.loc.linnum, cast(ulong) de.loc.charnum + 1, KEY,
+				addErrorMessage(cast(size_t) de.loc.linnum, cast(size_t) de.loc.charnum + 1, KEY,
 									"Avoid subtracting from '.length' as it may be unsigned.");
 		}
 
