@@ -30,8 +30,8 @@ extern (C++) class AsmStyleCheck(AST) : BaseAnalyzerDmd
 		{
 			if (isConfusingStatement(token))
 			{
-				auto lineNum = cast(ulong) token.loc.linnum;
-				auto charNum = cast(ulong) token.loc.charnum;
+				auto lineNum = cast(size_t) token.loc.linnum;
+				auto charNum = cast(size_t) token.loc.charnum;
 				addErrorMessage(lineNum, charNum, KEY, MESSAGE);
 			}
 		}
