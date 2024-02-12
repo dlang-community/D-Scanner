@@ -140,7 +140,7 @@ else
 		// users can use verbose to enable all logs (this will log things like
 		// dsymbol couldn't find some modules due to wrong import paths)
 		static if (__VERSION__ >= 2_101)
-			(cast()sharedLog).logLevel = verbose ? LogLevel.all : LogLevel.error;
+			(cast() sharedLog).logLevel = verbose ? LogLevel.all : LogLevel.error;
 		else
 			globalLogLevel = verbose ? LogLevel.all : LogLevel.error;
 	}
@@ -204,9 +204,9 @@ else
 		if (excludePaths.length)
 		{
 			string[] newArgs = [expanded[0]];
-			foreach(arg; args[1 .. $])
+			foreach (arg; args[1 .. $])
 			{
-				if(!excludePaths.map!(p => arg.isSubpathOf(p))
+				if (!excludePaths.map!(p => arg.isSubpathOf(p))
 								.fold!((a, b) => a || b))
 					newArgs ~= arg;
 			}
