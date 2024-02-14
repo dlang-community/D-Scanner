@@ -113,9 +113,9 @@ INCLUDE_PATHS = \
 
 DMD_VERSIONS = -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS -version=NoBackend -version=NoMain
 DMD_DEBUG_VERSIONS = -version=dparse_verbose
-LDC_VERSIONS = -d-version=StdLoggerDisableWarning -d-version=CallbackAPI -d-version=DMDLIB -d-version=MARS
+LDC_VERSIONS = -d-version=StdLoggerDisableWarning -d-version=CallbackAPI -d-version=DMDLIB -d-version=MARS -d-version=NoBackend -d-version=NoMain
 LDC_DEBUG_VERSIONS = -d-version=dparse_verbose
-GDC_VERSIONS = -fversion=StdLoggerDisableWarning -fversion=CallbackAPI -fversion=DMDLIB -fversion=MARS
+GDC_VERSIONS = -fversion=StdLoggerDisableWarning -fversion=CallbackAPI -fversion=DMDLIB -fversion=MARS -fversion=NoBackend -fversion=NoMain
 GDC_DEBUG_VERSIONS = -fversion=dparse_verbose
 
 DC_FLAGS += -Jbin -Jdmd -Jdmd/compiler/src/dmd/res
@@ -135,18 +135,21 @@ ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
 	DEBUG_VERSIONS := $(DMD_DEBUG_VERSIONS)
 	DC_FLAGS += $(DMD_FLAGS)
 	DC_TEST_FLAGS += $(DMD_TEST_FLAGS) -unittest
+	DC_DEBUG_FLAGS += -O
 	WRITE_TO_TARGET_NAME = -of$@
 else ifneq (,$(findstring ldc2, $(DC)))
 	VERSIONS := $(LDC_VERSIONS)
 	DEBUG_VERSIONS := $(LDC_DEBUG_VERSIONS)
 	DC_FLAGS += $(LDC_FLAGS)
 	DC_TEST_FLAGS += $(LDC_TEST_FLAGS) -unittest
+	DC_DEBUG_FLAGS += -O
 	WRITE_TO_TARGET_NAME = -of=$@
 else ifneq (,$(findstring gdc, $(DC)))
 	VERSIONS := $(GDC_VERSIONS)
 	DEBUG_VERSIONS := $(GDC_DEBUG_VERSIONS)
 	DC_FLAGS += $(GDC_FLAGS)
 	DC_TEST_FLAGS += $(GDC_TEST_FLAGS) -funittest
+	DC_DEBUG_FLAGS += -O3 -fall-instantiations
 	WRITE_TO_TARGET_NAME = -o $@
 endif
 SHELL:=/usr/bin/env bash
@@ -155,9 +158,15 @@ GITHASH = bin/githash.txt
 
 FIRST_RUN_FLAG := bin/first_run.flag
 
+ifneq (, $(findstring $(GDC), $(DC)))
+		CONFIG_CMD := $(DC) dmd/config.d -o config && ./config bin VERSION /etc && rm config;
+	else
+		CONFIG_CMD := $(DC) -run dmd/config.d bin VERSION /etc;
+	endif
+
 $(FIRST_RUN_FLAG):
 	if [ ! -f $(FIRST_RUN_FLAG) ]; then \
-		${DC}  -run dmd/config.d bin VERSION /etc; \
+		$(CONFIG_CMD) \
 		touch $(FIRST_RUN_FLAG); \
 	fi
 
