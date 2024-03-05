@@ -35,9 +35,7 @@ set DMD_FRONTEND_DENYLIST=^
 	dmd\compiler\src\dmd\e2ir.d^
 	dmd\compiler\src\dmd\eh.d^
 	dmd\compiler\src\dmd\glue.d^
-	dmd\compiler\src\dmd\iasm.d^
 	dmd\compiler\src\dmd\iasmdmd.d^
-	dmd\compiler\src\dmd\iasmgcc.d^
 	dmd\compiler\src\dmd\irstate.d^
 	dmd\compiler\src\dmd\lib.d^
 	dmd\compiler\src\dmd\libelf.d^

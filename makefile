@@ -20,9 +20,7 @@ DMD_FRONTEND_SRC := \
 		! -name "e2ir.d" \
 		! -name "eh.d" \
 		! -name "glue.d" \
-		! -name "iasm.d" \
 		! -name "iasmdmd.d" \
-		! -name "iasmgcc.d" \
 		! -name "irstate.d" \
 		! -name "lib.d" \
 		! -name "libelf.d" \
@@ -42,8 +40,8 @@ DMD_FRONTEND_SRC := \
 		! -name "todt.d" \
 		! -name "toir.d" \
 	)
-	#$(shell find dmd/compiler/src/dmd/backend -name "*.d")\
-	#$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" ! -name "mars.d" )
+#	$(shell find dmd/compiler/src/dmd/backend -name "*.d") \
+#	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" ! -name "mars.d" )
 
 DMD_LEXER_SRC := \
 	dmd/compiler/src/dmd/console.d \
