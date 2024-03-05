@@ -15,13 +15,13 @@ import dscanner.analysis.helpers;
  * if (a && (b || c)) // good
  * ---
  */
-extern(C++) class LogicPrecedenceCheck(AST) : BaseAnalyzerDmd
+extern (C++) class LogicPrecedenceCheck(AST) : BaseAnalyzerDmd
 {
 	enum string KEY = "dscanner.confusing.logical_precedence";
 	mixin AnalyzerInfo!"logical_precedence_check";
 	alias visit = BaseAnalyzerDmd.visit;
 
-	extern(D) this(string fileName, bool skipTests = false)
+	extern (D) this(string fileName, bool skipTests = false)
 	{
 		super(fileName, skipTests);
 	}
@@ -43,25 +43,21 @@ extern(C++) class LogicPrecedenceCheck(AST) : BaseAnalyzerDmd
 
 		if (!left && !right)
 			goto END;
-		
-        // TODO: fix
-		//if ((left && left.parens) || (right && right.parens))
-			//goto END;
+
+		if ((left && left.parens) || (right && right.parens))
+			goto END;
 
 		if ((left !is null && left.e2 is null) && (right !is null && right.e2 is null))
 			goto END;
 
-        // TODO: fixme
-		//addErrorMessage(cast(ulong) le.loc.linnum, cast(ulong) le.loc.charnum, KEY,
-				//"Use parenthesis to clarify this expression.");
-		
-END:
+		addErrorMessage(cast(ulong) le.loc.linnum, cast(ulong) le.loc.charnum,
+				KEY, "Use parenthesis to clarify this expression.");
+
+	END:
 		super.visit(le);
 	}
 }
 
-/*
-TODO: fixme
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
@@ -80,4 +76,3 @@ unittest
 	}c, sac);
 	stderr.writeln("Unittest for LogicPrecedenceCheck passed.");
 }
-*/
