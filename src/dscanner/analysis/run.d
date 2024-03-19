@@ -908,11 +908,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UnusedResultChecker(args.setSkipTests(
 		analysisConfig.unused_result == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!CyclomaticComplexityCheck(analysisConfig))
-		checks ~= new CyclomaticComplexityCheck(args.setSkipTests(
-		analysisConfig.cyclomatic_complexity == Check.skipTests && !ut),
-		analysisConfig.max_cyclomatic_complexity.to!int);
-
 	if (moduleName.shouldRun!BodyOnDisabledFuncsCheck(analysisConfig))
 		checks ~= new BodyOnDisabledFuncsCheck(args.setSkipTests(
 		analysisConfig.body_on_disabled_func_check == Check.skipTests && !ut));
@@ -1347,6 +1342,13 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new IfElseSameCheck!ASTCodegen(
 			fileName,
 			config.if_else_same_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(CyclomaticComplexityCheck!ASTCodegen)(config))
+		visitors ~= new CyclomaticComplexityCheck!ASTCodegen(
+			fileName,
+			config.cyclomatic_complexity == Check.skipTests && !ut,
+			config.max_cyclomatic_complexity.to!int
 		);
 
 	foreach (visitor; visitors)
