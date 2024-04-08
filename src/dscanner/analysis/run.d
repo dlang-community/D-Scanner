@@ -843,10 +843,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new FunctionAttributeCheck(args.setSkipTests(
 		analysisConfig.function_attribute_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!LabelVarNameCheck(analysisConfig))
-		checks ~= new LabelVarNameCheck(args.setSkipTests(
-		analysisConfig.label_var_same_name_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!MismatchedArgumentCheck(analysisConfig))
 		checks ~= new MismatchedArgumentCheck(args.setSkipTests(
 		analysisConfig.mismatched_args_check == Check.skipTests && !ut));
@@ -1349,6 +1345,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 			fileName,
 			config.cyclomatic_complexity == Check.skipTests && !ut,
 			config.max_cyclomatic_complexity.to!int
+		);
+
+	if (moduleName.shouldRunDmd!(LabelVarNameCheck!ASTCodegen)(config))
+		visitors ~= new LabelVarNameCheck!ASTCodegen(
+			fileName,
+			config.label_var_same_name_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
