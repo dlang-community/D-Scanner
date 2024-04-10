@@ -47,7 +47,6 @@ import dscanner.analysis.asm_style;
 import dscanner.analysis.logic_precedence;
 import dscanner.analysis.stats_collector;
 import dscanner.analysis.undocumented;
-import dscanner.analysis.comma_expression;
 import dscanner.analysis.function_attributes;
 import dscanner.analysis.local_imports;
 import dscanner.analysis.unmodified;
@@ -829,10 +828,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		tokens,
 		moduleScope
 	);
-
-	if (moduleName.shouldRun!CommaExpressionCheck(analysisConfig))
-		checks ~= new CommaExpressionCheck(args.setSkipTests(
-		analysisConfig.comma_expression_check == Check.skipTests && !ut));
 
 	if (moduleName.shouldRun!UnmodifiedFinder(analysisConfig))
 		checks ~= new UnmodifiedFinder(args.setSkipTests(
