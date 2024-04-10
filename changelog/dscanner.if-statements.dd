@@ -1,0 +1,1 @@
+Remove IfStatementCheck, as it has been disabled in 2015 due to false positives and untouched ever since then.
