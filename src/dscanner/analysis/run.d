@@ -51,7 +51,6 @@ import dscanner.analysis.comma_expression;
 import dscanner.analysis.function_attributes;
 import dscanner.analysis.local_imports;
 import dscanner.analysis.unmodified;
-import dscanner.analysis.if_statements;
 import dscanner.analysis.redundant_parens;
 import dscanner.analysis.mismatched_args;
 import dscanner.analysis.label_var_same_name_check;
@@ -907,11 +906,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	if (moduleName.shouldRun!BodyOnDisabledFuncsCheck(analysisConfig))
 		checks ~= new BodyOnDisabledFuncsCheck(args.setSkipTests(
 		analysisConfig.body_on_disabled_func_check == Check.skipTests && !ut));
-
-	version (none)
-		if (moduleName.shouldRun!IfStatementCheck(analysisConfig))
-			checks ~= new IfStatementCheck(args.setSkipTests(
-			analysisConfig.redundant_if_check == Check.skipTests && !ut));
 
 	return checks;
 }
