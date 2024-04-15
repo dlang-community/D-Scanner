@@ -5,194 +5,148 @@
 
 module dscanner.analysis.style;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
-import std.regex;
-import std.array;
-import std.conv;
-import std.format;
-import dscanner.analysis.helpers;
 import dscanner.analysis.base;
-import dscanner.analysis.nolint;
-import dsymbol.scope_ : Scope;
+import dmd.astenums : LINK;
+import std.conv : to;
+import std.format : format;
+import std.regex;
 
-final class StyleChecker : BaseAnalyzer
+// TODO: Fix NoLint
+extern (C++) class StyleChecker(AST) : BaseAnalyzerDmd
 {
-	alias visit = ASTVisitor.visit;
-
-	enum string varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
-	enum string aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
-	enum string moduleNameRegex = `^[\p{Ll}_\d]+$`;
-	enum string KEY = "dscanner.style.phobos_naming_convention";
 	mixin AnalyzerInfo!"style_check";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.suspicious.style_check";
+	private enum MSG = "%s name '%s' does not match style guidelines.";
+
+	private enum varFunNameRegex = `^([\p{Ll}_][_\w\d]*|[\p{Lu}\d_]+)$`;
+	private enum aggregateNameRegex = `^\p{Lu}[\w\d]*$`;
+	private enum moduleNameRegex = `^[\p{Ll}_\d]+$`;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const ModuleDeclaration dec)
+	override void visit(AST.Module moduleNode)
 	{
-		with (noLint.push(NoLintFactory.fromModuleDeclaration(dec)))
-			dec.accept(this);
+		super.visit(moduleNode);
 
-		foreach (part; dec.moduleName.identifiers)
-		{
-			if (part.text.matchFirst(moduleNameRegex).length == 0)
-				addErrorMessage(part, KEY,
-						"Module/package name '" ~ part.text ~ "' does not match style guidelines.");
-		}
-	}
-
-	// "extern (Windows) {}" : push visit pop
-	override void visit(const Declaration dec)
-	{
-		bool p;
-		if (dec.attributes)
-			foreach (attrib; dec.attributes)
-				if (const LinkageAttribute la = attrib.linkageAttribute)
-		{
-			p = true;
-			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
-		}
-
-		dec.accept(this);
-
-		if (p)
-			popWinStyle;
-	}
-
-	// "extern (Windows) :" : overwrite current
-	override void visit(const AttributeDeclaration dec)
-	{
-		if (dec.attribute && dec.attribute.linkageAttribute)
-		{
-			const LinkageAttribute la = dec.attribute.linkageAttribute;
-			_winStyles[$-1] = la.identifier.text.length && la.identifier.text == "Windows";
-		}
-	}
-
-	override void visit(const VariableDeclaration vd)
-	{
-		vd.accept(this);
-	}
-
-	override void visit(const Declarator dec)
-	{
-		checkLowercaseName("Variable", dec.name);
-	}
-
-	override void visit(const FunctionDeclaration dec)
-	{
-		// "extern(Windows) Name();" push visit pop
-		bool p;
-		if (dec.attributes)
-			foreach (attrib; dec.attributes)
-				if (const LinkageAttribute la = attrib.linkageAttribute)
-		{
-			p = true;
-			pushWinStyle(la.identifier.text.length && la.identifier.text == "Windows");
-		}
-
-		if (dec.functionBody.specifiedFunctionBody ||
-			(dec.functionBody.missingFunctionBody && !winStyle()))
-				checkLowercaseName("Function", dec.name);
-
-		if (p)
-			popWinStyle;
-	}
-
-	void checkLowercaseName(string type, ref const Token name)
-	{
-		if (name.text.length > 0 && name.text.matchFirst(varFunNameRegex).length == 0)
-			addErrorMessage(name, KEY,
-					type ~ " name '" ~ name.text ~ "' does not match style guidelines.");
-	}
-
-	override void visit(const ClassDeclaration dec)
-	{
-		checkAggregateName("Class", dec.name);
-		dec.accept(this);
-	}
-
-	override void visit(const InterfaceDeclaration dec)
-	{
-		checkAggregateName("Interface", dec.name);
-		dec.accept(this);
-	}
-
-	override void visit(const EnumDeclaration dec)
-	{
-		if (dec.name.text is null || dec.name.text.length == 0)
+		if (moduleNode.md is null)
 			return;
-		checkAggregateName("Enum", dec.name);
-		dec.accept(this);
+
+		auto moduleDecl = *moduleNode.md;
+		auto lineNum = cast(ulong) moduleDecl.loc.linnum;
+		auto charNum = cast(ulong) moduleDecl.loc.charnum;
+		auto moduleName = moduleDecl.id.toString();
+
+		if (moduleName.matchFirst(moduleNameRegex).length == 0)
+			addErrorMessage(lineNum, charNum, KEY, MSG.format("Module/package", moduleName));
+
+		foreach (pkg; moduleDecl.packages)
+		{
+			auto pkgName = pkg.toString();
+
+			if (pkgName.matchFirst(moduleNameRegex).length == 0)
+				addErrorMessage(lineNum, charNum, KEY, MSG.format("Module/package", pkgName));
+		}
 	}
 
-	override void visit(const StructDeclaration dec)
+	override void visit(AST.LinkDeclaration linkDeclaration)
 	{
-		checkAggregateName("Struct", dec.name);
-		dec.accept(this);
+		if (linkDeclaration.decl is null)
+			return;
+
+		foreach (symbol; *linkDeclaration.decl)
+			if (!isWindowsFunctionWithNoBody(symbol, linkDeclaration.linkage))
+				symbol.accept(this);
 	}
 
-	void checkAggregateName(string aggregateType, ref const Token name)
+	private bool isWindowsFunctionWithNoBody(AST.Dsymbol symbol, LINK linkage)
 	{
-		if (name.text.length > 0 && name.text.matchFirst(aggregateNameRegex).length == 0)
-			addErrorMessage(name, KEY,
-					aggregateType ~ " name '" ~ name.text ~ "' does not match style guidelines.");
+		auto fd = symbol.isFuncDeclaration();
+		return linkage == LINK.windows && fd && !fd.fbody;
 	}
 
-	bool[] _winStyles = [false];
-
-	bool winStyle()
+	override void visit(AST.VarDeclaration varDeclaration)
 	{
-		return _winStyles[$-1];
+		import dmd.astenums : STC;
+
+		super.visit(varDeclaration);
+
+		if (varDeclaration.storage_class & STC.manifest || varDeclaration.ident is null)
+			return;
+
+		auto varName = varDeclaration.ident.toString();
+
+		if (varName.matchFirst(varFunNameRegex).length == 0)
+		{
+			auto msg = MSG.format("Variable", varName);
+			auto lineNum = cast(ulong) varDeclaration.loc.linnum;
+			auto charNum = cast(ulong) varDeclaration.loc.charnum;
+			addErrorMessage(lineNum, charNum, KEY, msg);
+		}
 	}
 
-	void pushWinStyle(const bool value)
-	{
-		_winStyles.length += 1;
-		_winStyles[$-1] = value;
-	}
+	mixin VisitNode!(AST.ClassDeclaration, "Class", aggregateNameRegex);
+	mixin VisitNode!(AST.StructDeclaration, "Struct", aggregateNameRegex);
+	mixin VisitNode!(AST.InterfaceDeclaration, "Interface", aggregateNameRegex);
+	mixin VisitNode!(AST.UnionDeclaration, "Union", aggregateNameRegex);
+	mixin VisitNode!(AST.EnumDeclaration, "Enum", aggregateNameRegex);
+	mixin VisitNode!(AST.FuncDeclaration, "Function", varFunNameRegex);
+	mixin VisitNode!(AST.TemplateDeclaration, "Template", varFunNameRegex);
 
-	void popWinStyle()
+	private template VisitNode(NodeType, string nodeName, string regex)
 	{
-		_winStyles.length -= 1;
+		override void visit(NodeType node)
+		{
+			super.visit(node);
+
+			if (node.ident is null)
+				return;
+
+			auto nodeSymbolName = node.ident.toString();
+
+			if (nodeSymbolName.matchFirst(regex).length == 0)
+			{
+				auto msg = MSG.format(nodeName, nodeSymbolName);
+				auto lineNum = cast(ulong) node.loc.linnum;
+				auto charNum = cast(ulong) node.loc.charnum;
+				addErrorMessage(lineNum, charNum, KEY, msg);
+			}
+		}
 	}
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.style_check = Check.enabled;
 
-	assertAnalyzerWarnings(q{
-		module AMODULE; /+
-		       ^^^^^^^ [warn]: Module/package name 'AMODULE' does not match style guidelines. +/
+	assertAnalyzerWarningsDMD(q{
+		module AMODULE; // [warn]: Module/package name 'AMODULE' does not match style guidelines.
 
 		bool A_VARIABLE; // FIXME:
 		bool a_variable; // ok
 		bool aVariable; // ok
 
 		void A_FUNCTION() {} // FIXME:
-		class cat {} /+
-		      ^^^ [warn]: Class name 'cat' does not match style guidelines. +/
-		interface puma {} /+
-		          ^^^^ [warn]: Interface name 'puma' does not match style guidelines. +/
-		struct dog {} /+
-		       ^^^ [warn]: Struct name 'dog' does not match style guidelines. +/
-		enum racoon { a } /+
-		     ^^^^^^ [warn]: Enum name 'racoon' does not match style guidelines. +/
+		class cat {} // [warn]: Class name 'cat' does not match style guidelines.
+		interface puma {} // [warn]: Interface name 'puma' does not match style guidelines.
+		struct dog {} // [warn]: Struct name 'dog' does not match style guidelines.
+		enum racoon { a } // [warn]: Enum name 'racoon' does not match style guidelines.
 		enum bool something = false;
 		enum bool someThing = false;
 		enum Cat { fritz, }
 		enum Cat = Cat.fritz;
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		extern(Windows)
 		{
 			bool Fun0();
@@ -200,40 +154,35 @@ unittest
 		}
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		extern(Windows)
 		{
-			extern(D) bool Fun2(); /+
-			               ^^^^ [warn]: Function name 'Fun2' does not match style guidelines. +/
+			extern(D) bool Fun2(); // [warn]: Function name 'Fun2' does not match style guidelines.
 			bool Fun3();
 		}
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		extern(Windows)
 		{
 			extern(C):
-				extern(D) bool Fun4(); /+
-				               ^^^^ [warn]: Function name 'Fun4' does not match style guidelines. +/
-				bool Fun5(); /+
-				     ^^^^ [warn]: Function name 'Fun5' does not match style guidelines. +/
+				extern(D) bool Fun4(); // [warn]: Function name 'Fun4' does not match style guidelines.
+				bool Fun5(); // [warn]: Function name 'Fun5' does not match style guidelines.
 		}
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		extern(Windows):
 			bool Fun6();
 			bool Fun7();
 		extern(D):
 			void okOkay();
-			void NotReallyOkay(); /+
-			     ^^^^^^^^^^^^^ [warn]: Function name 'NotReallyOkay' does not match style guidelines. +/
+			void NotReallyOkay(); // [warn]: Function name 'NotReallyOkay' does not match style guidelines.
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		extern(Windows):
-			bool WinButWithBody(){} /+
-			     ^^^^^^^^^^^^^^ [warn]: Function name 'WinButWithBody' does not match style guidelines. +/
+			bool WinButWithBody(){} // [warn]: Function name 'WinButWithBody' does not match style guidelines.
 	}c, sac);
 
 	stderr.writeln("Unittest for StyleChecker passed.");
