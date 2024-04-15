@@ -858,10 +858,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		analysisConfig.long_line_check == Check.skipTests && !ut),
 		analysisConfig.max_line_length);
 
-	if (moduleName.shouldRun!AutoFunctionChecker(analysisConfig))
-		checks ~= new AutoFunctionChecker(args.setSkipTests(
-		analysisConfig.auto_function_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!VcallCtorChecker(analysisConfig))
 		checks ~= new VcallCtorChecker(args.setSkipTests(
 		analysisConfig.vcall_in_ctor == Check.skipTests && !ut));
@@ -1346,6 +1342,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new StyleChecker!ASTCodegen(
 			fileName,
 			config.style_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(AutoFunctionChecker!ASTCodegen)(config))
+		visitors ~= new AutoFunctionChecker!ASTCodegen(
+			fileName,
+			config.auto_function_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
