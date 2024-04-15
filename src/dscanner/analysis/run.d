@@ -841,10 +841,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new MismatchedArgumentCheck(args.setSkipTests(
 		analysisConfig.mismatched_args_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!StyleChecker(analysisConfig))
-		checks ~= new StyleChecker(args.setSkipTests(
-		analysisConfig.style_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!UndocumentedDeclarationCheck(analysisConfig))
 		checks ~= new UndocumentedDeclarationCheck(args.setSkipTests(
 		analysisConfig.undocumented_declaration_check == Check.skipTests && !ut));
@@ -1344,6 +1340,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new AlwaysCurlyCheck!ASTCodegen(
 			fileName,
 			config.always_curly_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(StyleChecker!ASTCodegen)(config))
+		visitors ~= new StyleChecker!ASTCodegen(
+			fileName,
+			config.style_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
