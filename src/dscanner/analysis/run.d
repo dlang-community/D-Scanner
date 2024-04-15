@@ -878,10 +878,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new AllManCheck(args.setSkipTests(
 		analysisConfig.allman_braces_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!AlwaysCurlyCheck(analysisConfig))
-		checks ~= new AlwaysCurlyCheck(args.setSkipTests(
-		analysisConfig.always_curly_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!HasPublicExampleCheck(analysisConfig))
 		checks ~= new HasPublicExampleCheck(args.setSkipTests(
 		analysisConfig.has_public_example == Check.skipTests && !ut));
@@ -1342,6 +1338,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new LambdaReturnCheck!ASTCodegen(
 			fileName,
 			config.lambda_return_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(AlwaysCurlyCheck!ASTCodegen)(config))
+		visitors ~= new AlwaysCurlyCheck!ASTCodegen(
+			fileName,
+			config.always_curly_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
