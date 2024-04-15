@@ -862,10 +862,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		analysisConfig.long_line_check == Check.skipTests && !ut),
 		analysisConfig.max_line_length);
 
-	if (moduleName.shouldRun!LambdaReturnCheck(analysisConfig))
-		checks ~= new LambdaReturnCheck(args.setSkipTests(
-		analysisConfig.lambda_return_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!AutoFunctionChecker(analysisConfig))
 		checks ~= new AutoFunctionChecker(args.setSkipTests(
 		analysisConfig.auto_function_check == Check.skipTests && !ut));
@@ -1340,6 +1336,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new LabelVarNameCheck!ASTCodegen(
 			fileName,
 			config.label_var_same_name_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(LambdaReturnCheck!ASTCodegen)(config))
+		visitors ~= new LambdaReturnCheck!ASTCodegen(
+			fileName,
+			config.lambda_return_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
