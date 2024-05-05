@@ -57,6 +57,11 @@ jobs:
               dmd: gdc-12
             host: macos-latest
 
+          # Restrict DMD to macOS
+          - compiler:
+              dmd: dmd
+            host: macos-latest
+
           #  Omit dub builds for GDC because dub rejects the old fronted revision
           - compiler:
               dmd: gdc-12
