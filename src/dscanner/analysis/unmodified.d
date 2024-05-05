@@ -5,6 +5,7 @@
 module dscanner.analysis.unmodified;
 
 import dscanner.analysis.base;
+import dscanner.analysis.nolint;
 import dscanner.utils : safeAccess;
 import dsymbol.scope_ : Scope;
 import std.container;
@@ -114,11 +115,15 @@ final class UnmodifiedFinder : BaseAnalyzer
 		if (canFindImmutableOrConst(dec))
 		{
 			isImmutable++;
-			dec.accept(this);
+			with (noLint.push(NoLintFactory.fromDeclaration(dec)))
+				dec.accept(this);
 			isImmutable--;
 		}
 		else
-			dec.accept(this);
+		{
+			with (noLint.push(NoLintFactory.fromDeclaration(dec)))
+				dec.accept(this);
+		}
 	}
 
 	override void visit(const IdentifierChain ic)
@@ -188,6 +193,8 @@ final class UnmodifiedFinder : BaseAnalyzer
 	}
 
 private:
+
+	enum string KEY = "dscanner.suspicious.unmodified";
 
 	template PartsMightModify(T)
 	{
@@ -300,7 +307,7 @@ private:
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
 				~ " is never modified and could have been declared const or immutable.";
-			addErrorMessage(vi.token, "dscanner.suspicious.unmodified", errorMessage);
+			addErrorMessage(vi.token, KEY, errorMessage);
 		}
 		tree = tree[0 .. $ - 1];
 	}
@@ -377,6 +384,13 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 
 			size_t i2;
 			foo(i2);
+		}
+	}, sac);
+
+	assertAnalyzerWarnings(q{
+		@("nolint(dscanner.suspicious.unmodified)")
+		void foo(){
+			int i = 1;
 		}
 	}, sac);
 }
