@@ -88,6 +88,8 @@ final class HasPublicExampleCheck : BaseAnalyzer
 
 private:
 
+	enum string KEY = "dscanner.style.has_public_example";
+
 	bool hasDitto(Decl)(const Decl decl)
 	{
 		import ddoc.comments : parseComment;
@@ -164,7 +166,7 @@ private:
 	{
 		import std.string : format;
 
-		addErrorMessage(tokens, "dscanner.style.has_public_example", name is null
+		addErrorMessage(tokens, KEY, name is null
 				? "Public declaration has no documented example."
 				: format("Public declaration '%s' has no documented example.", name));
 	}

@@ -68,7 +68,7 @@ final class ObjectConstCheck : BaseAnalyzer
 			if (inAggregate && !constColon && !constBlock && !isDeclationDisabled
 					&& isInteresting(fd.name.text) && !hasConst(fd.memberFunctionAttributes))
 			{
-				addErrorMessage(d.functionDeclaration.name, "dscanner.suspicious.object_const",
+				addErrorMessage(d.functionDeclaration.name, KEY,
 						"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
 			}
 		}
@@ -81,7 +81,11 @@ final class ObjectConstCheck : BaseAnalyzer
 			constBlock = false;
 	}
 
-	private static bool hasConst(const MemberFunctionAttribute[] attributes)
+private:
+
+	enum string KEY = "dscanner.suspicious.object_const";
+
+	static bool hasConst(const MemberFunctionAttribute[] attributes)
 	{
 		import std.algorithm : any;
 
@@ -89,15 +93,14 @@ final class ObjectConstCheck : BaseAnalyzer
 				|| a.tokenType == tok!"immutable" || a.tokenType == tok!"inout");
 	}
 
-	private static bool isInteresting(string name)
+	static bool isInteresting(string name)
 	{
 		return name == "opCmp" || name == "toHash" || name == "opEquals"
 			|| name == "toString" || name == "opCast";
 	}
 
-	private bool constBlock;
-	private bool constColon;
-
+	bool constBlock;
+	bool constColon;
 }
 
 unittest

@@ -39,7 +39,7 @@ final class IfElseSameCheck : BaseAnalyzer
 			// extend 1 past, so we include the `else` token
 			tokens = (tokens.ptr - 1)[0 .. tokens.length + 1];
 			addErrorMessage(tokens,
-					"dscanner.bugs.if_else_same", "'Else' branch is identical to 'Then' branch.");
+					IF_ELSE_SAME_KEY, "'Else' branch is identical to 'Then' branch.");
 		}
 		ifStatement.accept(this);
 	}
@@ -50,7 +50,7 @@ final class IfElseSameCheck : BaseAnalyzer
 		if (e !is null && assignExpression.operator == tok!"="
 				&& e.ternaryExpression == assignExpression.ternaryExpression)
 		{
-			addErrorMessage(assignExpression, "dscanner.bugs.self_assignment",
+			addErrorMessage(assignExpression, SELF_ASSIGNMENT_KEY,
 					"Left side of assignment operatior is identical to the right side.");
 		}
 		assignExpression.accept(this);
@@ -62,7 +62,7 @@ final class IfElseSameCheck : BaseAnalyzer
 				&& andAndExpression.left == andAndExpression.right)
 		{
 			addErrorMessage(andAndExpression.right,
-					"dscanner.bugs.logic_operator_operands",
+					LOGIC_OPERATOR_OPERANDS_KEY,
 					"Left side of logical and is identical to right side.");
 		}
 		andAndExpression.accept(this);
@@ -74,11 +74,17 @@ final class IfElseSameCheck : BaseAnalyzer
 				&& orOrExpression.left == orOrExpression.right)
 		{
 			addErrorMessage(orOrExpression.right,
-					"dscanner.bugs.logic_operator_operands",
+					LOGIC_OPERATOR_OPERANDS_KEY,
 					"Left side of logical or is identical to right side.");
 		}
 		orOrExpression.accept(this);
 	}
+
+private:
+
+	enum string IF_ELSE_SAME_KEY = "dscanner.bugs.if_else_same";
+	enum string SELF_ASSIGNMENT_KEY = "dscanner.bugs.self_assignment";
+	enum string LOGIC_OPERATOR_OPERANDS_KEY = "dscanner.bugs.logic_operator_operands";
 }
 
 unittest

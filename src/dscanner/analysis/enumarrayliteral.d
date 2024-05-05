@@ -47,7 +47,7 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 				if (part.initializer.nonVoidInitializer.arrayInitializer is null)
 					continue;
 				addErrorMessage(part.initializer.nonVoidInitializer,
-						"dscanner.performance.enum_array_literal",
+						KEY,
 						"This enum may lead to unnecessary allocation at run-time."
 						~ " Use 'static immutable "
 						~ part.identifier.text ~ " = [ ...' instead.",
@@ -58,6 +58,8 @@ final class EnumArrayLiteralCheck : BaseAnalyzer
 		}
 		autoDec.accept(this);
 	}
+
+	private enum string KEY = "dscanner.performance.enum_array_literal";
 }
 
 unittest

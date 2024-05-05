@@ -146,6 +146,8 @@ final class UndocumentedDeclarationCheck : BaseAnalyzer
 
 private:
 
+	enum string KEY = "dscanner.style.undocumented_declaration";
+
 	mixin template V(T)
 	{
 		override void visit(const T declaration)
@@ -223,7 +225,7 @@ private:
 	{
 		import std.string : format;
 
-		addErrorMessage(range, "dscanner.style.undocumented_declaration", name is null
+		addErrorMessage(range, KEY, name is null
 				? "Public declaration is undocumented."
 				: format("Public declaration '%s' is undocumented.", name));
 	}

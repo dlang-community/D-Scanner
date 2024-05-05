@@ -59,7 +59,7 @@ final class LocalImportCheck : BaseAnalyzer
 				if (singleImport.rename.text.length == 0)
 				{
 					addErrorMessage(singleImport,
-							"dscanner.suspicious.local_imports", "Local imports should specify"
+							KEY, "Local imports should specify"
 							~ " the symbols being imported to avoid hiding local symbols.");
 				}
 			}
@@ -67,6 +67,8 @@ final class LocalImportCheck : BaseAnalyzer
 	}
 
 private:
+
+	enum string KEY = "dscanner.suspicious.local_imports";
 
 	mixin template visitThing(T)
 	{

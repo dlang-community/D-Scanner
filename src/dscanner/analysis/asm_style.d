@@ -32,11 +32,13 @@ final class AsmStyleCheck : BaseAnalyzer
 		if (brExp.asmBrExp !is null && brExp.asmBrExp.asmUnaExp !is null
 				&& brExp.asmBrExp.asmUnaExp.asmPrimaryExp !is null)
 		{
-			addErrorMessage(brExp, "dscanner.confusing.brexp",
+			addErrorMessage(brExp, KEY,
 					"This is confusing because it looks like an array index. Rewrite a[1] as [a + 1] to clarify.");
 		}
 		brExp.accept(this);
 	}
+
+	private enum string KEY = "dscanner.confusing.brexp";
 }
 
 unittest
