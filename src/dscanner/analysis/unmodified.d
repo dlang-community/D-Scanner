@@ -189,6 +189,8 @@ final class UnmodifiedFinder : BaseAnalyzer
 
 private:
 
+	enum string KEY = "dscanner.suspicious.unmodified";
+
 	template PartsMightModify(T)
 	{
 		override void visit(const T t)
@@ -300,7 +302,7 @@ private:
 		{
 			immutable string errorMessage = "Variable " ~ vi.name
 				~ " is never modified and could have been declared const or immutable.";
-			addErrorMessage(vi.token, "dscanner.suspicious.unmodified", errorMessage);
+			addErrorMessage(vi.token, KEY, errorMessage);
 		}
 		tree = tree[0 .. $ - 1];
 	}

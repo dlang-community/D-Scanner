@@ -18,6 +18,8 @@ import dsymbol.scope_;
  */
 final class LengthSubtractionCheck : BaseAnalyzer
 {
+	private enum string KEY = "dscanner.suspicious.length_subtraction";
+
 	alias visit = BaseAnalyzer.visit;
 
 	mixin AnalyzerInfo!"length_subtraction_check";
@@ -40,7 +42,7 @@ final class LengthSubtractionCheck : BaseAnalyzer
 			if (l.identifierOrTemplateInstance is null
 					|| l.identifierOrTemplateInstance.identifier.text != "length")
 				goto end;
-			addErrorMessage(addExpression, "dscanner.suspicious.length_subtraction",
+			addErrorMessage(addExpression, KEY,
 					"Avoid subtracting from '.length' as it may be unsigned.",
 					[
 						AutoFix.insertionBefore(l.tokens[0], "cast(ptrdiff_t) ", "Cast to ptrdiff_t")

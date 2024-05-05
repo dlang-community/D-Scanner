@@ -115,6 +115,8 @@ final class UnusedLabelCheck : BaseAnalyzer
 
 private:
 
+	enum string KEY = "dscanner.suspicious.unused_label";
+
 	static struct Label
 	{
 		string name;
@@ -144,7 +146,7 @@ private:
 			}
 			else if (!label.used)
 			{
-				addErrorMessage(label.token, "dscanner.suspicious.unused_label",
+				addErrorMessage(label.token, KEY,
 						"Label \"" ~ label.name ~ "\" is not used.");
 			}
 		}

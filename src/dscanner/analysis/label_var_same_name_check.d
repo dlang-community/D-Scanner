@@ -60,6 +60,8 @@ final class LabelVarNameCheck : ScopedBaseAnalyzer
 
 private:
 
+	enum string KEY = "dscanner.suspicious.label_var_same_name";
+
 	Thing[string][] stack;
 
 	template AggregateVisit(NodeType)
@@ -88,7 +90,7 @@ private:
 			{
 				immutable thisKind = fromLabel ? "Label" : "Variable";
 				immutable otherKind = thing.isVar ? "variable" : "label";
-				addErrorMessage(name, "dscanner.suspicious.label_var_same_name",
+				addErrorMessage(name, KEY,
 						thisKind ~ " \"" ~ fqn ~ "\" has the same name as a "
 						~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
 			}

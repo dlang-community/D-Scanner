@@ -39,12 +39,15 @@ public:
 				&& ((t.text.startsWith("0b") && !t.text.matchFirst(badBinaryRegex)
 					.empty) || !t.text.matchFirst(badDecimalRegex).empty))
 		{
-			addErrorMessage(t, "dscanner.style.number_literals",
+			addErrorMessage(t, KEY,
 					"Use underscores to improve number constant readability.");
 		}
 	}
 
 private:
+
+	enum string KEY = "dscanner.style.number_literals";
+
 	auto badBinaryRegex = ctRegex!(`^0b[01]{9,}`);
 	auto badDecimalRegex = ctRegex!(`^\d{5,}`);
 }

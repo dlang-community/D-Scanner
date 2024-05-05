@@ -34,7 +34,7 @@ final class UselessInitializerChecker : BaseAnalyzer
 
 private:
 
-	enum key = "dscanner.useless-initializer";
+	enum string KEY = "dscanner.useless-initializer";
 
 	version(unittest)
 	{
@@ -161,7 +161,7 @@ public:
 			{
 				void warn(const BaseNode range)
 				{
-					addErrorMessage(range, key, msg);
+					addErrorMessage(range, KEY, msg);
 				}
 			}
 			else
@@ -169,7 +169,7 @@ public:
 				import std.format : format;
 				void warn(const BaseNode range)
 				{
-					addErrorMessage(range, key, msg.format(declarator.name.text));
+					addErrorMessage(range, KEY, msg.format(declarator.name.text));
 				}
 			}
 

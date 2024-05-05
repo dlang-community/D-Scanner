@@ -93,7 +93,7 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 		if (hasAttribute)
 		{
 			string message = "Attribute '%s' is duplicated.".format(attributeName);
-			addErrorMessage(tokens, "dscanner.unnecessary.duplicate_attribute", message,
+			addErrorMessage(tokens, KEY, message,
 				[AutoFix.replacement(tokens, "", "Remove second attribute " ~ attributeName)]);
 		}
 
@@ -149,6 +149,8 @@ final class DuplicateAttributeCheck : BaseAnalyzer
 
 		return null;
 	}
+
+	private enum string KEY = "dscanner.unnecessary.duplicate_attribute";
 }
 
 unittest
