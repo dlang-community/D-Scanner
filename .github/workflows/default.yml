@@ -57,7 +57,7 @@ jobs:
               dmd: gdc-12
             host: macos-latest
 
-          # Restrict DMD to macOS
+          # Restrict DMD to macOS latest
           - compiler:
               dmd: dmd
             host: macos-latest
@@ -69,6 +69,10 @@ jobs:
               type: dub
         include:
           - { do_report: 1, build: { type: dub, version: 'current' }, host: 'ubuntu-22.04', compiler: { version: dmd-latest, dmd: dmd } }
+
+          - compiler:
+              dmd: dmd
+            host: macos-13
 
     runs-on: ${{ matrix.host }}
 
