@@ -73,6 +73,9 @@ jobs:
           - compiler:
               dmd: dmd
             host: macos-13
+            build:
+              type: 'dub'
+              version: 'current'
 
     runs-on: ${{ matrix.host }}
 
