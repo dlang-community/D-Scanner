@@ -58,6 +58,11 @@ jobs:
               dmd: gdc-12
             host: macos-latest
 
+          # Restrict DMD to macOS latest
+          - compiler:
+              dmd: dmd
+            host: macos-latest
+
           #  Omit dub builds for GDC because dub rejects the old fronted revision
           - compiler:
               dmd: gdc-12
@@ -66,12 +71,19 @@ jobs:
         include:
           - { do_report: 1, build: { type: dub, version: 'current' }, host: 'ubuntu-22.04', compiler: { version: dmd-latest, dmd: dmd } }
 
+          - compiler:
+              dmd: dmd
+            host: macos-13
+            build:
+              type: 'dub'
+              version: 'current'
+
     runs-on: ${{ matrix.host }}
 
     steps:
       # Clone repo + submodules
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: 'recursive'
            fetch-depth: 0
@@ -95,10 +107,10 @@ jobs:
           sudo apt-get install gdc-12 -y
           gdc-12 --version
 
-      # - name: Setup upterm session
-      #   if: ${{ matrix.build.type == 'make' && matrix.host == 'macos-latest'}}
-      #   uses: lhotari/action-upterm@v1
-      
+      - name: Setup upterm session
+        if: ${{ matrix.build.type == 'dub' && matrix.host == 'macos-latest'}}
+        uses: lhotari/action-upterm@v1
+
       # Compile D-Scanner and execute all tests without dub
       - name: Build and test without dub
         if: ${{ matrix.build.type == 'make' }}
@@ -165,17 +177,17 @@ jobs:
       - name: Run style checks
         if: ${{ matrix.compiler.dmd == 'dmd' && matrix.build.type == 'make' }}
         run: |
-            make style
+          make style
 
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: dlang/phobos
           path: phobos
 
       - name: Apply D-Scanner to Phobos
-        if:  ${{ matrix.build.version != 'min libdparse'}} # Older versions crash with "Invalid UTF..."
+        if: ${{ matrix.build.version != 'min libdparse'}} # Older versions crash with "Invalid UTF..."
         working-directory: phobos
         shell: bash
         run: |

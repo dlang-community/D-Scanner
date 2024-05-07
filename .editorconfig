@@ -19,3 +19,7 @@ dfmt_space_after_keywords = true
 dfmt_selective_import_space = true
 dfmt_compact_labeled_statements = true
 dfmt_template_constraint_style = conditional_newline_indent
+
+[*.yml]
+indent_style = space
+indent_size = 2
