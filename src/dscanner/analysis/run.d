@@ -849,10 +849,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UnusedVariableCheck(args.setSkipTests(
 		analysisConfig.unused_variable_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!UnusedParameterCheck(analysisConfig))
-		checks ~= new UnusedParameterCheck(args.setSkipTests(
-		analysisConfig.unused_parameter_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!LineLengthCheck(analysisConfig))
 		checks ~= new LineLengthCheck(args.setSkipTests(
 		analysisConfig.long_line_check == Check.skipTests && !ut),
@@ -1348,6 +1344,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new AutoFunctionChecker!ASTCodegen(
 			fileName,
 			config.auto_function_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(UnusedParameterCheck!ASTCodegen)(config))
+		visitors ~= new UnusedParameterCheck!ASTCodegen(
+			fileName,
+			config.unused_parameter_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
