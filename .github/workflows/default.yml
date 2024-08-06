@@ -107,9 +107,9 @@ jobs:
           sudo apt-get install gdc-12 -y
           gdc-12 --version
 
-      - name: Setup upterm session
-        if: ${{ matrix.build.type == 'dub' && matrix.host == 'macos-latest'}}
-        uses: lhotari/action-upterm@v1
+#      - name: Setup upterm session
+#        if: ${{ matrix.build.type == 'dub' && matrix.host == 'macos-latest'}}
+#        uses: lhotari/action-upterm@v1
 
       # Compile D-Scanner and execute all tests without dub
       - name: Build and test without dub
