@@ -4,42 +4,269 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 module dscanner.analysis.unused_variable;
 
-import dparse.ast;
 import dscanner.analysis.base;
-import dscanner.analysis.unused;
-import dsymbol.scope_ : Scope;
-import std.algorithm.iteration : map;
+import std.algorithm : all, canFind, each, endsWith, filter, map;
 
 /**
  * Checks for unused variables.
  */
-final class UnusedVariableCheck : UnusedStorageCheck
+// TODO: many similarities to unused_param.d, maybe refactor into a common base class
+extern (C++) class UnusedVariableCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = UnusedStorageCheck.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"unused_variable_check";
 
-	/**
-	 * Params:
-	 *     fileName = the name of the file being analyzed
-	 */
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.suspicious.unused_variable";
+	private enum MSG = "Variable %s is never used.";
+
+	private static struct VarInfo
 	{
-		super(args, "Variable", "unused_variable");
+		string name;
+		ulong lineNum;
+		ulong charNum;
+		bool isUsed = false;
 	}
 
-	override void visit(const VariableDeclaration variableDeclaration)
+	private alias VarSet = VarInfo[string];
+	private VarSet[] usedVars;
+	private bool inMixin;
+	private bool shouldIgnoreDecls;
+	private bool inFunction;
+	private bool inAggregate;
+	private bool shouldNotPushScope;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		foreach (d; variableDeclaration.declarators)
-			this.variableDeclared(d.name.text, d.name, false);
-		variableDeclaration.accept(this);
+		super(fileName, skipTests);
+		pushScope();
 	}
 
-	override void visit(const AutoDeclaration autoDeclaration)
+	override void visit(AST.FuncDeclaration funcDeclaration)
 	{
-		foreach (t; autoDeclaration.parts.map!(a => a.identifier))
-			this.variableDeclared(t.text, t, false);
-		autoDeclaration.accept(this);
+		auto oldInFunction = inFunction;
+		inFunction = true;
+		super.visit(funcDeclaration);
+		inFunction = oldInFunction;
+	}
+
+	mixin VisitAggregate!(AST.ClassDeclaration);
+	mixin VisitAggregate!(AST.StructDeclaration);
+	mixin VisitAggregate!(AST.UnionDeclaration);
+
+	private template VisitAggregate(NodeType)
+	{
+		override void visit(NodeType node)
+		{
+			auto oldInFunction = inFunction;
+			auto oldInAggregate = inAggregate;
+			inFunction = false;
+			inAggregate = true;
+			super.visit(node);
+			inFunction = oldInFunction;
+			inAggregate = oldInAggregate;
+		}
+	}
+
+	mixin VisitConditional!(AST.ConditionalDeclaration);
+	mixin VisitConditional!(AST.ConditionalStatement);
+
+	private template VisitConditional(NodeType)
+	{
+		override void visit(NodeType node)
+		{
+			auto oldShouldNotPushScope = shouldNotPushScope;
+			shouldNotPushScope = true;
+			super.visit(node);
+			shouldNotPushScope = oldShouldNotPushScope;
+		}
+	}
+
+	override void visit(AST.CompoundStatement compoundStatement)
+	{
+		if (!shouldNotPushScope)
+			pushScope();
+
+		super.visit(compoundStatement);
+
+		if (!shouldNotPushScope)
+			popScope();
+	}
+
+	override void visit(AST.VarDeclaration varDeclaration)
+	{
+		super.visit(varDeclaration);
+
+		if (varDeclaration.ident)
+		{
+			string varName = cast(string) varDeclaration.ident.toString();
+			bool isAggregateField = inAggregate && !inFunction;
+			bool ignore = isAggregateField || shouldIgnoreDecls || varName.all!(c => c == '_');
+			currentScope[varName] = VarInfo(varName, varDeclaration.loc.linnum, varDeclaration.loc.charnum, ignore);
+		}
+	}
+
+	override void visit(AST.TypeAArray typeAArray)
+	{
+		import std.array : split;
+
+		super.visit(typeAArray);
+
+		string assocArrayStr = cast(string) typeAArray.toString();
+		assocArrayStr.split('[')
+			.filter!(key => key.endsWith(']'))
+			.map!(key => key.split(']')[0])
+			.each!(key => markAsUsed(key));
+	}
+
+	override void visit(AST.TemplateDeclaration templateDecl)
+	{
+		super.visit(templateDecl);
+
+		if (templateDecl.ident)
+		{
+			string varName = cast(string) templateDecl.ident.toString();
+			bool isAggregateField = inAggregate && !inFunction;
+			bool ignore = isAggregateField || shouldIgnoreDecls || varName.all!(c => c == '_');
+			currentScope[varName] = VarInfo(varName, templateDecl.loc.linnum, templateDecl.loc.charnum, ignore);
+		}
+	}
+
+	override void visit(AST.TypeSArray staticArray)
+	{
+		if (auto identifierExpression = staticArray.dim.isIdentifierExp())
+			identifierExpression.accept(this);
+	}
+
+	override void visit(AST.IdentifierExp identifierExp)
+	{
+		if (identifierExp.ident)
+			markAsUsed(cast(string) identifierExp.ident.toString());
+
+		super.visit(identifierExp);
+	}
+
+	mixin VisitMixin!(AST.MixinExp);
+	mixin VisitMixin!(AST.MixinStatement);
+
+	private template VisitMixin(NodeType)
+	{
+		override void visit(NodeType node)
+		{
+			inMixin = true;
+			super.visit(node);
+			inMixin = false;
+		}
+	}
+
+	override void visit(AST.StringExp stringExp)
+	{
+		if (!inMixin)
+			return;
+
+		string str = cast(string) stringExp.toStringz();
+		currentScope.byKey
+			.filter!(param => canFind(str, param))
+			.each!(param => markAsUsed(param));
+	}
+
+	override void visit(AST.TraitsExp traitsExp)
+	{
+		import dmd.dtemplate : isType;
+
+		auto oldShouldIgnoreDecls = shouldIgnoreDecls;
+
+		if (cast(string) traitsExp.ident.toString() == "compiles")
+			shouldIgnoreDecls = true;
+
+		super.visit(traitsExp);
+		shouldIgnoreDecls = oldShouldIgnoreDecls;
+
+		if (traitsExp.args is null)
+			return;
+
+		(*traitsExp.args).opSlice().map!(arg => isType(arg))
+			.filter!(type => type !is null)
+			.map!(type => type.isTypeIdentifier())
+			.filter!(typeIdentifier => typeIdentifier !is null)
+			.each!(typeIdentifier => markAsUsed(cast(string) typeIdentifier.toString()));
+	}
+
+	override void visit(AST.TypeTypeof typeOf)
+	{
+		auto oldShouldIgnoreDecls = shouldIgnoreDecls;
+		shouldIgnoreDecls = true;
+		super.visit(typeOf);
+		shouldIgnoreDecls = oldShouldIgnoreDecls;
+	}
+
+	override void visit(AST.TemplateInstance templateInstance)
+	{
+		import dmd.dtemplate : isExpression, isType;
+		import dmd.mtype : Type;
+
+		super.visit(templateInstance);
+
+		if (templateInstance.name)
+			markAsUsed(cast(string) templateInstance.name.toString());
+
+		if (templateInstance.tiargs is null)
+			return;
+
+		auto argSlice = (*templateInstance.tiargs).opSlice();
+
+		argSlice.map!(arg => arg.isExpression())
+			.filter!(arg => arg !is null)
+			.map!(arg => arg.isIdentifierExp())
+			.filter!(identifierExp => identifierExp !is null)
+			.each!(identifierExp => markAsUsed(cast(string) identifierExp.ident.toString()));
+
+		argSlice.map!(arg => arg.isType())
+			.filter!(arg => arg !is null)
+			.map!(arg => arg.isTypeIdentifier())
+			.filter!(identifierType => identifierType !is null)
+			.each!(identifierType => markAsUsed(cast(string) identifierType.ident.toString()));
+	}
+
+	private extern (D) void markAsUsed(string varName)
+	{
+		import std.range : retro;
+
+		foreach (funcScope; usedVars.retro())
+		{
+			if (varName in funcScope)
+			{
+				funcScope[varName].isUsed = true;
+				break;
+			}
+		}
+	}
+
+	@property private extern (D) VarSet currentScope()
+	{
+		return usedVars[$ - 1];
+	}
+
+	private void pushScope()
+	{
+		// Error with gdc-12
+		//usedVars ~= new VarSet;
+
+		// Workaround for gdc-12
+		VarSet newScope;
+		newScope["test"] = VarInfo("test", 0, 0);
+		usedVars ~= newScope;
+		currentScope.remove("test");
+	}
+
+	private void popScope()
+	{
+		import std.format : format;
+
+		currentScope.byValue
+			.filter!(var => !var.isUsed)
+			.each!(var => addErrorMessage(var.lineNum, var.charNum, KEY, MSG.format(var.name)));
+
+		usedVars.length--;
 	}
 }
 
@@ -47,11 +274,12 @@ final class UnusedVariableCheck : UnusedStorageCheck
 {
 	import std.stdio : stderr;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.unused_variable_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+
+	assertAnalyzerWarningsDMD(q{
 
 	// Issue 274
 	unittest
@@ -62,8 +290,7 @@ final class UnusedVariableCheck : UnusedStorageCheck
 
 	unittest
 	{
-		int a; /+
-		    ^ [warn]: Variable a is never used. +/
+		int a; // [warn]: Variable a is never used.
 	}
 
 	// Issue 380
@@ -76,8 +303,7 @@ final class UnusedVariableCheck : UnusedStorageCheck
 	// Issue 380
 	int otherTemplatedEnum()
 	{
-		auto a(T) = T.init; /+
-		     ^ [warn]: Variable a is never used. +/
+		auto a(T) = T.init; // [warn]: Variable a is never used.
 		return 0;
 	}
 
@@ -132,5 +358,26 @@ final class UnusedVariableCheck : UnusedStorageCheck
 	}
 
 	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		void testMixinExpression()
+		{
+			int a;
+			mixin("a = 5");
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		bool f()
+		{
+			static if (is(S == bool) && is(typeof({ T s = "string"; })))
+    	    {
+    	        return src ? "true" : "false";
+    	    }
+
+    	    return false;
+		}
+	}c, sac);
+
 	stderr.writeln("Unittest for UnusedVariableCheck passed.");
 }
