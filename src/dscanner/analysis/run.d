@@ -870,10 +870,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UnusedResultChecker(args.setSkipTests(
 		analysisConfig.unused_result == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!BodyOnDisabledFuncsCheck(analysisConfig))
-		checks ~= new BodyOnDisabledFuncsCheck(args.setSkipTests(
-		analysisConfig.body_on_disabled_func_check == Check.skipTests && !ut));
-
 	return checks;
 }
 
@@ -1354,6 +1350,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new UnmodifiedFinder!ASTCodegen(
 			fileName,
 			config.could_be_immutable_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(BodyOnDisabledFuncsCheck!ASTCodegen)(config))
+		visitors ~= new BodyOnDisabledFuncsCheck!ASTCodegen(
+			fileName,
+			config.body_on_disabled_func_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
