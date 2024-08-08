@@ -1,143 +1,76 @@
 module dscanner.analysis.body_on_disabled_funcs;
 
 import dscanner.analysis.base;
-import dparse.ast;
-import dparse.lexer;
-import dsymbol.scope_;
-import std.meta : AliasSeq;
+import dmd.astenums : STC;
 
-final class BodyOnDisabledFuncsCheck : BaseAnalyzer
+extern (C++) class BodyOnDisabledFuncsCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"body_on_disabled_func_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum string KEY = "dscanner.confusing.disabled_function_with_body";
+	private enum FUNC_MSG = "Function marked with '@disabled' should not have a body";
+	private enum CTOR_MSG = "Constructor marked with '@disabled' should not have a body";
+	private enum DTOR_MSG = "Destructor marked with '@disabled' should not have a body";
+
+	private bool isDisabled;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	static foreach (AggregateType; AliasSeq!(InterfaceDeclaration, ClassDeclaration,
-		StructDeclaration, UnionDeclaration, FunctionDeclaration))
-		override void visit(const AggregateType t)
-		{
-			scope wasDisabled = isDisabled;
-			isDisabled = false;
-			t.accept(this);
-			isDisabled = wasDisabled;
-		}
-
-	override void visit(const Declaration dec)
+	override void visit(AST.StorageClassDeclaration storageClassDecl)
 	{
-		foreach (attr; dec.attributes)
-		{
-			if (attr.atAttribute !is null && attr.atAttribute.identifier.text == "disable") {
-				// found attr block w. disable: dec.constructor
-				scope wasDisabled = isDisabled;
-				isDisabled = true;
-				visitDeclarationInner(dec);
-				dec.accept(this);
-				isDisabled = wasDisabled;
-				return;
-			}
-		}
-
-		visitDeclarationInner(dec);
-		scope wasDisabled = isDisabled;
-		dec.accept(this);
+		bool wasDisabled = isDisabled;
+		isDisabled = (storageClassDecl.stc & STC.disable) != 0;
+		super.visit(storageClassDecl);
 		isDisabled = wasDisabled;
 	}
 
-private:
-	bool isDisabled = false;
+	mixin VisitAggregate!(AST.ClassDeclaration);
+	mixin VisitAggregate!(AST.InterfaceDeclaration);
+	mixin VisitAggregate!(AST.StructDeclaration);
+	mixin VisitAggregate!(AST.UnionDeclaration);
 
-	bool isDeclDisabled(T)(const T dec)
+	private template VisitAggregate(NodeType)
 	{
-		// `@disable { ... }`
-		if (isDisabled)
-			return true;
+		override void visit(NodeType node)
+		{
+			if (isDisabled || (node.storage_class & STC.disable) != 0)
+				return;
 
-		static if (__traits(hasMember, T, "storageClasses"))
-		{
-			// `@disable doThing() {}`
-			if (hasDisabledStorageclass(dec.storageClasses))
-				return true;
-		}
-
-		// `void doThing() @disable {}`
-		return hasDisabledMemberFunctionAttribute(dec.memberFunctionAttributes);
-	}
-
-	void visitDeclarationInner(const Declaration dec)
-	{
-		if (dec.attributeDeclaration !is null
-			&& dec.attributeDeclaration.attribute
-			&& dec.attributeDeclaration.attribute.atAttribute
-			&& dec.attributeDeclaration.attribute.atAttribute.identifier.text == "disable")
-		{
-			// found `@disable:`, so all code in this block is now disabled
-			isDisabled = true;
-		}
-		else if (dec.functionDeclaration !is null
-					&& isDeclDisabled(dec.functionDeclaration)
-					&& dec.functionDeclaration.functionBody !is null
-					&& dec.functionDeclaration.functionBody.missingFunctionBody is null)
-		{
-			addErrorMessage(dec.functionDeclaration.functionBody,
-					KEY, "Function marked with '@disabled' should not have a body");
-		}
-		else if (dec.constructor !is null
-					&& isDeclDisabled(dec.constructor)
-					&& dec.constructor.functionBody !is null
-					&& dec.constructor.functionBody.missingFunctionBody is null)
-		{
-			addErrorMessage(dec.constructor.functionBody,
-					KEY, "Constructor marked with '@disabled' should not have a body");
-		}
-		else if (dec.destructor !is null
-					&& isDeclDisabled(dec.destructor)
-					&& dec.destructor.functionBody !is null
-					&& dec.destructor.functionBody.missingFunctionBody is null)
-		{
-			addErrorMessage(dec.destructor.functionBody,
-					KEY, "Destructor marked with '@disabled' should not have a body");
+			bool wasDisabled = isDisabled;
+			isDisabled = false;
+			super.visit(node);
+			isDisabled = wasDisabled;
 		}
 	}
 
-	bool hasDisabledStorageclass(const(StorageClass[]) storageClasses)
-	{
-		foreach (sc; storageClasses)
-		{
-			if (sc.atAttribute !is null && sc.atAttribute.identifier.text == "disable")
-				return true;
-		}
-		return false;
-	}
+	mixin VisitFunction!(AST.FuncDeclaration, FUNC_MSG);
+	mixin VisitFunction!(AST.CtorDeclaration, CTOR_MSG);
+	mixin VisitFunction!(AST.DtorDeclaration, DTOR_MSG);
 
-	bool hasDisabledMemberFunctionAttribute(const(MemberFunctionAttribute[]) memberFunctionAttributes)
+	private template VisitFunction(NodeType, string MSG)
 	{
-		foreach (attr; memberFunctionAttributes)
+		override void visit(NodeType node)
 		{
-			if (attr.atAttribute !is null && attr.atAttribute.identifier.text == "disable")
-				return true;
+			if ((isDisabled || (node.storage_class & STC.disable) != 0) && node.fbody !is null)
+				addErrorMessage(cast(ulong) node.loc.linnum, cast(ulong) node.loc.charnum, KEY, MSG);
 		}
-		return false;
 	}
-
-	enum string KEY = "dscanner.confusing.disabled_function_with_body";
 }
 
 unittest
 {
 	import std.stdio : stderr;
-	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.body_on_disabled_func_check = Check.enabled;
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 	class C1
 	{
 		this() {}
@@ -159,12 +92,9 @@ unittest
 			}
 		}
 
-		this() {} /+
-		       ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
-		void doThing() {} /+
-		               ^^ [warn]: Function marked with '@disabled' should not have a body +/
-		~this() {} /+
-		        ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
+		this() {} // [warn]: Constructor marked with '@disabled' should not have a body
+		void doThing() {} // [warn]: Function marked with '@disabled' should not have a body
+		~this() {} // [warn]: Destructor marked with '@disabled' should not have a body
 
 		this();
 		void doThing();
@@ -173,28 +103,18 @@ unittest
 
 	class C2
 	{
-		@disable this() {} /+
-		                ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
-		@disable { this() {} } /+
-		                  ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
-		this() @disable {} /+
-		                ^^ [warn]: Constructor marked with '@disabled' should not have a body +/
+		@disable this() {} // [warn]: Constructor marked with '@disabled' should not have a body
+		@disable { this() {} } // [warn]: Constructor marked with '@disabled' should not have a body
+		this() @disable {} // [warn]: Constructor marked with '@disabled' should not have a body
 
-		@disable void doThing() {} /+
-		                        ^^ [warn]: Function marked with '@disabled' should not have a body +/
-		@disable doThing() {} /+
-		                   ^^ [warn]: Function marked with '@disabled' should not have a body +/
-		@disable { void doThing() {} } /+
-		                          ^^ [warn]: Function marked with '@disabled' should not have a body +/
-		void doThing() @disable {} /+
-		                        ^^ [warn]: Function marked with '@disabled' should not have a body +/
+		@disable void doThing() {} // [warn]: Function marked with '@disabled' should not have a body
+		@disable doThing() {} // [warn]: Function marked with '@disabled' should not have a body
+		@disable { void doThing() {} } // [warn]: Function marked with '@disabled' should not have a body
+		void doThing() @disable {} // [warn]: Function marked with '@disabled' should not have a body
 
-		@disable ~this() {} /+
-		                 ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
-		@disable { ~this() {} } /+
-		                   ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
-		~this() @disable {} /+
-		                 ^^ [warn]: Destructor marked with '@disabled' should not have a body +/
+		@disable ~this() {} // [warn]: Destructor marked with '@disabled' should not have a body
+		@disable { ~this() {} } // [warn]: Destructor marked with '@disabled' should not have a body
+		~this() @disable {} // [warn]: Destructor marked with '@disabled' should not have a body
 
 		@disable this();
 		@disable { this(); }
