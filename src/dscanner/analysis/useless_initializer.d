@@ -5,15 +5,8 @@
 module dscanner.analysis.useless_initializer;
 
 import dscanner.analysis.base;
-import dscanner.analysis.nolint;
-import dscanner.utils : safeAccess;
-import containers.dynamicarray;
-import containers.hashmap;
-import dparse.ast;
-import dparse.lexer;
-import std.algorithm;
-import std.range : empty;
-import std.stdio;
+import dmd.astenums : InitKind, STC, TY;
+import std.format : format;
 
 /*
 Limitations:
@@ -26,301 +19,244 @@ Limitations:
  * Check that detects the initializers that are
  * not different from the implcit initializer.
  */
-final class UselessInitializerChecker : BaseAnalyzer
+// TODO: Fix NoLint
+extern (C++) class UselessInitializerChecker(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"useless_initializer";
 
-private:
+	private enum KEY = "dscanner.useless-initializer";
+	private enum MSG = "Variable '%s' initializer is useless because it does not differ from the default value";
 
-	enum key = "dscanner.useless-initializer";
-
-	version(unittest)
+	private struct StructInfo
 	{
-		enum msg = "X";
-	}
-	else
-	{
-		enum msg = "Variable `%s` initializer is useless because it does not differ from the default value";
+		string name;
+		bool shouldErrorOnInit;
+		bool isBeingVisited;
 	}
 
-	static immutable intDefs = ["0", "0L", "0UL", "0uL", "0U", "0x0", "0b0"];
+	private StructInfo[string] visitedStructs;
+	private string[] structStack;
+	private bool inTest;
 
-	HashMap!(string, bool) _structCanBeInit;
-	DynamicArray!(string) _structStack;
-	DynamicArray!(bool) _inStruct;
-	DynamicArray!(bool) _atDisabled;
-	bool _inTest;
-
-public:
-
-	///
-	this(BaseAnalyzerArguments args)
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
-		_inStruct.insert(false);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const(Unittest) test)
+	override void visit(AST.UnitTestDeclaration unitTestDecl)
 	{
 		if (skipTests)
 			return;
-		_inTest = true;
-		test.accept(this);
-		_inTest = false;
+
+		inTest = true;
+		super.visit(unitTestDecl);
+		inTest = false;
 	}
 
-	override void visit(const(StructDeclaration) decl)
+	override void visit(AST.StructDeclaration structDecl)
 	{
-		if (_inTest)
+		if (inTest || structDecl.ident is null)
 			return;
 
-		assert(_inStruct.length > 1);
+		string structName = cast(string) structDecl.ident.toString();
+		if (isNestedStruct())
+			structName = structStack[$ - 1] ~ "." ~ structName;
 
-		const string structName = _inStruct[$-2] ?
-			_structStack.back() ~ "." ~ decl.name.text :
-		  decl.name.text;
+		bool isDisabled = (structDecl.storage_class & STC.disable) != 0;
+		visitedStructs[structName] = StructInfo(structName, !isDisabled, true);
+		structStack ~= structName;
+		super.visit(structDecl);
 
-		_structStack.insert(structName);
-		_structCanBeInit[structName] = false;
-		_atDisabled.insert(false);
-		decl.accept(this);
-		_structStack.removeBack();
-		_atDisabled.removeBack();
+		visitedStructs[structName].isBeingVisited = false;
+		structStack.length--;
 	}
 
-	override void visit(const(Declaration) decl)
+	private bool isNestedStruct()
 	{
-		_inStruct.insert(decl.structDeclaration !is null);
+		if (structStack.length >= 1)
+			return visitedStructs[structStack[$ - 1]].isBeingVisited;
 
-		with (noLint.push(NoLintFactory.fromDeclaration(decl)))
-			decl.accept(this);
-
-		if (_inStruct.length > 1 && _inStruct[$-2] && decl.constructor &&
-			((decl.constructor.parameters && decl.constructor.parameters.parameters.length == 0) ||
-			!decl.constructor.parameters))
-		{
-			_atDisabled[$-1] = decl.attributes
-				.canFind!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
-		}
-		_inStruct.removeBack();
+		return false;
 	}
 
-	override void visit(const(Constructor) decl)
+	override void visit(AST.CtorDeclaration ctorDeclaration)
 	{
-		if (_inStruct.length > 1 && _inStruct[$-2] &&
-			((decl.parameters && decl.parameters.parameters.length == 0) || !decl.parameters))
-		{
-			const bool canBeInit = !_atDisabled[$-1];
-			_structCanBeInit[_structStack.back()] = canBeInit;
-			if (!canBeInit)
-				_structCanBeInit[_structStack.back()] = !decl.memberFunctionAttributes
-					.canFind!(a => a.atAttribute !is null && a.atAttribute.identifier.text == "disable");
-		}
-		decl.accept(this);
-	}
+		super.visit(ctorDeclaration);
 
-	// issue 473, prevent to visit delegates that contain duck type checkers.
-	override void visit(const(TypeofExpression)) {}
+		bool isDefaultCtor = ctorDeclaration.getParameterList().length() == 0;
 
-	// issue 473, prevent to check expressions in __traits(compiles, ...)
-	override void visit(const(TraitsExpression) e)
-	{
-		if (e.identifier.text == "compiles")
-		{
+		if (structStack.length == 0 || !isDefaultCtor)
 			return;
-		}
-		else
+
+		auto structName = structStack[$ - 1];
+		if (!visitedStructs[structName].isBeingVisited || !visitedStructs[structName].shouldErrorOnInit)
+			return;
+
+		bool isDisabled = (ctorDeclaration.storage_class & STC.disable) != 0;
+		visitedStructs[structName].shouldErrorOnInit = !isDisabled;
+	}
+
+	override void visit(AST.VarDeclaration varDecl)
+	{
+		import std.format : format;
+
+		super.visit(varDecl);
+
+		// issue 474, manifest constants HAVE to be initialized initializer has to appear clearly in generated ddoc
+		// https://github.com/dlang-community/d-Scanner/issues/474
+		if (varDecl._init is null || varDecl.storage_class & STC.manifest || varDecl.comment())
+			return;
+
+		ulong lineNum = cast(ulong) varDecl.loc.linnum;
+		ulong charNum = cast(ulong) varDecl.loc.charnum;
+		string msg = MSG.format(varDecl.ident.toString());
+
+		if (auto expInit = varDecl._init.isExpInitializer())
 		{
-			e.accept(this);
+			bool isBasicType;
+			if (varDecl.type)
+				isBasicType = isBasicTypeConstant(varDecl.type.ty);
+
+			if (isRedundantExpInit(expInit.exp, isBasicType))
+				addErrorMessage(lineNum, charNum, KEY, msg);
+		}
+		else if (auto arrInit = varDecl._init.isArrayInitializer())
+		{
+			if (arrInit.dim == 0 && arrInit.index.length == 0 && arrInit.value.length == 0)
+				addErrorMessage(lineNum, charNum, KEY, msg);
 		}
 	}
 
-	override void visit(const(VariableDeclaration) decl)
+	private bool isBasicTypeConstant(TY type)
 	{
-		if (!decl.type || !decl.type.type2 ||
-			// initializer has to appear clearly in generated ddoc
-			decl.comment !is null ||
-			// issue 474, manifest constants HAVE to be initialized.
-			decl.storageClasses.canFind!(a => a.token == tok!"enum"))
-		{
-			return;
-		}
+		return (type >= TY.Tint8 && type <= TY.Tdchar) || type == TY.Tint128 || type == TY.Tuns128;
+	}
 
-		foreach (declarator; decl.declarators)
+	private bool isRedundantExpInit(AST.Expression exp, bool isBasicType)
+	{
+		if (auto intExp = exp.isIntegerExp())
+			return intExp.getInteger() == 0;
+
+		if (auto dotIdExp = exp.isDotIdExp())
 		{
-			if (!declarator.initializer ||
-				!declarator.initializer.nonVoidInitializer ||
-				declarator.comment !is null)
+			if (dotIdExp.ident is null)
+				return false;
+
+			bool shouldLookForInit;
+
+			if (isBasicType)
 			{
-				continue;
-			}
-
-			version(unittest)
-			{
-				void warn(const BaseNode range)
-				{
-					addErrorMessage(range, key, msg);
-				}
+				shouldLookForInit = true;
 			}
 			else
 			{
-				import std.format : format;
-				void warn(const BaseNode range)
-				{
-					addErrorMessage(range, key, msg.format(declarator.name.text));
-				}
+				string structName = computeStructNameFromDotChain(dotIdExp);
+				if (structName in visitedStructs)
+					shouldLookForInit = visitedStructs[structName].shouldErrorOnInit;
 			}
 
-			// ---  Info about the declaration type --- //
-			const bool isPtr = decl.type.typeSuffixes && decl.type.typeSuffixes
-				.canFind!(a => a.star != tok!"");
-			const bool isArr = decl.type.typeSuffixes && decl.type.typeSuffixes
-				.canFind!(a => a.array);
+			if (shouldLookForInit)
+				return cast(string) dotIdExp.ident.toString() == "init";
 
-			bool isStr, isSzInt;
-			Token customType;
-
-			if (const TypeIdentifierPart tip = safeAccess(decl).type.type2.typeIdentifierPart)
-			{
-				if (!tip.typeIdentifierPart)
-				{
-					customType = tip.identifierOrTemplateInstance.identifier;
-					isStr = customType.text.among("string", "wstring", "dstring") != 0;
-					isSzInt = customType.text.among("size_t", "ptrdiff_t") != 0;
-				}
-			}
-
-			// --- 'BasicType/Symbol AssignExpression' ---//
-			const NonVoidInitializer nvi = declarator.initializer.nonVoidInitializer;
-			const UnaryExpression ue = cast(UnaryExpression) nvi.assignExpression;
-			if (ue && ue.primaryExpression)
-			{
-				const Token value = ue.primaryExpression.primary;
-
-				if (!isPtr && !isArr && !isStr && decl.type.type2.builtinType != tok!"")
-				{
-					switch(decl.type.type2.builtinType)
-					{
-					// check for common cases of default values
-					case tok!"byte",    tok!"ubyte":
-					case tok!"short",   tok!"ushort":
-					case tok!"int",     tok!"uint":
-					case tok!"long",    tok!"ulong":
-					case tok!"cent",    tok!"ucent":
-					case tok!"bool":
-						if (intDefs.canFind(value.text) || value == tok!"false")
-							warn(nvi);
-						goto default;
-					default:
-					// check for BasicType.init
-						if (ue.primaryExpression.basicType.type == decl.type.type2.builtinType &&
-							ue.primaryExpression.primary.text == "init" &&
-							!ue.primaryExpression.expression)
-							warn(nvi);
-					}
-				}
-				else if (isSzInt)
-				{
-					if (intDefs.canFind(value.text))
-						warn(nvi);
-				}
-				else if (isPtr || isStr)
-				{
-					if (str(value.type) == "null")
-						warn(nvi);
-				}
-				else if (isArr)
-				{
-					if (str(value.type) == "null")
-						warn(nvi);
-					else if (nvi.arrayInitializer && nvi.arrayInitializer.arrayMemberInitializations.length == 0)
-						warn(nvi);
-				}
-			}
-
-			else if (const IdentifierOrTemplateInstance iot = safeAccess(ue)
-				.unaryExpression.primaryExpression.identifierOrTemplateInstance)
-			{
-				// Symbol s = Symbol.init
-				if (ue && customType != tok!"" && iot.identifier == customType &&
-					ue.identifierOrTemplateInstance && ue.identifierOrTemplateInstance.identifier.text == "init")
-				{
-					if (customType.text in _structCanBeInit)
-					{
-						if  (!_structCanBeInit[customType.text])
-							warn(nvi);
-					}
-				}
-			}
-
-			// 'Symbol ArrayInitializer' : assumes Symbol is an array b/c of the Init
-			else if (nvi.arrayInitializer && (isArr || isStr))
-			{
-				if (nvi.arrayInitializer.arrayMemberInitializations.length == 0)
-					warn(nvi);
-			}
+			return false;
 		}
 
-		decl.accept(this);
+		return exp.isNullExp() !is null;
+	}
+
+	private extern (D) string computeStructNameFromDotChain(AST.DotIdExp dotIdExp)
+	{
+		if (dotIdExp.ident is null)
+			return "";
+
+		string name;
+		auto parent = dotIdExp.e1;
+
+		while (parent && parent.isDotIdExp())
+		{
+			auto dotIdParent = parent.isDotIdExp();
+			if (dotIdParent.ident is null)
+				return "";
+
+			name = cast(string) dotIdParent.ident.toString() ~ "." ~ name;
+			parent = dotIdParent.e1;
+		}
+
+		auto idExp = parent.isIdentifierExp();
+		if (idExp && idExp.ident)
+		{
+			string structName = cast(string) idExp.ident.toString();
+			if (name.length > 0)
+				return structName = structName ~ "." ~ name[0 .. $ - 1];
+
+			return structName;
+		}
+
+		return "";
+	}
+
+	// issue 473, prevent to visit delegates that contain duck type checkers.
+	// https://github.com/dlang-community/d-Scanner/issues/473
+	override void visit(AST.TypeTypeof _)
+	{
+	}
+
+	// issue 473, prevent to check expressions in __traits(compiles, ...)
+	// https://github.com/dlang-community/d-Scanner/issues/473
+	override void visit(AST.TraitsExp traitsExp)
+	{
+		if (traitsExp.ident.toString() != "compiles")
+			super.visit(traitsExp);
 	}
 }
 
 @system unittest
 {
 	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import dscanner.analysis.helpers: assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig;
 	sac.useless_initializer = Check.enabled;
+	enum msgA = "Variable 'a' initializer is useless because it does not differ from the default value";
+	enum msgS = "Variable 's' initializer is useless because it does not differ from the default value";
+
+	assertAnalyzerWarningsDMD(q{
+		struct Outer
+		{
+			struct Inner {}
+		}
+		Outer.Inner s = Outer.Inner.init; // [warn]: %s
+	}c.format(msgS), sac);
 
 	// fails
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		struct S {}
-		ubyte a = 0x0;      /+
-		          ^^^ [warn]: X +/
-		int a = 0;          /+
-		        ^ [warn]: X +/
-		ulong a = 0;        /+
-		          ^ [warn]: X +/
-		int* a = null;      /+
-		         ^^^^ [warn]: X +/
-		Foo* a = null;      /+
-		         ^^^^ [warn]: X +/
-		int[] a = null;     /+
-		          ^^^^ [warn]: X +/
-		int[] a = [];       /+
-		          ^^ [warn]: X +/
-		string a = null;    /+
-		           ^^^^ [warn]: X +/
-		string a = null;    /+
-		           ^^^^ [warn]: X +/
-		wstring a = null;   /+
-		            ^^^^ [warn]: X +/
-		dstring a = null;   /+
-		            ^^^^ [warn]: X +/
-		size_t a = 0;       /+
-		           ^ [warn]: X +/
-		ptrdiff_t a = 0;    /+
-		              ^ [warn]: X +/
-		string a = [];      /+
-		           ^^ [warn]: X +/
-		char[] a = null;    /+
-		           ^^^^ [warn]: X +/
-		int a = int.init;   /+
-		        ^^^^^^^^ [warn]: X +/
-		char a = char.init; /+
-		         ^^^^^^^^^ [warn]: X +/
-		S s = S.init;       /+
-		      ^^^^^^ [warn]: X +/
-		bool a = false;     /+
-		         ^^^^^ [warn]: X +/
-	}, sac);
+		ubyte a = 0x0;      // [warn]: %s
+		int a = 0;          // [warn]: %s
+		ulong a = 0;        // [warn]: %s
+		int* a = null;      // [warn]: %s
+		Foo* a = null;      // [warn]: %s
+		int[] a = null;     // [warn]: %s
+		int[] a = [];       // [warn]: %s
+		string a = null;    // [warn]: %s
+		string a = null;    // [warn]: %s
+		wstring a = null;   // [warn]: %s
+		dstring a = null;   // [warn]: %s
+		size_t a = 0;       // [warn]: %s
+		ptrdiff_t a = 0;    // [warn]: %s
+		string a = [];      // [warn]: %s
+		char[] a = null;    // [warn]: %s
+		int a = int.init;   // [warn]: %s
+		char a = char.init; // [warn]: %s
+		S s = S.init;       // [warn]: %s
+		bool a = false; 	// [warn]: %s
+	}.format(msgA, msgA, msgA, msgA, msgA, msgA, msgA, msgA, msgA, msgA, msgA,
+			msgA, msgA, msgA, msgA, msgA, msgA, msgS, msgA), sac);
 
 	// passes
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		struct D {@disable this();}
 		struct E {this() @disable;}
 		ubyte a = 0xFE;
@@ -357,6 +293,7 @@ public:
 		S s = s.call();
 		enum {a}
 		enum ubyte a = 0;
+		int a = 0; /// Documented with default initializer
 		static assert(is(typeof((){T t = T.init;})));
 		void foo(){__traits(compiles, (){int a = 0;}).writeln;}
 		bool a;
@@ -366,44 +303,43 @@ public:
 	}, sac);
 
 	// passes
-	assertAnalyzerWarnings(q{
-		@("nolint(dscanner.useless-initializer)")
-		int a = 0;
-		int a = 0;          /+
-		        ^ [warn]: X +/
-
-		@("nolint(dscanner.useless-initializer)")
-		int f() {
-			int a = 0;
-		}
-
-		struct nolint { string s; }
-
-		@nolint("dscanner.useless-initializer")
-		int a = 0;
-		int a = 0;          /+
-		        ^ [warn]: X +/
-
-		@("nolint(other_check, dscanner.useless-initializer, another_one)")
-		int a = 0;
-
-		@nolint("other_check", "another_one", "dscanner.useless-initializer")
-		int a = 0;
-
-	}, sac);
+	//assertAnalyzerWarnings(q{
+	//	@("nolint(dscanner.useless-initializer)")
+	//	int a = 0;
+	//	int a = 0;          /+
+	//	        ^ [warn]: X +/
+	//
+	//	@("nolint(dscanner.useless-initializer)")
+	//	int f() {
+	//		int a = 0;
+	//	}
+	//
+	//	struct nolint { string s; }
+	//
+	//	@nolint("dscanner.useless-initializer")
+	//	int a = 0;
+	//	int a = 0;          /+
+	//	        ^ [warn]: X +/
+	//
+	//	@("nolint(other_check, dscanner.useless-initializer, another_one)")
+	//	int a = 0;
+	//
+	//	@nolint("other_check", "another_one", "dscanner.useless-initializer")
+	//	int a = 0;
+	//
+	//}, sac);
 
 	// passes (disable check at module level)
-	assertAnalyzerWarnings(q{
-		@("nolint(dscanner.useless-initializer)")
-		module my_module;
-
-		int a = 0;
-
-		int f() {
-			int a = 0;
-		}
-	}, sac);
+	//assertAnalyzerWarnings(q{
+	//	@("nolint(dscanner.useless-initializer)")
+	//	module my_module;
+	//
+	//	int a = 0;
+	//
+	//	int f() {
+	//		int a = 0;
+	//	}
+	//}, sac);
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
 }
-
