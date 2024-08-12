@@ -854,10 +854,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new AllManCheck(args.setSkipTests(
 		analysisConfig.allman_braces_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!HasPublicExampleCheck(analysisConfig))
-		checks ~= new HasPublicExampleCheck(args.setSkipTests(
-		analysisConfig.has_public_example == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!IfConstraintsIndentCheck(analysisConfig))
 		checks ~= new IfConstraintsIndentCheck(args.setSkipTests(
 		analysisConfig.if_constraints_indent == Check.skipTests && !ut));
@@ -1358,6 +1354,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new UselessInitializerChecker!ASTCodegen(
 			fileName,
 			config.useless_initializer == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(HasPublicExampleCheck!ASTCodegen)(config))
+		visitors ~= new HasPublicExampleCheck!ASTCodegen(
+			fileName,
+			config.has_public_example == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)

@@ -5,182 +5,165 @@
 module dscanner.analysis.has_public_example;
 
 import dscanner.analysis.base;
-import dsymbol.scope_ : Scope;
-import dparse.ast;
-import dparse.lexer;
-
-import std.algorithm;
-import std.stdio;
 
 /**
  * Checks for public declarations without a documented unittests.
  * For now, variable and enum declarations aren't checked.
  */
-final class HasPublicExampleCheck : BaseAnalyzer
+extern (C++) class HasPublicExampleCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"has_public_example";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.style.has_public_example";
+	private enum DEFAULT_MSG = "Public declaration has no documented example.";
+	private enum MSG = "Public declaration '%s' has no documented example.";
+
+	private struct DeclarationInfo
 	{
-		super(args);
+		bool ignore;
+		string name;
+		ulong lineNum;
+		ulong charNum;
 	}
 
-	override void visit(const Module mod)
+	private DeclarationInfo lastDecl = DeclarationInfo(true);
+	private bool isDocumented;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		// the last seen declaration is memorized
-		Declaration lastDecl;
+		super(fileName, skipTests);
+	}
 
-		// keep track of ddoced unittests after visiting lastDecl
-		bool hasNoDdocUnittest;
+	override void visit(AST.Module mod)
+	{
+		super.visit(mod);
+		checkLastDecl();
+	}
 
-		// on lastDecl reset we check for seen ddoced unittests since lastDecl was observed
-		void checkLastDecl()
+	override void visit(AST.ConditionalStatement _) {}
+
+	override void visit(AST.ConditionalDeclaration _) {}
+
+	override void visit(AST.UnitTestDeclaration unitTestDecl)
+	{
+		if (unitTestDecl.comment() !is null)
+			isDocumented = true;
+	}
+
+	override void visit(AST.DeprecatedDeclaration _)
+	{
+		lastDecl = DeclarationInfo(true);
+	}
+
+	override void visit(AST.StorageClassDeclaration storageClassDecl)
+	{
+		if (!hasIgnorableStorageClass(storageClassDecl.stc))
+			super.visit(storageClassDecl);
+		else
+			lastDecl = DeclarationInfo(true);
+	}
+
+	private bool hasIgnorableStorageClass(ulong storageClass)
+	{
+		import dmd.astenums : STC;
+
+		return (storageClass & STC.deprecated_) || (storageClass & STC.manifest);
+	}
+
+	override void visit(AST.VisibilityDeclaration visibilityDecl)
+	{
+		import dmd.dsymbol : Visibility;
+
+		auto visibilityKind = visibilityDecl.visibility.kind;
+		bool isPrivate = visibilityKind == Visibility.Kind.private_
+			|| visibilityKind == Visibility.Kind.package_
+			|| visibilityKind == Visibility.Kind.protected_;
+
+		if (isPrivate)
+			checkLastDecl();
+		else
+			super.visit(visibilityDecl);
+	}
+
+	mixin VisitDeclaration!(AST.ClassDeclaration);
+	mixin VisitDeclaration!(AST.InterfaceDeclaration);
+	mixin VisitDeclaration!(AST.StructDeclaration);
+	mixin VisitDeclaration!(AST.UnionDeclaration);
+	mixin VisitDeclaration!(AST.FuncDeclaration);
+	mixin VisitDeclaration!(AST.TemplateDeclaration);
+
+	private template VisitDeclaration(NodeType)
+	{
+		override void visit(NodeType node)
 		{
-			if (lastDecl !is null && hasNoDdocUnittest)
-				triggerError(lastDecl);
-			lastDecl = null;
+			import std.conv : to;
+			import std.string : strip, toLower;
+
+			static if (is(NodeType == AST.TemplateDeclaration))
+			{
+				if (shouldTemplateBeSkipped(node))
+					return;
+			}
+
+			bool isCommented = node.comment() !is null;
+
+			if (isCommented)
+			{
+				string comment = to!string(node.comment());
+				if (comment.strip().toLower() == "ditto")
+					return;
+			}
+
+			checkLastDecl();
+
+			if (isCommented)
+			{
+				string name = node.ident ? cast(string) node.ident.toString() : null;
+				lastDecl = DeclarationInfo(false, name, cast(ulong) node.loc.linnum, cast(ulong) node.loc.charnum);
+			}
+
+			isDocumented = false;
+		}
+	}
+
+	private bool shouldTemplateBeSkipped(AST.TemplateDeclaration templateDecl)
+	{
+		if (templateDecl.members is null)
+			return false;
+
+		foreach (member; *(templateDecl.members))
+			if (auto var = member.isVarDeclaration())
+				if (hasIgnorableStorageClass(var.storage_class))
+					return true;
+
+		return false;
+	}
+
+	private void checkLastDecl()
+	{
+		import std.format : format;
+
+		if (!lastDecl.ignore && !isDocumented)
+		{
+			string msg = lastDecl.name ? MSG.format(lastDecl.name) : DEFAULT_MSG;
+			addErrorMessage(lastDecl.lineNum, lastDecl.charNum, KEY, msg);
 		}
 
-		// check all public top-level declarations
-		foreach (decl; mod.declarations)
-		{
-			if (decl.attributes.any!(a => a.deprecated_ !is null))
-			{
-				lastDecl = null;
-				continue;
-			}
-
-			if (!isPublic(decl.attributes))
-			{
-				checkLastDecl();
-				continue;
-			}
-
-			const bool hasDdocHeader = hasDdocHeader(decl);
-
-			// check the documentation of a unittest declaration
-			if (decl.unittest_ !is null)
-			{
-				if (hasDdocHeader)
-					hasNoDdocUnittest = false;
-			}
-			// add all declarations that could be publicly documented to the lastDecl "stack"
-			else if (hasDittableDecl(decl))
-			{
-				// ignore dittoed declarations
-				if (hasDittos(decl))
-					continue;
-
-				// new public symbol -> check the previous decl
-				checkLastDecl;
-
-				lastDecl = hasDdocHeader ? cast(Declaration) decl : null;
-				hasNoDdocUnittest = true;
-			}
-			else
-			// ran into variableDeclaration or something else -> reset & validate current lastDecl "stack"
-				checkLastDecl;
-		}
-		checkLastDecl;
-	}
-
-private:
-
-	bool hasDitto(Decl)(const Decl decl)
-	{
-		import ddoc.comments : parseComment;
-		if (decl is null || decl.comment is null)
-			return false;
-
-		return parseComment(decl.comment, null).isDitto;
-	}
-
-	bool hasDittos(Decl)(const Decl decl)
-	{
-		foreach (property; possibleDeclarations)
-			if (mixin("hasDitto(decl." ~ property ~ ")"))
-				return true;
-		return false;
-	}
-
-	bool hasDittableDecl(Decl)(const Decl decl)
-	{
-		foreach (property; possibleDeclarations)
-			if (mixin("decl." ~ property ~ " !is null"))
-				return true;
-		return false;
-	}
-
-	import std.meta : AliasSeq;
-	alias possibleDeclarations = AliasSeq!(
-		"classDeclaration",
-		"enumDeclaration",
-		"functionDeclaration",
-		"interfaceDeclaration",
-		"structDeclaration",
-		"templateDeclaration",
-		"unionDeclaration",
-		//"variableDeclaration",
-	);
-
-	bool hasDdocHeader(const Declaration decl)
-	{
-		if (decl.declarations !is null)
-			return false;
-
-		// unittest can have ddoc headers as well, but don't have a name
-		if (decl.unittest_ !is null && decl.unittest_.comment.ptr !is null)
-			return true;
-
-		foreach (property; possibleDeclarations)
-			if (mixin("decl." ~ property ~ " !is null && decl." ~ property ~ ".comment.ptr !is null"))
-				return true;
-
-		return false;
-	}
-
-	bool isPublic(const Attribute[] attrs)
-	{
-		import dparse.lexer : tok;
-
-		enum tokPrivate = tok!"private", tokProtected = tok!"protected", tokPackage = tok!"package";
-
-		if (attrs.map!`a.attribute`.any!(x => x == tokPrivate || x == tokProtected || x == tokPackage))
-			return false;
-
-		return true;
-	}
-
-	void triggerError(const Declaration decl)
-	{
-		foreach (property; possibleDeclarations)
-			if (auto fn = mixin("decl." ~ property))
-				addMessage(fn.name.type ? [fn.name] : fn.tokens, fn.name.text);
-	}
-
-	void addMessage(const Token[] tokens, string name)
-	{
-		import std.string : format;
-
-		addErrorMessage(tokens, "dscanner.style.has_public_example", name is null
-				? "Public declaration has no documented example."
-				: format("Public declaration '%s' has no documented example.", name));
+		lastDecl = DeclarationInfo(true);
 	}
 }
 
 unittest
 {
 	import std.stdio : stderr;
-	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.has_public_example = Check.enabled;
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		/// C
 		class C{}
 		///
@@ -218,60 +201,51 @@ unittest
 	}, sac);
 
 	// enums or variables don't need to have public unittest
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		/// C
-		class C{} /+
-		      ^ [warn]: Public declaration 'C' has no documented example. +/
+		class C{} // [warn]: Public declaration 'C' has no documented example.
 		unittest {}
 
 		/// I
-		interface I{} /+
-		          ^ [warn]: Public declaration 'I' has no documented example. +/
+		interface I{} // [warn]: Public declaration 'I' has no documented example.
 		unittest {}
 
 		/// f
-		void f(){} /+
-		     ^ [warn]: Public declaration 'f' has no documented example. +/
+		void f(){} // [warn]: Public declaration 'f' has no documented example.
 		unittest {}
 
 		/// S
-		struct S{} /+
-		       ^ [warn]: Public declaration 'S' has no documented example. +/
+		struct S{} // [warn]: Public declaration 'S' has no documented example.
 		unittest {}
 
 		/// T
-		template T(){} /+
-		         ^ [warn]: Public declaration 'T' has no documented example. +/
+		template T(){} // [warn]: Public declaration 'T' has no documented example.
 		unittest {}
 
 		/// U
-		union U{} /+
-		      ^ [warn]: Public declaration 'U' has no documented example. +/
+		union U{} // [warn]: Public declaration 'U' has no documented example.
 		unittest {}
 	}, sac);
 
 	// test module header unittest
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		unittest {}
 		/// C
-		class C{} /+
-		      ^ [warn]: Public declaration 'C' has no documented example. +/
+		class C{} // [warn]: Public declaration 'C' has no documented example.
 	}, sac);
 
 	// test documented module header unittest
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		///
 		unittest {}
 		/// C
-		class C{} /+
-		      ^ [warn]: Public declaration 'C' has no documented example. +/
+		class C{} // [warn]: Public declaration 'C' has no documented example.
 	}, sac);
 
 	// test multiple unittest blocks
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		/// C
-		class C{} /+
-		      ^ [warn]: Public declaration 'C' has no documented example. +/
+		class C{} // [warn]: Public declaration 'C' has no documented example.
 		unittest {}
 		unittest {}
 		unittest {}
@@ -285,7 +259,7 @@ unittest
 	}, sac);
 
 	/// check private
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		/// C
 		private class C{}
 
@@ -306,7 +280,7 @@ unittest
 
 	// check intermediate private declarations
 	// removed for issue #500
-	/*assertAnalyzerWarnings(q{
+	/*assertAnalyzerWarningsDMD(q{
 		/// C
 		class C{}
 		private void foo(){}
@@ -315,7 +289,7 @@ unittest
 	}, sac);*/
 
 	// check intermediate ditto-ed declarations
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		/// I
 		interface I{}
 		/// ditto
@@ -325,21 +299,19 @@ unittest
 	}, sac);
 
 	// test reset on private symbols (#500)
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		///
-		void dirName(C)(C[] path) {} /+
-		     ^^^^^^^ [warn]: Public declaration 'dirName' has no documented example. +/
+		void dirName(C)(C[] path) {} // [warn]: Public declaration 'dirName' has no documented example.
 		private void _dirName(R)(R path) {}
 		///
 		unittest {}
 	}, sac);
 
 	// deprecated symbols shouldn't require a test
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		///
 		deprecated void dirName(C)(C[] path) {}
 	}, sac);
 
 	stderr.writeln("Unittest for HasPublicExampleCheck passed.");
 }
-
