@@ -850,10 +850,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new VcallCtorChecker(args.setSkipTests(
 		analysisConfig.vcall_in_ctor == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!UselessInitializerChecker(analysisConfig))
-		checks ~= new UselessInitializerChecker(args.setSkipTests(
-		analysisConfig.useless_initializer == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!AllManCheck(analysisConfig))
 		checks ~= new AllManCheck(args.setSkipTests(
 		analysisConfig.allman_braces_check == Check.skipTests && !ut));
@@ -1356,6 +1352,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new BodyOnDisabledFuncsCheck!ASTCodegen(
 			fileName,
 			config.body_on_disabled_func_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(UselessInitializerChecker!ASTCodegen)(config))
+		visitors ~= new UselessInitializerChecker!ASTCodegen(
+			fileName,
+			config.useless_initializer == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
