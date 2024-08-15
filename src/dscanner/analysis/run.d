@@ -841,11 +841,6 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UndocumentedDeclarationCheck(args.setSkipTests(
 		analysisConfig.undocumented_declaration_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!LineLengthCheck(analysisConfig))
-		checks ~= new LineLengthCheck(args.setSkipTests(
-		analysisConfig.long_line_check == Check.skipTests && !ut),
-		analysisConfig.max_line_length);
-
 	if (moduleName.shouldRun!VcallCtorChecker(analysisConfig))
 		checks ~= new VcallCtorChecker(args.setSkipTests(
 		analysisConfig.vcall_in_ctor == Check.skipTests && !ut));
@@ -1360,6 +1355,13 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new HasPublicExampleCheck!ASTCodegen(
 			fileName,
 			config.has_public_example == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!LineLengthCheck(config))
+		visitors ~= new LineLengthCheck(
+			fileName,
+			config.long_line_check == Check.skipTests && !ut,
+			config.max_line_length
 		);
 
 	foreach (visitor; visitors)
