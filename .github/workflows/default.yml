@@ -145,7 +145,7 @@ jobs:
           dub build
           dub test
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: bin-${{matrix.build.type}}-${{matrix.build.version}}-${{ matrix.compiler.dmd }}-${{ matrix.host }}
           path: bin
