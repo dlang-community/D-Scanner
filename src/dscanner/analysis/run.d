@@ -11,6 +11,7 @@ import dparse.ast;
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
+
 import std.algorithm;
 import std.array;
 import std.conv;
@@ -26,6 +27,7 @@ import std.experimental.allocator.mallocator : Mallocator;
 import std.experimental.allocator.building_blocks.region : Region;
 import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
 
+import dscanner.analysis.autofix : improveAutoFixWhitespace;
 import dscanner.analysis.config;
 import dscanner.analysis.base;
 import dscanner.analysis.style;
@@ -390,37 +392,21 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
 bool analyze(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
 		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
 {
-	import dmd.parse : Parser;
-	import dmd.astbase : ASTBase;
-	import dmd.id : Id;
-	import dmd.globals : global;
-	import dmd.identifier : Identifier;
 	import std.string : toStringz;
-	import dmd.arraytypes : Strings;
+	import dscanner.analysis.rundmd : parseDmdModule;
+
+	import dscanner.analysis.rundmd : analyzeDmd;
 
 	bool hasErrors;
 	foreach (fileName; fileNames)
 	{
-
-		auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
-
-		global.params.useUnitTests = true;
-		global.path = Strings();
-		global.path.push((dmdParentDir ~ "/dmd" ~ "\0").ptr);
-		global.path.push((dmdParentDir ~ "/dmd/druntime/src" ~ "\0").ptr);
-
-		initDMD();
-
 		auto code = readFile(fileName);
-		auto input = cast(char[]) code;
-		input ~= '\0';
-
-		auto t = dmd.frontend.parseModule(cast(const(char)[]) fileName, cast(const (char)[]) input);
-		// t.module_.fullSemantic();
-
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
+
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+
 		RollbackAllocator r;
 		uint errorCount;
 		uint warningCount;
@@ -431,7 +417,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
 		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
 			hasErrors = true;
 		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
-		MessageSet resultsDmd = analyzeDmd(fileName, t.module_, getModuleName(t.module_.md), config);
+		MessageSet resultsDmd = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		foreach (result; resultsDmd[])
 		{
 			results.insert(result);
@@ -519,90 +505,6 @@ bool autofix(string[] fileNames, const StaticAnalysisConfig config, string error
 		}
 	}
 	return hasErrors;
-}
-
-void listAutofixes(
-	StaticAnalysisConfig config,
-	string resolveMessage,
-	bool usingStdin,
-	string fileName,
-	StringCache* cache,
-	ref ModuleCache moduleCache
-)
-{
-	import dparse.parser : parseModule;
-	import dscanner.analysis.base : Message;
-	import std.format : format;
-	import std.json : JSONValue;
-
-	union RequestedLocation
-	{
-		struct
-		{
-			uint line, column;
-		}
-		ulong bytes;
-	}
-
-	RequestedLocation req;
-	bool isBytes = resolveMessage[0] == 'b';
-	if (isBytes)
-		req.bytes = resolveMessage[1 .. $].to!ulong;
-	else
-	{
-		auto parts = resolveMessage.findSplit(":");
-		req.line = parts[0].to!uint;
-		req.column = parts[2].to!uint;
-	}
-
-	bool matchesCursor(Message m)
-	{
-		return isBytes
-			? req.bytes >= m.startIndex && req.bytes <= m.endIndex
-			: req.line >= m.startLine && req.line <= m.endLine
-				&& (req.line > m.startLine || req.column >= m.startColumn)
-				&& (req.line < m.endLine || req.column <= m.endColumn);
-	}
-
-	RollbackAllocator rba;
-	LexerConfig lexerConfig;
-	lexerConfig.fileName = fileName;
-	lexerConfig.stringBehavior = StringBehavior.source;
-	auto tokens = getTokensForParser(usingStdin ? readStdin()
-			: readFile(fileName), lexerConfig, cache);
-	auto mod = parseModule(tokens, fileName, &rba, toDelegate(&doNothing));
-
-	auto messages = analyze(fileName, mod, config, moduleCache, tokens);
-
-	with (stdout.lockingTextWriter)
-	{
-		put("[");
-		foreach (message; messages[].filter!matchesCursor)
-		{
-			resolveAutoFixes(message, fileName, moduleCache, tokens, mod, config);
-
-			foreach (i, autofix; message.autofixes)
-			{
-				put(i == 0 ? "\n" : ",\n");
-				put("\t{\n");
-				put(format!"\t\t\"name\": %s,\n"(JSONValue(autofix.name)));
-				put("\t\t\"replacements\": [");
-				foreach (j, replacement; autofix.expectReplacements)
-				{
-					put(j == 0 ? "\n" : ",\n");
-					put(format!"\t\t\t{\"range\": [%d, %d], \"newText\": %s}"(
-						replacement.range[0],
-						replacement.range[1],
-						JSONValue(replacement.newText)));
-				}
-				put("\n");
-				put("\t\t]\n");
-				put("\t}");
-			}
-		}
-		put("\n]");
-	}
-	stdout.flush();
 }
 
 private struct UserSelect
@@ -736,82 +638,7 @@ bool shouldRun(check : BaseAnalyzer)(string moduleName, const ref StaticAnalysis
 	return true;
 }
 
-/**
- * Checks whether a module is part of a user-specified include/exclude list.
- *
- * The user can specify a comma-separated list of filters, everyone needs to start with
- * either a '+' (inclusion) or '-' (exclusion).
- *
- * If no includes are specified, all modules are included.
-*/
-bool shouldRunDmd(check : BaseAnalyzerDmd)(const char[] moduleName, const ref StaticAnalysisConfig config)
-{
-	enum string a = check.name;
-
-	if (mixin("config." ~ a) == Check.disabled)
-		return false;
-
-	// By default, run the check
-	if (!moduleName.length)
-		return true;
-
-	auto filters = mixin("config.filters." ~ a);
-
-	// Check if there are filters are defined
-	// filters starting with a comma are invalid
-	if (filters.length == 0 || filters[0].length == 0)
-		return true;
-
-	auto includers = filters.filter!(f => f[0] == '+').map!(f => f[1..$]);
-	auto excluders = filters.filter!(f => f[0] == '-').map!(f => f[1..$]);
-
-	// exclusion has preference over inclusion
-	if (!excluders.empty && excluders.any!(s => moduleName.canFind(s)))
-		return false;
-
-	if (!includers.empty)
-		return includers.any!(s => moduleName.canFind(s));
-
-	// by default: include all modules
-	return true;
-}
-
-///
-unittest
-{
-	bool test(string moduleName, string filters)
-	{
-		StaticAnalysisConfig config;
-		// it doesn't matter which check we test here
-		config.asm_style_check = Check.enabled;
-		// this is done automatically by inifiled
-		config.filters.asm_style_check = filters.split(",");
-		return moduleName.shouldRunDmd!(AsmStyleCheck!ASTCodegen)(config);
-	}
-
-	// test inclusion
-	assert(test("std.foo", "+std."));
-	// partial matches are ok
-	assert(test("std.foo", "+bar,+foo"));
-	// full as well
-	assert(test("std.foo", "+bar,+std.foo,+foo"));
-	// mismatch
-	assert(!test("std.foo", "+bar,+banana"));
-
-	// test exclusion
-	assert(!test("std.foo", "-std."));
-	assert(!test("std.foo", "-bar,-std.foo"));
-	assert(!test("std.foo", "-bar,-foo"));
-	// mismatch
-	assert(test("std.foo", "-bar,-banana"));
-
-	// test combination (exclusion has precedence)
-	assert(!test("std.foo", "+foo,-foo"));
-	assert(test("std.foo", "+foo,-bar"));
-	assert(test("std.bar.foo", "-barr,+bar"));
-}
-
-private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
+BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 	const(Token)[] tokens, const Module m,
 	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
 {
@@ -862,6 +689,7 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
 {
 	import dsymbol.symbol : DSymbol;
+	import dscanner.analysis.autofix : resolveAutoFixFromCheck;
 
 	if (!staticAnalyze)
 		return null;
@@ -900,231 +728,6 @@ MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig a
 	return set;
 }
 
-private void resolveAutoFixFromCheck(
-	ref AutoFix autofix,
-	BaseAnalyzer check,
-	const Module m,
-	scope const(Token)[] tokens,
-	const AutoFixFormatting formattingConfig
-)
-{
-	import std.sumtype : match;
-
-	autofix.replacements.match!(
-		(AutoFix.ResolveContext context) {
-			autofix.replacements = check.resolveAutoFix(m, tokens, context, formattingConfig);
-		},
-		(_) {}
-	);
-}
-
-void resolveAutoFixes(ref Message message, string fileName,
-	ref ModuleCache moduleCache,
-	scope const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	resolveAutoFixes(message.checkName, message.autofixes, fileName, moduleCache,
-		tokens, m, analysisConfig, overrideFormattingConfig);
-}
-
-AutoFix.CodeReplacement[] resolveAutoFix(string messageCheckName, AutoFix.ResolveContext context,
-	string fileName,
-	ref ModuleCache moduleCache,
-	scope const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	AutoFix temp;
-	temp.replacements = context;
-	resolveAutoFixes(messageCheckName, (&temp)[0 .. 1], fileName, moduleCache,
-		tokens, m, analysisConfig, overrideFormattingConfig);
-	return temp.expectReplacements("resolving didn't work?!");
-}
-
-void resolveAutoFixes(string messageCheckName, AutoFix[] autofixes, string fileName,
-	ref ModuleCache moduleCache,
-	scope const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	import dsymbol.symbol : DSymbol;
-
-	const(AutoFixFormatting) formattingConfig =
-		overrideFormattingConfig is AutoFixFormatting.invalid
-			? analysisConfig.getAutoFixFormattingConfig()
-			: overrideFormattingConfig;
-
-	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
-	first.run();
-
-	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
-	auto moduleScope = first.moduleScope;
-	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
-	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
-	scope(exit) typeid(Scope).destroy(first.moduleScope);
-
-	GC.disable;
-	scope (exit)
-		GC.enable;
-
-	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
-	{
-		if (check.getName() == messageCheckName)
-		{
-			foreach (ref autofix; autofixes)
-				autofix.resolveAutoFixFromCheck(check, m, tokens, formattingConfig);
-			return;
-		}
-	}
-
-	throw new Exception("Cannot find analyzer " ~ messageCheckName
-		~ " to resolve autofix with.");
-}
-
-void improveAutoFixWhitespace(scope const(char)[] code, AutoFix.CodeReplacement[] replacements)
-{
-	import std.ascii : isWhite;
-	import std.string : strip;
-	import std.utf : stride, strideBack;
-
-	enum WS
-	{
-		none, tab, space, newline
-	}
-
-	WS getWS(size_t i)
-	{
-		if (cast(ptrdiff_t) i < 0 || i >= code.length)
-			return WS.newline;
-		switch (code[i])
-		{
-		case '\n':
-		case '\r':
-			return WS.newline;
-		case '\t':
-			return WS.tab;
-		case ' ':
-			return WS.space;
-		default:
-			return WS.none;
-		}
-	}
-
-	foreach (ref replacement; replacements)
-	{
-		assert(replacement.range[0] >= 0 && replacement.range[0] < code.length
-			&& replacement.range[1] >= 0 && replacement.range[1] < code.length
-			&& replacement.range[0] <= replacement.range[1], "trying to autofix whitespace on code that doesn't match with what the replacements were generated for");
-
-		void growRight()
-		{
-			// this is basically: replacement.range[1]++;
-			if (code[replacement.range[1] .. $].startsWith("\r\n"))
-				replacement.range[1] += 2;
-			else if (replacement.range[1] < code.length)
-				replacement.range[1] += code.stride(replacement.range[1]);
-		}
-
-		void growLeft()
-		{
-			// this is basically: replacement.range[0]--;
-			if (code[0 .. replacement.range[0]].endsWith("\r\n"))
-				replacement.range[0] -= 2;
-			else if (replacement.range[0] > 0)
-				replacement.range[0] -= code.strideBack(replacement.range[0]);
-		}
-
-		if (replacement.newText.strip.length)
-		{
-			if (replacement.newText.startsWith(" "))
-			{
-				// we insert with leading space, but there is a space/NL/SOF before
-				// remove to-be-inserted space
-				if (getWS(replacement.range[0] - 1))
-					replacement.newText = replacement.newText[1 .. $];
-			}
-			if (replacement.newText.startsWith("]", ")"))
-			{
-				// when inserting `)`, consume regular space before
-				if (getWS(replacement.range[0] - 1) == WS.space)
-					growLeft();
-			}
-			if (replacement.newText.endsWith(" "))
-			{
-				// we insert with trailing space, but there is a space/NL/EOF after, chomp off
-				if (getWS(replacement.range[1]))
-					replacement.newText = replacement.newText[0 .. $ - 1];
-			}
-			if (replacement.newText.endsWith("[", "("))
-			{
-				if (getWS(replacement.range[1]))
-					growRight();
-			}
-		}
-		else if (!replacement.newText.length)
-		{
-			// after removing code and ending up with whitespace on both sides,
-			// collapse 2 whitespace into one
-			switch (getWS(replacement.range[1]))
-			{
-			case WS.newline:
-				switch (getWS(replacement.range[0] - 1))
-				{
-				case WS.newline:
-					// after removal we have NL ~ NL or SOF ~ NL,
-					// remove right NL
-					growRight();
-					break;
-				case WS.space:
-				case WS.tab:
-					// after removal we have space ~ NL,
-					// remove the space
-					growLeft();
-					break;
-				default:
-					break;
-				}
-				break;
-			case WS.space:
-			case WS.tab:
-				// for NL ~ space, SOF ~ space, space ~ space, tab ~ space,
-				// for NL ~ tab, SOF ~ tab, space ~ tab, tab ~ tab
-				// remove right space/tab
-				if (getWS(replacement.range[0] - 1))
-					growRight();
-				break;
-			default:
-				break;
-			}
-		}
-	}
-}
-
-unittest
-{
-	AutoFix.CodeReplacement r(int start, int end, string s)
-	{
-		return AutoFix.CodeReplacement([start, end], s);
-	}
-
-	string test(string code, AutoFix.CodeReplacement[] replacements...)
-	{
-		replacements.sort!"a.range[0] < b.range[0]";
-		improveAutoFixWhitespace(code, replacements);
-		foreach_reverse (r; replacements)
-			code = code[0 .. r.range[0]] ~ r.newText ~ code[r.range[1] .. $];
-		return code;
-	}
-
-	assert(test("import a;\nimport b;", r(0, 9, "")) == "import b;");
-	assert(test("import a;\r\nimport b;", r(0, 9, "")) == "import b;");
-	assert(test("import a;\nimport b;", r(8, 9, "")) == "import a\nimport b;");
-	assert(test("import a;\nimport b;", r(7, 8, "")) == "import ;\nimport b;");
-	assert(test("import a;\r\nimport b;", r(7, 8, "")) == "import ;\r\nimport b;");
-	assert(test("a b c", r(2, 3, "")) == "a c");
-}
-
 version (unittest)
 {
 	shared static this()
@@ -1141,238 +744,4 @@ version (unittest)
 			globalLogLevel = LogLevel.error;
 		}
 	}
-}
-
-MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleName, const StaticAnalysisConfig config)
-{
-	MessageSet set = new MessageSet;
-	BaseAnalyzerDmd[] visitors;
-
-	if (moduleName.shouldRunDmd!(ObjectConstCheck!ASTCodegen)(config))
-		visitors ~= new ObjectConstCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(EnumArrayVisitor!ASTCodegen)(config))
-		visitors ~= new EnumArrayVisitor!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(DeleteCheck!ASTCodegen)(config))
-		visitors ~= new DeleteCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(FinalAttributeChecker!ASTCodegen)(config))
-		visitors ~= new FinalAttributeChecker!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(ImportSortednessCheck!ASTCodegen)(config))
-		visitors ~= new ImportSortednessCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(IncorrectInfiniteRangeCheck!ASTCodegen)(config))
-		visitors ~= new IncorrectInfiniteRangeCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(RedundantAttributesCheck!ASTCodegen)(config))
-		visitors ~= new RedundantAttributesCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(LengthSubtractionCheck!ASTCodegen)(config))
-		visitors ~= new LengthSubtractionCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(AliasSyntaxCheck!ASTCodegen)(config))
-		visitors ~= new AliasSyntaxCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(ExplicitlyAnnotatedUnittestCheck!ASTCodegen)(config))
-		visitors ~= new ExplicitlyAnnotatedUnittestCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(ConstructorCheck!ASTCodegen)(config))
-		visitors ~= new ConstructorCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(AssertWithoutMessageCheck!ASTCodegen)(config))
-		visitors ~= new AssertWithoutMessageCheck!ASTCodegen(
-			fileName,
-			config.assert_without_msg == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(LocalImportCheck!ASTCodegen)(config))
-		visitors ~= new LocalImportCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(OpEqualsWithoutToHashCheck!ASTCodegen)(config))
-		visitors ~= new OpEqualsWithoutToHashCheck!ASTCodegen(
-			fileName,
-			config.opequals_tohash_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(TrustTooMuchCheck!ASTCodegen)(config))
-		visitors ~= new TrustTooMuchCheck!ASTCodegen(
-			fileName,
-			config.trust_too_much == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(AutoRefAssignmentCheck!ASTCodegen)(config))
-		visitors ~= new AutoRefAssignmentCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(LogicPrecedenceCheck!ASTCodegen)(config))
-		visitors ~= new LogicPrecedenceCheck!ASTCodegen(
-			fileName,
-			config.logical_precedence_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(UnusedLabelCheck!ASTCodegen)(config))
-		visitors ~= new UnusedLabelCheck!ASTCodegen(
-			fileName,
-			config.unused_label_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(BuiltinPropertyNameCheck!ASTCodegen)(config))
-		visitors ~= new BuiltinPropertyNameCheck!ASTCodegen(fileName);
-
-	if (moduleName.shouldRunDmd!(PokemonExceptionCheck!ASTCodegen)(config))
-		visitors ~= new PokemonExceptionCheck!ASTCodegen(
-			fileName,
-			config.exception_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(BackwardsRangeCheck!ASTCodegen)(config))
-		visitors ~= new BackwardsRangeCheck!ASTCodegen(
-			fileName,
-			config.backwards_range_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(ProperlyDocumentedPublicFunctions!ASTCodegen)(config))
-		visitors ~= new ProperlyDocumentedPublicFunctions!ASTCodegen(
-			fileName,
-			config.properly_documented_public_functions == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(RedundantParenCheck!ASTCodegen)(config))
-		visitors ~= new RedundantParenCheck!ASTCodegen(
-			fileName,
-			config.redundant_parens_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(StaticIfElse!ASTCodegen)(config))
-		visitors ~= new StaticIfElse!ASTCodegen(
-			fileName,
-			config.static_if_else_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(UselessAssertCheck!ASTCodegen)(config))
-		visitors ~= new UselessAssertCheck!ASTCodegen(
-			fileName,
-			config.useless_assert_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(AsmStyleCheck!ASTCodegen)(config))
-		visitors ~= new AsmStyleCheck!ASTCodegen(
-			fileName,
-			config.asm_style_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(RedundantStorageClassCheck!ASTCodegen)(config))
-		visitors ~= new RedundantStorageClassCheck!ASTCodegen(
-			fileName,
-			config.redundant_storage_classes == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(NumberStyleCheck!ASTCodegen)(config))
-		visitors ~= new NumberStyleCheck!ASTCodegen(
-			fileName,
-			config.number_style_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(IfElseSameCheck!ASTCodegen)(config))
-		visitors ~= new IfElseSameCheck!ASTCodegen(
-			fileName,
-			config.if_else_same_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(CyclomaticComplexityCheck!ASTCodegen)(config))
-		visitors ~= new CyclomaticComplexityCheck!ASTCodegen(
-			fileName,
-			config.cyclomatic_complexity == Check.skipTests && !ut,
-			config.max_cyclomatic_complexity.to!int
-		);
-
-	if (moduleName.shouldRunDmd!(LabelVarNameCheck!ASTCodegen)(config))
-		visitors ~= new LabelVarNameCheck!ASTCodegen(
-			fileName,
-			config.label_var_same_name_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(LambdaReturnCheck!ASTCodegen)(config))
-		visitors ~= new LambdaReturnCheck!ASTCodegen(
-			fileName,
-			config.lambda_return_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(AlwaysCurlyCheck!ASTCodegen)(config))
-		visitors ~= new AlwaysCurlyCheck!ASTCodegen(
-			fileName,
-			config.always_curly_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(StyleChecker!ASTCodegen)(config))
-		visitors ~= new StyleChecker!ASTCodegen(
-			fileName,
-			config.style_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(AutoFunctionChecker!ASTCodegen)(config))
-		visitors ~= new AutoFunctionChecker!ASTCodegen(
-			fileName,
-			config.auto_function_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(UnusedParameterCheck!ASTCodegen)(config))
-		visitors ~= new UnusedParameterCheck!ASTCodegen(
-			fileName,
-			config.unused_parameter_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(UnusedVariableCheck!ASTCodegen)(config))
-		visitors ~= new UnusedVariableCheck!ASTCodegen(
-			fileName,
-			config.unused_variable_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(UnmodifiedFinder!ASTCodegen)(config))
-		visitors ~= new UnmodifiedFinder!ASTCodegen(
-			fileName,
-			config.could_be_immutable_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(BodyOnDisabledFuncsCheck!ASTCodegen)(config))
-		visitors ~= new BodyOnDisabledFuncsCheck!ASTCodegen(
-			fileName,
-			config.body_on_disabled_func_check == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(UselessInitializerChecker!ASTCodegen)(config))
-		visitors ~= new UselessInitializerChecker!ASTCodegen(
-			fileName,
-			config.useless_initializer == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!(HasPublicExampleCheck!ASTCodegen)(config))
-		visitors ~= new HasPublicExampleCheck!ASTCodegen(
-			fileName,
-			config.has_public_example == Check.skipTests && !ut
-		);
-
-	if (moduleName.shouldRunDmd!LineLengthCheck(config))
-		visitors ~= new LineLengthCheck(
-			fileName,
-			config.long_line_check == Check.skipTests && !ut,
-			config.max_line_length
-		);
-
-	if (moduleName.shouldRunDmd!(UnusedResultChecker!ASTCodegen)(config))
-		visitors ~= new UnusedResultChecker!ASTCodegen(
-			fileName,
-			config.unused_result == Check.skipTests && !ut
-		);
-
-	foreach (visitor; visitors)
-	{
-		m.accept(visitor);
-
-		foreach (message; visitor.messages)
-			set.insert(message);
-	}
-
-	return set;
 }
