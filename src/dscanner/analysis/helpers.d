@@ -238,6 +238,7 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 		string file = __FILE__, size_t line = __LINE__)
 {
 	import dparse.lexer : StringCache, Token;
+	import dscanner.analysis.autofix : improveAutoFixWhitespace;
 	import dscanner.analysis.run : parseModule;
 	import std.algorithm : canFind, findSplit, map, sort;
 	import std.conv : to;
@@ -359,43 +360,28 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, bool semantic = false,
 		string file = __FILE__, size_t line = __LINE__)
 {
-	import dmd.globals : global;
-	import dscanner.utils : getModuleName;
-	import std.file : remove, exists;
-	import std.stdio : File;
-	import std.path : dirName;
-	import dmd.arraytypes : Strings;
-
-	import std.stdio : File;
 	import std.file : exists, remove;
+	import std.path : dirName;
+	import std.stdio : File;
+	import dscanner.analysis.rundmd : analyzeDmd, parseDmdModule;
+	import dscanner.utils : getModuleName;
 
-	auto deleteme = "test.txt";
-	File f = File(deleteme, "w");
+	auto testFileName = "test.d";
+	File f = File(testFileName, "w");
 	scope(exit)
 	{
-		assert(exists(deleteme));
-        remove(deleteme);
+		assert(exists(testFileName));
+        remove(testFileName);
 	}
 
 	f.write(code);
 	f.close();
 
-	auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
-
-	global.params.useUnitTests = true;
-	global.path = Strings();
-	global.path.push((dmdParentDir ~ "/dmd" ~ "\0").ptr);
-	global.path.push((dmdParentDir ~ "/dmd/druntime/src" ~ "\0").ptr);
-
-	initDMD();
-
-	auto input = cast(char[]) code;
-	input ~= '\0';
-	auto t = dmd.frontend.parseModule(cast(const(char)[]) file, cast(const (char)[]) input);
+	auto dmdModule = parseDmdModule(file, code);
 	if (semantic)
-		t.module_.fullSemantic();
+		dmdModule.fullSemantic();
 
-	MessageSet rawWarnings = analyzeDmd("test.txt", t.module_, getModuleName(t.module_.md), config);
+	MessageSet rawWarnings = analyzeDmd(testFileName, dmdModule, getModuleName(dmdModule.md), config);
 
 	string[] codeLines = code.splitLines();
 
