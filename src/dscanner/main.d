@@ -31,6 +31,7 @@ import dscanner.outliner;
 import dscanner.symbol_finder;
 import dscanner.analysis.run;
 import dscanner.analysis.config;
+import dscanner.analysis.autofix : listAutofixes;
 import dscanner.dscanner_version;
 import dscanner.utils;
 
