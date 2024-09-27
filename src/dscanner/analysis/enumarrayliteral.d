@@ -7,12 +7,14 @@ module dscanner.analysis.enumarrayliteral;
 
 import dscanner.analysis.base;
 
-extern(C++) class EnumArrayVisitor(AST) : BaseAnalyzerDmd
+extern (C++) class EnumArrayVisitor(AST) : BaseAnalyzerDmd
 {
-	mixin AnalyzerInfo!"enum_array_literal_check";
 	alias visit = BaseAnalyzerDmd.visit;
+	mixin AnalyzerInfo!"enum_array_literal_check";
 
-	extern(D) this(string fileName)
+	private enum KEY = "dscanner.performance.enum_array_literal";
+
+	extern (D) this(string fileName)
 	{
 		super(fileName);
 	}
@@ -22,16 +24,41 @@ extern(C++) class EnumArrayVisitor(AST) : BaseAnalyzerDmd
 		import dmd.astenums : STC, InitKind;
 		import std.string : toStringz;
 
-		string message = "This enum may lead to unnecessary allocation at run-time."
-						~ " Use 'static immutable "
-						~ vd.ident.toString().idup() ~ " = [ ...' instead.";
+		string message = "This enum may lead to unnecessary allocation at run-time. Use 'static immutable "
+							~ vd.ident.toString().idup() ~ " = [ ...' instead.";
 
 		if (!vd.type && vd._init.kind == InitKind.array && vd.storage_class & STC.manifest)
-			addErrorMessage(cast(ulong) vd.loc.linnum,
-				cast(ulong) vd.loc.charnum, KEY,
-				message);
+		{
+			auto fileOffset = vd.loc.fileOffset - 5;
+
+			addErrorMessage(
+				cast(ulong) vd.loc.linnum, cast(ulong) vd.loc.charnum, KEY, message,
+				[AutoFix.replacement(fileOffset, fileOffset + 4, "static immutable", "Replace enum with static immutable")]
+			);
+		}
+
 		super.visit(vd);
 	}
+}
 
-	private enum KEY = "dscanner.performance.enum_array_literal";
+unittest
+{
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.enum_array_literal_check = Check.enabled;
+
+	assertAnalyzerWarningsDMD(q{
+		enum x = [1, 2, 3]; // [warn]: This enum may lead to unnecessary allocation at run-time. Use 'static immutable x = [ ...' instead.
+	}c, sac);
+
+	assertAutoFix(q{
+		enum x = [1, 2, 3]; // fix
+	}c, q{
+		static immutable x = [1, 2, 3]; // fix
+	}c, sac, true);
+
+	stderr.writeln("Unittest for EnumArrayLiteralCheck passed.");
 }
