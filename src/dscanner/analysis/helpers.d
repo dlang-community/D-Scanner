@@ -233,7 +233,7 @@ private static immutable fileEol = q{
  * comment. Alternatively you can also just write `// fix` to apply the only
  * available suggestion.
  */
-void assertAutoFix(string before, string after, const StaticAnalysisConfig config,
+void assertAutoFix(string before, string after, const StaticAnalysisConfig config, bool useDmd = false,
 		const AutoFixFormatting formattingConfig = AutoFixFormatting(AutoFixFormatting.BraceStyle.otbs, "\t", 4, fileEol),
 		string file = __FILE__, size_t line = __LINE__)
 {
@@ -244,18 +244,43 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 	import std.conv : to;
 	import std.sumtype : match;
 	import std.typecons : tuple, Tuple;
+	import std.file : exists, remove;
+	import std.path : dirName;
+	import std.stdio : File;
+	import dscanner.analysis.rundmd : analyzeDmd, parseDmdModule;
+	import dscanner.utils : getModuleName;
 
-	StringCache cache = StringCache(StringCache.defaultBucketCount);
-	RollbackAllocator r;
-	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) before, &r, defaultErrorFormat, cache, false, tokens);
+	MessageSet rawWarnings;
 
-	ModuleCache moduleCache;
+	if (useDmd)
+	{
+		auto testFileName = "test.d";
+		File f = File(testFileName, "w");
+		scope(exit)
+		{
+			assert(exists(testFileName));
+			remove(testFileName);
+		}
 
-	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens, true, true, formattingConfig);
+		f.write(before);
+		f.close();
+
+		auto dmdModule = parseDmdModule(file, before);
+		rawWarnings = analyzeDmd(testFileName, dmdModule, getModuleName(dmdModule.md), config);
+	}
+	else
+	{
+		StringCache cache = StringCache(StringCache.defaultBucketCount);
+		RollbackAllocator r;
+		const(Token)[] tokens;
+		const(Module) m = parseModule(file, cast(ubyte[]) before, &r, defaultErrorFormat, cache, false, tokens);
+
+		ModuleCache moduleCache;
+
+		rawWarnings = analyze("test", m, config, moduleCache, tokens, true, true, formattingConfig);
+	}
+
 	string[] codeLines = before.splitLines();
-
 	Tuple!(Message, int)[] toApply;
 	int[] applyLines;
 

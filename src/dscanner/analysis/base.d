@@ -72,6 +72,16 @@ struct AutoFix
 		return ret;
 	}
 
+	static AutoFix replacement(size_t tokenStart, size_t tokenEnd, string newText, string name)
+	{
+		AutoFix ret;
+		ret.name = name;
+		ret.replacements = [
+			AutoFix.CodeReplacement([tokenStart, tokenEnd], newText)
+		];
+		return ret;
+	}
+
 	static AutoFix replacement(const Token token, string newText, string name = null)
 	{
 		if (!name.length)
@@ -342,6 +352,17 @@ struct Message
 		this.checkName = checkName;
 	}
 
+	this(string fileName, size_t line, size_t column, string key = null, string message = null, string checkName = null, AutoFix[] autofixes = null)
+	{
+		diagnostic.fileName = fileName;
+		diagnostic.startLine = diagnostic.endLine = line;
+		diagnostic.startColumn = diagnostic.endColumn = column;
+		diagnostic.message = message;
+		this.key = key;
+		this.checkName = checkName;
+		this.autofixes = autofixes;
+	}
+
 	this(Diagnostic diagnostic, string key = null, string checkName = null, AutoFix[] autofixes = null)
 	{
 		this.diagnostic = diagnostic;
@@ -366,7 +387,7 @@ enum comparitor = q{ a.startLine < b.startLine || (a.startLine == b.startLine &&
 
 alias MessageSet = RedBlackTree!(Message, comparitor, true);
 
-/** 
+/**
  * Should be present in all visitors to specify the name of the check
  *  done by a patricular visitor
  */
@@ -907,7 +928,7 @@ unittest
 	});
 }
 
-/** 
+/**
  * Visitor that implements the AST traversal logic.
  * Supports collecting error messages
  */
@@ -922,9 +943,9 @@ extern(C++) class BaseAnalyzerDmd : SemanticTimeTransitiveVisitor
 		_messages = new MessageSet;
 	}
 
-	/** 
+	/**
 	 * Ensures that template AnalyzerInfo is instantiated in all classes
-	 *  deriving from this class 
+	 *  deriving from this class
 	 */
 	extern(D) protected string getName()
 	{
@@ -945,17 +966,22 @@ extern(C++) class BaseAnalyzerDmd : SemanticTimeTransitiveVisitor
 
 protected:
 
-	extern(D) void addErrorMessage(size_t line, size_t column, string key, string message)
+	extern (D) void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
 
-	extern(D) bool skipTests;
+	extern (D) void addErrorMessage(size_t line, size_t column, string key, string message, AutoFix[] autofixes)
+	{
+		_messages.insert(Message(fileName, line, column, key, message, getName(), autofixes));
+	}
+
+	extern (D) bool skipTests;
 
 	/**
 	 * The file name
 	 */
-	extern(D) string fileName;
+	extern (D) string fileName;
 
-	extern(D) MessageSet _messages;
+	extern (D) MessageSet _messages;
 }
