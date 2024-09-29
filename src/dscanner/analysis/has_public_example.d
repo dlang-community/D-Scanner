@@ -47,6 +47,9 @@ extern (C++) class HasPublicExampleCheck(AST) : BaseAnalyzerDmd
 
 	override void visit(AST.UnitTestDeclaration unitTestDecl)
 	{
+		if (skipTests)
+			return;
+
 		if (unitTestDecl.comment() !is null)
 			isDocumented = true;
 	}
