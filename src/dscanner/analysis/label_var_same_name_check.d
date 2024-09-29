@@ -33,7 +33,6 @@ extern (C++) class LabelVarNameCheck(AST) : BaseAnalyzerDmd
 
 	mixin FunctionVisit!(AST.FuncDeclaration);
 	mixin FunctionVisit!(AST.TemplateDeclaration);
-	mixin FunctionVisit!(AST.UnitTestDeclaration);
 	mixin FunctionVisit!(AST.FuncLiteralDeclaration);
 
 	mixin AggregateVisit!(AST.ClassDeclaration);
@@ -132,6 +131,28 @@ extern (C++) class LabelVarNameCheck(AST) : BaseAnalyzerDmd
 		super.visit(ad);
 		popScope();
 		popAggregateName();
+	}
+
+	override void visit(AST.UnitTestDeclaration unitTestDecl)
+	{
+		if (skipTests)
+			return;
+
+		auto oldIsInFunction = isInFunction;
+		auto oldIsInLocalFunction = isInLocalFunction;
+
+		pushScope();
+
+		if (isInFunction)
+			isInLocalFunction = true;
+		else
+			isInFunction = true;
+
+		super.visit(unitTestDecl);
+		popScope();
+
+		isInFunction = oldIsInFunction;
+		isInLocalFunction = oldIsInLocalFunction;
 	}
 
 private:
