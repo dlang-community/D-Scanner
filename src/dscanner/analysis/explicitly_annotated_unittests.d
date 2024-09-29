@@ -24,6 +24,9 @@ extern(C++) class ExplicitlyAnnotatedUnittestCheck(AST) : BaseAnalyzerDmd
 	{
 		import dmd.astenums : STC;
 
+		if (skipTests)
+			return;
+
 		if (!(d.storage_class & STC.safe || d.storage_class & STC.system))
 			addErrorMessage(cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum,
 					KEY, MESSAGE);
