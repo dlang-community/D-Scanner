@@ -15,9 +15,11 @@ import dsymbol.scope_;
  */
 extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 {
-	// alias visit = BaseAnalyzerDmd!AST.visit;
 	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"delete_check";
+
+	private enum KEY = "dscanner.deprecated.delete_keyword";
+	private enum MSG = "Avoid using the 'delete' keyword.";
 
 	extern(D) this(string fileName)
 	{
@@ -26,8 +28,17 @@ extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 
 	override void visit(AST.DeleteExp d)
 	{
-		addErrorMessage(cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum, "dscanner.deprecated.delete_keyword",
-				"Avoid using the 'delete' keyword.");
+		import dmd.hdrgen : toChars;
+		import std.conv : to;
+
+		string exprStr = to!string(toChars(d));
+
+		addErrorMessage(
+			cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum, KEY, MSG,
+			[AutoFix.replacement(d.loc.fileOffset, d.loc.fileOffset + 6, `destroy(`, "Replace delete with destroy()")
+				.concat(AutoFix.insertionAt(d.loc.fileOffset + exprStr.length, ")"))]
+		);
+
 		super.visit(d);
 	}
 }
@@ -35,10 +46,11 @@ extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.delete_check = Check.enabled;
+
 	assertAnalyzerWarningsDMD(q{
 		void testDelete()
 		{
@@ -49,6 +61,26 @@ unittest
 			delete a; // [warn]: Avoid using the 'delete' keyword.
 		}
 	}c, sac);
+
+	assertAutoFix(q{
+		void testDelete()
+		{
+			int[int] data = [1 : 2];
+			delete data[1]; // fix
+
+			auto a = new Class();
+			delete a; // fix
+		}
+	}c, q{
+		void testDelete()
+		{
+			int[int] data = [1 : 2];
+			destroy(data[1]); // fix
+
+			auto a = new Class();
+			destroy(a); // fix
+		}
+	}c, sac, true);
 
 	stderr.writeln("Unittest for DeleteCheck passed.");
 }
