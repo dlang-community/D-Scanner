@@ -58,37 +58,14 @@ set DMD_FRONTEND_DENYLIST=^
 set DMD_FRONTEND_SRC=
 for %%x in (dmd\compiler\src\dmd\common\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
 for %%x in (dmd\compiler\src\dmd\root\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\visitor\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\mangle\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
 for %%x in (dmd\compiler\src\dmd\*.d) do (
     echo "%DMD_FRONTEND_DENYLIST%" | findstr /i /c:"%%x" >nul
     if errorlevel 1 (
         set "DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x"
     )
 )
-
-set DMD_ROOT_SRC=
-for %%x in (dmd\compiler\src\dmd\common\*.d) do set DMD_ROOT_SRC=!DMD_ROOT_SRC! %%x
-for %%x in (dmd\compiler\src\dmd\root\*.d) do set DMD_ROOT_SRC=!DMD_ROOT_SRC! %%x
-
-set DMD_LEXER_SRC=^
-	dmd\compiler\src\dmd\console.d ^
-	dmd\compiler\src\dmd\entity.d ^
-	dmd\compiler\src\dmd\errors.d ^
-	dmd\compiler\src\dmd\file_manager.d ^
-	dmd\compiler\src\dmd\globals.d ^
-	dmd\compiler\src\dmd\id.d ^
-	dmd\compiler\src\dmd\identifier.d ^
-	dmd\compiler\src\dmd\lexer.d ^
-	dmd\compiler\src\dmd\tokens.d ^
-	dmd\compiler\src\dmd\utils.d
-
-set DMD_PARSER_SRC=^
-	dmd\compiler\src\dmd\astbase.d ^
-	dmd\compiler\src\dmd\parse.d ^
-	dmd\compiler\src\dmd\parsetimevisitor.d ^
-	dmd\compiler\src\dmd\transitivevisitor.d ^
-	dmd\compiler\src\dmd\permissivevisitor.d ^
-	dmd\compiler\src\dmd\strictvisitor.d ^
-	dmd\compiler\src\dmd\astenums.d
 
 for %%x in (src\dscanner\*.d) do set CORE=!CORE! %%x
 for %%x in (src\dscanner\analysis\*.d) do set ANALYSIS=!ANALYSIS! %%x
