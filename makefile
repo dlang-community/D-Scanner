@@ -7,13 +7,12 @@ GIT ?= git
 DMD := $(DC)
 GDC := gdc
 LDC := ldc2
-DMD_ROOT_SRC := \
-	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
-	$(shell find dmd/compiler/src/dmd/root -name "*.d")\
 
 DMD_FRONTEND_SRC := \
 	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
 	$(shell find dmd/compiler/src/dmd/root -name "*.d")\
+	$(shell find dmd/compiler/src/dmd/visitor -name "*.d")\
+	$(shell find dmd/compiler/src/dmd/mangle -name "*.d")\
 	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" \
 		! -name "mars.d" \
 		! -name "dmsc.d" \
@@ -40,33 +39,6 @@ DMD_FRONTEND_SRC := \
 		! -name "todt.d" \
 		! -name "toir.d" \
 	)
-#	$(shell find dmd/compiler/src/dmd/backend -name "*.d") \
-#	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" ! -name "mars.d" )
-
-DMD_LEXER_SRC := \
-	dmd/compiler/src/dmd/console.d \
-	dmd/compiler/src/dmd/entity.d \
-	dmd/compiler/src/dmd/errors.d \
-	dmd/compiler/src/dmd/errorsink.d \
-	dmd/compiler/src/dmd/file_manager.d \
-	dmd/compiler/src/dmd/globals.d \
-	dmd/compiler/src/dmd/id.d \
-	dmd/compiler/src/dmd/identifier.d \
-	dmd/compiler/src/dmd/lexer.d \
-	dmd/compiler/src/dmd/tokens.d \
-	dmd/compiler/src/dmd/utils.d \
-	dmd/compiler/src/dmd/location.d \
-	$(DMD_ROOT_SRC)
-
-DMD_PARSER_SRC := \
-	dmd/compiler/src/dmd/astbase.d \
-	dmd/compiler/src/dmd/parse.d \
-	dmd/compiler/src/dmd/parsetimevisitor.d \
-	dmd/compiler/src/dmd/transitivevisitor.d \
-	dmd/compiler/src/dmd/permissivevisitor.d \
-	dmd/compiler/src/dmd/strictvisitor.d \
-	dmd/compiler/src/dmd/astenums.d \
-	$(DMD_LEXER_SRC)
 
 LIB_SRC := \
 	$(shell find containers/src -name "*.d")\
