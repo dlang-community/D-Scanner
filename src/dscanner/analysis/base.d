@@ -9,7 +9,7 @@ import std.container;
 import std.meta : AliasSeq;
 import std.string;
 import std.sumtype;
-import dmd.transitivevisitor;
+import dmd.visitor.transitive;
 import dmd.visitor;
 import dmd.func;
 import core.stdc.string;
