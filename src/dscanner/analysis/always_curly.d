@@ -6,7 +6,6 @@ module dscanner.analysis.always_curly;
 
 import dscanner.analysis.base;
 
-// TODO: Fix Autofix
 extern (C++) class AlwaysCurlyCheck(AST) : BaseAnalyzerDmd
 {
 	alias visit = BaseAnalyzerDmd.visit;
@@ -36,16 +35,35 @@ extern (C++) class AlwaysCurlyCheck(AST) : BaseAnalyzerDmd
 	{
 		override void visit(NodeType node)
 		{
+			import dmd.hdrgen : toChars;
+			import std.conv : to;
+			import std.string : indexOf;
+
 			auto oldHasCurlyBraces = hasCurlyBraces;
 			auto oldInCurlyStatement = inCurlyStatement;
 			hasCurlyBraces = false;
 			inCurlyStatement = true;
 			super.visit(node);
 
+			static if (is(NodeType == AST.IfStatement))
+				auto stmtBody = node.ifbody;
+			else static if (is(NodeType == AST.Catch))
+				auto stmtBody = node.handler;
+			else
+				auto stmtBody = node._body;
+
 			if (!hasCurlyBraces)
 			{
 				auto msg = nodeName ~ MESSAGE_POSTFIX;
-				addErrorMessage(node.loc.linnum, node.loc.charnum, KEY, msg);
+				string exprStr = to!string(toChars(stmtBody));
+
+				addErrorMessage(
+					node.loc.linnum, node.loc.charnum, KEY, msg,
+					[
+						AutoFix.insertionAt(stmtBody.loc.fileOffset, "{ ")
+							.concat(AutoFix.insertionAt(stmtBody.loc.fileOffset + indexOf(exprStr, ';'), " }"))
+					]
+				);
 			}
 
 			hasCurlyBraces = oldHasCurlyBraces;
@@ -205,7 +223,6 @@ unittest
 	stderr.writeln("Unittest for AutoFix AlwaysCurly passed.");
 }
 
-/+ TODO: Fix Autofix
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
@@ -223,7 +240,7 @@ unittest
 		void test() {
 			if(true) { return; } // fix:0
 		}
-	}c, sac);
+	}c, sac, true);
 
 	assertAutoFix(q{
 		void test() {
@@ -233,7 +250,7 @@ unittest
 		void test() {
 			foreach(_; 0 .. 10 ) { return; } // fix:0
 		}
-	}c, sac);
+	}c, sac, true);
 
 	assertAutoFix(q{
 		void test() {
@@ -243,7 +260,7 @@ unittest
 		void test() {
 			for(int i = 0; i < 10; ++i) { return; } // fix:0
 		}
-	}c, sac);
+	}c, sac, true);
 
 	assertAutoFix(q{
 		void test() {
@@ -253,8 +270,8 @@ unittest
 		void test() {
 			do { return; } while(true) // fix:0
 		}
-	}c, sac);
+	}c, sac, true);
 
 
 	stderr.writeln("Unittest for AutoFix AlwaysCurly passed.");
-}+/
+}
