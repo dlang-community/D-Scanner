@@ -668,10 +668,6 @@ BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new UndocumentedDeclarationCheck(args.setSkipTests(
 		analysisConfig.undocumented_declaration_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!VcallCtorChecker(analysisConfig))
-		checks ~= new VcallCtorChecker(args.setSkipTests(
-		analysisConfig.vcall_in_ctor == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!AllManCheck(analysisConfig))
 		checks ~= new AllManCheck(args.setSkipTests(
 		analysisConfig.allman_braces_check == Check.skipTests && !ut));
