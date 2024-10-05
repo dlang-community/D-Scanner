@@ -53,6 +53,7 @@ import dscanner.analysis.unused_result : UnusedResultChecker;
 import dscanner.analysis.unused_variable : UnusedVariableCheck;
 import dscanner.analysis.useless_assert : UselessAssertCheck;
 import dscanner.analysis.useless_initializer : UselessInitializerChecker;
+import dscanner.analysis.vcall_in_ctor : VcallCtorChecker;
 
 version (unittest)
 	enum ut = true;
@@ -308,6 +309,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new UnusedResultChecker!ASTCodegen(
 			fileName,
 			config.unused_result == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(VcallCtorChecker!ASTCodegen)(config))
+		visitors ~= new VcallCtorChecker!ASTCodegen(
+			fileName,
+			config.vcall_in_ctor == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
