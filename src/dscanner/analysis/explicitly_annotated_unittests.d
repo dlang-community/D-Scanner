@@ -28,8 +28,13 @@ extern(C++) class ExplicitlyAnnotatedUnittestCheck(AST) : BaseAnalyzerDmd
 			return;
 
 		if (!(d.storage_class & STC.safe || d.storage_class & STC.system))
-			addErrorMessage(cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum,
-					KEY, MESSAGE);
+			addErrorMessage(
+				cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum, KEY, MESSAGE,
+				[
+					AutoFix.insertionAt(d.loc.fileOffset, "@safe "),
+					AutoFix.insertionAt(d.loc.fileOffset, "@system ")
+				]
+			);
 
 		super.visit(d);
 	}
@@ -73,27 +78,26 @@ unittest
 		}
 	}c, sac);
 
-    // TODO: Check and fix
 	//// nested
-	//assertAutoFix(q{
-		//unittest {} // fix:0
-		//pure nothrow @nogc unittest {} // fix:0
+	assertAutoFix(q{
+		unittest {} // fix:0
+		pure nothrow @nogc unittest {} // fix:0
 
-		//struct Foo
-		//{
-			//unittest {} // fix:1
-			//pure nothrow @nogc unittest {} // fix:1
-		//}
-	//}c, q{
-		//@safe unittest {} // fix:0
-		//pure nothrow @nogc @safe unittest {} // fix:0
+		struct Foo
+		{
+			unittest {} // fix:1
+			pure nothrow @nogc unittest {} // fix:1
+		}
+	}c, q{
+		@safe unittest {} // fix:0
+		pure nothrow @nogc @safe unittest {} // fix:0
 
-		//struct Foo
-		//{
-			//@system unittest {} // fix:1
-			//pure nothrow @nogc @system unittest {} // fix:1
-		//}
-	//}c, sac);
+		struct Foo
+		{
+			@system unittest {} // fix:1
+			pure nothrow @nogc @system unittest {} // fix:1
+		}
+	}c, sac, true);
 
 	stderr.writeln("Unittest for ExplicitlyAnnotatedUnittestCheck passed.");
 }
