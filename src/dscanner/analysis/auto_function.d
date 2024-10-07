@@ -16,7 +16,6 @@ import std.algorithm.searching : canFind;
  * detected by the compiler. However sometimes they can be used as a trick
  * to infer attributes.
  */
-// TODO: Fix Autofix
 extern (C++) class AutoFunctionChecker(AST) : BaseAnalyzerDmd
 {
 	alias visit = BaseAnalyzerDmd.visit;
@@ -58,14 +57,48 @@ extern (C++) class AutoFunctionChecker(AST) : BaseAnalyzerDmd
 		if (!foundReturn && !foundFalseAssert)
 		{
 			if (d.storage_class & STC.auto_)
-				addErrorMessage(lineNum, charNum, KEY, MESSAGE);
+			{
+				auto voidStart = extractVoidStartLocation(d);
+
+				addErrorMessage(
+					lineNum, charNum, KEY, MESSAGE,
+					[
+						AutoFix.replacement(voidStart + 1, voidStart + 6, "", "Replace `auto` with `void`")
+							.concat(AutoFix.insertionAt(d.loc.fileOffset, "void "))
+					]
+				);
+			}
 			else if (auto returnType = cast(AST.TypeFunction) d.type)
+			{
 				if (returnType.next is null)
-					addErrorMessage(lineNum, charNum, KEY, MESSAGE_INSERT);
+				{
+					addErrorMessage(
+						lineNum, charNum, KEY, MESSAGE_INSERT,
+						[AutoFix.insertionAt(d.loc.fileOffset, "void ")]
+					);
+				}
+			}
 		}
 
 		foundReturn = oldFoundReturn;
 		foundFalseAssert = oldFoundFalseAssert;
+	}
+
+	private auto extractVoidStartLocation(AST.FuncDeclaration d)
+	{
+		import dmd.common.outbuffer : OutBuffer;
+		import dmd.hdrgen : toCBuffer, HdrGenState;
+		import std.string : indexOf;
+
+		OutBuffer buf;
+		HdrGenState hgs;
+		toCBuffer(d, buf, hgs);
+		string funcStr = cast(string) buf.extractSlice();
+		string funcName = cast(string) d.ident.toString();
+		auto funcNameStart = funcStr.indexOf(funcName);
+		auto voidTokenStart = funcStr.indexOf("void");
+		auto voidOffset = funcNameStart - voidTokenStart;
+		return d.loc.fileOffset - voidOffset;
 	}
 
 	override void visit(AST.ReturnStatement s)
@@ -122,7 +155,7 @@ unittest
 	import std.stdio : stderr;
 	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.auto_function_check = Check.enabled;
@@ -182,7 +215,6 @@ unittest
 		auto doStuff(){ mixin(_genSave);}
 	}, sac);
 
-	/+ TODO: Fix Autofix
 	assertAutoFix(q{
 		auto ref doStuff(){} // fix
 		auto doStuff(){} // fix
@@ -197,7 +229,7 @@ unittest
 		@safe void doStuff(){} // fix
 		@Custom
 		void doStuff(){} // fix
-	}c, sac);+/
+	}c, sac, true);
 
 	stderr.writeln("Unittest for AutoFunctionChecker passed.");
 }
