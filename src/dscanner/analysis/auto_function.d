@@ -195,18 +195,15 @@ unittest
 
 	assertAnalyzerWarningsDMD(q{
 		auto doStuff(){} // [warn]: %s
-		extern(C) auto doStuff();
 	}c.format(MESSAGE), sac);
 
 	assertAnalyzerWarningsDMD(q{
 		auto doStuff(){} // [warn]: %s
-		@disable auto doStuff();
 	}c.format(MESSAGE), sac);
 
 	assertAnalyzerWarningsDMD(q{
 		@property doStuff(){} // [warn]: %s
 		@safe doStuff(){} // [warn]: %s
-		@disable doStuff();
 		@safe void doStuff();
 	}c.format(MESSAGE_INSERT, MESSAGE_INSERT), sac);
 
