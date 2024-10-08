@@ -85,6 +85,7 @@ private void setupDmd()
 	global.path = Strings();
 	global.path.push(dmdDirPath.ptr);
 	global.path.push(druntimeDirPath.ptr);
+	global.errors = 0;
 	initDMD();
 }
 

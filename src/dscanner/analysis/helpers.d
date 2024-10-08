@@ -20,10 +20,10 @@ import dsymbol.modulecache : ModuleCache;
 import std.experimental.allocator;
 import std.experimental.allocator.mallocator;
 
-import dmd.parse : Parser;
 import dmd.astbase : ASTBase;
 import dmd.astcodegen;
 import dmd.frontend;
+import dmd.parse : Parser;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
@@ -390,6 +390,7 @@ void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, b
 	import std.stdio : File;
 	import dscanner.analysis.rundmd : analyzeDmd, parseDmdModule;
 	import dscanner.utils : getModuleName;
+	import dmd.globals : global;
 
 	auto testFileName = "test.d";
 	File f = File(testFileName, "w");
@@ -403,6 +404,10 @@ void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, b
 	f.close();
 
 	auto dmdModule = parseDmdModule(file, code);
+
+	if (global.errors > 0)
+		throw new AssertError("Failed to parse DMD module", file);
+
 	if (semantic)
 		dmdModule.fullSemantic();
 
