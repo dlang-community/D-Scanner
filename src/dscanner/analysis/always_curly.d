@@ -264,11 +264,11 @@ unittest
 
 	assertAutoFix(q{
 		void test() {
-			do return; while(true) // fix:0
+			do return; while(true); // fix:0
 		}
 	}c, q{
 		void test() {
-			do { return; } while(true) // fix:0
+			do { return; } while(true); // fix:0
 		}
 	}c, sac, true);
 

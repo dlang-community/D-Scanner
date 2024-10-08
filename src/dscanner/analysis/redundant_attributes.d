@@ -111,7 +111,7 @@ private:
 	private int foo2; // [warn]: Same visibility attribute used as defined on line 4.
 	private void foo() // [warn]: Same visibility attribute used as defined on line 4.
 	{
-		private int blah;
+		int blah;
 	}
 }}c, sac);
 
