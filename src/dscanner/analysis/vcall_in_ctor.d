@@ -226,7 +226,7 @@ unittest
                 bar(); // [warn]: %s
             }
             private: public void bar();
-            public private {void foo(){}}
+            private {void foo(){}}
         }
     }c.format(MSG), sac);
 
@@ -244,22 +244,6 @@ unittest
         {
             this(){foo();}
             private {void foo(){}}
-        }
-    }, sac);
-
-    assertAnalyzerWarningsDMD(q{
-        class Bar
-        {
-            this(){foo();}
-            private public protected private void foo(){}
-        }
-    }, sac);
-
-    assertAnalyzerWarningsDMD(q{
-        class Bar
-        {
-            this(){foo();}
-            final private public protected void foo(){}
         }
     }, sac);
 

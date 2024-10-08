@@ -266,7 +266,7 @@ unittest
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.if_constraints_indent = Check.enabled;
 
-	assertAnalyzerWarnings(`void foo() {
-	''
+    assertAnalyzerWarnings(`void foo() {
+    f;
 }`, sac);
 }

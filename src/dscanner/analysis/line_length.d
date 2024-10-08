@@ -156,8 +156,8 @@ assert("foo" == "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 	}c, sac);
 
 	assertAnalyzerWarningsDMD(q{
-	assert("foo" == "boooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo5");
-	assert("foo" == "booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo6"); // [warn]: Line is longer than 120 characters
+	static assert("foo" == "booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo5");
+    static assert("foo" == "boooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo6"); // [warn]: Line is longer than 120 characters
 	}c, sac);
 
 	// reduced from std/regex/internal/thompson.d
