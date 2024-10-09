@@ -54,6 +54,7 @@ import dscanner.analysis.unused_variable : UnusedVariableCheck;
 import dscanner.analysis.useless_assert : UselessAssertCheck;
 import dscanner.analysis.useless_initializer : UselessInitializerChecker;
 import dscanner.analysis.vcall_in_ctor : VcallCtorChecker;
+import dscanner.analysis.allman : AllManCheck;
 
 version (unittest)
 	enum ut = true;
@@ -316,6 +317,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new VcallCtorChecker!ASTCodegen(
 			fileName,
 			config.vcall_in_ctor == Check.skipTests && !ut
+		);
+	
+	if (moduleName.shouldRunDmd!AllManCheck(config))
+		visitors ~= new AllManCheck(
+			fileName,
+			config.allman_braces_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
