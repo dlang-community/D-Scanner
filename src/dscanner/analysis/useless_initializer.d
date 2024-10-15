@@ -19,7 +19,6 @@ Limitations:
  * Check that detects the initializers that are
  * not different from the implcit initializer.
  */
-// TODO: Fix NoLint
 extern (C++) class UselessInitializerChecker(AST) : BaseAnalyzerDmd
 {
 	alias visit = BaseAnalyzerDmd.visit;
@@ -42,6 +41,22 @@ extern (C++) class UselessInitializerChecker(AST) : BaseAnalyzerDmd
 	extern (D) this(string fileName, bool skipTests = false)
 	{
 		super(fileName, skipTests);
+	}
+
+	override void visit(AST.UserAttributeDeclaration userAttribute)
+	{
+		if (shouldIgnoreDecl(userAttribute, KEY))
+			return;
+
+		super.visit(userAttribute);
+	}
+
+	override void visit(AST.Module mod)
+	{
+		if (shouldIgnoreDecl(mod.userAttribDecl(), KEY))
+			return;
+
+		super.visit(mod);
 	}
 
 	override void visit(AST.UnitTestDeclaration unitTestDecl)
@@ -303,43 +318,41 @@ extern (C++) class UselessInitializerChecker(AST) : BaseAnalyzerDmd
 	}, sac);
 
 	// passes
-	//assertAnalyzerWarnings(q{
-	//	@("nolint(dscanner.useless-initializer)")
-	//	int a = 0;
-	//	int a = 0;          /+
-	//	        ^ [warn]: X +/
-	//
-	//	@("nolint(dscanner.useless-initializer)")
-	//	int f() {
-	//		int a = 0;
-	//	}
-	//
-	//	struct nolint { string s; }
-	//
-	//	@nolint("dscanner.useless-initializer")
-	//	int a = 0;
-	//	int a = 0;          /+
-	//	        ^ [warn]: X +/
-	//
-	//	@("nolint(other_check, dscanner.useless-initializer, another_one)")
-	//	int a = 0;
-	//
-	//	@nolint("other_check", "another_one", "dscanner.useless-initializer")
-	//	int a = 0;
-	//
-	//}, sac);
+	assertAnalyzerWarningsDMD(q{
+		@("nolint(dscanner.useless-initializer)")
+		int x = 0;
+		int a = 0; // [warn]: %s
+
+		@("nolint(dscanner.useless-initializer)")
+		int f() {
+			int a = 0;
+		}
+
+		struct nolint { string s; }
+
+		@("nolint(dscanner.useless-initializer)")
+		int c = 0;
+		int s = 0; // [warn]: %s
+
+		@("nolint(other_check, dscanner.useless-initializer, another_one)")
+		int e = 0;
+
+		@("nolint(other_check, another_one, dscanner.useless-initializer)")
+		int f = 0;
+
+	}c.format(msgA, msgS), sac);
 
 	// passes (disable check at module level)
-	//assertAnalyzerWarnings(q{
-	//	@("nolint(dscanner.useless-initializer)")
-	//	module my_module;
-	//
-	//	int a = 0;
-	//
-	//	int f() {
-	//		int a = 0;
-	//	}
-	//}, sac);
+	assertAnalyzerWarningsDMD(q{
+		@("nolint(dscanner.useless-initializer)")
+		module my_module;
+
+		int a = 0;
+
+		int f() {
+			int a = 0;
+		}
+	}c, sac);
 
 	stderr.writeln("Unittest for UselessInitializerChecker passed.");
 }
