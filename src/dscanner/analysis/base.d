@@ -9,6 +9,7 @@ import std.container;
 import std.meta : AliasSeq;
 import std.string;
 import std.sumtype;
+import dmd.attrib : UserAttributeDeclaration;
 import dmd.visitor.transitive;
 import dmd.visitor;
 import dmd.func;
@@ -984,4 +985,26 @@ protected:
 	extern (D) string fileName;
 
 	extern (D) MessageSet _messages;
+
+	extern (D) bool shouldIgnoreDecl(UserAttributeDeclaration userAtt, string key)
+	{
+		import std.algorithm : startsWith;
+		import std.string : indexOf;
+
+		if (userAtt is null)
+			return false;
+
+		auto atts = userAtt.atts;
+		if (atts !is null && (*(atts)).length > 0)
+		{
+			if (auto att = (*(atts))[0].isStringExp())
+			{
+				string attStr = cast(string) att.toStringz();
+				if (attStr.startsWith("nolint") && attStr.indexOf(key) > 0)
+					return true;
+			}
+		}
+
+		return false;
+	}
 }

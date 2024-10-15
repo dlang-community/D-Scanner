@@ -31,6 +31,22 @@ extern(C++) class StaticIfElse(AST) : BaseAnalyzerDmd
 		super(fileName, skipTests);
 	}
 
+	override void visit(AST.UserAttributeDeclaration userAttribute)
+	{
+		if (shouldIgnoreDecl(userAttribute, KEY))
+			return;
+
+		super.visit(userAttribute);
+	}
+
+	override void visit(AST.Module mod)
+	{
+		if (shouldIgnoreDecl(mod.userAttribDecl(), KEY))
+			return;
+
+		super.visit(mod);
+	}
+
 	override void visit(AST.ConditionalStatement s)
 	{
 		import dmd.astenums : STMT;
