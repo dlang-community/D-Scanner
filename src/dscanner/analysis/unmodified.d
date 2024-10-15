@@ -36,6 +36,22 @@ extern (C++) class UnmodifiedFinder(AST) : BaseAnalyzerDmd
 		pushScope();
 	}
 
+	override void visit(AST.UserAttributeDeclaration userAttribute)
+	{
+		if (shouldIgnoreDecl(userAttribute, KEY))
+			return;
+
+		super.visit(userAttribute);
+	}
+
+	override void visit(AST.Module mod)
+	{
+		if (shouldIgnoreDecl(mod.userAttribDecl(), KEY))
+			return;
+
+		super.visit(mod);
+	}
+
 	override void visit(AST.CompoundStatement compoundStatement)
 	{
 		pushScope();
@@ -323,6 +339,13 @@ unittest
 				i++;
 		}
 	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		@("nolint(dscanner.suspicious.unmodified)")
+		void foo(){
+			int i = 1;
+		}
+	}, sac);
 
 	stderr.writeln("Unittest for UnmodifiedFinder passed.");
 }
