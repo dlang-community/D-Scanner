@@ -659,10 +659,6 @@ BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		checks ~= new FunctionAttributeCheck(args.setSkipTests(
 		analysisConfig.function_attribute_check == Check.skipTests && !ut));
 
-	if (moduleName.shouldRun!MismatchedArgumentCheck(analysisConfig))
-		checks ~= new MismatchedArgumentCheck(args.setSkipTests(
-		analysisConfig.mismatched_args_check == Check.skipTests && !ut));
-
 	if (moduleName.shouldRun!UndocumentedDeclarationCheck(analysisConfig))
 		checks ~= new UndocumentedDeclarationCheck(args.setSkipTests(
 		analysisConfig.undocumented_declaration_check == Check.skipTests && !ut));

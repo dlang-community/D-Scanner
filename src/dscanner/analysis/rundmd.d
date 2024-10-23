@@ -34,6 +34,7 @@ import dscanner.analysis.length_subtraction : LengthSubtractionCheck;
 import dscanner.analysis.line_length : LineLengthCheck;
 import dscanner.analysis.local_imports : LocalImportCheck;
 import dscanner.analysis.logic_precedence : LogicPrecedenceCheck;
+import dscanner.analysis.mismatched_args : MismatchedArgumentCheck;
 import dscanner.analysis.numbers : NumberStyleCheck;
 import dscanner.analysis.objectconst : ObjectConstCheck;
 import dscanner.analysis.opequals_without_tohash : OpEqualsWithoutToHashCheck;
@@ -323,6 +324,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new AllManCheck(
 			fileName,
 			config.allman_braces_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(MismatchedArgumentCheck!ASTCodegen)(config))
+		visitors ~= new MismatchedArgumentCheck!ASTCodegen(
+			fileName,
+			config.mismatched_args_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
