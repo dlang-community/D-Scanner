@@ -262,7 +262,7 @@ void assertAutoFix(string before, string after, const StaticAnalysisConfig confi
 			remove(testFileName);
 		}
 
-		f.write(before);
+		f.rawWrite(before);
 		f.close();
 
 		auto dmdModule = parseDmdModule(file, before);
@@ -400,7 +400,7 @@ void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, b
         remove(testFileName);
 	}
 
-	f.write(code);
+	f.rawWrite(code);
 	f.close();
 
 	auto dmdModule = parseDmdModule(file, code);
