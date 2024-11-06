@@ -8,8 +8,6 @@ module dscanner.analysis.local_imports;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 
-import std.stdio : writeln;
-
 /**
  * Checks for local imports that import all symbols.
  * See_also: $(LINK https://issues.dlang.org/show_bug.cgi?id=10378)
