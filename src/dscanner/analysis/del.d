@@ -8,7 +8,6 @@ module dscanner.analysis.del;
 import std.stdio;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_;
 
 /**
  * Checks for use of the deprecated 'delete' keyword
