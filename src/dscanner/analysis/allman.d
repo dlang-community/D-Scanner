@@ -108,7 +108,7 @@ unittest
 	sac.allman_braces_check = Check.enabled;
 
 	// check common allman style violation
-	assertAnalyzerWarningsDMD(`
+	assertAnalyzerWarningsDMD(q{
 		void testAllman()
 		{
 			while (true) { // [warn]: %s
@@ -146,7 +146,7 @@ unittest
 				}
 			}
 		}
-	`c.format(
+	}c.format(
 		AllManCheck.MESSAGE,
 		AllManCheck.MESSAGE,
 		AllManCheck.MESSAGE,
