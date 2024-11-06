@@ -7,8 +7,6 @@ module dscanner.analysis.incorrect_infinite_range;
 
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
 
 /**
  * Checks for incorrect infinite range definitions
