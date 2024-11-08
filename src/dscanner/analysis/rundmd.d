@@ -48,6 +48,7 @@ import dscanner.analysis.redundant_storage_class : RedundantStorageClassCheck;
 import dscanner.analysis.static_if_else : StaticIfElse;
 import dscanner.analysis.style : StyleChecker;
 import dscanner.analysis.trust_too_much : TrustTooMuchCheck;
+import dscanner.analysis.undocumented : UndocumentedDeclarationCheck;
 import dscanner.analysis.unmodified : UnmodifiedFinder;
 import dscanner.analysis.unused_label : UnusedLabelCheck;
 import dscanner.analysis.unused_parameter : UnusedParameterCheck;
@@ -337,6 +338,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new IfConstraintsIndentCheck!ASTCodegen(
 			fileName,
 			config.if_constraints_indent == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(UndocumentedDeclarationCheck!ASTCodegen)(config))
+		visitors ~= new UndocumentedDeclarationCheck!ASTCodegen(
+			fileName,
+			config.undocumented_declaration_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
