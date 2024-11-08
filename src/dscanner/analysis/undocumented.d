@@ -6,336 +6,220 @@
 module dscanner.analysis.undocumented;
 
 import dscanner.analysis.base;
-import dsymbol.scope_ : Scope;
-import dparse.ast;
-import dparse.lexer;
-
+import dmd.astenums : STC;
+import std.format : format;
 import std.regex : ctRegex, matchAll;
-import std.stdio;
 
 /**
  * Checks for undocumented public declarations. Ignores some operator overloads,
  * main functions, and functions whose name starts with "get" or "set".
  */
-final class UndocumentedDeclarationCheck : BaseAnalyzer
+extern (C++) class UndocumentedDeclarationCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"undocumented_declaration_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.style.undocumented_declaration";
+	private enum DEFAULT_MSG = "Public declaration is undocumented.";
+	private enum MSG = "Public declaration '%s' is undocumented.";
+
+	private immutable string[] ignoredFunctionNames = [
+		"opCmp", "opEquals", "toString", "toHash", "main"
+	];
+	private enum getSetRe = ctRegex!`^(?:get|set)(?:\p{Lu}|_).*`;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const Module mod)
+	override void visit(AST.VisibilityDeclaration visibilityDecl)
 	{
-		push(tok!"public");
-		mod.accept(this);
+		import dmd.dsymbol : Visibility;
+
+		if (visibilityDecl.visibility.kind == Visibility.Kind.public_)
+			super.visit(visibilityDecl);
 	}
 
-	override void visit(const Declaration dec)
+	override void visit(AST.StorageClassDeclaration storageClassDecl)
 	{
-		if (dec.attributeDeclaration)
+		if (!hasIgnorableStorageClass(storageClassDecl.stc))
+			super.visit(storageClassDecl);
+	}
+
+	override void visit(AST.DeprecatedDeclaration _) {}
+
+	override void visit(AST.FuncDeclaration funcDecl)
+	{
+		if (funcDecl.comment() !is null || funcDecl.ident is null)
+			return;
+
+		string funcName = cast(string) funcDecl.ident.toString();
+		bool canBeUndocumented = hasIgnorableStorageClass(funcDecl.storage_class) || isIgnorableFunctionName(funcName);
+
+		if (!canBeUndocumented)
 		{
-			auto attr = dec.attributeDeclaration.attribute;
-			if (isProtection(attr.attribute.type))
-				set(attr.attribute.type);
-			else if (attr.attribute == tok!"override")
-				setOverride(true);
-			else if (attr.deprecated_ !is null)
-				setDeprecated(true);
-			else if (attr.atAttribute !is null && attr.atAttribute.identifier.text == "disable")
-				setDisabled(true);
+			addErrorMessage(funcDecl.loc.linnum, funcDecl.loc.charnum, KEY, MSG.format(funcName));
+			super.visit(funcDecl);
 		}
+	}
 
-		immutable bool shouldPop = dec.attributeDeclaration is null;
-		immutable bool prevOverride = getOverride();
-		immutable bool prevDisabled = getDisabled();
-		immutable bool prevDeprecated = getDeprecated();
-		bool dis;
-		bool dep;
-		bool ovr;
-		bool pushed;
-		foreach (attribute; dec.attributes)
+	private extern (D) bool isIgnorableFunctionName(string funcName)
+	{
+		import std.algorithm : canFind;
+
+		return ignoredFunctionNames.canFind(funcName) || !matchAll(funcName, getSetRe).empty;
+	}
+
+	override void visit(AST.CtorDeclaration ctorDecl)
+	{
+		if (ctorDecl.comment() !is null)
+			return;
+
+		addErrorMessage(ctorDecl.loc.linnum, ctorDecl.loc.charnum, KEY, DEFAULT_MSG);
+	}
+
+	override void visit(AST.TemplateDeclaration templateDecl)
+	{
+		if (templateDecl.comment() !is null || templateDecl.ident is null)
+			return;
+
+		if (!templateDecl.isDeprecated())
 		{
-			if (isProtection(attribute.attribute.type))
+			string templateName = cast(string) templateDecl.ident.toString();
+			addErrorMessage(templateDecl.loc.linnum, templateDecl.loc.charnum, KEY, MSG.format(templateName));
+		}
+	}
+
+	mixin VisitDeclaration!(AST.ClassDeclaration);
+	mixin VisitDeclaration!(AST.InterfaceDeclaration);
+	mixin VisitDeclaration!(AST.StructDeclaration);
+	mixin VisitDeclaration!(AST.UnionDeclaration);
+	mixin VisitDeclaration!(AST.EnumDeclaration);
+	mixin VisitDeclaration!(AST.EnumMember);
+	mixin VisitDeclaration!(AST.VarDeclaration);
+
+	private template VisitDeclaration(NodeType)
+	{
+		override void visit(NodeType decl)
+		{
+			if (decl.comment() !is null || decl.ident is null)
 			{
-				if (shouldPop)
-				{
-					pushed = true;
-					push(attribute.attribute.type);
-				}
-				else
-					set(attribute.attribute.type);
-			}
-			else if (attribute.attribute == tok!"override")
-				ovr = true;
-			else if (attribute.deprecated_ !is null)
-				dep = true;
-			else if (attribute.atAttribute !is null
-					&& attribute.atAttribute.identifier.text == "disable")
-				dis = true;
-		}
-		if (ovr)
-			setOverride(true);
-		if (dis)
-			setDisabled(true);
-		if (dep)
-			setDeprecated(true);
-		dec.accept(this);
-		if (shouldPop && pushed)
-			pop();
-		if (ovr)
-			setOverride(prevOverride);
-		if (dis)
-			setDisabled(prevDisabled);
-		if (dep)
-			setDeprecated(prevDeprecated);
-	}
-
-	override void visit(const VariableDeclaration variable)
-	{
-		if (!currentIsInteresting() || variable.comment.ptr !is null)
-			return;
-		if (variable.autoDeclaration !is null)
-		{
-			addMessage(variable.autoDeclaration.parts[0].identifier,
-					variable.autoDeclaration.parts[0].identifier.text);
-			return;
-		}
-		foreach (dec; variable.declarators)
-		{
-			if (dec.comment.ptr is null)
-				addMessage(dec.name, dec.name.text);
-			return;
-		}
-	}
-
-	override void visit(const ConditionalDeclaration cond)
-	{
-		const VersionCondition ver = cond.compileCondition.versionCondition;
-		if (ver is null || (ver.token != tok!"unittest" && ver.token.text != "none"))
-			cond.accept(this);
-		else if (cond.falseDeclarations.length > 0)
-			foreach (f; cond.falseDeclarations)
-				visit(f);
-	}
-
-	override void visit(const FunctionBody fb)
-	{
-	}
-
-	override void visit(const Unittest u)
-	{
-	}
-
-	override void visit(const TraitsExpression t)
-	{
-	}
-
-	mixin V!AnonymousEnumMember;
-	mixin V!ClassDeclaration;
-	mixin V!EnumDeclaration;
-	mixin V!InterfaceDeclaration;
-	mixin V!StructDeclaration;
-	mixin V!UnionDeclaration;
-	mixin V!TemplateDeclaration;
-	mixin V!FunctionDeclaration;
-	mixin V!Constructor;
-
-private:
-
-	mixin template V(T)
-	{
-		override void visit(const T declaration)
-		{
-			import std.traits : hasMember;
-			static if (hasMember!(T, "storageClasses"))
-			{
-				// stop at declarations with a deprecated in their storage classes
-				foreach (sc; declaration.storageClasses)
-					if (sc.deprecated_ !is null)
-						return;
+				super.visit(decl);
+				return;
 			}
 
-			if (currentIsInteresting())
+			bool canBeUndocumented;
+			static if (__traits(hasMember, NodeType, "storage_class"))
+				canBeUndocumented = hasIgnorableStorageClass(decl.storage_class);
+
+			if (!canBeUndocumented)
 			{
-				if (declaration.comment.ptr is null)
-				{
-					static if (hasMember!(T, "name"))
-					{
-						static if (is(T == FunctionDeclaration))
-						{
-							import std.algorithm : canFind;
-
-							if (!(ignoredFunctionNames.canFind(declaration.name.text)
-									|| isGetterOrSetter(declaration.name.text)
-									|| isProperty(declaration)))
-							{
-								addMessage(declaration.name, declaration.name.text);
-							}
-						}
-						else
-						{
-							if (declaration.name.type != tok!"")
-								addMessage(declaration.name, declaration.name.text);
-						}
-					}
-					else
-					{
-						import std.algorithm : countUntil;
-
-						// like constructors
-						auto tokens = declaration.tokens.findTokenForDisplay(tok!"this");
-						auto earlyEnd = tokens.countUntil!(a => a == tok!"{" || a == tok!"(" || a == tok!";");
-						if (earlyEnd != -1)
-							tokens = tokens[0 .. earlyEnd];
-						addMessage(tokens, null);
-					}
-				}
-				static if (!(is(T == TemplateDeclaration) || is(T == FunctionDeclaration)))
-				{
-					declaration.accept(this);
-				}
+				string declName = cast(string) decl.ident.toString();
+				addErrorMessage(decl.loc.linnum, decl.loc.charnum, KEY, MSG.format(declName));
+				super.visit(decl);
 			}
 		}
 	}
 
-	static bool isGetterOrSetter(string name)
+	private bool hasIgnorableStorageClass(ulong storageClass)
 	{
-		return !matchAll(name, getSetRe).empty;
+		return (storageClass & STC.deprecated_) || (storageClass & STC.override_)
+			|| (storageClass & STC.disable) || (storageClass & STC.property);
 	}
 
-	static bool isProperty(const FunctionDeclaration dec)
+	override void visit(AST.UnitTestDeclaration _) {}
+
+	override void visit(AST.TraitsExp _) {}
+
+	override void visit(AST.ConditionalDeclaration conditionalDecl)
 	{
-		if (dec.memberFunctionAttributes is null)
+		auto versionCond = conditionalDecl.condition.isVersionCondition();
+
+		if (versionCond is null)
+			super.visit(conditionalDecl);
+
+		if (isIgnorableVersion(versionCond) && conditionalDecl.elsedecl)
+		{
+			foreach (decl; *(conditionalDecl.elsedecl))
+				super.visit(decl);
+		}
+	}
+
+	override void visit(AST.ConditionalStatement conditionalStatement)
+	{
+		auto versionCond = conditionalStatement.condition.isVersionCondition();
+
+		if (versionCond is null)
+			super.visit(conditionalStatement);
+
+		if (isIgnorableVersion(versionCond) && conditionalStatement.elsebody)
+		{
+			super.visit(conditionalStatement.elsebody);
+		}
+	}
+
+	private bool isIgnorableVersion(AST.VersionCondition versionCond)
+	{
+		if (versionCond is null || versionCond.ident is null)
 			return false;
-		foreach (attr; dec.memberFunctionAttributes)
-		{
-			if (attr.atAttribute && attr.atAttribute.identifier.text == "property")
-				return true;
-		}
-		return false;
-	}
 
-	void addMessage(T)(T range, string name)
-	{
-		import std.string : format;
+		string versionStr = cast(string) versionCond.ident.toString();
 
-		addErrorMessage(range, "dscanner.style.undocumented_declaration", name is null
-				? "Public declaration is undocumented."
-				: format("Public declaration '%s' is undocumented.", name));
+		return versionStr == "unittest" || versionStr == "none";
 	}
-
-	bool getOverride()
-	{
-		return stack[$ - 1].isOverride;
-	}
-
-	void setOverride(bool o = true)
-	{
-		stack[$ - 1].isOverride = o;
-	}
-
-	bool getDisabled()
-	{
-		return stack[$ - 1].isDisabled;
-	}
-
-	void setDisabled(bool d = true)
-	{
-		stack[$ - 1].isDisabled = d;
-	}
-
-	bool getDeprecated()
-	{
-		return stack[$ - 1].isDeprecated;
-	}
-
-	void setDeprecated(bool d = true)
-	{
-		stack[$ - 1].isDeprecated = d;
-	}
-
-	bool currentIsInteresting()
-	{
-		return stack[$ - 1].protection == tok!"public"
-			&& !getOverride() && !getDisabled() && !getDeprecated();
-	}
-
-	void set(IdType p)
-	in
-	{
-		assert(isProtection(p));
-	}
-	do
-	{
-		stack[$ - 1].protection = p;
-	}
-
-	void push(IdType p)
-	in
-	{
-		assert(isProtection(p));
-	}
-	do
-	{
-		stack ~= ProtectionInfo(p, false);
-	}
-
-	void pop()
-	{
-		assert(stack.length > 1);
-		stack = stack[0 .. $ - 1];
-	}
-
-	static struct ProtectionInfo
-	{
-		IdType protection;
-		bool isOverride;
-		bool isDeprecated;
-		bool isDisabled;
-	}
-
-	ProtectionInfo[] stack;
 }
-
-// Ignore undocumented symbols with these names
-private immutable string[] ignoredFunctionNames = [
-	"opCmp", "opEquals", "toString", "toHash", "main"
-];
-
-private enum getSetRe = ctRegex!`^(?:get|set)(?:\p{Lu}|_).*`;
 
 unittest
 {
 	import std.stdio : stderr;
-	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.undocumented_declaration_check = Check.enabled;
 
-	assertAnalyzerWarnings(q{
-		class C{} /+
-		      ^ [warn]: Public declaration 'C' is undocumented. +/
-		interface I{} /+
-		          ^ [warn]: Public declaration 'I' is undocumented. +/
-		enum e = 0; /+
-		     ^ [warn]: Public declaration 'e' is undocumented. +/
-		void f(){} /+
-		     ^ [warn]: Public declaration 'f' is undocumented. +/
-		struct S{} /+
-		       ^ [warn]: Public declaration 'S' is undocumented. +/
-		template T(){} /+
-		         ^ [warn]: Public declaration 'T' is undocumented. +/
-		union U{} /+
-		      ^ [warn]: Public declaration 'U' is undocumented. +/
+	assertAnalyzerWarningsDMD(q{
+		private int x;
+		int y; // [warn]: Public declaration 'y' is undocumented.
+		public int z; // [warn]: Public declaration 'z' is undocumented.
+
+		///
+		class C
+		{
+			int h; // [warn]: Public declaration 'h' is undocumented.
+
+		public:
+			int g; // [warn]: Public declaration 'g' is undocumented.
+			void f() {} // [warn]: Public declaration 'f' is undocumented.
+
+		private:
+			int a;
+			int b;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		deprecated int y;
+
+		///
+		class C
+		{
+			private int b;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		class C{} // [warn]: Public declaration 'C' is undocumented.
+		interface I{} // [warn]: Public declaration 'I' is undocumented.
+		enum e = 0; // [warn]: Public declaration 'e' is undocumented.
+		void f(){} // [warn]: Public declaration 'f' is undocumented.
+		struct S{} // [warn]: Public declaration 'S' is undocumented.
+		template T(){} // [warn]: Public declaration 'T' is undocumented.
+		union U{} // [warn]: Public declaration 'U' is undocumented.
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		/// C
 		class C{}
 		/// I
@@ -353,12 +237,13 @@ unittest
 	}, sac);
 
 	// https://github.com/dlang-community/D-Scanner/issues/760
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
+		deprecated("This has been deprecated") auto func(){}
 		deprecated auto func(){}
 		deprecated auto func()(){}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class C{} /// a
 		interface I{} /// b
 		enum e = 0; /// c
@@ -367,6 +252,35 @@ unittest
 		template T(){} /// f
 		union U{} /// g
 	}, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		int x; // [warn]: Public declaration 'x' is undocumented.
+		int y; ///
+
+		///
+		class C
+		{
+			private int a;
+			int b; ///
+			int c; // [warn]: Public declaration 'c' is undocumented.
+			protected int d;
+		}
+
+		///
+		class D
+		{
+			///
+			void fun()
+			{
+				class Inner
+				{
+					int z;
+				}
+
+				int a1, a2, a3;
+			}
+		}
+	}c, sac);
 
 	stderr.writeln("Unittest for UndocumentedDeclarationCheck passed.");
 }
