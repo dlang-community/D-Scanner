@@ -6,23 +6,23 @@
 module dscanner.analysis.final_attribute;
 
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import std.string : format;
-import std.stdio;
-import dmd.dsymbol;
 import dmd.astcodegen;
+import dmd.dsymbol;
+import dmd.tokens : Token, TOK;
+import std.algorithm;
+import std.array;
+import std.range;
+import std.string : format;
 
 /**
  * Checks for useless usage of the final attribute.
  *
  * There are several cases where the compiler allows them even if it's a noop.
  */
-extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
+extern (C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 {
-
-	mixin AnalyzerInfo!"final_attribute_check";
-	// alias visit = BaseAnalyzerDmd!AST.visit;
 	alias visit = BaseAnalyzerDmd.visit;
+	mixin AnalyzerInfo!"final_attribute_check";
 
 	enum Parent
 	{
@@ -41,6 +41,8 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 	bool _blockFinal;
 	Parent _parent = Parent.module_;
 
+	Token[] tokens;
+
 	enum pushPopPrivate = q{
 		const bool wasPrivate = _private;
 		_private = false;
@@ -50,6 +52,24 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 	extern(D) this(string fileName)
 	{
 		super(fileName);
+		lexFile();
+	}
+
+	private void lexFile()
+	{
+		import dscanner.utils : readFile;
+		import dmd.errorsink : ErrorSinkNull;
+		import dmd.globals : global;
+		import dmd.lexer : Lexer;
+
+		auto bytes = readFile(fileName) ~ '\0';
+		__gshared ErrorSinkNull errorSinkNull;
+		if (!errorSinkNull)
+			errorSinkNull = new ErrorSinkNull;
+
+		scope lexer = new Lexer(null, cast(char*) bytes, 0, bytes.length, 0, 0, errorSinkNull, &global.compileEnv);
+		while (lexer.nextToken() != TOK.endOfFile)
+			tokens ~= lexer.token;
 	}
 
 	override void visit(AST.StorageClassDeclaration scd)
@@ -74,16 +94,22 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 			auto sd = member.isStructDeclaration();
 			auto ud = member.isUnionDeclaration();
 
-			if (!ud && sd && scd.stc & STC.final_)
+			if ((scd.stc & STC.final_) != 0)
 			{
-				addErrorMessage(cast(ulong) sd.loc.linnum, cast(ulong) sd.loc.charnum, KEY,
-					MSGB.format(FinalAttributeChecker.MESSAGE.struct_i));
-			}
+				auto finalTokenOffset = tokens.filter!(t => t.loc.linnum == member.loc.linnum)
+					.find!(t => t.value == TOK.final_)
+					.front.loc.fileOffset;
 
-			if (ud && scd.stc & STC.final_)
-			{
-				addErrorMessage(cast(ulong) ud.loc.linnum, cast(ulong) ud.loc.charnum, KEY,
-					MSGB.format(FinalAttributeChecker.MESSAGE.union_i));
+				ulong lineNum = cast(ulong) member.loc.linnum;
+				ulong charNum = cast(ulong) member.loc.charnum;
+
+				AutoFix fix = AutoFix.replacement(finalTokenOffset, finalTokenOffset + 6, "", "Remove final attribute");
+
+				if (!ud && sd)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.struct_i), [fix]);
+
+				if (ud)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.union_i), [fix]);
 			}
 
 			member.accept(this);
@@ -101,15 +127,22 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
         {
 			auto fd = member.isFuncDeclaration();
 
-			if (fd)
+			if (fd && (fd.storage_class & STC.final_))
 			{
-				if (_parent == Parent.class_ && fd.storage_class & STC.final_)
-					addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-						MSGB.format(FinalAttributeChecker.MESSAGE.class_t));
+				auto finalTokenOffset = tokens.filter!(t => t.loc.linnum == fd.loc.linnum)
+					.find!(t => t.value == TOK.final_)
+					.front.loc.fileOffset;
 
-				if (_parent == Parent.interface_ && fd.storage_class & STC.final_)
-					addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-						MSGB.format(FinalAttributeChecker.MESSAGE.interface_t));
+				ulong lineNum = cast(ulong) fd.loc.linnum;
+				ulong charNum = cast(ulong) fd.loc.charnum;
+
+				AutoFix fix = AutoFix.replacement(finalTokenOffset, finalTokenOffset + 6, "", "Remove final attribute");
+
+				if (_parent == Parent.class_)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_t), [fix]);
+
+				if (_parent == Parent.interface_)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.interface_t), [fix]);
 			}
 		}
 
@@ -135,33 +168,38 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 	{
 		import dmd.astenums : STC;
 
-		if (_parent == Parent.class_ && _private && fd.storage_class & STC.final_)
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.class_p));
+		if ((fd.storage_class & STC.final_) != 0)
+		{
+			auto finalTokenOffset = tokens.filter!(t => t.loc.linnum == fd.loc.linnum)
+				.array()
+				.retro()
+				.find!(t => t.value == TOK.final_)
+				.front.loc.fileOffset;
 
-		else if (fd.storage_class & STC.final_ && (fd.storage_class & STC.static_ || _blockStatic))
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.class_s));
+			ulong lineNum = cast(ulong) fd.loc.linnum;
+			ulong charNum = cast(ulong) fd.loc.charnum;
 
-		else if (_parent == Parent.class_ && _inFinalClass && fd.storage_class & STC.final_)
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.class_f));
+			AutoFix fix = AutoFix.replacement(finalTokenOffset, finalTokenOffset + 6, "", "Remove final attribute");
 
-		if (_parent == Parent.struct_ && fd.storage_class & STC.final_)
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.struct_f));
+			if (_parent == Parent.class_ && _private)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_p), [fix]);
+			else if (fd.storage_class & STC.static_ || _blockStatic)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_s), [fix]);
+			else if (_parent == Parent.class_ && _inFinalClass)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_f), [fix]);
 
-		if (_parent == Parent.union_ && fd.storage_class & STC.final_)
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.union_f));
+			if (_parent == Parent.struct_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.struct_f), [fix]);
 
-		if (_parent == Parent.module_ && fd.storage_class & STC.final_)
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.func_g));
+			if (_parent == Parent.union_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.union_f), [fix]);
 
-		if (_parent == Parent.function_ && fd.storage_class & STC.final_)
-			addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
-				MSGB.format(FinalAttributeChecker.MESSAGE.func_n));
+			if (_parent == Parent.module_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.func_g), [fix]);
+
+			if (_parent == Parent.function_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.func_n), [fix]);
+		}
 
 		_blockStatic = false;
 		mixin (pushPopPrivate);
@@ -232,7 +270,9 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 
 @system unittest
 {
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.final_attribute_check = Check.enabled;
@@ -393,58 +433,61 @@ extern(C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 		}
 	}, sac);
 
-    // TODO: Check if it works and fix otherwise
-	//assertAutoFix(q{
-		//int foo() @property { return 0; }
-
-		//class ClassName {
-			//const int confusingConst() { return 0; } // fix:0
-			//const int confusingConst() { return 0; } // fix:1
-
-			//int bar() @property { return 0; } // fix:0
-			//int bar() @property { return 0; } // fix:1
-			//int bar() @property { return 0; } // fix:2
-		//}
-
-		//struct StructName {
-			//int bar() @property { return 0; } // fix:0
-		//}
-
-		//union UnionName {
-			//int bar() @property { return 0; } // fix:0
-		//}
-
-		//interface InterfaceName {
-			//int bar() @property; // fix:0
-
-			//abstract int method(); // fix
-		//}
-	//}c, q{
-		//int foo() @property { return 0; }
-
-		//class ClassName {
-			//int confusingConst() const { return 0; } // fix:0
-			//const(int) confusingConst() { return 0; } // fix:1
-
-			//int bar() const @property { return 0; } // fix:0
-			//int bar() inout @property { return 0; } // fix:1
-			//int bar() immutable @property { return 0; } // fix:2
-		//}
-
-		//struct StructName {
-			//int bar() const @property { return 0; } // fix:0
-		//}
-
-		//union UnionName {
-			//int bar() const @property { return 0; } // fix:0
-		//}
-
-		//interface InterfaceName {
-			//int bar() const @property; // fix:0
-
-			//int method(); // fix
-		//}
-	//}c, sac);
+	assertAutoFix(q{
+		final void foo(){} // fix
+		void foo(){final void foo(){}} // fix
+		void foo()
+		{
+			static if (true)
+			final class A{ private: final protected void foo(){}} // fix
+		}
+		final struct Foo{} // fix
+		final union Foo{} // fix
+		class Foo{private final void foo(){}} // fix
+		class Foo{private: final void foo(){}} // fix
+		interface Foo{final void foo(T)(){}} // fix
+		final class Foo{final void foo(){}} // fix
+		private: final class Foo {public: private final void foo(){}} // fix
+		class Foo {final static void foo(){}} // fix
+		class Foo
+		{
+			void foo(){}
+			static: final void foo(){} // fix
+		}
+		class Foo
+		{
+			void foo(){}
+			static{final void foo(){}} // fix
+			void foo(){}
+		}
+	}, q{
+		void foo(){} // fix
+		void foo(){void foo(){}} // fix
+		void foo()
+		{
+			static if (true)
+			final class A{ private: protected void foo(){}} // fix
+		}
+		struct Foo{} // fix
+		union Foo{} // fix
+		class Foo{private void foo(){}} // fix
+		class Foo{private: void foo(){}} // fix
+		interface Foo{void foo(T)(){}} // fix
+		final class Foo{void foo(){}} // fix
+		private: final class Foo {public: private void foo(){}} // fix
+		class Foo {static void foo(){}} // fix
+		class Foo
+		{
+			void foo(){}
+			static: void foo(){} // fix
+		}
+		class Foo
+		{
+			void foo(){}
+			static{void foo(){}} // fix
+			void foo(){}
+		}
+	}, sac, true);
 
 	stderr.writeln("Unittest for FinalAttributeChecker passed.");
 }
