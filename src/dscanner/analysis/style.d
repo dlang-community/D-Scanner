@@ -11,7 +11,6 @@ import std.conv : to;
 import std.format : format;
 import std.regex;
 
-// TODO: Fix NoLint
 extern (C++) class StyleChecker(AST) : BaseAnalyzerDmd
 {
 	mixin AnalyzerInfo!"style_check";
@@ -31,6 +30,9 @@ extern (C++) class StyleChecker(AST) : BaseAnalyzerDmd
 
 	override void visit(AST.Module moduleNode)
 	{
+		if (shouldIgnoreDecl(moduleNode.userAttribDecl(), KEY))
+			return;
+
 		super.visit(moduleNode);
 
 		if (moduleNode.md is null)
