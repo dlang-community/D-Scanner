@@ -6,9 +6,10 @@
 module dscanner.analysis.static_if_else;
 
 import dscanner.analysis.base;
-import std.stdio;
+import dmd.tokens : Token, TOK;
+import std.algorithm;
+import std.array;
 
-// TODO: check and fix AutoFix
 /**
  * Checks for potentially mistaken static if / else if.
  *
@@ -21,14 +22,37 @@ import std.stdio;
  * 
  * However, it's more likely that this is a mistake.
  */
-extern(C++) class StaticIfElse(AST) : BaseAnalyzerDmd
+extern (C++) class StaticIfElse(AST) : BaseAnalyzerDmd
 {
 	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"static_if_else_check";
 
+	private Token[] tokens;
+
+	private enum KEY = "dscanner.suspicious.static_if_else";
+	private	enum MESSAGE = "Mismatched static if. Use 'else static if' here.";
+
 	extern(D) this(string fileName, bool skipTests = false)
 	{
 		super(fileName, skipTests);
+		lexFile();
+	}
+
+	private void lexFile()
+	{
+		import dscanner.utils : readFile;
+		import dmd.errorsink : ErrorSinkNull;
+		import dmd.globals : global;
+		import dmd.lexer : Lexer;
+
+		auto bytes = readFile(fileName) ~ '\0';
+		__gshared ErrorSinkNull errorSinkNull;
+		if (!errorSinkNull)
+			errorSinkNull = new ErrorSinkNull;
+
+		scope lexer = new Lexer(null, cast(char*) bytes, 0, bytes.length, 0, 0, 1, errorSinkNull, &global.compileEnv);
+		while (lexer.nextToken() != TOK.endOfFile)
+			tokens ~= lexer.token;
 	}
 
 	override void visit(AST.UserAttributeDeclaration userAttribute)
@@ -49,7 +73,7 @@ extern(C++) class StaticIfElse(AST) : BaseAnalyzerDmd
 
 	override void visit(AST.ConditionalStatement s)
 	{
-		import dmd.astenums : STMT;
+		import std.range : retro;
 
 		if (!s.condition.isStaticIfCondition())
 		{
@@ -64,28 +88,81 @@ extern(C++) class StaticIfElse(AST) : BaseAnalyzerDmd
         
 		if (s.elsebody)
 		{
-			if (s.elsebody.stmt == STMT.If)
-				addErrorMessage(cast(ulong) s.elsebody.loc.linnum, cast(ulong) s.elsebody.loc.charnum,
-					KEY, MESSAGE);
+			if (auto ifStmt = s.elsebody.isIfStatement())
+			{
+				auto tokenRange = tokens.filter!(t => t.loc.linnum >= s.loc.linnum)
+					.filter!(t => t.loc.fileOffset <= ifStmt.endloc.fileOffset);
+
+				auto tabSize = tokenRange
+					.until!(t => t.value == TOK.else_)
+					.array
+					.retro()
+					.until!(t => t.value != TOK.whitespace)
+					.count!(t => t.ptr[0] == '\t');
+
+				string lineTerminator = "\n";
+				version (Windows)
+				{
+					lineTerminator = "\r\n";
+				}
+
+				string braceStart = " {" ~ lineTerminator ~ "\t";
+				string braceEnd = "}" ~ lineTerminator;
+				for (int i = 0; i < tabSize - 1; i++)
+				{
+					braceStart ~= '\t';
+					braceEnd ~= '\t';
+				}
+				braceStart ~= '\t';
+
+				auto fileOffsets = tokenRange.find!(t => t.value == TOK.else_)
+					.filter!(t => t.ptr[0] == '\n')
+					.map!(t => t.loc.fileOffset + 1)
+					.array;
+
+				AutoFix autofix2 = AutoFix.insertionAt(ifStmt.endloc.fileOffset, braceEnd);
+				foreach (fileOffset; fileOffsets)
+					autofix2 = autofix2.concat(AutoFix.insertionAt(fileOffset, "\t"));
+				autofix2 = autofix2.concat(AutoFix.insertionAt(ifStmt.loc.fileOffset, braceStart));
+
+				auto ifRange = tokenRange.find!(t => t.loc.fileOffset >= ifStmt.ifbody.loc.fileOffset)
+					.array;
+				if (ifRange[0].value == TOK.leftCurly)
+				{
+					int idx = 1;
+					while (ifRange[idx].value == TOK.whitespace)
+						idx++;
+					autofix2 = autofix2.concat(AutoFix.insertionAt(ifRange[idx].loc.fileOffset, "\t"));
+				}
+				else
+				{
+					autofix2 = autofix2.concat(AutoFix.insertionAt(ifStmt.ifbody.loc.fileOffset, "\t"));
+				}
+
+
+				addErrorMessage(
+					cast(ulong) ifStmt.loc.linnum, cast(ulong) s.elsebody.loc.charnum, KEY, MESSAGE,
+						[
+						AutoFix.insertionAt(ifStmt.loc.fileOffset, "static "),
+						autofix2
+					]
+				);
+			}
 		
 			s.elsebody.accept(this);
 		}
 	}
-
-private:
-	enum KEY = "dscanner.suspicious.static_if_else";
-	enum MESSAGE = "Mismatched static if. Use 'else static if' here.";
 }
 
 unittest
 {
-	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.static_if_else_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void foo() {
 			static if (false)
 				auto a = 0;
@@ -93,8 +170,9 @@ unittest
 				auto b = 1;
 		}
 	}c, sac);
+
 	// Explicit braces, so no warning.
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void foo() {
 			static if (false)
 				auto a = 0;
@@ -104,6 +182,52 @@ unittest
 			}
 		}
 	}c, sac);
+
+	assertAutoFix(q{
+		void foo() {
+			static if (false)
+				auto a = 0;
+			else if (true) // fix:0
+				auto b = 1;
+		}
+		void bar() {
+			static if (false)
+				auto a = 0;
+			else if (true) // fix:1
+				auto b = 1;
+		}
+		void baz() {
+			static if (false)
+				auto a = 0;
+			else if (true) { // fix:1
+				auto b = 1;
+			}
+		}
+	}c, q{
+		void foo() {
+			static if (false)
+				auto a = 0;
+			else static if (true) // fix:0
+				auto b = 1;
+		}
+		void bar() {
+			static if (false)
+				auto a = 0;
+			else {
+				if (true) // fix:1
+					auto b = 1;
+			}
+		}
+		void baz() {
+			static if (false)
+				auto a = 0;
+			else {
+				if (true) { // fix:1
+					auto b = 1;
+				}
+			}
+		}
+	}c, sac, true);
 
 	stderr.writeln("Unittest for StaticIfElse passed.");
 }
