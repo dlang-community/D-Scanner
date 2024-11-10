@@ -5,8 +5,6 @@
 
 module dscanner.analysis.length_subtraction;
 
-import std.stdio;
-
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 
@@ -18,31 +16,35 @@ extern (C++) class LengthSubtractionCheck(AST) : BaseAnalyzerDmd
 	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"length_subtraction_check";
 
+	private enum KEY = "dscanner.suspicious.length_subtraction";
+	private enum MSG = "Avoid subtracting from '.length' as it may be unsigned.";
+
 	extern(D) this(string fileName)
 	{
 		super(fileName);
 	}
 
-	override void visit(AST.BinExp be)
+	override void visit(AST.MinExp minExpr)
 	{
-		import dmd.tokens : EXP;
+		super.visit(minExpr);
 
-		if (auto de = be.e1.isDotIdExp())
-		{
-			if (be.op == EXP.min && de.ident.toString() == "length")
-				addErrorMessage(cast(size_t) de.loc.linnum, cast(size_t) de.loc.charnum + 1, KEY,
-									"Avoid subtracting from '.length' as it may be unsigned.");
-		}
+		auto left = minExpr.e1.isDotIdExp();
+		if (left is null || left.ident is null)
+			return;
 
-		super.visit(be);
+		if (left.ident.toString() == "length")
+			addErrorMessage(
+				cast(ulong) left.loc.linnum, cast(ulong) left.loc.charnum, KEY, MSG,
+				[AutoFix.insertionAt(minExpr.loc.fileOffset, "cast(ptrdiff_t) ")]
+			);
 	}
-
-	private enum KEY = "dscanner.suspicious.length_subtraction";
 }
 
 unittest
 {
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.length_subtraction_check = Check.enabled;
@@ -54,19 +56,19 @@ unittest
 		}
 	}c, sac);
 
-    // TODO: Check and fix if broken
-	//assertAutoFix(q{
-		//void testSizeT()
-		//{
-			//if (i < a.length - 1) // fix
-				//writeln("something");
-		//}
-	//}c, q{
-		//void testSizeT()
-		//{
-			//if (i < cast(ptrdiff_t) a.length - 1) // fix
-				//writeln("something");
-		//}
-	//}c, sac);
+	assertAutoFix(q{
+		void testSizeT()
+		{
+			if (i < a.length - 1) // fix
+				writeln("something");
+		}
+	}c, q{
+		void testSizeT()
+		{
+			if (i < cast(ptrdiff_t) a.length - 1) // fix
+				writeln("something");
+		}
+	}c, sac, true);
+
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }
