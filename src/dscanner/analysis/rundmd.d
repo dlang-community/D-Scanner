@@ -24,6 +24,7 @@ import dscanner.analysis.del : DeleteCheck;
 import dscanner.analysis.enumarrayliteral : EnumArrayVisitor;
 import dscanner.analysis.explicitly_annotated_unittests : ExplicitlyAnnotatedUnittestCheck;
 import dscanner.analysis.final_attribute : FinalAttributeChecker;
+import dscanner.analysis.function_attributes : FunctionAttributeCheck;
 import dscanner.analysis.has_public_example : HasPublicExampleCheck;
 import dscanner.analysis.if_constraints_indent : IfConstraintsIndentCheck;
 import dscanner.analysis.ifelsesame : IfElseSameCheck;
@@ -344,6 +345,12 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 		visitors ~= new UndocumentedDeclarationCheck!ASTCodegen(
 			fileName,
 			config.undocumented_declaration_check == Check.skipTests && !ut
+		);
+
+	if (moduleName.shouldRunDmd!(FunctionAttributeCheck!ASTCodegen)(config))
+		visitors ~= new FunctionAttributeCheck!ASTCodegen(
+			fileName,
+			config.function_attribute_check == Check.skipTests && !ut
 		);
 
 	foreach (visitor; visitors)
