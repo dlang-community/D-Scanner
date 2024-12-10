@@ -58,7 +58,7 @@ unittest
 		enum x = [1, 2, 3]; // fix
 	}c, q{
 		static immutable x = [1, 2, 3]; // fix
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for EnumArrayLiteralCheck passed.");
 }

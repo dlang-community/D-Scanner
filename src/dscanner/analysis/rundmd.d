@@ -97,6 +97,22 @@ private void setupDmd()
 MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleName, const StaticAnalysisConfig config)
 {
 	MessageSet set = new MessageSet;
+	auto visitors = getDmdAnalyzersForModuleAndConfig(fileName, config, moduleName);
+
+	foreach (visitor; visitors)
+	{
+		m.accept(visitor);
+
+		foreach (message; visitor.messages)
+			set.insert(message);
+	}
+
+	return set;
+}
+
+BaseAnalyzerDmd[] getDmdAnalyzersForModuleAndConfig(string fileName, const StaticAnalysisConfig config,
+	const char[] moduleName)
+{
 	BaseAnalyzerDmd[] visitors;
 
 	if (moduleName.shouldRunDmd!(ObjectConstCheck!ASTCodegen)(config))
@@ -322,7 +338,7 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 			fileName,
 			config.vcall_in_ctor == Check.skipTests && !ut
 		);
-	
+
 	if (moduleName.shouldRunDmd!AllManCheck(config))
 		visitors ~= new AllManCheck(
 			fileName,
@@ -353,15 +369,7 @@ MessageSet analyzeDmd(string fileName, ASTCodegen.Module m, const char[] moduleN
 			config.function_attribute_check == Check.skipTests && !ut
 		);
 
-	foreach (visitor; visitors)
-	{
-		m.accept(visitor);
-
-		foreach (message; visitor.messages)
-			set.insert(message);
-	}
-
-	return set;
+	return visitors;
 }
 
 /**

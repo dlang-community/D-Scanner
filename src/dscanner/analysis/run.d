@@ -22,14 +22,10 @@ import std.range;
 import std.stdio;
 import std.typecons : scoped;
 
-import std.experimental.allocator : CAllocatorImpl;
-import std.experimental.allocator.mallocator : Mallocator;
-import std.experimental.allocator.building_blocks.region : Region;
-import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
-
 import dscanner.analysis.autofix : improveAutoFixWhitespace;
 import dscanner.analysis.config;
 import dscanner.analysis.base;
+import dscanner.analysis.rundmd;
 import dscanner.analysis.style;
 import dscanner.analysis.enumarrayliteral;
 import dscanner.analysis.pokemon;
@@ -79,23 +75,14 @@ import dscanner.analysis.redundant_storage_class;
 import dscanner.analysis.unused_result;
 import dscanner.analysis.cyclomatic_complexity;
 import dscanner.analysis.body_on_disabled_funcs;
-
-import dsymbol.string_interning : internString;
-import dsymbol.scope_;
-import dsymbol.semantic;
-import dsymbol.conversion;
-import dsymbol.conversion.first;
-import dsymbol.conversion.second;
-import dsymbol.modulecache : ModuleCache;
-
-import dscanner.utils;
 import dscanner.reports : DScannerJsonReporter, SonarQubeGenericIssueDataReporter;
+import dscanner.utils;
 
 import dmd.astbase : ASTBase;
-import dmd.parse : Parser;
-
-import dmd.frontend;
 import dmd.astcodegen;
+import dmd.frontend;
+import dmd.globals : global;
+import dmd.parse : Parser;
 
 bool first = true;
 
@@ -107,9 +94,6 @@ else
 void doNothing(string, size_t, size_t, string, bool)
 {
 }
-
-private alias ASTAllocator = CAllocatorImpl!(
-		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
 
 immutable string defaultErrorFormat = "{filepath}({line}:{column})[{type}]: {message}";
 
@@ -261,9 +245,7 @@ void writeJSON(Message message)
 	writeln("    {");
 	writeln(`      "key": "`, message.key, `",`);
 	if (message.checkName !is null)
-	{
 		writeln(`      "name": "`, message.checkName, `",`);
-	}
 	writeln(`      "fileName": "`, message.fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
 	writeln(`      "line": `, message.startLine, `,`);
 	writeln(`      "column": `, message.startColumn, `,`);
@@ -299,42 +281,32 @@ void writeJSON(Message message)
 	write("    }");
 }
 
-bool syntaxCheck(string[] fileNames, string errorFormat, ref StringCache stringCache, ref ModuleCache moduleCache)
+bool syntaxCheck(string[] fileNames, string errorFormat)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	return analyze(fileNames, config, errorFormat, stringCache, moduleCache, false);
+	return analyze(fileNames, config, errorFormat);
 }
 
-void generateReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache, string reportFile = "")
+void generateReport(string[] fileNames, const StaticAnalysisConfig config, string reportFile = "")
 {
 	auto reporter = new DScannerJsonReporter();
-
-	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
-		// TODO: proper index and column ranges
-		reporter.addMessage(
-			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
-			isError);
-	};
-
 	first = true;
-	StatsCollector stats = new StatsCollector(BaseAnalyzerArguments.init);
+	auto statsCollector = new StatsCollector!ASTCodegen();
 	ulong lineOfCodeCount;
+
 	foreach (fileName; fileNames)
 	{
 		auto code = readFile(fileName);
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, cache, tokens, writeMessages, &lineOfCodeCount, null, null);
-		stats.visit(m);
-		MessageSet messageSet = analyze(fileName, m, config, moduleCache, tokens, true);
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		dmdModule.accept(statsCollector);
+		MessageSet messageSet = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		reporter.addMessageSet(messageSet);
 	}
 
-	string reportFileContent = reporter.getContent(stats, lineOfCodeCount);
+	string reportFileContent = reporter.getContent(statsCollector, lineOfCodeCount);
 	if (reportFile == "")
 	{
 		writeln(reportFileContent);
@@ -347,16 +319,9 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 }
 
 void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache, string reportFile = "")
+	string reportFile = "")
 {
 	auto reporter = new SonarQubeGenericIssueDataReporter();
-
-	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
-		// TODO: proper index and column ranges
-		reporter.addMessage(
-			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
-			isError);
-	};
 
 	foreach (fileName; fileNames)
 	{
@@ -364,10 +329,8 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, cache, tokens, writeMessages, null, null, null);
-		MessageSet messageSet = analyze(fileName, m, config, moduleCache, tokens, true);
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		MessageSet messageSet = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		reporter.addMessageSet(messageSet);
 	}
 
@@ -388,45 +351,49 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
  *
  * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
  */
-bool analyze(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
-		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
+bool analyze(string[] fileNames, const StaticAnalysisConfig config, string errorFormat)
 {
-	import std.string : toStringz;
-	import dscanner.analysis.rundmd : parseDmdModule;
-
-	import dscanner.analysis.rundmd : analyzeDmd;
+	import std.file : exists, remove;
 
 	bool hasErrors;
 	foreach (fileName; fileNames)
 	{
-		auto code = readFile(fileName);
+		bool isStdin;
+		ubyte[] code;
+
+		if (fileName == "stdin")
+		{
+			code = readStdin();
+			fileName = "stdin.d";
+			File f = File(fileName, "w");
+			f.rawWrite(code);
+			f.close();
+			isStdin = true;
+		}
+		else
+		{
+			code = readFile(fileName);
+		}
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
 
 		auto dmdModule = parseDmdModule(fileName, cast(string) code);
-
-		RollbackAllocator r;
-		uint errorCount;
-		uint warningCount;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, errorFormat, cache, false, tokens,
-				null, &errorCount, &warningCount);
-		assert(m);
-		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
+		if (global.errors > 0 || global.warnings > 0)
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
-		MessageSet resultsDmd = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
-		foreach (result; resultsDmd[])
-		{
-			results.insert(result);
-		}
+		MessageSet results = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
+
 		if (results is null)
 			continue;
+
+		hasErrors = !results.empty;
 		foreach (result; results[])
-		{
-			hasErrors = true;
 			messageFunctionFormat(errorFormat, result, false, code);
+
+		if (isStdin)
+		{
+			assert(exists(fileName));
+			remove(fileName);
 		}
 	}
 	return hasErrors;
@@ -437,9 +404,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
  *
  * Returns: true if there were parse errors.
  */
-bool autofix(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
-		ref StringCache cache, ref ModuleCache moduleCache, bool autoApplySingle,
-		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
+bool autofix(string[] fileNames, const StaticAnalysisConfig config, string errorFormat, bool autoApplySingle)
 {
 	import std.format : format;
 
@@ -450,16 +415,11 @@ bool autofix(string[] fileNames, const StaticAnalysisConfig config, string error
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		uint errorCount;
-		uint warningCount;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, errorFormat, cache, false, tokens,
-				null, &errorCount, &warningCount);
-		assert(m);
-		if (errorCount > 0)
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		if (global.errors > 0)
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true, true, overrideFormattingConfig);
+
+		MessageSet results = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		if (results is null)
 			continue;
 
@@ -597,115 +557,6 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	return parseModule(fileName, code, p, cache, tokens,
 		report ? toDelegate(&messageFunctionJSON) : writeMessages,
 		linesOfCode, errorCount, warningCount);
-}
-
-/**
-Checks whether a module is part of a user-specified include/exclude list.
-The user can specify a comma-separated list of filters, everyone needs to start with
-either a '+' (inclusion) or '-' (exclusion).
-If no includes are specified, all modules are included.
-*/
-bool shouldRun(check : BaseAnalyzer)(string moduleName, const ref StaticAnalysisConfig config)
-{
-	enum string a = check.name;
-
-	if (mixin("config." ~ a) == Check.disabled)
-		return false;
-
-	// By default, run the check
-	if (!moduleName.length)
-		return true;
-
-	auto filters = mixin("config.filters." ~ a);
-
-	// Check if there are filters are defined
-	// filters starting with a comma are invalid
-	if (filters.length == 0 || filters[0].length == 0)
-		return true;
-
-	auto includers = filters.filter!(f => f[0] == '+').map!(f => f[1..$]);
-	auto excluders = filters.filter!(f => f[0] == '-').map!(f => f[1..$]);
-
-	// exclusion has preference over inclusion
-	if (!excluders.empty && excluders.any!(s => moduleName.canFind(s)))
-		return false;
-
-	if (!includers.empty)
-		return includers.any!(s => moduleName.canFind(s));
-
-	// by default: include all modules
-	return true;
-}
-
-BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
-	const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
-{
-	BaseAnalyzer[] checks;
-
-	string moduleName;
-	if (m !is null && m.moduleDeclaration !is null &&
-		  m.moduleDeclaration.moduleName !is null &&
-		  m.moduleDeclaration.moduleName.identifiers !is null)
-		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
-
-	BaseAnalyzerArguments args = BaseAnalyzerArguments(
-		fileName,
-		tokens,
-		moduleScope
-	);
-
-	// Add those lines to suppress warnings about unused variables until cleanup is complete
-	bool ignoreVar = analysisConfig.if_constraints_indent == Check.skipTests;
-	bool ignoreVar2 = args.skipTests;
-	ignoreVar = ignoreVar || ignoreVar2;
-
-	return checks;
-}
-
-MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
-		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true,
-		bool resolveAutoFixes = false,
-		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	import dsymbol.symbol : DSymbol;
-	import dscanner.analysis.autofix : resolveAutoFixFromCheck;
-
-	if (!staticAnalyze)
-		return null;
-
-	const(AutoFixFormatting) formattingConfig =
-		(resolveAutoFixes && overrideFormattingConfig is AutoFixFormatting.invalid)
-			? analysisConfig.getAutoFixFormattingConfig()
-			: overrideFormattingConfig;
-
-	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
-	first.run();
-
-	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
-	auto moduleScope = first.moduleScope;
-	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
-	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
-	scope(exit) typeid(Scope).destroy(first.moduleScope);
-
-	GC.disable;
-	scope (exit)
-		GC.enable;
-
-	MessageSet set = new MessageSet;
-	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
-	{
-		check.visit(m);
-		foreach (message; check.messages)
-		{
-			if (resolveAutoFixes)
-				foreach (ref autofix; message.autofixes)
-					autofix.resolveAutoFixFromCheck(check, m, tokens, formattingConfig);
-			set.insert(message);
-		}
-	}
-
-	return set;
 }
 
 version (unittest)

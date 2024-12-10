@@ -133,7 +133,7 @@ extern (C++) class AlwaysCurlyCheck(AST) : BaseAnalyzerDmd
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
@@ -240,7 +240,7 @@ unittest
 		void test() {
 			if(true) { return; } // fix:0
 		}
-	}c, sac, true);
+	}c, sac);
 
 	assertAutoFix(q{
 		void test() {
@@ -250,7 +250,7 @@ unittest
 		void test() {
 			foreach(_; 0 .. 10 ) { return; } // fix:0
 		}
-	}c, sac, true);
+	}c, sac);
 
 	assertAutoFix(q{
 		void test() {
@@ -260,7 +260,7 @@ unittest
 		void test() {
 			for(int i = 0; i < 10; ++i) { return; } // fix:0
 		}
-	}c, sac, true);
+	}c, sac);
 
 	assertAutoFix(q{
 		void test() {
@@ -270,7 +270,7 @@ unittest
 		void test() {
 			do { return; } while(true); // fix:0
 		}
-	}c, sac, true);
+	}c, sac);
 
 
 	stderr.writeln("Unittest for AutoFix AlwaysCurly passed.");

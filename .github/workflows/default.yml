@@ -168,11 +168,16 @@ jobs:
           fi
           "./bin/dscanner$EXE" --styleCheck -f "$FORMAT" src
 
-      # TODO: fixme
-      #- name: Integration Tests
-        #run: ./it.sh
-        #working-directory: tests
-        #shell: bash
+      - name: Integration Tests
+#        run: ./it.sh
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            ./it.sh Windows
+          else
+            ./it.sh Unix
+          fi
+        working-directory: tests
+        shell: bash
 
       - name: Run style checks
         if: ${{ matrix.compiler.dmd == 'dmd' && matrix.build.type == 'make' }}

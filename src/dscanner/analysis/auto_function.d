@@ -226,7 +226,7 @@ unittest
 		@safe void doStuff(){} // fix
 		@Custom
 		void doStuff(){} // fix
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for AutoFunctionChecker passed.");
 }
