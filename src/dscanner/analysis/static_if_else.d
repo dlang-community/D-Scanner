@@ -120,7 +120,8 @@ extern (C++) class StaticIfElse(AST) : BaseAnalyzerDmd
 					.map!(t => t.loc.fileOffset + 1)
 					.array;
 
-				AutoFix autofix2 = AutoFix.insertionAt(ifStmt.endloc.fileOffset, braceEnd);
+				AutoFix autofix2 =
+					AutoFix.insertionAt(ifStmt.endloc.fileOffset, braceEnd, "Wrap '{}' block around 'if'");
 				foreach (fileOffset; fileOffsets)
 					autofix2 = autofix2.concat(AutoFix.insertionAt(fileOffset, "\t"));
 				autofix2 = autofix2.concat(AutoFix.insertionAt(ifStmt.loc.fileOffset, braceStart));
@@ -139,13 +140,12 @@ extern (C++) class StaticIfElse(AST) : BaseAnalyzerDmd
 					autofix2 = autofix2.concat(AutoFix.insertionAt(ifStmt.ifbody.loc.fileOffset, "\t"));
 				}
 
-
+				ulong[2] index = [cast(ulong) s.elsebody.loc.fileOffset - 5, cast(ulong) ifStmt.loc.fileOffset + 2];
+				ulong[2] lines = [cast(ulong) s.elsebody.loc.linnum, cast(ulong) ifStmt.loc.linnum];
+				ulong[2] columns = [cast(ulong) s.elsebody.loc.charnum, cast(ulong) ifStmt.loc.charnum + 2];
 				addErrorMessage(
-					cast(ulong) ifStmt.loc.linnum, cast(ulong) s.elsebody.loc.charnum, KEY, MESSAGE,
-						[
-						AutoFix.insertionAt(ifStmt.loc.fileOffset, "static "),
-						autofix2
-					]
+					index, lines, columns, KEY, MESSAGE,
+					[AutoFix.insertionAt(ifStmt.loc.fileOffset, "static "), autofix2]
 				);
 			}
 		
@@ -227,7 +227,7 @@ unittest
 				}
 			}
 		}
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for StaticIfElse passed.");
 }

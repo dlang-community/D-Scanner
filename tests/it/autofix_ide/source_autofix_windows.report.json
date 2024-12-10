@@ -1,0 +1,139 @@
+{
+    "classCount": 0,
+    "functionCount": 1,
+    "interfaceCount": 0,
+    "issues": [
+        {
+            "column": 6,
+            "endColumn": 12,
+            "endIndex": 22,
+            "endLine": 3,
+            "fileName": "it/autofix_ide/source_autofix.d",
+            "index": 16,
+            "key": "dscanner.confusing.function_attributes",
+            "line": 3,
+            "message": "Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.",
+            "name": "function_attribute_check",
+            "supplemental": [],
+            "type": "warn",
+            "autofixes": [
+                {
+                    "name": "Insert `const`",
+                    "replacements": [
+                        {
+                            "newText": "const ",
+                            "range": [
+                                25,
+                                25
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Insert `inout`",
+                    "replacements": [
+                        {
+                            "newText": "inout ",
+                            "range": [
+                                25,
+                                25
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Insert `immutable`",
+                    "replacements": [
+                        {
+                            "newText": "immutable ",
+                            "range": [
+                                25,
+                                25
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "autofixes": [
+                {
+                    "name": "Insert `static`",
+                    "replacements": [
+                        {
+                            "newText": "static ",
+                            "range": [
+                                69,
+                                69
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Wrap '{}' block around 'if'",
+                    "replacements": [
+                        {
+                            "newText": " {\r\n\t\t\t",
+                            "range": [
+                                69,
+                                69
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                76,
+                                76
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                80,
+                                80
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                82,
+                                82
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                84,
+                                84
+                            ]
+                        },
+                        {
+                            "newText": "}\r\n\t",
+                            "range": [
+                                85,
+                                85
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "column": 8,
+            "endColumn": 10,
+            "endIndex": 71,
+            "endLine": 8,
+            "fileName": "it/autofix_ide/source_autofix.d",
+            "index": 64,
+            "key": "dscanner.suspicious.static_if_else",
+            "line": 8,
+            "message": "Mismatched static if. Use 'else static if' here.",
+            "name": "static_if_else_check",
+            "supplemental": [],
+            "type": "warn"
+        }
+    ],
+    "lineOfCodeCount": 0,
+    "statementCount": 2,
+    "structCount": 1,
+    "templateCount": 0,
+    "undocumentedPublicSymbols": 0
+}

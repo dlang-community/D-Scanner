@@ -68,7 +68,7 @@ unittest
 			if (i < cast(ptrdiff_t) a.length - 1) // fix
 				writeln("something");
 		}
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }

@@ -5,9 +5,7 @@
 
 module dscanner.analysis.del;
 
-import std.stdio;
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
 
 /**
  * Checks for use of the deprecated 'delete' keyword
@@ -45,7 +43,8 @@ extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.delete_check = Check.enabled;
@@ -79,7 +78,7 @@ unittest
 			auto a = new Class();
 			destroy(a); // fix
 		}
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for DeleteCheck passed.");
 }

@@ -139,7 +139,7 @@ unittest
 			pragma(msg, typeof((a) { return a; })); // fix:0
 			pragma(msg, typeof((a) => () { return a; })); // fix:1
 		}
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for LambdaReturnCheck passed.");
 }
