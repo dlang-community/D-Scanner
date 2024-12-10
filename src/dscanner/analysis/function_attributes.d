@@ -98,8 +98,13 @@ extern (C++) class FunctionAttributeCheck(AST) : BaseAnalyzerDmd
 		if (fd.type is null)
 			return;
 
-		immutable ulong lineNum = cast(ulong) fd.loc.linnum;
-		immutable ulong charNum = cast(ulong) fd.loc.charnum;
+		string funcName = fd.ident is null ? "" : cast(string) fd.ident.toString();
+		ulong fileOffset = cast(ulong) fd.loc.fileOffset;
+		ulong lineNum = cast(ulong) fd.loc.linnum;
+		ulong charNum = cast(ulong) fd.loc.charnum;
+		ulong[2] index = [fileOffset, fileOffset + funcName.length];
+		ulong[2] lines = [lineNum, lineNum];
+		ulong[2] columns = [charNum, charNum + funcName.length];
 
 		if (inInterface)
 		{
@@ -114,7 +119,7 @@ extern (C++) class FunctionAttributeCheck(AST) : BaseAnalyzerDmd
 					.front.loc.fileOffset;
 
 				addErrorMessage(
-					lineNum, charNum, KEY, ABSTRACT_MSG,
+					index, lines, columns, KEY, ABSTRACT_MSG,
 					[AutoFix.replacement(offset, offset + 8, "", "Remove `abstract` attribute")]
 				);
 
@@ -146,7 +151,7 @@ extern (C++) class FunctionAttributeCheck(AST) : BaseAnalyzerDmd
 
 				if (!isStatic && isZeroParamProperty && !propertyRange.empty)
 					addErrorMessage(
-						lineNum, charNum, KEY, CONST_MSG,
+						index, lines, columns, KEY, CONST_MSG,
 						[
 							AutoFix.insertionAt(propertyRange.front.loc.fileOffset, "const "),
 							AutoFix.insertionAt(propertyRange.front.loc.fileOffset, "inout "),
@@ -192,7 +197,7 @@ extern (C++) class FunctionAttributeCheck(AST) : BaseAnalyzerDmd
 							constLikeToken.loc.fileOffset + modifier.length, "(", "Make return type" ~ modifier)
 						.concat(AutoFix.insertionAt(parensToken.loc.fileOffset - 1, ")"));
 
-					addErrorMessage(lineNum, charNum, KEY, RETURN_MSG.format(storageTok), [fix1, fix2]);
+					addErrorMessage(index, lines, columns, KEY, RETURN_MSG.format(storageTok), [fix1, fix2]);
 				}
 			}
 		}
@@ -316,7 +321,7 @@ unittest
 
 			int method(); // fix
 		}
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for ObjectConstCheck passed.");
 }

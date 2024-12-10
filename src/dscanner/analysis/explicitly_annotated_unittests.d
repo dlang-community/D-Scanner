@@ -5,15 +5,14 @@
 module dscanner.analysis.explicitly_annotated_unittests;
 
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
 
 /**
  * Requires unittests to be explicitly annotated with either @safe or @system
  */
-extern(C++) class ExplicitlyAnnotatedUnittestCheck(AST) : BaseAnalyzerDmd
+extern (C++) class ExplicitlyAnnotatedUnittestCheck(AST) : BaseAnalyzerDmd
 {
-    mixin AnalyzerInfo!"explicitly_annotated_unittests";
 	alias visit = BaseAnalyzerDmd.visit;
+    mixin AnalyzerInfo!"explicitly_annotated_unittests";
 
 	extern(D) this(string fileName)
 	{
@@ -46,10 +45,10 @@ private:
 
 unittest
 {
+	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
 	import std.stdio : stderr;
 	import std.format : format;
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.explicitly_annotated_unittests = Check.enabled;
@@ -78,7 +77,7 @@ unittest
 		}
 	}c, sac);
 
-	//// nested
+	// nested
 	assertAutoFix(q{
 		unittest {} // fix:0
 		pure nothrow @nogc unittest {} // fix:0
@@ -97,7 +96,7 @@ unittest
 			@system unittest {} // fix:1
 			pure nothrow @nogc @system unittest {} // fix:1
 		}
-	}c, sac, true);
+	}c, sac);
 
 	stderr.writeln("Unittest for ExplicitlyAnnotatedUnittestCheck passed.");
 }

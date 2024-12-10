@@ -7,6 +7,7 @@ module dscanner.analysis.style;
 
 import dscanner.analysis.base;
 import dmd.astenums : LINK;
+import dmd.location : Loc;
 import std.conv : to;
 import std.format : format;
 import std.regex;
@@ -39,19 +40,17 @@ extern (C++) class StyleChecker(AST) : BaseAnalyzerDmd
 			return;
 
 		auto moduleDecl = *moduleNode.md;
-		auto lineNum = cast(ulong) moduleDecl.loc.linnum;
-		auto charNum = cast(ulong) moduleDecl.loc.charnum;
-		auto moduleName = moduleDecl.id.toString();
+		auto moduleName = cast(string) moduleDecl.id.toString();
 
 		if (moduleName.matchFirst(moduleNameRegex).length == 0)
-			addErrorMessage(lineNum, charNum, KEY, MSG.format("Module/package", moduleName));
+			addError(moduleDecl.loc, "Module/package", moduleName);
 
 		foreach (pkg; moduleDecl.packages)
 		{
 			auto pkgName = pkg.toString();
 
 			if (pkgName.matchFirst(moduleNameRegex).length == 0)
-				addErrorMessage(lineNum, charNum, KEY, MSG.format("Module/package", pkgName));
+				addError(moduleDecl.loc, "Module/package", moduleName);
 		}
 	}
 
@@ -80,15 +79,10 @@ extern (C++) class StyleChecker(AST) : BaseAnalyzerDmd
 		if (varDeclaration.storage_class & STC.manifest || varDeclaration.ident is null)
 			return;
 
-		auto varName = varDeclaration.ident.toString();
+		auto varName = cast(string) varDeclaration.ident.toString();
 
 		if (varName.matchFirst(varFunNameRegex).length == 0)
-		{
-			auto msg = MSG.format("Variable", varName);
-			auto lineNum = cast(ulong) varDeclaration.loc.linnum;
-			auto charNum = cast(ulong) varDeclaration.loc.charnum;
-			addErrorMessage(lineNum, charNum, KEY, msg);
-		}
+			addError(varDeclaration.loc, "Variable", varName);
 	}
 
 	mixin VisitNode!(AST.ClassDeclaration, "Class", aggregateNameRegex);
@@ -108,16 +102,22 @@ extern (C++) class StyleChecker(AST) : BaseAnalyzerDmd
 			if (node.ident is null)
 				return;
 
-			auto nodeSymbolName = node.ident.toString();
+			auto nodeSymbolName = cast(string) node.ident.toString();
 
 			if (nodeSymbolName.matchFirst(regex).length == 0)
-			{
-				auto msg = MSG.format(nodeName, nodeSymbolName);
-				auto lineNum = cast(ulong) node.loc.linnum;
-				auto charNum = cast(ulong) node.loc.charnum;
-				addErrorMessage(lineNum, charNum, KEY, msg);
-			}
+				addError(node.loc, nodeName, nodeSymbolName);
 		}
+	}
+
+	private extern (D) void addError(Loc loc, string nodeType, string nodeName)
+	{
+		auto fileOffset = cast(ulong) loc.fileOffset;
+		auto lineNum = cast(ulong) loc.linnum;
+		auto charNum = cast(ulong) loc.charnum;
+		ulong[2] index = [fileOffset, fileOffset + nodeName.length];
+		ulong[2] lines = [lineNum, lineNum];
+		ulong[2] columns = [charNum, charNum + nodeName.length];
+		addErrorMessage(index, lines, columns, KEY, MSG.format(nodeType, nodeName));
 	}
 }
 

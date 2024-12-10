@@ -487,7 +487,7 @@ extern (C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 			static{void foo(){}} // fix
 			void foo(){}
 		}
-	}, sac, true);
+	}, sac);
 
 	stderr.writeln("Unittest for FinalAttributeChecker passed.");
 }
