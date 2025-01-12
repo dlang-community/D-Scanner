@@ -6,7 +6,7 @@ import std.file : exists, remove;
 import std.functional : toDelegate;
 import std.stdio;
 
-import dscanner.analysis.base : AutoFix, AutoFixFormatting, BaseAnalyzer, BaseAnalyzerDmd, Message;
+import dscanner.analysis.base : AutoFix, AutoFixFormatting, BaseAnalyzerDmd, Message;
 import dscanner.analysis.config : StaticAnalysisConfig;
 import dscanner.analysis.run : analyze, doNothing;
 import dscanner.analysis.rundmd;
