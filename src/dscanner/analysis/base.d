@@ -2,7 +2,6 @@ module dscanner.analysis.base;
 
 import dparse.ast;
 import dparse.lexer : IdType, str, Token, tok;
-import dsymbol.scope_ : Scope;
 import std.array;
 import std.container;
 import std.meta : AliasSeq;
@@ -318,118 +317,6 @@ mixin template AnalyzerInfo(string checkName)
 	{
 		return name;
 	}
-}
-
-struct BaseAnalyzerArguments
-{
-	string fileName;
-	const(Token)[] tokens;
-	const Scope* sc;
-	bool skipTests = false;
-
-	BaseAnalyzerArguments setSkipTests(bool v)
-	{
-		auto ret = this;
-		ret.skipTests = v;
-		return ret;
-	}
-}
-
-abstract class BaseAnalyzer : ASTVisitor
-{
-public:
-	deprecated("Don't use this constructor, use the one taking BaseAnalyzerArguments")
-	this(string fileName, const Scope* sc, bool skipTests = false)
-	{
-		BaseAnalyzerArguments args = {
-			fileName: fileName,
-			sc: sc,
-			skipTests: skipTests
-		};
-		this(args);
-	}
-
-	this(BaseAnalyzerArguments args)
-	{
-		this.sc = args.sc;
-		this.tokens = args.tokens;
-		this.fileName = args.fileName;
-		this.skipTests = args.skipTests;
-		_messages = new MessageSet;
-	}
-
-	string getName()
-	{
-		assert(0);
-	}
-
-	Message[] messages()
-	{
-		return _messages[].array;
-	}
-
-	alias visit = ASTVisitor.visit;
-
-	/**
-	* Visits a unittest.
-	*
-	* When overriden, the protected bool "skipTests" should be handled
-	* so that the content of the test is not analyzed.
-	*/
-	override void visit(const Unittest unittest_)
-	{
-		if (!skipTests)
-			unittest_.accept(this);
-	}
-
-	/**
-	* Visits a module declaration.
-	*
-	* When overriden, make sure to keep this structure
-	*/
-	override void visit(const(Module) mod)
-	{
-		mod.accept(this);
-	}
-
-	AutoFix.CodeReplacement[] resolveAutoFix(
-		const Module mod,
-		scope const(Token)[] tokens,
-		const AutoFix.ResolveContext context,
-		const AutoFixFormatting formatting,
-	)
-	{
-		cast(void) mod;
-		cast(void) tokens;
-		cast(void) context;
-		cast(void) formatting;
-		assert(0);
-	}
-
-protected:
-
-	bool inAggregate;
-	bool skipTests;
-	const(Token)[] tokens;
-
-	template visitTemplate(T)
-	{
-		override void visit(const T structDec)
-		{
-			inAggregate = true;
-			structDec.accept(this);
-			inAggregate = false;
-		}
-	}
-
-	/**
-	 * The file name
-	 */
-	string fileName;
-
-	const(Scope)* sc;
-
-	MessageSet _messages;
 }
 
 /**
