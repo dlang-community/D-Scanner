@@ -80,16 +80,14 @@ Module parseDmdModule(string fileName, string sourceCode)
 private void setupDmd()
 {
 	import std.path : dirName;
-	import dmd.arraytypes : Strings;
-	import dmd.globals : global;
+	import dmd.globals : global, ImportPathInfo;
 
 	auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
 	auto dmdDirPath = dmdParentDir ~ "/dmd" ~ "\0";
 	auto druntimeDirPath = dmdParentDir ~ "/dmd/druntime/src" ~ "\0";
 	global.params.useUnitTests = true;
-	global.path = Strings();
-	global.path.push(dmdDirPath.ptr);
-	global.path.push(druntimeDirPath.ptr);
+	global.path.push(ImportPathInfo(dmdDirPath.ptr));
+	global.path.push(ImportPathInfo(druntimeDirPath.ptr));
 	global.errors = 0;
 	initDMD();
 }
