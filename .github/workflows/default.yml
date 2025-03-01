@@ -57,7 +57,7 @@ jobs:
               dmd: gdc-12
             host: macos-latest
 
-          # Restrict DMD to macOS latest
+          # Omit DMD from macOS latest because DMD does not support Arm64
           - compiler:
               dmd: dmd
             host: macos-latest
