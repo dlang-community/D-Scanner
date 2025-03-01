@@ -4,156 +4,60 @@
 
 module dscanner.analysis.redundant_attributes;
 
-import dparse.ast;
-import dparse.lexer;
-import dsymbol.scope_ : Scope;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
 
-import std.algorithm;
-import std.conv : to, text;
-import std.range : empty, front, walkLength;
+import dmd.dsymbol;
+import std.string : format;
 
 /**
  * Checks for redundant attributes. At the moment only visibility attributes.
  */
-final class RedundantAttributesCheck : ScopedBaseAnalyzer
+extern(C++) class RedundantAttributesCheck(AST) : BaseAnalyzerDmd
 {
 	mixin AnalyzerInfo!"redundant_attributes_check";
+	alias visit = BaseAnalyzerDmd.visit;
+	
+	Visibility.Kind currVisibility;
+	uint currLine;
 
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName)
 	{
-		super(args);
-		stack.length = 0;
+		super(fileName);
 	}
 
-	override void visit(const Declaration decl)
+	template ScopedVisit(NodeType)
 	{
-
-		// labels, e.g. private:
-		if (auto attr = decl.attributeDeclaration)
+		override void visit(NodeType n)
 		{
-			if (filterAttributes(attr.attribute))
-			{
-				addAttribute(attr.attribute);
-			}
-		}
-
-		auto attributes = decl.attributes.filter!(a => filterAttributes(a));
-		if (attributes.walkLength > 0) {
-
-			// new scope: private { }
-			if (decl.declarations.length > 0)
-			{
-				const prev = currentAttributes[];
-				// append to current scope and reset once block is left
-				foreach (attr; attributes)
-					addAttribute(attr);
-
-				scope(exit) currentAttributes = prev;
-				decl.accept(this);
-			} // declarations, e.g. private int ...
-			else
-			{
-				foreach (attr; attributes)
-					checkAttribute(attr);
-
-				decl.accept(this);
-			}
-		}
-		else
-		{
-			decl.accept(this);
+			Visibility.Kind prevVisibility = currVisibility;
+			currVisibility = Visibility.Kind.undefined;
+			super.visit(n);
+			currVisibility = prevVisibility;
 		}
 	}
 
-	alias visit = ScopedBaseAnalyzer.visit;
+	mixin ScopedVisit!(AST.StructDeclaration);
+	mixin ScopedVisit!(AST.ClassDeclaration);
+	mixin ScopedVisit!(AST.InterfaceDeclaration);
+	mixin ScopedVisit!(AST.UnionDeclaration);
+	mixin ScopedVisit!(AST.StaticIfCondition);
+	mixin ScopedVisit!(AST.StaticIfDeclaration);
+	mixin ScopedVisit!(AST.TemplateDeclaration);
+	mixin ScopedVisit!(AST.ConditionalDeclaration);
 
-	mixin ScopedVisit!ConditionalDeclaration;
-
-private:
-
-	alias ConstAttribute = const Attribute;
-	alias CurrentScope = ConstAttribute[];
-	ref CurrentScope currentAttributes()
+	override void visit(AST.VisibilityDeclaration vd)
 	{
-		return stack[$ - 1];
-	}
-
-	CurrentScope[] stack;
-
-	void addAttribute(const Attribute attr)
-	{
-		removeOverwrite(attr);
-		if (checkAttribute(attr))
-		{
-			currentAttributes ~= attr;
-		}
-	}
-
-	bool checkAttribute(const Attribute attr)
-	{
-		auto match = currentAttributes.find!(a => a.attribute.type == attr.attribute.type);
-		if (!match.empty)
-		{
-			addErrorMessage(attr, KEY,
-					text("same visibility attribute used as defined on line ",
-						match.front.attribute.line.to!string, "."));
-			return false;
-		}
-		return true;
-	}
-
-	void removeOverwrite(const Attribute attr)
-	{
-		import std.array : array;
-		const group = getAttributeGroup(attr);
-		if (currentAttributes.filter!(a => getAttributeGroup(a) == group
-					&& !isIdenticalAttribute(a, attr)).walkLength > 0)
-		{
-			currentAttributes = currentAttributes.filter!(a => getAttributeGroup(a) != group
-					|| isIdenticalAttribute(a, attr)).array;
-		}
-	}
-
-	bool filterAttributes(const Attribute attr)
-	{
-		return isAccessSpecifier(attr);
-	}
-
-	static int getAttributeGroup(const Attribute attr)
-	{
-		if (isAccessSpecifier(attr))
-			return 1;
-
-		// TODO: not implemented
-		return attr.attribute.type;
-	}
-
-	static bool isAccessSpecifier(const Attribute attr)
-	{
-		auto type = attr.attribute.type;
-		return type.among(tok!"private", tok!"protected", tok!"public", tok!"package", tok!"export") > 0;
-	}
-
-	static bool isIdenticalAttribute(const Attribute a, const Attribute b)
-	{
-		return a.attribute.type == b.attribute.type;
-	}
-
-	auto attributesString()
-	{
-		return currentAttributes.map!(a => a.attribute.type.str).joiner(",").to!string;
-	}
-
-	protected override void pushScope()
-	{
-		stack.length++;
-	}
-
-	protected override void popScope()
-	{
-		stack.length--;
+		if (currVisibility == vd.visibility.kind)
+		addErrorMessage(cast(ulong) vd.loc.linnum, cast(ulong) vd.loc.charnum, KEY,
+			"Same visibility attribute used as defined on line %u.".format(currLine));
+		Visibility.Kind prevVisibility = currVisibility;
+		uint prevLine = currLine;
+		currVisibility = vd.visibility.kind;
+		currLine = vd.loc.linnum;
+		super.visit(vd);
+		currVisibility = prevVisibility;
+		currLine = prevLine;
 	}
 
 	enum string KEY = "dscanner.suspicious.redundant_attributes";
@@ -172,82 +76,72 @@ unittest
 	sac.redundant_attributes_check = Check.enabled;
 
 	// test labels vs. block attributes
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 private:
-	private int blah; /+
-	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+	private int blah; // [warn]: Same visibility attribute used as defined on line 4.
 protected
 {
-	protected int blah; /+
-	^^^^^^^^^ [warn]: same visibility attribute used as defined on line 7. +/
+	protected int blah; // [warn]: Same visibility attribute used as defined on line 6.
 }
-	private int blah; /+
-	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+	private int blah; // [warn]: Same visibility attribute used as defined on line 4.
 }}c, sac);
 
 	// test labels vs. block attributes
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 	private:
-	private: /+
-	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+	private: // [warn]: Same visibility attribute used as defined on line 4.
 	public:
 		private int a;
-		public int b; /+
-		^^^^^^ [warn]: same visibility attribute used as defined on line 7. +/
-		public /+
-		^^^^^^ [warn]: same visibility attribute used as defined on line 7. +/
+		public int b; // [warn]: Same visibility attribute used as defined on line 6.
+		public // [warn]: Same visibility attribute used as defined on line 6.
 		{
 			int c;
 		}
 }}c, sac);
 
 	// test scopes
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 private:
-	private int foo2; /+
-	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
-	private void foo() /+
-	^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+	private int foo2; // [warn]: Same visibility attribute used as defined on line 4.
+	private void foo() // [warn]: Same visibility attribute used as defined on line 4.
 	{
-		private int blah;
+		int blah;
 	}
 }}c, sac);
 
 	// check duplicated visibility attributes
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 private:
 	public int a;
-private: /+
-^^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+private: // [warn]: Same visibility attribute used as defined on line 4.
 }}c, sac);
 
 	// test conditional compilation
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 version(unittest)
 {
 	private:
-	private int foo; /+
-	^^^^^^^ [warn]: same visibility attribute used as defined on line 6. +/
+	private int foo; // [warn]: Same visibility attribute used as defined on line 6.
 }
 private int foo2;
 }}c, sac);
 
 // test scopes
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 public:
-	if (1 == 1)
+	static if (1 == 1)
 	{
 		private int b;
 	}
@@ -255,8 +149,7 @@ public:
 	{
 		public int b;
 	}
-	public int b; /+
-	^^^^^^ [warn]: same visibility attribute used as defined on line 4. +/
+	public int b; // [warn]: Same visibility attribute used as defined on line 4.
 }}c, sac);
 }
 
@@ -267,8 +160,8 @@ unittest
 	sac.redundant_attributes_check = Check.enabled;
 
 	// test labels vs. block attributes
-	assertAnalyzerWarnings(q{
-unittest
+	assertAnalyzerWarningsDMD(q{
+class C
 {
 @safe:
 	@safe void foo();

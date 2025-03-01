@@ -11,8 +11,8 @@ import dparse.ast;
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
+
 import std.algorithm;
-import std.array;
 import std.array;
 import std.conv;
 import std.file : mkdirRecurse;
@@ -22,18 +22,14 @@ import std.range;
 import std.stdio;
 import std.typecons : scoped;
 
-import std.experimental.allocator : CAllocatorImpl;
-import std.experimental.allocator.mallocator : Mallocator;
-import std.experimental.allocator.building_blocks.region : Region;
-import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
-
+import dscanner.analysis.autofix : improveAutoFixWhitespace;
 import dscanner.analysis.config;
 import dscanner.analysis.base;
+import dscanner.analysis.rundmd;
 import dscanner.analysis.style;
 import dscanner.analysis.enumarrayliteral;
 import dscanner.analysis.pokemon;
 import dscanner.analysis.del;
-import dscanner.analysis.fish;
 import dscanner.analysis.numbers;
 import dscanner.analysis.objectconst;
 import dscanner.analysis.range;
@@ -42,7 +38,6 @@ import dscanner.analysis.constructors;
 import dscanner.analysis.unused_variable;
 import dscanner.analysis.unused_label;
 import dscanner.analysis.unused_parameter;
-import dscanner.analysis.duplicate_attribute;
 import dscanner.analysis.opequals_without_tohash;
 import dscanner.analysis.length_subtraction;
 import dscanner.analysis.builtin_property_names;
@@ -50,11 +45,9 @@ import dscanner.analysis.asm_style;
 import dscanner.analysis.logic_precedence;
 import dscanner.analysis.stats_collector;
 import dscanner.analysis.undocumented;
-import dscanner.analysis.comma_expression;
 import dscanner.analysis.function_attributes;
 import dscanner.analysis.local_imports;
 import dscanner.analysis.unmodified;
-import dscanner.analysis.if_statements;
 import dscanner.analysis.redundant_parens;
 import dscanner.analysis.mismatched_args;
 import dscanner.analysis.label_var_same_name_check;
@@ -72,7 +65,6 @@ import dscanner.analysis.properly_documented_public_functions;
 import dscanner.analysis.final_attribute;
 import dscanner.analysis.vcall_in_ctor;
 import dscanner.analysis.useless_initializer;
-import dscanner.analysis.allman;
 import dscanner.analysis.always_curly;
 import dscanner.analysis.redundant_attributes;
 import dscanner.analysis.has_public_example;
@@ -83,22 +75,25 @@ import dscanner.analysis.redundant_storage_class;
 import dscanner.analysis.unused_result;
 import dscanner.analysis.cyclomatic_complexity;
 import dscanner.analysis.body_on_disabled_funcs;
-
-import dsymbol.string_interning : internString;
-import dsymbol.scope_;
-import dsymbol.semantic;
-import dsymbol.conversion;
-import dsymbol.conversion.first;
-import dsymbol.conversion.second;
-import dsymbol.modulecache : ModuleCache;
-
-import dscanner.utils;
 import dscanner.reports : DScannerJsonReporter, SonarQubeGenericIssueDataReporter;
+import dscanner.utils;
+
+import dmd.astbase : ASTBase;
+import dmd.astcodegen;
+import dmd.frontend;
+import dmd.globals : global;
+import dmd.parse : Parser;
 
 bool first = true;
 
-private alias ASTAllocator = CAllocatorImpl!(
-		AllocatorList!(n => Region!Mallocator(1024 * 128), Mallocator));
+version (unittest)
+	enum ut = true;
+else
+	enum ut = false;
+
+void doNothing(string, size_t, size_t, string, bool)
+{
+}
 
 immutable string defaultErrorFormat = "{filepath}({line}:{column})[{type}]: {message}";
 
@@ -250,9 +245,7 @@ void writeJSON(Message message)
 	writeln("    {");
 	writeln(`      "key": "`, message.key, `",`);
 	if (message.checkName !is null)
-	{
 		writeln(`      "name": "`, message.checkName, `",`);
-	}
 	writeln(`      "fileName": "`, message.fileName.replace("\\", "\\\\").replace(`"`, `\"`), `",`);
 	writeln(`      "line": `, message.startLine, `,`);
 	writeln(`      "column": `, message.startColumn, `,`);
@@ -288,42 +281,32 @@ void writeJSON(Message message)
 	write("    }");
 }
 
-bool syntaxCheck(string[] fileNames, string errorFormat, ref StringCache stringCache, ref ModuleCache moduleCache)
+bool syntaxCheck(string[] fileNames, string errorFormat)
 {
 	StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-	return analyze(fileNames, config, errorFormat, stringCache, moduleCache, false);
+	return analyze(fileNames, config, errorFormat);
 }
 
-void generateReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache, string reportFile = "")
+void generateReport(string[] fileNames, const StaticAnalysisConfig config, string reportFile = "")
 {
 	auto reporter = new DScannerJsonReporter();
-
-	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
-		// TODO: proper index and column ranges
-		reporter.addMessage(
-			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
-			isError);
-	};
-
 	first = true;
-	StatsCollector stats = new StatsCollector(BaseAnalyzerArguments.init);
+	auto statsCollector = new StatsCollector!ASTCodegen();
 	ulong lineOfCodeCount;
+
 	foreach (fileName; fileNames)
 	{
 		auto code = readFile(fileName);
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, cache, tokens, writeMessages, &lineOfCodeCount, null, null);
-		stats.visit(m);
-		MessageSet messageSet = analyze(fileName, m, config, moduleCache, tokens, true);
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		dmdModule.accept(statsCollector);
+		MessageSet messageSet = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		reporter.addMessageSet(messageSet);
 	}
 
-	string reportFileContent = reporter.getContent(stats, lineOfCodeCount);
+	string reportFileContent = reporter.getContent(statsCollector, lineOfCodeCount);
 	if (reportFile == "")
 	{
 		writeln(reportFileContent);
@@ -336,16 +319,9 @@ void generateReport(string[] fileNames, const StaticAnalysisConfig config,
 }
 
 void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAnalysisConfig config,
-		ref StringCache cache, ref ModuleCache moduleCache, string reportFile = "")
+	string reportFile = "")
 {
 	auto reporter = new SonarQubeGenericIssueDataReporter();
-
-	auto writeMessages = delegate void(string fileName, size_t line, size_t column, string message, bool isError){
-		// TODO: proper index and column ranges
-		reporter.addMessage(
-			Message(Message.Diagnostic.from(fileName, [0, 0], line, [column, column], message), "dscanner.syntax"),
-			isError);
-	};
 
 	foreach (fileName; fileNames)
 	{
@@ -353,10 +329,8 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, cache, tokens, writeMessages, null, null, null);
-		MessageSet messageSet = analyze(fileName, m, config, moduleCache, tokens, true);
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		MessageSet messageSet = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		reporter.addMessageSet(messageSet);
 	}
 
@@ -377,32 +351,49 @@ void generateSonarQubeGenericIssueDataReport(string[] fileNames, const StaticAna
  *
  * Returns: true if there were errors or if there were warnings and `staticAnalyze` was true.
  */
-bool analyze(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
-		ref StringCache cache, ref ModuleCache moduleCache, bool staticAnalyze = true)
+bool analyze(string[] fileNames, const StaticAnalysisConfig config, string errorFormat)
 {
+	import std.file : exists, remove;
+
 	bool hasErrors;
 	foreach (fileName; fileNames)
 	{
-		auto code = readFile(fileName);
+		bool isStdin;
+		ubyte[] code;
+
+		if (fileName == "stdin")
+		{
+			code = readStdin();
+			fileName = "stdin.d";
+			File f = File(fileName, "w");
+			f.rawWrite(code);
+			f.close();
+			isStdin = true;
+		}
+		else
+		{
+			code = readFile(fileName);
+		}
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		uint errorCount;
-		uint warningCount;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, errorFormat, cache, false, tokens,
-				null, &errorCount, &warningCount);
-		assert(m);
-		if (errorCount > 0 || (staticAnalyze && warningCount > 0))
+
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		if (global.errors > 0 || global.warnings > 0)
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, staticAnalyze);
+		MessageSet results = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
+
 		if (results is null)
 			continue;
+
+		hasErrors = !results.empty;
 		foreach (result; results[])
-		{
-			hasErrors = true;
 			messageFunctionFormat(errorFormat, result, false, code);
+
+		if (isStdin)
+		{
+			assert(exists(fileName));
+			remove(fileName);
 		}
 	}
 	return hasErrors;
@@ -413,9 +404,7 @@ bool analyze(string[] fileNames, const StaticAnalysisConfig config, string error
  *
  * Returns: true if there were parse errors.
  */
-bool autofix(string[] fileNames, const StaticAnalysisConfig config, string errorFormat,
-		ref StringCache cache, ref ModuleCache moduleCache, bool autoApplySingle,
-		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
+bool autofix(string[] fileNames, const StaticAnalysisConfig config, string errorFormat, bool autoApplySingle)
 {
 	import std.format : format;
 
@@ -426,16 +415,11 @@ bool autofix(string[] fileNames, const StaticAnalysisConfig config, string error
 		// Skip files that could not be read and continue with the rest
 		if (code.length == 0)
 			continue;
-		RollbackAllocator r;
-		uint errorCount;
-		uint warningCount;
-		const(Token)[] tokens;
-		const Module m = parseModule(fileName, code, &r, errorFormat, cache, false, tokens,
-				null, &errorCount, &warningCount);
-		assert(m);
-		if (errorCount > 0)
+		auto dmdModule = parseDmdModule(fileName, cast(string) code);
+		if (global.errors > 0)
 			hasErrors = true;
-		MessageSet results = analyze(fileName, m, config, moduleCache, tokens, true, true, overrideFormattingConfig);
+
+		MessageSet results = analyzeDmd(fileName, dmdModule, getModuleName(dmdModule.md), config);
 		if (results is null)
 			continue;
 
@@ -480,90 +464,6 @@ bool autofix(string[] fileNames, const StaticAnalysisConfig config, string error
 		}
 	}
 	return hasErrors;
-}
-
-void listAutofixes(
-	StaticAnalysisConfig config,
-	string resolveMessage,
-	bool usingStdin,
-	string fileName,
-	StringCache* cache,
-	ref ModuleCache moduleCache
-)
-{
-	import dparse.parser : parseModule;
-	import dscanner.analysis.base : Message;
-	import std.format : format;
-	import std.json : JSONValue;
-
-	union RequestedLocation
-	{
-		struct
-		{
-			uint line, column;
-		}
-		ulong bytes;
-	}
-
-	RequestedLocation req;
-	bool isBytes = resolveMessage[0] == 'b';
-	if (isBytes)
-		req.bytes = resolveMessage[1 .. $].to!ulong;
-	else
-	{
-		auto parts = resolveMessage.findSplit(":");
-		req.line = parts[0].to!uint;
-		req.column = parts[2].to!uint;
-	}
-
-	bool matchesCursor(Message m)
-	{
-		return isBytes
-			? req.bytes >= m.startIndex && req.bytes <= m.endIndex
-			: req.line >= m.startLine && req.line <= m.endLine
-				&& (req.line > m.startLine || req.column >= m.startColumn)
-				&& (req.line < m.endLine || req.column <= m.endColumn);
-	}
-
-	RollbackAllocator rba;
-	LexerConfig lexerConfig;
-	lexerConfig.fileName = fileName;
-	lexerConfig.stringBehavior = StringBehavior.source;
-	auto tokens = getTokensForParser(usingStdin ? readStdin()
-			: readFile(fileName), lexerConfig, cache);
-	auto mod = parseModule(tokens, fileName, &rba, toDelegate(&doNothing));
-
-	auto messages = analyze(fileName, mod, config, moduleCache, tokens);
-
-	with (stdout.lockingTextWriter)
-	{
-		put("[");
-		foreach (message; messages[].filter!matchesCursor)
-		{
-			resolveAutoFixes(message, fileName, moduleCache, tokens, mod, config);
-
-			foreach (i, autofix; message.autofixes)
-			{
-				put(i == 0 ? "\n" : ",\n");
-				put("\t{\n");
-				put(format!"\t\t\"name\": %s,\n"(JSONValue(autofix.name)));
-				put("\t\t\"replacements\": [");
-				foreach (j, replacement; autofix.expectReplacements)
-				{
-					put(j == 0 ? "\n" : ",\n");
-					put(format!"\t\t\t{\"range\": [%d, %d], \"newText\": %s}"(
-						replacement.range[0],
-						replacement.range[1],
-						JSONValue(replacement.newText)));
-				}
-				put("\n");
-				put("\t\t]\n");
-				put("\t}");
-			}
-		}
-		put("\n]");
-	}
-	stdout.flush();
 }
 
 private struct UserSelect
@@ -657,589 +557,6 @@ const(Module) parseModule(string fileName, ubyte[] code, RollbackAllocator* p,
 	return parseModule(fileName, code, p, cache, tokens,
 		report ? toDelegate(&messageFunctionJSON) : writeMessages,
 		linesOfCode, errorCount, warningCount);
-}
-
-/**
-Checks whether a module is part of a user-specified include/exclude list.
-The user can specify a comma-separated list of filters, everyone needs to start with
-either a '+' (inclusion) or '-' (exclusion).
-If no includes are specified, all modules are included.
-*/
-bool shouldRun(check : BaseAnalyzer)(string moduleName, const ref StaticAnalysisConfig config)
-{
-	enum string a = check.name;
-
-	if (mixin("config." ~ a) == Check.disabled)
-		return false;
-
-	// By default, run the check
-	if (!moduleName.length)
-		return true;
-
-	auto filters = mixin("config.filters." ~ a);
-
-	// Check if there are filters are defined
-	// filters starting with a comma are invalid
-	if (filters.length == 0 || filters[0].length == 0)
-		return true;
-
-	auto includers = filters.filter!(f => f[0] == '+').map!(f => f[1..$]);
-	auto excluders = filters.filter!(f => f[0] == '-').map!(f => f[1..$]);
-
-	// exclusion has preference over inclusion
-	if (!excluders.empty && excluders.any!(s => moduleName.canFind(s)))
-		return false;
-
-	if (!includers.empty)
-		return includers.any!(s => moduleName.canFind(s));
-
-	// by default: include all modules
-	return true;
-}
-
-///
-unittest
-{
-	bool test(string moduleName, string filters)
-	{
-		StaticAnalysisConfig config;
-		// it doesn't matter which check we test here
-		config.asm_style_check = Check.enabled;
-		// this is done automatically by inifiled
-		config.filters.asm_style_check = filters.split(",");
-		return shouldRun!AsmStyleCheck(moduleName, config);
-	}
-
-	// test inclusion
-	assert(test("std.foo", "+std."));
-	// partial matches are ok
-	assert(test("std.foo", "+bar,+foo"));
-	// full as well
-	assert(test("std.foo", "+bar,+std.foo,+foo"));
-	// mismatch
-	assert(!test("std.foo", "+bar,+banana"));
-
-	// test exclusion
-	assert(!test("std.foo", "-std."));
-	assert(!test("std.foo", "-bar,-std.foo"));
-	assert(!test("std.foo", "-bar,-foo"));
-	// mismatch
-	assert(test("std.foo", "-bar,-banana"));
-
-	// test combination (exclusion has precedence)
-	assert(!test("std.foo", "+foo,-foo"));
-	assert(test("std.foo", "+foo,-bar"));
-	assert(test("std.bar.foo", "-barr,+bar"));
-}
-
-private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
-	const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig, const Scope* moduleScope)
-{
-	version (unittest)
-		enum ut = true;
-	else
-		enum ut = false;
-
-	BaseAnalyzer[] checks;
-
-	string moduleName;
-	if (m !is null && m.moduleDeclaration !is null &&
-		  m.moduleDeclaration.moduleName !is null &&
-		  m.moduleDeclaration.moduleName.identifiers !is null)
-		moduleName = m.moduleDeclaration.moduleName.identifiers.map!(e => e.text).join(".");
-
-	BaseAnalyzerArguments args = BaseAnalyzerArguments(
-		fileName,
-		tokens,
-		moduleScope
-	);
-
-	if (moduleName.shouldRun!AsmStyleCheck(analysisConfig))
-		checks ~= new AsmStyleCheck(args.setSkipTests(
-		analysisConfig.asm_style_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!BackwardsRangeCheck(analysisConfig))
-		checks ~= new BackwardsRangeCheck(args.setSkipTests(
-		analysisConfig.backwards_range_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!BuiltinPropertyNameCheck(analysisConfig))
-		checks ~= new BuiltinPropertyNameCheck(args.setSkipTests(
-		analysisConfig.builtin_property_names_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!CommaExpressionCheck(analysisConfig))
-		checks ~= new CommaExpressionCheck(args.setSkipTests(
-		analysisConfig.comma_expression_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ConstructorCheck(analysisConfig))
-		checks ~= new ConstructorCheck(args.setSkipTests(
-		analysisConfig.constructor_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UnmodifiedFinder(analysisConfig))
-		checks ~= new UnmodifiedFinder(args.setSkipTests(
-		analysisConfig.could_be_immutable_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!DeleteCheck(analysisConfig))
-		checks ~= new DeleteCheck(args.setSkipTests(
-		analysisConfig.delete_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!DuplicateAttributeCheck(analysisConfig))
-		checks ~= new DuplicateAttributeCheck(args.setSkipTests(
-		analysisConfig.duplicate_attribute == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!EnumArrayLiteralCheck(analysisConfig))
-		checks ~= new EnumArrayLiteralCheck(args.setSkipTests(
-		analysisConfig.enum_array_literal_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!PokemonExceptionCheck(analysisConfig))
-		checks ~= new PokemonExceptionCheck(args.setSkipTests(
-		analysisConfig.exception_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!FloatOperatorCheck(analysisConfig))
-		checks ~= new FloatOperatorCheck(args.setSkipTests(
-		analysisConfig.float_operator_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!FunctionAttributeCheck(analysisConfig))
-		checks ~= new FunctionAttributeCheck(args.setSkipTests(
-		analysisConfig.function_attribute_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!IfElseSameCheck(analysisConfig))
-		checks ~= new IfElseSameCheck(args.setSkipTests(
-		analysisConfig.if_else_same_check == Check.skipTests&& !ut));
-
-	if (moduleName.shouldRun!LabelVarNameCheck(analysisConfig))
-		checks ~= new LabelVarNameCheck(args.setSkipTests(
-		analysisConfig.label_var_same_name_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!LengthSubtractionCheck(analysisConfig))
-		checks ~= new LengthSubtractionCheck(args.setSkipTests(
-		analysisConfig.length_subtraction_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!LocalImportCheck(analysisConfig))
-		checks ~= new LocalImportCheck(args.setSkipTests(
-		analysisConfig.local_import_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!LogicPrecedenceCheck(analysisConfig))
-		checks ~= new LogicPrecedenceCheck(args.setSkipTests(
-		analysisConfig.logical_precedence_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!MismatchedArgumentCheck(analysisConfig))
-		checks ~= new MismatchedArgumentCheck(args.setSkipTests(
-		analysisConfig.mismatched_args_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!NumberStyleCheck(analysisConfig))
-		checks ~= new NumberStyleCheck(args.setSkipTests(
-		analysisConfig.number_style_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ObjectConstCheck(analysisConfig))
-		checks ~= new ObjectConstCheck(args.setSkipTests(
-		analysisConfig.object_const_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!OpEqualsWithoutToHashCheck(analysisConfig))
-		checks ~= new OpEqualsWithoutToHashCheck(args.setSkipTests(
-		analysisConfig.opequals_tohash_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!RedundantParenCheck(analysisConfig))
-		checks ~= new RedundantParenCheck(args.setSkipTests(
-		analysisConfig.redundant_parens_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!StyleChecker(analysisConfig))
-		checks ~= new StyleChecker(args.setSkipTests(
-		analysisConfig.style_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UndocumentedDeclarationCheck(analysisConfig))
-		checks ~= new UndocumentedDeclarationCheck(args.setSkipTests(
-		analysisConfig.undocumented_declaration_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UnusedLabelCheck(analysisConfig))
-		checks ~= new UnusedLabelCheck(args.setSkipTests(
-		analysisConfig.unused_label_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UnusedVariableCheck(analysisConfig))
-		checks ~= new UnusedVariableCheck(args.setSkipTests(
-		analysisConfig.unused_variable_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UnusedParameterCheck(analysisConfig))
-		checks ~= new UnusedParameterCheck(args.setSkipTests(
-		analysisConfig.unused_parameter_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!LineLengthCheck(analysisConfig))
-		checks ~= new LineLengthCheck(args.setSkipTests(
-		analysisConfig.long_line_check == Check.skipTests && !ut),
-		analysisConfig.max_line_length);
-
-	if (moduleName.shouldRun!AutoRefAssignmentCheck(analysisConfig))
-		checks ~= new AutoRefAssignmentCheck(args.setSkipTests(
-		analysisConfig.auto_ref_assignment_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!IncorrectInfiniteRangeCheck(analysisConfig))
-		checks ~= new IncorrectInfiniteRangeCheck(args.setSkipTests(
-		analysisConfig.incorrect_infinite_range_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UselessAssertCheck(analysisConfig))
-		checks ~= new UselessAssertCheck(args.setSkipTests(
-		analysisConfig.useless_assert_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!AliasSyntaxCheck(analysisConfig))
-		checks ~= new AliasSyntaxCheck(args.setSkipTests(
-		analysisConfig.alias_syntax_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!StaticIfElse(analysisConfig))
-		checks ~= new StaticIfElse(args.setSkipTests(
-		analysisConfig.static_if_else_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!LambdaReturnCheck(analysisConfig))
-		checks ~= new LambdaReturnCheck(args.setSkipTests(
-		analysisConfig.lambda_return_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!AutoFunctionChecker(analysisConfig))
-		checks ~= new AutoFunctionChecker(args.setSkipTests(
-		analysisConfig.auto_function_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ImportSortednessCheck(analysisConfig))
-		checks ~= new ImportSortednessCheck(args.setSkipTests(
-		analysisConfig.imports_sortedness == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ExplicitlyAnnotatedUnittestCheck(analysisConfig))
-		checks ~= new ExplicitlyAnnotatedUnittestCheck(args.setSkipTests(
-		analysisConfig.explicitly_annotated_unittests == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!ProperlyDocumentedPublicFunctions(analysisConfig))
-		checks ~= new ProperlyDocumentedPublicFunctions(args.setSkipTests(
-		analysisConfig.properly_documented_public_functions == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!FinalAttributeChecker(analysisConfig))
-		checks ~= new FinalAttributeChecker(args.setSkipTests(
-		analysisConfig.final_attribute_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!VcallCtorChecker(analysisConfig))
-		checks ~= new VcallCtorChecker(args.setSkipTests(
-		analysisConfig.vcall_in_ctor == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UselessInitializerChecker(analysisConfig))
-		checks ~= new UselessInitializerChecker(args.setSkipTests(
-		analysisConfig.useless_initializer == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!AllManCheck(analysisConfig))
-		checks ~= new AllManCheck(args.setSkipTests(
-		analysisConfig.allman_braces_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!AlwaysCurlyCheck(analysisConfig))
-		checks ~= new AlwaysCurlyCheck(args.setSkipTests(
-		analysisConfig.always_curly_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!RedundantAttributesCheck(analysisConfig))
-		checks ~= new RedundantAttributesCheck(args.setSkipTests(
-		analysisConfig.redundant_attributes_check == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!HasPublicExampleCheck(analysisConfig))
-		checks ~= new HasPublicExampleCheck(args.setSkipTests(
-		analysisConfig.has_public_example == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!AssertWithoutMessageCheck(analysisConfig))
-		checks ~= new AssertWithoutMessageCheck(args.setSkipTests(
-		analysisConfig.assert_without_msg == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!IfConstraintsIndentCheck(analysisConfig))
-		checks ~= new IfConstraintsIndentCheck(args.setSkipTests(
-		analysisConfig.if_constraints_indent == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!TrustTooMuchCheck(analysisConfig))
-		checks ~= new TrustTooMuchCheck(args.setSkipTests(
-		analysisConfig.trust_too_much == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!RedundantStorageClassCheck(analysisConfig))
-		checks ~= new RedundantStorageClassCheck(args.setSkipTests(
-		analysisConfig.redundant_storage_classes == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!UnusedResultChecker(analysisConfig))
-		checks ~= new UnusedResultChecker(args.setSkipTests(
-		analysisConfig.unused_result == Check.skipTests && !ut));
-
-	if (moduleName.shouldRun!CyclomaticComplexityCheck(analysisConfig))
-		checks ~= new CyclomaticComplexityCheck(args.setSkipTests(
-		analysisConfig.cyclomatic_complexity == Check.skipTests && !ut),
-		analysisConfig.max_cyclomatic_complexity.to!int);
-
-	if (moduleName.shouldRun!BodyOnDisabledFuncsCheck(analysisConfig))
-		checks ~= new BodyOnDisabledFuncsCheck(args.setSkipTests(
-		analysisConfig.body_on_disabled_func_check == Check.skipTests && !ut));
-
-	version (none)
-		if (moduleName.shouldRun!IfStatementCheck(analysisConfig))
-			checks ~= new IfStatementCheck(args.setSkipTests(
-			analysisConfig.redundant_if_check == Check.skipTests && !ut));
-
-	return checks;
-}
-
-MessageSet analyze(string fileName, const Module m, const StaticAnalysisConfig analysisConfig,
-		ref ModuleCache moduleCache, const(Token)[] tokens, bool staticAnalyze = true,
-		bool resolveAutoFixes = false,
-		const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	import dsymbol.symbol : DSymbol;
-
-	if (!staticAnalyze)
-		return null;
-
-	const(AutoFixFormatting) formattingConfig =
-		(resolveAutoFixes && overrideFormattingConfig is AutoFixFormatting.invalid)
-			? analysisConfig.getAutoFixFormattingConfig()
-			: overrideFormattingConfig;
-
-	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
-	first.run();
-
-	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
-	auto moduleScope = first.moduleScope;
-	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
-	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
-	scope(exit) typeid(Scope).destroy(first.moduleScope);
-
-	GC.disable;
-	scope (exit)
-		GC.enable;
-
-	MessageSet set = new MessageSet;
-	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
-	{
-		check.visit(m);
-		foreach (message; check.messages)
-		{
-			if (resolveAutoFixes)
-				foreach (ref autofix; message.autofixes)
-					autofix.resolveAutoFixFromCheck(check, m, tokens, formattingConfig);
-			set.insert(message);
-		}
-	}
-
-	return set;
-}
-
-private void resolveAutoFixFromCheck(
-	ref AutoFix autofix,
-	BaseAnalyzer check,
-	const Module m,
-	scope const(Token)[] tokens,
-	const AutoFixFormatting formattingConfig
-)
-{
-	import std.sumtype : match;
-
-	autofix.replacements.match!(
-		(AutoFix.ResolveContext context) {
-			autofix.replacements = check.resolveAutoFix(m, tokens, context, formattingConfig);
-		},
-		(_) {}
-	);
-}
-
-void resolveAutoFixes(ref Message message, string fileName,
-	ref ModuleCache moduleCache,
-	scope const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	resolveAutoFixes(message.checkName, message.autofixes, fileName, moduleCache,
-		tokens, m, analysisConfig, overrideFormattingConfig);
-}
-
-AutoFix.CodeReplacement[] resolveAutoFix(string messageCheckName, AutoFix.ResolveContext context,
-	string fileName,
-	ref ModuleCache moduleCache,
-	scope const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	AutoFix temp;
-	temp.replacements = context;
-	resolveAutoFixes(messageCheckName, (&temp)[0 .. 1], fileName, moduleCache,
-		tokens, m, analysisConfig, overrideFormattingConfig);
-	return temp.expectReplacements("resolving didn't work?!");
-}
-
-void resolveAutoFixes(string messageCheckName, AutoFix[] autofixes, string fileName,
-	ref ModuleCache moduleCache,
-	scope const(Token)[] tokens, const Module m,
-	const StaticAnalysisConfig analysisConfig,
-	const AutoFixFormatting overrideFormattingConfig = AutoFixFormatting.invalid)
-{
-	import dsymbol.symbol : DSymbol;
-
-	const(AutoFixFormatting) formattingConfig =
-		overrideFormattingConfig is AutoFixFormatting.invalid
-			? analysisConfig.getAutoFixFormattingConfig()
-			: overrideFormattingConfig;
-
-	scope first = new FirstPass(m, internString(fileName), &moduleCache, null);
-	first.run();
-
-	secondPass(first.rootSymbol, first.moduleScope, moduleCache);
-	auto moduleScope = first.moduleScope;
-	scope(exit) typeid(DSymbol).destroy(first.rootSymbol.acSymbol);
-	scope(exit) typeid(SemanticSymbol).destroy(first.rootSymbol);
-	scope(exit) typeid(Scope).destroy(first.moduleScope);
-
-	GC.disable;
-	scope (exit)
-		GC.enable;
-
-	foreach (BaseAnalyzer check; getAnalyzersForModuleAndConfig(fileName, tokens, m, analysisConfig, moduleScope))
-	{
-		if (check.getName() == messageCheckName)
-		{
-			foreach (ref autofix; autofixes)
-				autofix.resolveAutoFixFromCheck(check, m, tokens, formattingConfig);
-			return;
-		}
-	}
-
-	throw new Exception("Cannot find analyzer " ~ messageCheckName
-		~ " to resolve autofix with.");
-}
-
-void improveAutoFixWhitespace(scope const(char)[] code, AutoFix.CodeReplacement[] replacements)
-{
-	import std.ascii : isWhite;
-	import std.string : strip;
-	import std.utf : stride, strideBack;
-
-	enum WS
-	{
-		none, tab, space, newline
-	}
-
-	WS getWS(size_t i)
-	{
-		if (cast(ptrdiff_t) i < 0 || i >= code.length)
-			return WS.newline;
-		switch (code[i])
-		{
-		case '\n':
-		case '\r':
-			return WS.newline;
-		case '\t':
-			return WS.tab;
-		case ' ':
-			return WS.space;
-		default:
-			return WS.none;
-		}
-	}
-
-	foreach (ref replacement; replacements)
-	{
-		assert(replacement.range[0] >= 0 && replacement.range[0] < code.length
-			&& replacement.range[1] >= 0 && replacement.range[1] < code.length
-			&& replacement.range[0] <= replacement.range[1], "trying to autofix whitespace on code that doesn't match with what the replacements were generated for");
-
-		void growRight()
-		{
-			// this is basically: replacement.range[1]++;
-			if (code[replacement.range[1] .. $].startsWith("\r\n"))
-				replacement.range[1] += 2;
-			else if (replacement.range[1] < code.length)
-				replacement.range[1] += code.stride(replacement.range[1]);
-		}
-
-		void growLeft()
-		{
-			// this is basically: replacement.range[0]--;
-			if (code[0 .. replacement.range[0]].endsWith("\r\n"))
-				replacement.range[0] -= 2;
-			else if (replacement.range[0] > 0)
-				replacement.range[0] -= code.strideBack(replacement.range[0]);
-		}
-
-		if (replacement.newText.strip.length)
-		{
-			if (replacement.newText.startsWith(" "))
-			{
-				// we insert with leading space, but there is a space/NL/SOF before
-				// remove to-be-inserted space
-				if (getWS(replacement.range[0] - 1))
-					replacement.newText = replacement.newText[1 .. $];
-			}
-			if (replacement.newText.startsWith("]", ")"))
-			{
-				// when inserting `)`, consume regular space before
-				if (getWS(replacement.range[0] - 1) == WS.space)
-					growLeft();
-			}
-			if (replacement.newText.endsWith(" "))
-			{
-				// we insert with trailing space, but there is a space/NL/EOF after, chomp off
-				if (getWS(replacement.range[1]))
-					replacement.newText = replacement.newText[0 .. $ - 1];
-			}
-			if (replacement.newText.endsWith("[", "("))
-			{
-				if (getWS(replacement.range[1]))
-					growRight();
-			}
-		}
-		else if (!replacement.newText.length)
-		{
-			// after removing code and ending up with whitespace on both sides,
-			// collapse 2 whitespace into one
-			switch (getWS(replacement.range[1]))
-			{
-			case WS.newline:
-				switch (getWS(replacement.range[0] - 1))
-				{
-				case WS.newline:
-					// after removal we have NL ~ NL or SOF ~ NL,
-					// remove right NL
-					growRight();
-					break;
-				case WS.space:
-				case WS.tab:
-					// after removal we have space ~ NL,
-					// remove the space
-					growLeft();
-					break;
-				default:
-					break;
-				}
-				break;
-			case WS.space:
-			case WS.tab:
-				// for NL ~ space, SOF ~ space, space ~ space, tab ~ space,
-				// for NL ~ tab, SOF ~ tab, space ~ tab, tab ~ tab
-				// remove right space/tab
-				if (getWS(replacement.range[0] - 1))
-					growRight();
-				break;
-			default:
-				break;
-			}
-		}
-	}
-}
-
-unittest
-{
-	AutoFix.CodeReplacement r(int start, int end, string s)
-	{
-		return AutoFix.CodeReplacement([start, end], s);
-	}
-
-	string test(string code, AutoFix.CodeReplacement[] replacements...)
-	{
-		replacements.sort!"a.range[0] < b.range[0]";
-		improveAutoFixWhitespace(code, replacements);
-		foreach_reverse (r; replacements)
-			code = code[0 .. r.range[0]] ~ r.newText ~ code[r.range[1] .. $];
-		return code;
-	}
-
-	assert(test("import a;\nimport b;", r(0, 9, "")) == "import b;");
-	assert(test("import a;\r\nimport b;", r(0, 9, "")) == "import b;");
-	assert(test("import a;\nimport b;", r(8, 9, "")) == "import a\nimport b;");
-	assert(test("import a;\nimport b;", r(7, 8, "")) == "import ;\nimport b;");
-	assert(test("import a;\r\nimport b;", r(7, 8, "")) == "import ;\r\nimport b;");
-	assert(test("a b c", r(2, 3, "")) == "a c");
 }
 
 version (unittest)

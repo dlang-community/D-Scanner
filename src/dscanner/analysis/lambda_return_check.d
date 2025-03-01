@@ -5,84 +5,117 @@
 
 module dscanner.analysis.lambda_return_check;
 
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dscanner.utils : safeAccess;
+import dmd.tokens : Token, TOK;
 
-final class LambdaReturnCheck : BaseAnalyzer
+extern (C++) class LambdaReturnCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"lambda_return_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.confusing.lambda_returns_lambda";
+	private enum MSG = "This lambda returns a lambda. Add parenthesis to clarify.";
+
+	private Token[] tokens;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
+		lexFile();
 	}
 
-	override void visit(const FunctionLiteralExpression fLit)
+	private void lexFile()
 	{
-		import std.algorithm : find;
+		import dscanner.utils : readFile;
+		import dmd.errorsink : ErrorSinkNull;
+		import dmd.globals : global;
+		import dmd.lexer : Lexer;
 
-		auto fe = safeAccess(fLit).assignExpression.as!UnaryExpression
-			.primaryExpression.functionLiteralExpression.unwrap;
+		auto bytes = readFile(fileName) ~ '\0';
+		__gshared ErrorSinkNull errorSinkNull;
+		if (!errorSinkNull)
+			errorSinkNull = new ErrorSinkNull;
 
-		if (fe is null || fe.parameters !is null || fe.identifier != tok!"" ||
-			fe.specifiedFunctionBody is null || fe.specifiedFunctionBody.blockStatement is null)
-		{
+		scope lexer = new Lexer(null, cast(char*) bytes, 0, bytes.length, 0, 0, errorSinkNull, &global.compileEnv);
+		while (lexer.nextToken() != TOK.endOfFile)
+			tokens ~= lexer.token;
+	}
+
+	override void visit(AST.FuncLiteralDeclaration lambda)
+	{
+		import std.algorithm.iteration : filter;
+		import std.algorithm.searching : canFind, find, until;
+
+		super.visit(lambda);
+
+		if (lambda.fbody.isReturnStatement() is null)
 			return;
-		}
-		auto start = &fLit.tokens[0];
-		auto endIncl = &fe.specifiedFunctionBody.tokens[0];
-		assert(endIncl >= start);
-		auto tokens = start[0 .. endIncl - start + 1];
-		auto arrow = tokens.find!(a => a.type == tok!"=>");
 
-		AutoFix[] autofixes;
-		if (arrow.length)
+		auto lambdaRange = tokens.filter!(t => t.loc.fileOffset > lambda.loc.fileOffset)
+			.filter!(t => t.loc.fileOffset < lambda.endloc.fileOffset);
+		auto tokenRange = lambdaRange.find!(t => t.value == TOK.goesTo);
+
+		if (!tokenRange.canFind!(t => t.value == TOK.leftCurly))
+			return;
+
+		if (!tokenRange.canFind!(t => t.value == TOK.leftParenthesis))
 		{
-			if (fLit.tokens[0] == tok!"(")
-				autofixes ~= AutoFix.replacement(arrow[0], "", "Remove arrow (use function body)");
+			auto start = tokenRange.front.loc.fileOffset;
+			AutoFix fix0;
+			auto firstParam = (*(lambda.getParameterList().parameters))[0];
+
+			if (hasParensOnParams((*(lambda.getParameterList().parameters))[0]))
+				fix0 = AutoFix.replacement(start, start + 3, "", "Remove arrow (use function body)");
 			else
-				autofixes ~= AutoFix.insertionBefore(fLit.tokens[0], "(", "Remove arrow (use function body)")
-					.concat(AutoFix.insertionAfter(fLit.tokens[0], ")"))
-					.concat(AutoFix.replacement(arrow[0], ""));
+				fix0 = AutoFix.insertionAt(firstParam.loc.fileOffset, "(")
+					.concat(AutoFix.insertionAt(start - 1, ")"))
+					.concat(AutoFix.replacement(start, start + 3, "", "Remove arrow (use function body)"));
+
+			addErrorMessage(
+				cast(ulong) lambda.loc.linnum, cast(ulong) lambda.loc.charnum, KEY, MSG,
+				[fix0, AutoFix.insertionAt(start + 2, " ()")]
+			);
 		}
-		autofixes ~= AutoFix.insertionBefore(*endIncl, "() ", "Add parenthesis (return delegate)");
-		addErrorMessage(tokens, KEY, "This lambda returns a lambda. Add parenthesis to clarify.",
-			autofixes);
 	}
 
-private:
-	enum KEY = "dscanner.confusing.lambda_returns_lambda";
+	private bool hasParensOnParams(AST.Parameter param)
+	{
+		int idx;
+
+		foreach (token; tokens)
+		{
+			if (token.loc.fileOffset == param.loc.fileOffset)
+				break;
+			idx++;
+		}
+
+		return tokens[idx - 1].value == TOK.leftParenthesis && tokens[idx - 2].value == TOK.leftParenthesis;
+	}
 }
 
-version(Windows) {/*because of newline in code*/} else
 unittest
 {
 	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
 	import std.stdio : stderr;
+	import std.format : format;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.lambda_return_check = Check.enabled;
+	auto msg = "This lambda returns a lambda. Add parenthesis to clarify.";
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void main()
 		{
 			int[] b;
-			auto a = b.map!(a => { return a * a + 2; }).array(); /+
-			                ^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
-			pragma(msg, typeof(a => { return a; })); /+
-			                   ^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
-			pragma(msg, typeof((a) => { return a; })); /+
-			                   ^^^^^^^^ [warn]: This lambda returns a lambda. Add parenthesis to clarify. +/
+			auto a = b.map!(a => { return a * a + 2; }).array(); // [warn]: %s
+			pragma(msg, typeof(a => { return a; })); // [warn]: %s
+			pragma(msg, typeof((a) => { return a; })); // [warn]: %s
 			pragma(msg, typeof({ return a; }));
 			pragma(msg, typeof(a => () { return a; }));
+			b.map!(a => a * 2);
 		}
-	}c, sac);
-
+	}c.format(msg, msg, msg), sac);
 
 	assertAutoFix(q{
 		void main()

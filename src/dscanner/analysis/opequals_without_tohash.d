@@ -5,118 +5,101 @@
 
 module dscanner.analysis.opequals_without_tohash;
 
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
-import std.stdio;
-import std.typecons : Rebindable;
 
 /**
  * Checks for when a class/struct has the method opEquals without toHash, or
  * toHash without opEquals.
  */
-final class OpEqualsWithoutToHashCheck : BaseAnalyzer
+extern(C++) class OpEqualsWithoutToHashCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
 	mixin AnalyzerInfo!"opequals_tohash_check";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const ClassDeclaration node)
+	override void visit(AST.ClassDeclaration cd)
 	{
-		actualCheck(node.name, node.structBody);
-		node.accept(this);
+		visitBaseClasses(cd);
+		visitAggregate(cd);
 	}
 
-	override void visit(const StructDeclaration node)
+	override void visit(AST.StructDeclaration sd)
 	{
-		actualCheck(node.name, node.structBody);
-		node.accept(this);
+		visitAggregate(sd);
 	}
 
-	private void actualCheck(const Token name, const StructBody structBody)
+	private void isInteresting(AST.FuncDeclaration fd, ref bool hasOpEquals, ref bool hasToHash)
 	{
-		Rebindable!(const Declaration) hasOpEquals;
-		Rebindable!(const Declaration) hasToHash;
-		Rebindable!(const Declaration) hasOpCmp;
+		import dmd.astenums : STC;
 
-		// Just return if missing children
-		if (!structBody || !structBody.declarations || name is Token.init)
+		if (!(fd.storage_class & STC.disable) && fd.ident.toString() == "opEquals")
+			hasOpEquals = true;
+
+		if (!(fd.storage_class & STC.disable) && fd.ident.toString() == "toHash")
+			hasToHash = true;
+	}
+
+	private void visitAggregate(AST.AggregateDeclaration ad)
+	{
+		bool hasOpEquals, hasToHash;
+
+		if (!ad.members)
 			return;
-
-		// Check all the function declarations
-		foreach (declaration; structBody.declarations)
+	
+		foreach(member; *ad.members)
 		{
-			// Skip if not a function declaration
-			if (!declaration || !declaration.functionDeclaration)
-				continue;
-
-			bool containsDisable(A)(const A[] attribs)
+			if (auto fd = member.isFuncDeclaration())
 			{
-				import std.algorithm.searching : canFind;
-				return attribs.canFind!(a => a.atAttribute !is null &&
-					a.atAttribute.identifier.text == "disable");
+				isInteresting(fd, hasOpEquals, hasToHash);
+				member.accept(this);
 			}
-
-			const isDeclationDisabled = containsDisable(declaration.attributes) ||
-				containsDisable(declaration.functionDeclaration.memberFunctionAttributes);
-
-			if (isDeclationDisabled)
-				continue;
-
-			// Check if opEquals or toHash
-			immutable string methodName = declaration.functionDeclaration.name.text;
-			if (methodName == "opEquals")
-				hasOpEquals = declaration;
-			else if (methodName == "toHash")
-				hasToHash = declaration;
-			else if (methodName == "opCmp")
-				hasOpCmp = declaration;
+			else if (auto scd = member.isStorageClassDeclaration())
+			{
+				foreach (smember; *scd.decl)
+				{
+					if (auto fd2 = smember.isFuncDeclaration())
+					{
+						isInteresting(fd2, hasOpEquals, hasToHash);
+						smember.accept(this);
+					}
+					else
+						smember.accept(this);
+				}
+			}
+			else
+				member.accept(this);
 		}
 
-		// Warn if has opEquals, but not toHash
 		if (hasOpEquals && !hasToHash)
 		{
-			string message = "'" ~ name.text ~ "' has method 'opEquals', but not 'toHash'.";
-			addErrorMessage(
-				Message.Diagnostic.from(fileName, name, message),
-				[
-					Message.Diagnostic.from(fileName, hasOpEquals.get, "'opEquals' defined here")
-				],
-				KEY
-			);
+			string message = ad.ident.toString().dup;
+			message = "'" ~ message ~ "' has method 'opEquals', but not 'toHash'.";
+			addErrorMessage(cast(ulong) ad.loc.linnum, cast(ulong) ad.loc.charnum, KEY, message);
 		}
-		// Warn if has toHash, but not opEquals
 		else if (!hasOpEquals && hasToHash)
 		{
-			string message = "'" ~ name.text ~ "' has method 'toHash', but not 'opEquals'.";
-			addErrorMessage(
-				Message.Diagnostic.from(fileName, name, message),
-				[
-					Message.Diagnostic.from(fileName, hasToHash.get, "'toHash' defined here")
-				],
-				KEY
-			);
+			string message = ad.ident.toString().dup;
+			message = "'" ~ message ~ "' has method 'toHash', but not 'opEquals'.";
+			addErrorMessage(cast(ulong) ad.loc.linnum, cast(ulong) ad.loc.charnum, KEY, message);
 		}
 	}
 
-	enum string KEY = "dscanner.suspicious.incomplete_operator_overloading";
+	private enum KEY = "dscanner.suspicious.incomplete_operator_overloading";
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.opequals_tohash_check = Check.enabled;
-	// TODO: test supplemental diagnostics
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		// Success because it has opEquals and toHash
 		class Chimp
 		{
@@ -141,8 +124,7 @@ unittest
 		}
 
 		// Fail on class opEquals
-		class Rabbit /+
-		      ^^^^^^ [warn]: 'Rabbit' has method 'opEquals', but not 'toHash'. +/
+		class Rabbit // [warn]: 'Rabbit' has method 'opEquals', but not 'toHash'.
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -151,8 +133,7 @@ unittest
 		}
 
 		// Fail on class toHash
-		class Kangaroo /+
-		      ^^^^^^^^ [warn]: 'Kangaroo' has method 'toHash', but not 'opEquals'. +/
+		class Kangaroo // [warn]: 'Kangaroo' has method 'toHash', but not 'opEquals'.
 		{
 			override const hash_t toHash()
 			{
@@ -161,8 +142,7 @@ unittest
 		}
 
 		// Fail on struct opEquals
-		struct Tarantula /+
-		       ^^^^^^^^^ [warn]: 'Tarantula' has method 'opEquals', but not 'toHash'. +/
+		struct Tarantula // [warn]: 'Tarantula' has method 'opEquals', but not 'toHash'.
 		{
 			const bool opEquals(Object a, Object b)
 			{
@@ -171,8 +151,7 @@ unittest
 		}
 
 		// Fail on struct toHash
-		struct Puma /+
-		       ^^^^ [warn]: 'Puma' has method 'toHash', but not 'opEquals'. +/
+		struct Puma // [warn]: 'Puma' has method 'toHash', but not 'opEquals'.
 		{
 			const nothrow @safe hash_t toHash()
 			{

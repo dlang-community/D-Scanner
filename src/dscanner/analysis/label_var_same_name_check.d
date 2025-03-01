@@ -4,174 +4,303 @@
 
 module dscanner.analysis.label_var_same_name_check;
 
-import dparse.ast;
-import dparse.lexer;
-import dsymbol.scope_ : Scope;
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
+import dmd.cond : Include;
+import std.conv : to;
 
 /**
  * Checks for labels and variables that have the same name.
  */
-final class LabelVarNameCheck : ScopedBaseAnalyzer
+extern (C++) class LabelVarNameCheck(AST) : BaseAnalyzerDmd
 {
 	mixin AnalyzerInfo!"label_var_same_name_check";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	this(BaseAnalyzerArguments args)
+	mixin ScopedVisit!(AST.Module);
+	mixin ScopedVisit!(AST.IfStatement);
+	mixin ScopedVisit!(AST.WithStatement);
+	mixin ScopedVisit!(AST.WhileStatement);
+	mixin ScopedVisit!(AST.DoStatement);
+	mixin ScopedVisit!(AST.ForStatement);
+	mixin ScopedVisit!(AST.CaseStatement);
+	mixin ScopedVisit!(AST.ForeachStatement);
+	mixin ScopedVisit!(AST.ForeachRangeStatement);
+	mixin ScopedVisit!(AST.ScopeStatement);
+	mixin ScopedVisit!(AST.FuncAliasDeclaration);
+	mixin ScopedVisit!(AST.CtorDeclaration);
+	mixin ScopedVisit!(AST.DtorDeclaration);
+	mixin ScopedVisit!(AST.InvariantDeclaration);
+
+	mixin FunctionVisit!(AST.FuncDeclaration);
+	mixin FunctionVisit!(AST.TemplateDeclaration);
+	mixin FunctionVisit!(AST.FuncLiteralDeclaration);
+
+	mixin AggregateVisit!(AST.ClassDeclaration);
+	mixin AggregateVisit!(AST.StructDeclaration);
+	mixin AggregateVisit!(AST.InterfaceDeclaration);
+	mixin AggregateVisit!(AST.UnionDeclaration);
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	mixin AggregateVisit!ClassDeclaration;
-	mixin AggregateVisit!StructDeclaration;
-	mixin AggregateVisit!InterfaceDeclaration;
-	mixin AggregateVisit!UnionDeclaration;
-
-	override void visit(const VariableDeclaration var)
+	override void visit(AST.VarDeclaration vd)
 	{
-		foreach (dec; var.declarators)
-			duplicateCheck(dec.name, false, conditionalDepth > 0);
+		import dmd.astenums : STC;
+
+		if (!(vd.storage_class & STC.scope_) && !isInLocalFunction)
+		{
+			auto thing = Thing(to!string(vd.ident.toChars()), vd.loc.linnum, vd.loc.charnum);
+			duplicateCheck(thing, false, conditionalDepth > 0);
+		}
+
+		super.visit(vd);
 	}
 
-	override void visit(const LabeledStatement labeledStatement)
+	override void visit(AST.LabelStatement ls)
 	{
-		duplicateCheck(labeledStatement.identifier, true, conditionalDepth > 0);
-		if (labeledStatement.declarationOrStatement !is null)
-			labeledStatement.declarationOrStatement.accept(this);
+		auto thing = Thing(to!string(ls.ident.toChars()), ls.loc.linnum, ls.loc.charnum);
+		duplicateCheck(thing, true, conditionalDepth > 0);
+		super.visit(ls);
 	}
 
-	override void visit(const ConditionalDeclaration condition)
+	override void visit(AST.ConditionalDeclaration conditionalDeclaration)
 	{
-		if (condition.falseDeclarations.length > 0)
+		import dmd.root.array : peekSlice;
+
+		conditionalDeclaration.condition.accept(this);
+
+		if (conditionalDeclaration.condition.isVersionCondition())
 			++conditionalDepth;
-		condition.accept(this);
-		if (condition.falseDeclarations.length > 0)
+
+		if (conditionalDeclaration.elsedecl || conditionalDeclaration.condition.inc != Include.yes)
+			pushScope();
+
+		foreach (decl; conditionalDeclaration.decl.peekSlice())
+			decl.accept(this);
+
+		if (conditionalDeclaration.elsedecl || conditionalDeclaration.condition.inc != Include.yes)
+			popScope();
+
+		if (conditionalDeclaration.elsedecl)
+			foreach (decl; conditionalDeclaration.elsedecl.peekSlice())
+				decl.accept(this);
+
+		if (conditionalDeclaration.condition.isVersionCondition())
 			--conditionalDepth;
 	}
 
-	override void visit(const VersionCondition condition)
+	override void visit(AST.ConditionalStatement conditionalStatement)
 	{
-		++conditionalDepth;
-		condition.accept(this);
-		--conditionalDepth;
+		conditionalStatement.condition.accept(this);
+
+		if (conditionalStatement.condition.isVersionCondition)
+			++conditionalDepth;
+
+		if (conditionalStatement.ifbody)
+		{
+			if (conditionalStatement.elsebody)
+				pushScope();
+
+			conditionalStatement.ifbody.accept(this);
+
+			if (conditionalStatement.elsebody)
+				popScope();
+		}
+
+		if (conditionalStatement.elsebody)
+		{
+			if (conditionalStatement.condition.inc == Include.no)
+				pushScope();
+
+			conditionalStatement.elsebody.accept(this);
+
+			if (conditionalStatement.condition.inc == Include.no)
+				popScope();
+		}
+
+		if (conditionalStatement.condition.isVersionCondition)
+			--conditionalDepth;
 	}
 
-	alias visit = ScopedBaseAnalyzer.visit;
+	override void visit(AST.AnonDeclaration ad)
+	{
+		pushScope();
+		pushAggregateName("", ad.loc.linnum, ad.loc.charnum);
+		super.visit(ad);
+		popScope();
+		popAggregateName();
+	}
+
+	override void visit(AST.UnitTestDeclaration unitTestDecl)
+	{
+		if (skipTests)
+			return;
+
+		auto oldIsInFunction = isInFunction;
+		auto oldIsInLocalFunction = isInLocalFunction;
+
+		pushScope();
+
+		if (isInFunction)
+			isInLocalFunction = true;
+		else
+			isInFunction = true;
+
+		super.visit(unitTestDecl);
+		popScope();
+
+		isInFunction = oldIsInFunction;
+		isInLocalFunction = oldIsInLocalFunction;
+	}
 
 private:
-
+	extern (D) Thing[string][] stack;
+	int conditionalDepth;
+	extern (D) Thing[] parentAggregates;
+	extern (D) string parentAggregateText;
+	bool isInFunction;
+	bool isInLocalFunction;
 	enum string KEY = "dscanner.suspicious.label_var_same_name";
 
-	Thing[string][] stack;
+	template FunctionVisit(NodeType)
+	{
+		override void visit(NodeType n)
+		{
+			auto oldIsInFunction = isInFunction;
+			auto oldIsInLocalFunction = isInLocalFunction;
+
+			pushScope();
+
+			if (isInFunction)
+				isInLocalFunction = true;
+			else
+				isInFunction = true;
+
+			super.visit(n);
+			popScope();
+
+			isInFunction = oldIsInFunction;
+			isInLocalFunction = oldIsInLocalFunction;
+		}
+	}
 
 	template AggregateVisit(NodeType)
 	{
-		override void visit(const NodeType n)
+		override void visit(NodeType n)
 		{
-			pushAggregateName(n.name);
-			n.accept(this);
+			pushScope();
+			pushAggregateName(to!string(n.ident.toString()), n.loc.linnum, n.loc.charnum);
+			super.visit(n);
+			popScope();
 			popAggregateName();
 		}
 	}
 
-	void duplicateCheck(const Token name, bool fromLabel, bool isConditional)
+	template ScopedVisit(NodeType)
 	{
-		import std.conv : to;
+		override void visit(NodeType n)
+		{
+			pushScope();
+			super.visit(n);
+			popScope();
+		}
+	}
+
+	extern (D) void duplicateCheck(const Thing id, bool fromLabel, bool isConditional)
+	{
 		import std.range : retro;
 
 		size_t i;
 		foreach (s; retro(stack))
 		{
-			string fqn = parentAggregateText ~ name.text;
+			string fqn = parentAggregateText ~ id.name;
 			const(Thing)* thing = fqn in s;
 			if (thing is null)
-				currentScope[fqn] = Thing(fqn, name.line, name.column, !fromLabel /+, isConditional+/ );
+			{
+				currentScope[fqn] = Thing(fqn, id.line, id.column, !fromLabel);
+			}
 			else if (i != 0 || !isConditional)
 			{
 				immutable thisKind = fromLabel ? "Label" : "Variable";
 				immutable otherKind = thing.isVar ? "variable" : "label";
-				addErrorMessage(name, KEY,
-						thisKind ~ " \"" ~ fqn ~ "\" has the same name as a "
-						~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".");
+				auto msg = thisKind ~ " \"" ~ fqn ~ "\" has the same name as a "
+					~ otherKind ~ " defined on line " ~ to!string(thing.line) ~ ".";
+				addErrorMessage(id.line, id.column, KEY, msg);
 			}
 			++i;
 		}
 	}
 
-	static struct Thing
+	extern (D) static struct Thing
 	{
 		string name;
 		size_t line;
 		size_t column;
 		bool isVar;
-		//bool isConditional;
 	}
 
-	ref currentScope() @property
+	extern (D) ref currentScope() @property
 	{
 		return stack[$ - 1];
 	}
 
-	protected override void pushScope()
+	extern (D) void pushScope()
 	{
 		stack.length++;
 	}
 
-	protected override void popScope()
+	extern (D) void popScope()
 	{
 		stack.length--;
 	}
 
-	int conditionalDepth;
-
-	void pushAggregateName(Token name)
+	extern (D) void pushAggregateName(string name, size_t line, size_t column)
 	{
-		parentAggregates ~= name;
+		parentAggregates ~= Thing(name, line, column);
 		updateAggregateText();
 	}
 
-	void popAggregateName()
+	extern (D) void popAggregateName()
 	{
 		parentAggregates.length -= 1;
 		updateAggregateText();
 	}
 
-	void updateAggregateText()
+	extern (D) void updateAggregateText()
 	{
 		import std.algorithm : map;
 		import std.array : join;
 
 		if (parentAggregates.length)
-			parentAggregateText = parentAggregates.map!(a => a.text).join(".") ~ ".";
+			parentAggregateText = parentAggregates.map!(a => a.name).join(".") ~ ".";
 		else
 			parentAggregateText = "";
 	}
-
-	Token[] parentAggregates;
-	string parentAggregateText;
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.label_var_same_name_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+
+	assertAnalyzerWarningsDMD(q{
 unittest
 {
 blah:
-	int blah; /+
-	    ^^^^ [warn]: Variable "blah" has the same name as a label defined on line 4. +/
+	int blah; // [warn]: Variable "blah" has the same name as a label defined on line 4.
 }
 int blah;
 unittest
 {
 	static if (stuff)
 		int a;
-	int a; /+
-	    ^ [warn]: Variable "a" has the same name as a variable defined on line 12. +/
+	int a; // [warn]: Variable "a" has the same name as a variable defined on line 11.
 }
 
 unittest
@@ -188,8 +317,7 @@ unittest
 		int a = 10;
 	else
 		int a = 20;
-	int a; /+
-	    ^ [warn]: Variable "a" has the same name as a variable defined on line 30. +/
+	int a; // [warn]: Variable "a" has the same name as a variable defined on line 28.
 }
 template T(stuff)
 {
@@ -212,8 +340,7 @@ unittest
 		int c = 10;
 	else
 		int c = 20;
-	int c; /+
-	    ^ [warn]: Variable "c" has the same name as a variable defined on line 54. +/
+	int c; // [warn]: Variable "c" has the same name as a variable defined on line 51.
 }
 
 unittest
@@ -251,8 +378,7 @@ unittest
 	interface A
 	{
 		int a;
-		int a; /+
-		    ^ [warn]: Variable "A.a" has the same name as a variable defined on line 93. +/
+		int a; // [warn]: Variable "A.a" has the same name as a variable defined on line 89.
 	}
 }
 
@@ -276,7 +402,6 @@ unittest
 		break;
 	}
 }
-
 }c, sac);
 	stderr.writeln("Unittest for LabelVarNameCheck passed.");
 }

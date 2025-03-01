@@ -6,24 +6,253 @@
 module dscanner.analysis.final_attribute;
 
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
+import dmd.astcodegen;
+import dmd.dsymbol;
+import dmd.tokens : Token, TOK;
+import std.algorithm;
+import std.array;
+import std.range;
+import std.string : format;
 
 /**
  * Checks for useless usage of the final attribute.
  *
  * There are several cases where the compiler allows them even if it's a noop.
  */
-final class FinalAttributeChecker : BaseAnalyzer
+extern (C++) class FinalAttributeChecker(AST) : BaseAnalyzerDmd
 {
+	alias visit = BaseAnalyzerDmd.visit;
+	mixin AnalyzerInfo!"final_attribute_check";
 
-private:
+	enum Parent
+	{
+		module_,
+		struct_,
+		union_,
+		class_,
+		function_,
+		interface_
+	}
 
-	enum string KEY = "dscanner.useless.final";
+	bool _private;
+	bool _inFinalClass;
+	bool _alwaysStatic;
+	bool _blockStatic;
+	bool _blockFinal;
+	Parent _parent = Parent.module_;
+
+	Token[] tokens;
+
+	enum pushPopPrivate = q{
+		const bool wasPrivate = _private;
+		_private = false;
+		scope (exit) _private = wasPrivate;
+	};
+
+	extern(D) this(string fileName)
+	{
+		super(fileName);
+		lexFile();
+	}
+
+	private void lexFile()
+	{
+		import dscanner.utils : readFile;
+		import dmd.errorsink : ErrorSinkNull;
+		import dmd.globals : global;
+		import dmd.lexer : Lexer;
+
+		auto bytes = readFile(fileName) ~ '\0';
+		__gshared ErrorSinkNull errorSinkNull;
+		if (!errorSinkNull)
+			errorSinkNull = new ErrorSinkNull;
+
+		scope lexer = new Lexer(null, cast(char*) bytes, 0, bytes.length, 0, 0, errorSinkNull, &global.compileEnv);
+		while (lexer.nextToken() != TOK.endOfFile)
+			tokens ~= lexer.token;
+	}
+
+	override void visit(AST.StorageClassDeclaration scd)
+	{
+		import dmd.astenums : STC;
+
+		if (scd.stc & STC.static_)
+			_blockStatic = true;
+
+		scope (exit) _blockStatic = false;
+
+		if (scd.stc & STC.final_)
+			_blockFinal = true;
+
+		scope (exit) _blockFinal = false;
+
+		if (!scd.decl)
+			return;
+
+		foreach (member; *scd.decl)
+		{
+			auto sd = member.isStructDeclaration();
+			auto ud = member.isUnionDeclaration();
+
+			if ((scd.stc & STC.final_) != 0)
+			{
+				auto finalTokenOffset = tokens.filter!(t => t.loc.linnum == member.loc.linnum)
+					.find!(t => t.value == TOK.final_)
+					.front.loc.fileOffset;
+
+				ulong lineNum = cast(ulong) member.loc.linnum;
+				ulong charNum = cast(ulong) member.loc.charnum;
+
+				AutoFix fix = AutoFix.replacement(finalTokenOffset, finalTokenOffset + 6, "", "Remove final attribute");
+
+				if (!ud && sd)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.struct_i), [fix]);
+
+				if (ud)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.union_i), [fix]);
+			}
+
+			member.accept(this);
+		}
+	}
+
+	override void visit(AST.TemplateDeclaration td)
+	{
+		import dmd.astenums : STC;
+
+		if (!td.members)
+			return;
+
+		foreach (member; *td.members)
+        {
+			auto fd = member.isFuncDeclaration();
+
+			if (fd && (fd.storage_class & STC.final_))
+			{
+				auto finalTokenOffset = tokens.filter!(t => t.loc.linnum == fd.loc.linnum)
+					.find!(t => t.value == TOK.final_)
+					.front.loc.fileOffset;
+
+				ulong lineNum = cast(ulong) fd.loc.linnum;
+				ulong charNum = cast(ulong) fd.loc.charnum;
+
+				AutoFix fix = AutoFix.replacement(finalTokenOffset, finalTokenOffset + 6, "", "Remove final attribute");
+
+				if (_parent == Parent.class_)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_t), [fix]);
+
+				if (_parent == Parent.interface_)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.interface_t), [fix]);
+			}
+		}
+
+	}
+
+	override void visit(AST.ClassDeclaration cd)
+	{
+		if (_blockFinal && !_inFinalClass)
+			_inFinalClass = true;
+		else if (_inFinalClass)
+			_inFinalClass = false;
+		_blockStatic = false;
+
+		mixin (pushPopPrivate);
+		const Parent saved = _parent;
+		_parent = Parent.class_;
+		super.visit(cd);
+		_parent = saved;
+		_inFinalClass = false;
+	}
+
+	override void visit(AST.FuncDeclaration fd)
+	{
+		import dmd.astenums : STC;
+
+		if ((fd.storage_class & STC.final_) != 0)
+		{
+			auto finalTokenOffset = tokens.filter!(t => t.loc.linnum == fd.loc.linnum)
+				.array()
+				.retro()
+				.find!(t => t.value == TOK.final_)
+				.front.loc.fileOffset;
+
+			ulong lineNum = cast(ulong) fd.loc.linnum;
+			ulong charNum = cast(ulong) fd.loc.charnum;
+
+			AutoFix fix = AutoFix.replacement(finalTokenOffset, finalTokenOffset + 6, "", "Remove final attribute");
+
+			if (_parent == Parent.class_ && _private)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_p), [fix]);
+			else if (fd.storage_class & STC.static_ || _blockStatic)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_s), [fix]);
+			else if (_parent == Parent.class_ && _inFinalClass)
+					addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.class_f), [fix]);
+
+			if (_parent == Parent.struct_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.struct_f), [fix]);
+
+			if (_parent == Parent.union_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.union_f), [fix]);
+
+			if (_parent == Parent.module_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.func_g), [fix]);
+
+			if (_parent == Parent.function_)
+				addErrorMessage(lineNum, charNum, KEY, MSGB.format(FinalAttributeChecker.MESSAGE.func_n), [fix]);
+		}
+
+		_blockStatic = false;
+		mixin (pushPopPrivate);
+		const Parent saved = _parent;
+		_parent = Parent.function_;
+		super.visit(fd);
+		_parent = saved;
+	}
+
+	override void visit(AST.InterfaceDeclaration id)
+	{
+		_blockStatic = false;
+		mixin (pushPopPrivate);
+		const Parent saved = _parent;
+		_parent = Parent.interface_;
+		super.visit(id);
+		_parent = saved;
+	}
+
+	override void visit(AST.UnionDeclaration ud)
+	{
+		_blockStatic = false;
+		mixin (pushPopPrivate);
+		const Parent saved = _parent;
+		_parent = Parent.union_;
+		super.visit(ud);
+		_parent = saved;
+	}
+
+	override void visit(AST.StructDeclaration sd)
+	{
+		_blockStatic = false;
+		mixin (pushPopPrivate);
+		const Parent saved = _parent;
+		_parent = Parent.struct_;
+		super.visit(sd);
+		_parent = saved;
+	}
+
+	override void visit(AST.VisibilityDeclaration vd)
+	{
+		if (vd.visibility.kind == Visibility.Kind.private_)
+			_private = true;
+		else
+			_private = false;
+		
+		super.visit(vd);
+			_private = false;
+	}
+
+	enum KEY = "dscanner.useless.final";
 	enum string MSGB = "Useless final attribute, %s";
-
-	static struct MESSAGE
+	extern(D) static struct MESSAGE
 	{
 		static immutable struct_i    = "structs cannot be subclassed";
 		static immutable union_i     = "unions cannot be subclassed";
@@ -37,270 +266,54 @@ private:
 		static immutable func_n      = "nested functions are never virtual";
 		static immutable func_g      = "global functions are never virtual";
 	}
-
-	enum Parent
-	{
-		module_,
-		struct_,
-		union_,
-		class_,
-		function_,
-		interface_
-	}
-
-	bool _private;
-	bool _finalAggregate;
-	bool _alwaysStatic;
-	bool _blockStatic;
-	Parent _parent = Parent.module_;
-
-	void addError(T)(const Token finalToken, T t, string msg)
-	{
-		import std.format : format;
-		addErrorMessage(finalToken.type ? finalToken : t.name, KEY, MSGB.format(msg),
-				[AutoFix.replacement(finalToken, "")]);
-	}
-
-public:
-
-	alias visit = BaseAnalyzer.visit;
-
-	mixin AnalyzerInfo!"final_attribute_check";
-
-	enum pushPopPrivate = q{
-		const bool wasPrivate = _private;
-		_private = false;
-		scope (exit) _private = wasPrivate;
-	};
-
-	///
-	this(BaseAnalyzerArguments args)
-	{
-		super(args);
-	}
-
-	override void visit(const(StructDeclaration) sd)
-	{
-		mixin (pushPopPrivate);
-		const Parent saved = _parent;
-		_parent = Parent.struct_;
-		_alwaysStatic = false;
-		sd.accept(this);
-		_parent = saved;
-	}
-
-	override void visit(const(InterfaceDeclaration) id)
-	{
-		mixin (pushPopPrivate);
-		const Parent saved = _parent;
-		_parent = Parent.interface_;
-		_alwaysStatic = false;
-		id.accept(this);
-		_parent = saved;
-	}
-
-	override void visit(const(UnionDeclaration) ud)
-	{
-		mixin (pushPopPrivate);
-		const Parent saved = _parent;
-		_parent = Parent.union_;
-		_alwaysStatic = false;
-		ud.accept(this);
-		_parent = saved;
-	}
-
-	override void visit(const(ClassDeclaration) cd)
-	{
-		mixin (pushPopPrivate);
-		const Parent saved = _parent;
-		_parent = Parent.class_;
-		_alwaysStatic = false;
-		cd.accept(this);
-		_parent = saved;
-	}
-
-	override void visit(const(MixinTemplateDeclaration) mtd)
-	{
-		// can't really know where it'll be mixed (class |final class | struct ?)
-	}
-
-	override void visit(const(TemplateDeclaration) mtd)
-	{
-		// regular template are also mixable
-	}
-
-	override void visit(const(AttributeDeclaration) decl)
-	{
-		if (_parent == Parent.class_ && decl.attribute &&
-			decl.attribute.attribute == tok!"static")
-				_alwaysStatic = true;
-	}
-
-	override void visit(const(Declaration) d)
-	{
-		import std.algorithm.iteration : filter;
-		import std.algorithm.searching : canFind;
-
-		const Parent savedParent = _parent;
-
-		bool undoBlockStatic;
-		if (_parent == Parent.class_ && d.attributes &&
-			d.attributes.canFind!(a => a.attribute == tok!"static"))
-		{
-			_blockStatic = true;
-			undoBlockStatic = true;
-		}
-
-		const bool wasFinalAggr = _finalAggregate;
-		scope(exit)
-		{
-			d.accept(this);
-			_parent = savedParent;
-			if (undoBlockStatic)
-				_blockStatic = false;
-			_finalAggregate = wasFinalAggr;
-		}
-
-		if (!d.attributeDeclaration &&
-			!d.classDeclaration &&
-			!d.structDeclaration &&
-			!d.unionDeclaration &&
-			!d.interfaceDeclaration &&
-			!d.functionDeclaration)
-				return;
-
-		if (d.attributeDeclaration && d.attributeDeclaration.attribute)
-		{
-			const tp = d.attributeDeclaration.attribute.attribute.type;
-			_private = isProtection(tp) & (tp == tok!"private");
-		}
-
-		const bool isFinal = d.attributes
-			.canFind!(a => a.attribute.type == tok!"final");
-		const Token finalToken = isFinal
-			? d.attributes
-				.filter!(a => a.attribute.type == tok!"final")
-				.front.attribute
-			: Token.init;
-
-		const bool isStaticOnce = d.attributes
-			.canFind!(a => a.attribute.type == tok!"static");
-
-		// determine if private
-		const bool changeProtectionOnce = d.attributes
-			.canFind!(a => a.attribute.type.isProtection);
-
-		const bool isPrivateOnce = d.attributes
-			.canFind!(a => a.attribute.type == tok!"private");
-
-		bool isPrivate;
-
-		if (isPrivateOnce)
-			isPrivate = true;
-		else if (_private && !changeProtectionOnce)
-			isPrivate = true;
-
-		// check final aggregate type
-		if (d.classDeclaration || d.structDeclaration || d.unionDeclaration)
-		{
-			_finalAggregate = isFinal;
-			if (_finalAggregate && savedParent == Parent.module_)
-			{
-				if (d.structDeclaration)
-					addError(finalToken, d.structDeclaration, MESSAGE.struct_i);
-				else if (d.unionDeclaration)
-					addError(finalToken, d.unionDeclaration, MESSAGE.union_i);
-			}
-		}
-
-		if (!d.functionDeclaration)
-			return;
-
-		// check final functions
-		_parent = Parent.function_;
-		const(FunctionDeclaration) fd = d.functionDeclaration;
-
-		if (isFinal) final switch(savedParent)
-		{
-		case Parent.class_:
-			if (fd.templateParameters)
-				addError(finalToken, fd, MESSAGE.class_t);
-			if (isPrivate)
-				addError(finalToken, fd, MESSAGE.class_p);
-			else if (isStaticOnce || _alwaysStatic || _blockStatic)
-				addError(finalToken, fd, MESSAGE.class_s);
-			else if (_finalAggregate)
-				addError(finalToken, fd, MESSAGE.class_f);
-			break;
-		case Parent.interface_:
-			if (fd.templateParameters)
-				addError(finalToken, fd, MESSAGE.interface_t);
-			break;
-		case Parent.struct_:
-			addError(finalToken, fd, MESSAGE.struct_f);
-			break;
-		case Parent.union_:
-			addError(finalToken, fd, MESSAGE.union_f);
-			break;
-		case Parent.function_:
-			addError(finalToken, fd, MESSAGE.func_n);
-			break;
-		case Parent.module_:
-			addError(finalToken, fd, MESSAGE.func_g);
-			break;
-		}
-	}
 }
 
 @system unittest
 {
 	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
-	import std.format : format;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.final_attribute_check = Check.enabled;
-
-	// pass
-
-	assertAnalyzerWarnings(q{
+	
+	assertAnalyzerWarningsDMD(q{
 		void foo(){}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void foo(){void foo(){}}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		struct S{}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		union U{}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Foo{public final void foo(){}}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		final class Foo{static struct Bar{}}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Foo{private: public final void foo(){}}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Foo{private: public: final void foo(){}}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Foo{private: public: final void foo(){}}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Impl
 		{
 			private:
@@ -311,7 +324,7 @@ public:
 		}
 	}, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		mixin template Impl()
 		{
 			protected final void mixin_template_can() {}
@@ -320,119 +333,105 @@ public:
 
 	// fail
 
-	assertAnalyzerWarnings(q{
-		final void foo(){} /+
-		^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		final void foo(){} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.func_g)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.func_g)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		void foo(){final void foo(){}} /+
-		           ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		void foo(){final void foo(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.func_n)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.func_n)
 	), sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void foo()
 		{
 			static if (true)
-			final class A{ private: final protected void foo(){}} /+
-			                        ^^^^^ [warn]: %s +/
+			final class A{ private: final protected void foo(){}} // [warn]: %s
 		}
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_f)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_f)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		final struct Foo{} /+
-		^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		final struct Foo{} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.struct_i)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.struct_i)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		final union Foo{} /+
-		^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		final union Foo{} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.union_i)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.union_i)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		class Foo{private final void foo(){}} /+
-		                  ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		class Foo{private final void foo(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_p)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		class Foo{private: final void foo(){}} /+
-		                   ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		class Foo{private: final void foo(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_p)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		interface Foo{final void foo(T)(){}} /+
-		              ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		interface Foo{final void foo(T)(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.interface_t)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.interface_t)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		final class Foo{final void foo(){}} /+
-		                ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		final class Foo{final void foo(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_f)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_f)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		private: final class Foo {public: private final void foo(){}} /+
-		                                          ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		private: final class Foo {public: private final void foo(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_p)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_p)
 	), sac);
 
-	assertAnalyzerWarnings(q{
-		class Foo {final static void foo(){}} /+
-		           ^^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		class Foo {final static void foo(){}} // [warn]: %s
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_s)
 	), sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Foo
 		{
 			void foo(){}
-			static: final void foo(){} /+
-			        ^^^^^ [warn]: %s +/
+			static: final void foo(){} // [warn]: %s
 		}
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_s)
 	), sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Foo
 		{
 			void foo(){}
-			static{ final void foo(){}} /+
-			        ^^^^^ [warn]: %s +/
+			static{ final void foo(){}} // [warn]: %s
 			void foo(){}
 		}
 	}c.format(
-		FinalAttributeChecker.MSGB.format(FinalAttributeChecker.MESSAGE.class_s)
+		(FinalAttributeChecker!ASTCodegen).MSGB.format((FinalAttributeChecker!ASTCodegen).MESSAGE.class_s)
 	), sac);
 
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		class Statement
 		{
 			final class UsesEH{}
 			final void comeFrom(){}
 		}
 	}, sac);
-
 
 	assertAutoFix(q{
 		final void foo(){} // fix
@@ -458,12 +457,12 @@ public:
 		class Foo
 		{
 			void foo(){}
-			static{ final void foo(){}} // fix
+			static{final void foo(){}} // fix
 			void foo(){}
 		}
 	}, q{
 		void foo(){} // fix
-		void foo(){ void foo(){}} // fix
+		void foo(){void foo(){}} // fix
 		void foo()
 		{
 			static if (true)
@@ -473,10 +472,10 @@ public:
 		union Foo{} // fix
 		class Foo{private void foo(){}} // fix
 		class Foo{private: void foo(){}} // fix
-		interface Foo{ void foo(T)(){}} // fix
-		final class Foo{ void foo(){}} // fix
+		interface Foo{void foo(T)(){}} // fix
+		final class Foo{void foo(){}} // fix
 		private: final class Foo {public: private void foo(){}} // fix
-		class Foo { static void foo(){}} // fix
+		class Foo {static void foo(){}} // fix
 		class Foo
 		{
 			void foo(){}
@@ -485,7 +484,7 @@ public:
 		class Foo
 		{
 			void foo(){}
-			static{ void foo(){}} // fix
+			static{void foo(){}} // fix
 			void foo(){}
 		}
 	}, sac);

@@ -6,11 +6,9 @@
 module dscanner.analysis.function_attributes;
 
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
-import std.stdio;
-import dsymbol.scope_;
+import dmd.astenums : STC, MOD, MODFlags;
+import dmd.tokens : Token, TOK;
+import std.string : format;
 
 /**
  * Prefer
@@ -22,207 +20,256 @@ import dsymbol.scope_;
  * const int getStuff() {}
  * ---
  */
-final class FunctionAttributeCheck : BaseAnalyzer
+extern (C++) class FunctionAttributeCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"function_attribute_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.confusing.function_attributes";
+	private enum CONST_MSG = "Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.";
+	private enum ABSTRACT_MSG = "'abstract' attribute is redundant in interface declarations";
+	private enum RETURN_MSG = "'%s' is not an attribute of the return type. Place it after the parameter list to clarify.";
+
+	private bool inInterface = false;
+	private bool inAggregate = false;
+	private Token[] tokens;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
+		getTokens();
 	}
 
-	override void visit(const InterfaceDeclaration dec)
+	private void getTokens()
 	{
-		const t = inInterface;
-		const t2 = inAggregate;
-		inInterface = true;
-		inAggregate = true;
-		dec.accept(this);
-		inInterface = t;
-		inAggregate = t2;
+		import dscanner.utils : readFile;
+		import dmd.errorsink : ErrorSinkNull;
+		import dmd.globals : global;
+		import dmd.lexer : Lexer;
+
+		auto bytes = readFile(fileName) ~ '\0';
+		__gshared ErrorSinkNull errorSinkNull;
+		if (!errorSinkNull)
+			errorSinkNull = new ErrorSinkNull;
+
+		scope lexer = new Lexer(null, cast(char*) bytes, 0, bytes.length, 0, 0, errorSinkNull, &global.compileEnv);
+		while (lexer.nextToken() != TOK.endOfFile)
+			tokens ~= lexer.token;
 	}
 
-	override void visit(const ClassDeclaration dec)
-	{
-		const t = inInterface;
-		const t2 = inAggregate;
-		inInterface = false;
-		inAggregate = true;
-		dec.accept(this);
-		inInterface = t;
-		inAggregate = t2;
-	}
+	mixin visitAggregate!(AST.InterfaceDeclaration, true);
+	mixin visitAggregate!(AST.ClassDeclaration);
+	mixin visitAggregate!(AST.StructDeclaration);
+	mixin visitAggregate!(AST.UnionDeclaration);
 
-	override void visit(const StructDeclaration dec)
+	private template visitAggregate(NodeType, bool isInterface = false)
 	{
-		const t = inInterface;
-		const t2 = inAggregate;
-		inInterface = false;
-		inAggregate = true;
-		dec.accept(this);
-		inInterface = t;
-		inAggregate = t2;
-	}
-
-	override void visit(const UnionDeclaration dec)
-	{
-		const t = inInterface;
-		const t2 = inAggregate;
-		inInterface = false;
-		inAggregate = true;
-		dec.accept(this);
-		inInterface = t;
-		inAggregate = t2;
-	}
-
-	override void visit(const AttributeDeclaration dec)
-	{
-		if (inInterface && dec.attribute.attribute == tok!"abstract")
+		override void visit(NodeType node)
 		{
-			addErrorMessage(dec.attribute, KEY, ABSTRACT_MESSAGE);
+			immutable bool oldInAggregate = inAggregate;
+			immutable bool oldInInterface = inInterface;
+
+			inAggregate = !isStaticAggregate(node.loc.linnum, node.loc.charnum);
+			inInterface = isInterface;
+			super.visit(node);
+
+			inAggregate = oldInAggregate;
+			inInterface = oldInInterface;
 		}
 	}
 
-	override void visit(const FunctionDeclaration dec)
+	private bool isStaticAggregate(uint lineNum, uint charNum)
 	{
-		if (dec.parameters.parameters.length == 0 && inAggregate)
-		{
-			bool foundConst;
-			bool foundProperty;
-			foreach (attribute; dec.attributes)
-				foundConst = foundConst || attribute.attribute.type == tok!"const"
-					|| attribute.attribute.type == tok!"immutable"
-					|| attribute.attribute.type == tok!"inout";
-			foreach (attribute; dec.memberFunctionAttributes)
-			{
-				foundProperty = foundProperty || (attribute.atAttribute !is null
-						&& attribute.atAttribute.identifier.text == "property");
-				foundConst = foundConst || attribute.tokenType == tok!"const"
-					|| attribute.tokenType == tok!"immutable" || attribute.tokenType == tok!"inout";
-			}
-			if (foundProperty && !foundConst)
-			{
-				auto paren = dec.parameters.tokens.length ? dec.parameters.tokens[$ - 1] : Token.init;
-				auto autofixes = paren is Token.init ? null : [
-					AutoFix.insertionAfter(paren, " const", "Mark function `const`"),
-					AutoFix.insertionAfter(paren, " inout", "Mark function `inout`"),
-					AutoFix.insertionAfter(paren, " immutable", "Mark function `immutable`"),
-				];
-				addErrorMessage(dec.name, KEY,
-						"Zero-parameter '@property' function should be"
-						~ " marked 'const', 'inout', or 'immutable'.", autofixes);
-			}
-		}
-		dec.accept(this);
+		import std.algorithm : any, filter;
+
+		return tokens.filter!(token => token.loc.linnum == lineNum && token.loc.charnum <= charNum)
+			.filter!(token => token.value >= TOK.struct_ && token.value <= TOK.immutable_)
+			.any!(token => token.value == TOK.static_);
 	}
 
-	override void visit(const Declaration dec)
+	override void visit(AST.FuncDeclaration fd)
 	{
-		bool isStatic = false;
-		if (dec.attributes.length == 0)
-			goto end;
-		foreach (attr; dec.attributes)
-		{
-			if (attr.attribute.type == tok!"")
-				continue;
-			if (attr.attribute == tok!"abstract" && inInterface)
-			{
-				addErrorMessage(attr.attribute, KEY, ABSTRACT_MESSAGE,
-					[AutoFix.replacement(attr.attribute, "")]);
-				continue;
-			}
-			if (attr.attribute == tok!"static")
-			{
-				isStatic = true;
-			}
-			if (dec.functionDeclaration !is null && (attr.attribute == tok!"const"
-					|| attr.attribute == tok!"inout" || attr.attribute == tok!"immutable"))
-			{
-				import std.string : format;
+		import std.algorithm : canFind, find, filter, until;
+		import std.array : array;
+		import std.range : retro;
 
-				immutable string attrString = str(attr.attribute.type);
-				AutoFix[] autofixes;
-				if (dec.functionDeclaration.parameters)
-					autofixes ~= AutoFix.replacement(
-							attr.attribute, "",
-							"Move " ~ str(attr.attribute.type) ~ " after parameter list")
-						.concat(AutoFix.insertionAfter(
-							dec.functionDeclaration.parameters.tokens[$ - 1],
-							" " ~ str(attr.attribute.type)));
-				if (dec.functionDeclaration.returnType)
-					autofixes ~= AutoFix.insertionAfter(attr.attribute, "(", "Make return type const")
-							.concat(AutoFix.insertionAfter(dec.functionDeclaration.returnType.tokens[$ - 1], ")"));
-				addErrorMessage(attr.attribute, KEY, format(
-							"'%s' is not an attribute of the return type."
-							~ " Place it after the parameter list to clarify.",
-							attrString), autofixes);
+		super.visit(fd);
+
+		if (fd.type is null)
+			return;
+
+		string funcName = fd.ident is null ? "" : cast(string) fd.ident.toString();
+		ulong fileOffset = cast(ulong) fd.loc.fileOffset;
+		ulong lineNum = cast(ulong) fd.loc.linnum;
+		ulong charNum = cast(ulong) fd.loc.charnum;
+		ulong[2] index = [fileOffset, fileOffset + funcName.length];
+		ulong[2] lines = [lineNum, lineNum];
+		ulong[2] columns = [charNum, charNum + funcName.length];
+
+		if (inInterface)
+		{
+			immutable bool isAbstract = (fd.storage_class & STC.abstract_) > 0;
+			if (isAbstract)
+			{
+				auto offset = tokens.filter!(t => t.loc.linnum >= fd.loc.linnum)
+					.until!(t => t.value == TOK.leftCurly)
+					.array
+					.retro()
+					.find!(t => t.value == TOK.abstract_)
+					.front.loc.fileOffset;
+
+				addErrorMessage(
+					index, lines, columns, KEY, ABSTRACT_MSG,
+					[AutoFix.replacement(offset, offset + 8, "", "Remove `abstract` attribute")]
+				);
+
+				return;
 			}
 		}
-	end:
-		if (isStatic) {
-			const t = inAggregate;
-			inAggregate = false;
-			dec.accept(this);
-			inAggregate = t;
-		}
-		else {
-			dec.accept(this);
+
+		auto tf = fd.type.isTypeFunction();
+
+		if (inAggregate && tf)
+		{
+			string storageTok = getConstLikeStorage(tf.mod);
+			auto bodyStartToken = TOK.leftCurly;
+			if (fd.fbody is null)
+				bodyStartToken = TOK.semicolon;
+
+			Token[] funcTokens = tokens.filter!(t => t.loc.fileOffset > fd.loc.fileOffset)
+				.until!(t => t.value == TOK.leftCurly || t.value == bodyStartToken)
+				.array;
+
+			if (storageTok is null)
+			{
+				bool isStatic = (fd.storage_class & STC.static_) > 0;
+				bool isZeroParamProperty = tf.isProperty() && tf.parameterList.parameters.length == 0;
+				auto propertyRange = funcTokens.retro()
+					.until!(t => t.value == TOK.rightParenthesis)
+					.find!(t => t.ident.toString() == "property")
+					.find!(t => t.value == TOK.at);
+
+				if (!isStatic && isZeroParamProperty && !propertyRange.empty)
+					addErrorMessage(
+						index, lines, columns, KEY, CONST_MSG,
+						[
+							AutoFix.insertionAt(propertyRange.front.loc.fileOffset, "const "),
+							AutoFix.insertionAt(propertyRange.front.loc.fileOffset, "inout "),
+							AutoFix.insertionAt(propertyRange.front.loc.fileOffset, "immutable "),
+						]
+					);
+			}
+			else
+			{
+				bool hasConstLikeAttribute = funcTokens.retro()
+					.canFind!(t => t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_);
+
+				if (!hasConstLikeAttribute)
+				{
+					auto funcRange = tokens.filter!(t => t.loc.linnum >= fd.loc.linnum)
+						.until!(t => t.value == TOK.leftCurly || t.value == TOK.semicolon);
+					auto parensToken = funcRange.until!(t => t.value == TOK.leftParenthesis)
+						.array
+						.retro()
+						.front;
+					auto funcEndToken = funcRange.array
+						.retro()
+						.find!(t => t.value == TOK.rightParenthesis)
+						.front;
+					auto constLikeToken = funcRange
+						.find!(t => t.value == TOK.const_ || t.value == TOK.inout_ || t.value == TOK.immutable_)
+						.front;
+
+					string modifier;
+					if (constLikeToken.value == TOK.const_)
+						modifier = " const";
+					else if (constLikeToken.value == TOK.inout_)
+						modifier = " inout";
+					else
+						modifier = " immutable";
+
+					AutoFix fix1 = AutoFix
+						.replacement(constLikeToken.loc.fileOffset, constLikeToken.loc.fileOffset + modifier.length,
+							"", "Move" ~ modifier ~ " after parameter list")
+						.concat(AutoFix.insertionAt(funcEndToken.loc.fileOffset + 1, modifier));
+
+					AutoFix fix2 = AutoFix.replacement(constLikeToken.loc.fileOffset + modifier.length - 1,
+							constLikeToken.loc.fileOffset + modifier.length, "(", "Make return type" ~ modifier)
+						.concat(AutoFix.insertionAt(parensToken.loc.fileOffset - 1, ")"));
+
+					addErrorMessage(index, lines, columns, KEY, RETURN_MSG.format(storageTok), [fix1, fix2]);
+				}
+			}
 		}
 	}
 
-private:
-	bool inInterface;
-	bool inAggregate;
-	enum string ABSTRACT_MESSAGE = "'abstract' attribute is redundant in interface declarations";
-	enum string KEY = "dscanner.confusing.function_attributes";
+	private extern (D) string getConstLikeStorage(MOD mod)
+	{
+		if (mod & MODFlags.const_)
+			return "const";
+
+		if (mod & MODFlags.immutable_)
+			return "immutable";
+
+		if (mod & MODFlags.wild)
+			return "inout";
+
+		return null;
+	}
 }
 
 unittest
 {
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.function_attribute_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+
+	assertAnalyzerWarningsDMD(q{
 		int foo() @property { return 0; }
 
 		class ClassName {
-			const int confusingConst() { return 0; } /+
-			^^^^^ [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify. +/
-
-			int bar() @property { return 0; } /+
-			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
+			const int confusingConst() { return 0; } // [warn]: 'const' is not an attribute of the return type. Place it after the parameter list to clarify.
+			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
 			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		struct StructName {
-			int bar() @property { return 0; } /+
-			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
+			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
 			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		union UnionName {
-			int bar() @property { return 0; } /+
-			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
+			int bar() @property { return 0; } // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
 			static int barStatic() @property { return 0; }
 			int barConst() const @property { return 0; }
 		}
 
 		interface InterfaceName {
-			int bar() @property; /+
-			    ^^^ [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'. +/
+			int bar() @property; // [warn]: Zero-parameter '@property' function should be marked 'const', 'inout', or 'immutable'.
 			static int barStatic() @property { return 0; }
 			int barConst() const @property;
-
-			abstract int method(); /+
-			^^^^^^^^ [warn]: 'abstract' attribute is redundant in interface declarations +/
+			abstract int method(); // [warn]: 'abstract' attribute is redundant in interface declarations
 		}
 	}c, sac);
 
+	// Test taken from phobos / utf.d, shouldn't warn
+	assertAnalyzerWarningsDMD(q{
+		static struct R
+		{
+			@safe pure @nogc nothrow:
+			this(string s) { this.s = s; }
+			@property bool empty() { return idx == s.length; }
+			@property char front() { return s[idx]; }
+			void popFront() { ++idx; }
+			size_t idx;
+			string s;
+		}
+	}c, sac);
 
 	assertAutoFix(q{
 		int foo() @property { return 0; }
@@ -276,5 +323,5 @@ unittest
 		}
 	}c, sac);
 
-	stderr.writeln("Unittest for FunctionAttributeCheck passed.");
+	stderr.writeln("Unittest for ObjectConstCheck passed.");
 }

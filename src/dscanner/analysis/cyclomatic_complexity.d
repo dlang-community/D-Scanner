@@ -4,12 +4,8 @@
 
 module dscanner.analysis.cyclomatic_complexity;
 
-import dparse.ast;
-import dparse.lexer;
-import dsymbol.scope_ : Scope;
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-
+import dmd.location : Loc;
 import std.format;
 
 /// Implements a basic cyclomatic complexity algorithm using the AST.
@@ -35,12 +31,9 @@ import std.format;
 /// See: https://en.wikipedia.org/wiki/Cyclomatic_complexity
 /// Rules based on http://cyvis.sourceforge.net/cyclomatic_complexity.html
 /// and https://github.com/fzipp/gocyclo
-final class CyclomaticComplexityCheck : BaseAnalyzer
+extern (C++) class CyclomaticComplexityCheck(AST) : BaseAnalyzerDmd
 {
-	/// Message key emitted when the threshold is reached
-	enum string KEY = "dscanner.metric.cyclomatic_complexity";
-	/// Human readable message emitted when the threshold is reached
-	enum string MESSAGE = "Cyclomatic complexity of this function is %s.";
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"cyclomatic_complexity";
 
 	/// Maximum cyclomatic complexity. Once the cyclomatic complexity is greater
@@ -50,52 +43,44 @@ final class CyclomaticComplexityCheck : BaseAnalyzer
 	/// unmaintainable / untestable.
 	///
 	/// For clean development a threshold like 20 can be used instead.
-	int maxCyclomaticComplexity;
+	immutable int maxCyclomaticComplexity;
 
-	///
-	this(BaseAnalyzerArguments args, int maxCyclomaticComplexity = 50)
+	private enum string KEY = "dscanner.metric.cyclomatic_complexity";
+	private enum string MESSAGE = "Cyclomatic complexity of this function is %s.";
+
+	private int[] complexityStack = [0];
+	private bool[] inLoop = [false];
+
+	extern (D) this(string fileName, bool skipTests = false, int maxCyclomaticComplexity = 50)
 	{
-		super(args);
+		super(fileName, skipTests);
 		this.maxCyclomaticComplexity = maxCyclomaticComplexity;
 	}
 
-	mixin VisitComplex!IfStatement;
-	mixin VisitComplex!CaseStatement;
-	mixin VisitComplex!CaseRangeStatement;
-	mixin VisitLoop!DoStatement;
-	mixin VisitLoop!WhileStatement;
-	mixin VisitLoop!ForStatement;
-	mixin VisitLoop!ForeachStatement;
-	mixin VisitComplex!AndAndExpression;
-	mixin VisitComplex!OrOrExpression;
-	mixin VisitComplex!TernaryExpression;
-	mixin VisitComplex!ThrowExpression;
-	mixin VisitComplex!Catch;
-	mixin VisitComplex!LastCatch;
-	mixin VisitComplex!ReturnStatement;
-	mixin VisitComplex!FunctionLiteralExpression;
-	mixin VisitComplex!GotoStatement;
-	mixin VisitComplex!ContinueStatement;
-
-	override void visit(const SwitchStatement n)
+	override void visit(AST.TemplateDeclaration templateDecl)
 	{
-		inLoop.assumeSafeAppend ~= false;
-		scope (exit)
-			inLoop.length--;
-		n.accept(this);
+		foreach (member; *templateDecl.members)
+			member.accept(this);
 	}
 
-	override void visit(const BreakStatement b)
+	override void visit(AST.FuncDeclaration funDecl)
 	{
-		if (b.label !is Token.init || inLoop[$ - 1])
-			complexityStack[$ - 1]++;
-	}
-
-	override void visit(const FunctionDeclaration fun)
-	{
-		if (!fun.functionBody)
+		if (funDecl.fbody is null)
 			return;
 
+		analyzeFunctionBody(funDecl.fbody, funDecl.loc);
+	}
+
+	override void visit(AST.UnitTestDeclaration unitTestDecl)
+	{
+		if (skipTests)
+			return;
+
+		analyzeFunctionBody(unitTestDecl.fbody, unitTestDecl.loc);
+	}
+
+	private void analyzeFunctionBody(AST.Statement functionBody, Loc location)
+	{
 		complexityStack.assumeSafeAppend ~= 1;
 		inLoop.assumeSafeAppend ~= false;
 		scope (exit)
@@ -103,58 +88,100 @@ final class CyclomaticComplexityCheck : BaseAnalyzer
 			complexityStack.length--;
 			inLoop.length--;
 		}
-		fun.functionBody.accept(this);
-		testComplexity(fun.name);
+
+		functionBody.accept(this);
+		testComplexity(location.linnum, location.charnum);
 	}
 
-	override void visit(const Unittest unittest_)
-	{
-		if (!skipTests)
-		{
-			complexityStack.assumeSafeAppend ~= 1;
-			inLoop.assumeSafeAppend ~= false;
-			scope (exit)
-			{
-				complexityStack.length--;
-				inLoop.length--;
-			}
-			unittest_.accept(this);
-			testComplexity(unittest_.findTokenForDisplay(tok!"unittest"));
-		}
-	}
-
-	alias visit = BaseAnalyzer.visit;
-private:
-	int[] complexityStack = [0];
-	bool[] inLoop = [false];
-
-	void testComplexity(T)(T annotatable)
+	private void testComplexity(size_t line, size_t column)
 	{
 		auto complexity = complexityStack[$ - 1];
 		if (complexity > maxCyclomaticComplexity)
-		{
-			addErrorMessage(annotatable, KEY, format!MESSAGE(complexity));
-		}
+			addErrorMessage(line, column, KEY, format!MESSAGE(complexity));
 	}
 
-	template VisitComplex(NodeType, int increase = 1)
+	override void visit(AST.FuncExp funcExp)
 	{
-		override void visit(const NodeType n)
+		if (funcExp.fd is null)
+			return;
+
+		complexityStack[$ - 1]++;
+		funcExp.fd.accept(this);
+	}
+
+	mixin VisitComplex!(AST.IfStatement);
+	mixin VisitComplex!(AST.LogicalExp);
+	mixin VisitComplex!(AST.CondExp);
+	mixin VisitComplex!(AST.CaseStatement);
+	mixin VisitComplex!(AST.CaseRangeStatement);
+	mixin VisitComplex!(AST.ReturnStatement);
+	mixin VisitComplex!(AST.ContinueStatement);
+	mixin VisitComplex!(AST.GotoStatement);
+	mixin VisitComplex!(AST.TryFinallyStatement);
+	mixin VisitComplex!(AST.ThrowExp);
+
+	private template VisitComplex(NodeType, int increase = 1)
+	{
+		override void visit(NodeType nodeType)
 		{
 			complexityStack[$ - 1] += increase;
-			n.accept(this);
+			super.visit(nodeType);
 		}
 	}
 
-	template VisitLoop(NodeType, int increase = 1)
+	override void visit(AST.SwitchStatement switchStatement)
 	{
-		override void visit(const NodeType n)
+		inLoop.assumeSafeAppend ~= false;
+		scope (exit)
+			inLoop.length--;
+
+		switchStatement.condition.accept(this);
+		switchStatement._body.accept(this);
+	}
+
+	override void visit(AST.BreakStatement breakStatement)
+	{
+		if (inLoop[$ - 1])
+			complexityStack[$ - 1]++;
+	}
+
+	override void visit(AST.TryCatchStatement tryCatchStatement)
+	{
+		tryCatchStatement._body.accept(this);
+
+		if (tryCatchStatement.catches !is null)
+		{
+			foreach (catchStatement; *(tryCatchStatement.catches))
+			{
+				complexityStack[$ - 1]++;
+				catchStatement.handler.accept(this);
+			}
+		}
+	}
+
+	override void visit(AST.StaticForeachStatement staticForeachStatement)
+	{
+		// StaticForeachStatement visit has to be overridden in order to avoid visiting
+		// its forEachStatement member, which would increase the complexity.
+		return;
+	}
+
+	mixin VisitLoop!(AST.DoStatement);
+	mixin VisitLoop!(AST.WhileStatement);
+	mixin VisitLoop!(AST.ForStatement);
+	mixin VisitLoop!(AST.ForeachRangeStatement);
+	mixin VisitLoop!(AST.ForeachStatement);
+
+	private template VisitLoop(NodeType, int increase = 1)
+	{
+		override void visit(NodeType nodeType)
 		{
 			inLoop.assumeSafeAppend ~= true;
 			scope (exit)
 				inLoop.length--;
+
 			complexityStack[$ - 1] += increase;
-			n.accept(this);
+			super.visit(nodeType);
 		}
 	}
 }
@@ -162,34 +189,34 @@ private:
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.cyclomatic_complexity = Check.enabled;
 	sac.max_cyclomatic_complexity = 0;
-	assertAnalyzerWarnings(q{
-unittest /+
-^^^^^^^^ [warn]: Cyclomatic complexity of this function is 1. +/
+
+	// TODO: Remove redundant tests and break down remaining tests in individual assertions
+	assertAnalyzerWarningsDMD(q{
+unittest // [warn]: Cyclomatic complexity of this function is 1.
 {
 }
 
-unittest /+
-^^^^^^^^ [warn]: Cyclomatic complexity of this function is 1. +/
+// unit test
+unittest // [warn]: Cyclomatic complexity of this function is 1.
 {
 	writeln("hello");
 	writeln("world");
 }
 
-void main(string[] args) /+
-     ^^^^ [warn]: Cyclomatic complexity of this function is 3. +/
+void main(string[] args) // [warn]: Cyclomatic complexity of this function is 3.
 {
 	if (!args.length)
 		return;
 	writeln("hello ", args);
 }
 
-unittest /+
-^^^^^^^^ [warn]: Cyclomatic complexity of this function is 1. +/
+unittest // [warn]: Cyclomatic complexity of this function is 1.
 {
 	// static if / static foreach does not increase cyclomatic complexity
 	static if (stuff)
@@ -197,8 +224,7 @@ unittest /+
 	int a;
 }
 
-unittest /+
-^^^^^^^^ [warn]: Cyclomatic complexity of this function is 2. +/
+unittest // [warn]: Cyclomatic complexity of this function is 2.
 {
 	foreach (i; 0 .. 2)
 	{
@@ -206,8 +232,7 @@ unittest /+
 	int a;
 }
 
-unittest /+
-^^^^^^^^ [warn]: Cyclomatic complexity of this function is 3. +/
+unittest // [warn]: Cyclomatic complexity of this function is 3.
 {
 	foreach (i; 0 .. 2)
 	{
@@ -216,8 +241,7 @@ unittest /+
 	int a;
 }
 
-unittest /+
-^^^^^^^^ [warn]: Cyclomatic complexity of this function is 2. +/
+unittest // [warn]: Cyclomatic complexity of this function is 2.
 {
 	switch (x)
 	{
@@ -229,8 +253,8 @@ unittest /+
 	int a;
 }
 
-bool shouldRun(check : BaseAnalyzer)( /+
-     ^^^^^^^^^ [warn]: Cyclomatic complexity of this function is 20. +/
+// Template, other (tested) stuff
+bool shouldRun(check : BaseAnalyzer)( // [warn]: Cyclomatic complexity of this function is 20.
 	string moduleName, const ref StaticAnalysisConfig config)
 {
 	enum string a = check.name;
@@ -262,7 +286,157 @@ bool shouldRun(check : BaseAnalyzer)( /+
 	// by default: include all modules
 	return true;
 }
-
 }c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// goto, return
+		void returnGoto() // [warn]: Cyclomatic complexity of this function is 3.
+		{
+			goto hello;
+			int a = 0;
+			a += 9;
+
+		hello:
+			return;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// if, else, ternary operator
+		void ifElseTernary() // [warn]: Cyclomatic complexity of this function is 4.
+		{
+			if (1 > 2)
+			{
+				int a;
+			}
+			else if (2 > 1)
+			{
+				int b;
+			}
+			else
+			{
+				int c;
+			}
+
+			int d = true ? 1 : 2;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// static if and static foreach don't increase cyclomatic complexity
+		void staticIfFor() // [warn]: Cyclomatic complexity of this function is 1.
+		{
+			static if (stuff)
+				int a;
+
+			int b;
+
+			static foreach(i; 0 .. 10)
+			{
+				pragma(msg, i);
+			}
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// function literal (lambda)
+		void lambda() // [warn]: Cyclomatic complexity of this function is 2.
+		{
+			auto x = (int a) => a + 1;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// loops: for, foreach, while, do - while
+		void controlFlow() // [warn]: Cyclomatic complexity of this function is 7.
+		{
+			int x = 0;
+
+			for (int i = 0; i < 100; i++)
+			{
+				i++;
+			}
+
+			foreach (i; 0 .. 2)
+			{
+				x += i;
+				continue;
+			}
+
+			while (true)
+			{
+				break;
+			}
+
+			do
+			{
+				int x = 0;
+			} while (true);
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// switch - case
+		void switchCaseCaseRange() // [warn]: Cyclomatic complexity of this function is 5.
+		{
+			switch (x)
+			{
+			case 1:
+				break;
+			case 2:
+			case 3:
+				break;
+			case 7: .. case 10:
+				break;
+			default:
+				break;
+			}
+			int a;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// if, else, logical expressions
+		void ifConditions() // [warn]: Cyclomatic complexity of this function is 5.
+		{
+			if (true && false)
+			{
+				doX();
+			}
+			else if (true || false)
+			{
+				doY();
+			}
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		// catch, throw
+		void throwCatch() // [warn]: Cyclomatic complexity of this function is 5.
+		{
+			int x;
+			try
+			{
+				x = 5;
+			}
+			catch (Exception e)
+			{
+				x = 7;
+			}
+			catch (Exception a)
+			{
+				x = 8;
+			}
+			catch (Exception x)
+			{
+				throw new Exception("Exception");
+			}
+			finally
+			{
+				x = 9;
+			}
+		}
+	}c, sac);
+
 	stderr.writeln("Unittest for CyclomaticComplexityCheck passed.");
 }

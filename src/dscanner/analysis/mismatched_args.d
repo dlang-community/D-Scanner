@@ -1,263 +1,186 @@
 module dscanner.analysis.mismatched_args;
 
 import dscanner.analysis.base;
-import dscanner.utils : safeAccess;
-import dsymbol.scope_;
-import dsymbol.symbol;
-import dparse.ast;
-import dparse.lexer : tok, Token;
-import dsymbol.builtin.names;
+import std.format : format;
+import dmd.arraytypes : Identifiers;
 
 /// Checks for mismatched argument and parameter names
-final class MismatchedArgumentCheck : BaseAnalyzer
+extern (C++) class MismatchedArgumentCheck(AST) : BaseAnalyzerDmd
 {
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"mismatched_args_check";
 
-	///
-	this(BaseAnalyzerArguments args)
+	private enum string KEY = "dscanner.confusing.argument_parameter_mismatch";
+	private enum string MSG = "Argument %d is named '%s', but this is the name of parameter %d";
+
+	private string[][string] funcsWithParams;
+	private bool inFunction;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const FunctionCallExpression fce)
+	override void visit(AST.Module moduleNode)
 	{
-		import std.typecons : scoped;
-		import std.algorithm.iteration : each, map;
-		import std.array : array;
+		import dmd.astcodegen : ASTCodegen;
 
-		if (fce.arguments is null)
+		auto argVisitor = new ParameterVisitor!(ASTCodegen)(fileName, skipTests);
+		argVisitor.visit(moduleNode);
+		funcsWithParams = argVisitor.funcsWithParams;
+
+		super.visit(moduleNode);
+	}
+
+	override void visit(AST.CallExp callExpr)
+	{
+		super.visit(callExpr);
+
+		auto funcIdent = callExpr.e1.isIdentifierExp();
+		if (callExpr.arguments is null || funcIdent is null || funcIdent.ident is null)
 			return;
-		auto argVisitor = scoped!ArgVisitor;
-		argVisitor.visit(fce.arguments);
-		const istring[] args = argVisitor.args;
 
-		auto identVisitor = scoped!IdentVisitor;
-		if (fce.unaryExpression !is null)
-			identVisitor.visit(fce.unaryExpression);
-		else if (fce.type !is null)
-			identVisitor.visit(fce.type);
+		string funcName = cast(string) funcIdent.ident.toString();
+		if ((funcName in funcsWithParams) is null || (*callExpr.arguments).length != funcsWithParams[funcName].length)
+			return;
 
-		const(DSymbol)*[] symbols = resolveSymbol(sc, identVisitor.names.length > 0
-				? identVisitor.names : [CONSTRUCTOR_SYMBOL_NAME]);
+		auto namedArgsPositions = getNamedArgsPositions(callExpr.names, funcName);
+		string[] args;
 
-		static struct ErrorMessage
+		foreach (int idx, arg; *callExpr.arguments)
 		{
-			const(Token)[] range;
-			string message;
-		}
-
-		ErrorMessage[] messages;
-		bool matched;
-
-		foreach (sym; symbols)
-		{
-			// The cast is a hack because .array() confuses the compiler's overload
-			// resolution code.
-			const(istring)[] params = sym is null ? [] : sym.argNames[].map!(a => cast() a).array();
-			const ArgMismatch[] mismatches = compareArgsToParams(params, args);
-			if (mismatches.length == 0)
-				matched = true;
+			if (auto identifier = arg.isIdentifierExp())
+			{
+				if (identifier.ident)
+				{
+					if ((idx in namedArgsPositions) is null)
+						args ~= cast(string) identifier.ident.toString();
+					else
+						args ~= "";
+				}
+				else
+				{
+					return;
+				}
+			}
 			else
 			{
-				foreach (ref const mm; mismatches)
+				args ~= "";
+			}
+		}
+
+		foreach_reverse (argIdx, arg; args)
+		{
+			foreach_reverse (paramIdx, param; funcsWithParams[funcName])
+			{
+				if (arg == param)
 				{
-					messages ~= ErrorMessage(argVisitor.tokens[mm.argIndex], createWarningFromMismatch(mm));
+					if (argIdx == paramIdx)
+						break;
+
+					addErrorMessage(callExpr.loc.linnum, callExpr.loc.charnum,KEY,
+						MSG.format(argIdx + 1, arg, paramIdx + 1));
+
+					return;
 				}
 			}
 		}
-
-		if (!matched)
-			foreach (m; messages)
-				addErrorMessage(m.range, KEY, m.message);
 	}
 
-	alias visit = ASTVisitor.visit;
-
-private:
-
-	enum string KEY = "dscanner.confusing.argument_parameter_mismatch";
-}
-
-final class IdentVisitor : ASTVisitor
-{
-	override void visit(const IdentifierOrTemplateInstance ioti)
+	private extern (D) bool[int] getNamedArgsPositions(Identifiers* names, string funcName)
 	{
-		import dsymbol.string_interning : internString;
+		bool[int] namedArgsPositions;
 
-		if (ioti.identifier != tok!"")
-			names ~= internString(ioti.identifier.text);
-		else
-			names ~= internString(ioti.templateInstance.identifier.text);
-	}
+		if (names is null || (funcName in funcsWithParams) is null)
+			return namedArgsPositions;
 
-	override void visit(const Arguments)
-	{
-	}
+		auto funcParams = funcsWithParams[funcName];
 
-	override void visit(const IndexExpression ie)
-	{
-		if (ie.unaryExpression !is null)
-			visit(ie.unaryExpression);
-	}
-
-	alias visit = ASTVisitor.visit;
-
-	istring[] names;
-}
-
-final class ArgVisitor : ASTVisitor
-{
-	override void visit(const NamedArgumentList al)
-	{
-		foreach (a; al.items)
+		foreach (name; *names)
 		{
-			auto u = cast(UnaryExpression) a.assignExpression;
-			size_t prevArgs = args.length;
-			if (u !is null && !a.name.text.length)
-				visit(u);
+			if (name is null)
+				continue;
 
-			if (args.length == prevArgs)
-			{
-				// if we didn't get an identifier in the unary expression,
-				// assume it's a good argument
-				args ~= istring.init;
-				tokens ~= a.tokens;
-			}
+			string argName = cast(string) name.toString();
+			int idx;
+			for (idx = 0; idx < funcParams.length; idx++)
+				if (funcParams[idx] == argName)
+					break;
+
+			namedArgsPositions[idx] = true;
 		}
+
+		return namedArgsPositions;
+	}
+}
+
+extern (C++) class ParameterVisitor(AST) : BaseAnalyzerDmd
+{
+	alias visit = BaseAnalyzerDmd.visit;
+
+	public string[][string] funcsWithParams;
+	private string currentFunc;
+	private bool ignoreCurrentFunc;
+	private bool inFunction;
+
+	extern (D) this(string fileName, bool skipTests = false)
+	{
+		super(fileName, skipTests);
 	}
 
-	override void visit(const UnaryExpression unary)
+	override void visit(AST.TemplateDeclaration templateDecl)
 	{
-		import dsymbol.string_interning : internString;
+		if (inFunction)
+			return;
 
-		if (auto iot = unary.safeAccess.primaryExpression.identifierOrTemplateInstance.unwrap)
+		inFunction = true;
+		super.visit(templateDecl);
+	}
+
+	override void visit(AST.FuncDeclaration funcDecl)
+	{
+		if (inFunction)
+			return;
+
+		inFunction = true;
+		string lastFunc = currentFunc;
+		currentFunc = cast(string) funcDecl.ident.toString();
+		funcsWithParams[currentFunc] = [];
+
+		bool ignoreLast = ignoreCurrentFunc;
+		ignoreCurrentFunc = false;
+
+		super.visit(funcDecl);
+
+		if (ignoreCurrentFunc)
+			funcsWithParams.remove(currentFunc);
+
+		ignoreCurrentFunc = ignoreLast;
+		currentFunc = lastFunc;
+	}
+
+	override void visit(AST.Parameter parameter)
+	{
+		if (parameter.ident is null)
 		{
-			if (iot.identifier == tok!"")
-				return;
-			immutable t = iot.identifier;
-			tokens ~= [t];
-			args ~= internString(t.text);
+			ignoreCurrentFunc = true;
+			return;
 		}
-	}
 
-	alias visit = ASTVisitor.visit;
-
-	const(Token[])[] tokens;
-	istring[] args;
-}
-
-const(DSymbol)*[] resolveSymbol(const Scope* sc, const istring[] symbolChain)
-{
-	import std.array : empty;
-
-	const(DSymbol)*[] matchingSymbols = sc.getSymbolsByName(symbolChain[0]);
-	if (matchingSymbols.empty)
-		return null;
-
-	foreach (ref symbol; matchingSymbols)
-	{
-		inner: foreach (i; 1 .. symbolChain.length)
-		{
-			if (symbol.kind == CompletionKind.variableName
-					|| symbol.kind == CompletionKind.memberVariableName
-					|| symbol.kind == CompletionKind.functionName
-					|| symbol.kind == CompletionKind.aliasName)
-				symbol = symbol.type;
-			if (symbol is null)
-			{
-				symbol = null;
-				break inner;
-			}
-			auto p = symbol.getPartsByName(symbolChain[i]);
-			if (p.empty)
-			{
-				symbol = null;
-				break inner;
-			}
-			symbol = p[0];
-		}
-	}
-	return matchingSymbols;
-}
-
-struct ArgMismatch
-{
-	size_t argIndex;
-	size_t paramIndex;
-	string name;
-}
-
-immutable(ArgMismatch[]) compareArgsToParams(const istring[] params, const istring[] args) pure
-{
-	import std.exception : assumeUnique;
-
-	if (args.length != params.length)
-		return [];
-	ArgMismatch[] retVal;
-	foreach (i, arg; args)
-	{
-		if (arg is null || arg == params[i])
-			continue;
-		foreach (j, param; params)
-			if (param == arg)
-				retVal ~= ArgMismatch(i, j, arg);
-	}
-	return assumeUnique(retVal);
-}
-
-string createWarningFromMismatch(const ArgMismatch mismatch) pure
-{
-	import std.format : format;
-
-	return "Argument %d is named '%s', but this is the name of parameter %d".format(
-			mismatch.argIndex + 1, mismatch.name, mismatch.paramIndex + 1);
-}
-
-unittest
-{
-	import dsymbol.string_interning : internString;
-	import std.algorithm.iteration : map;
-	import std.array : array;
-	import std.conv : to;
-
-	{
-		istring[] args = ["a", "b", "c"].map!internString().array();
-		istring[] params = ["a", "b", "c"].map!internString().array();
-		immutable res = compareArgsToParams(params, args);
-		assert(res == []);
-	}
-
-	{
-		istring[] args = ["a", "c", "b"].map!internString().array();
-		istring[] params = ["a", "b", "c"].map!internString().array();
-		immutable res = compareArgsToParams(params, args);
-		assert(res == [ArgMismatch(1, 2, "c"), ArgMismatch(2, 1, "b")], to!string(res));
-	}
-
-	{
-		istring[] args = ["a", "c", "b"].map!internString().array();
-		istring[] params = ["alpha", "bravo", "c"].map!internString().array();
-		immutable res = compareArgsToParams(params, args);
-		assert(res == [ArgMismatch(1, 2, "c")]);
-	}
-
-	{
-		istring[] args = ["a", "b"].map!internString().array();
-		istring[] params = [null, "b"].map!internString().array();
-		immutable res = compareArgsToParams(params, args);
-		assert(res == []);
+		funcsWithParams[currentFunc] ~= cast(string) parameter.ident.toString();
 	}
 }
 
 unittest
 {
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.mismatched_args_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+
+	assertAnalyzerWarningsDMD(q{
 		void foo(int x, int y)
 		{
 		}
@@ -266,20 +189,17 @@ unittest
 		{
 			int x = 1;
 			int y = 2;
-			foo(y, x); /+
-			       ^ [warn]: Argument 2 is named 'x', but this is the name of parameter 1 +/
-			foo(y + 1, x); /+
-			           ^ [warn]: Argument 2 is named 'x', but this is the name of parameter 1 +/
+			foo(y, x); // [warn]: Argument 2 is named 'x', but this is the name of parameter 1
+			foo(y + 1, x); // [warn]: Argument 2 is named 'x', but this is the name of parameter 1
 			foo(y + 1, f(x));
 			foo(x: y, y: x);
-			foo(y, 0); /+
-			    ^ [warn]: Argument 1 is named 'y', but this is the name of parameter 2 +/
+			foo(y, 0); // [warn]: Argument 1 is named 'y', but this is the name of parameter 2
 
 			// foo(y: y, x); // TODO: this shouldn't error
 			foo(x, y: x); // TODO: this should error
-			foo(y, y: x); /+
-			    ^ [warn]: Argument 1 is named 'y', but this is the name of parameter 2 +/
+			foo(y, y: x); // [warn]: Argument 1 is named 'y', but this is the name of parameter 2
 		}
 	}c, sac);
+
 	stderr.writeln("Unittest for MismatchedArgumentCheck passed.");
 }

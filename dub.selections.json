@@ -2,6 +2,7 @@
 	"fileVersion": 1,
 	"versions": {
 		"dcd": "0.16.0-beta.2",
+		"dmd": "~master",
 		"dsymbol": "0.13.0",
 		"emsi_containers": "0.9.0",
 		"inifiled": "1.3.3",

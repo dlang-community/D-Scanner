@@ -5,102 +5,107 @@
 
 module dscanner.analysis.objectconst;
 
-import std.stdio;
-import std.regex;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
+import std.stdio;
 
-/**
- * Checks that opEquals, opCmp, toHash, 'opCast', and toString are either const,
- * immutable, or inout.
- */
-final class ObjectConstCheck : BaseAnalyzer
+extern(C++) class ObjectConstCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
 	mixin AnalyzerInfo!"object_const_check";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	mixin visitTemplate!ClassDeclaration;
-	mixin visitTemplate!InterfaceDeclaration;
-	mixin visitTemplate!UnionDeclaration;
-	mixin visitTemplate!StructDeclaration;
-
-	override void visit(const AttributeDeclaration d)
+	void visitAggregate(AST.AggregateDeclaration ad)
 	{
-		if (d.attribute.attribute == tok!"const" && inAggregate)
-		{
-			constColon = true;
-		}
-		d.accept(this);
-	}
+		import dmd.astenums : MODFlags, STC;
 
-	override void visit(const Declaration d)
-	{
-		import std.algorithm : any;
-		bool setConstBlock;
-		if (inAggregate && d.attributes && d.attributes.any!(a => a.attribute == tok!"const"))
-		{
-			setConstBlock = true;
-			constBlock = true;
-		}
+		if (!ad.members)
+			return;
 
-		bool containsDisable(A)(const A[] attribs)
+		foreach(member; *ad.members)
 		{
-			import std.algorithm.searching : canFind;
-			return attribs.canFind!(a => a.atAttribute !is null &&
-				a.atAttribute.identifier.text == "disable");
-		}
-
-		if (const FunctionDeclaration fd = d.functionDeclaration)
-		{
-			const isDeclationDisabled = containsDisable(d.attributes) ||
-				containsDisable(fd.memberFunctionAttributes);
-
-			if (inAggregate && !constColon && !constBlock && !isDeclationDisabled
-					&& isInteresting(fd.name.text) && !hasConst(fd.memberFunctionAttributes))
+			if (auto fd = member.isFuncDeclaration())
 			{
-				addErrorMessage(d.functionDeclaration.name, KEY,
-						"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
+				if (isInteresting(fd.ident.toString()) && !isConstFunc(fd) &&
+					!(fd.storage_class & STC.disable))
+						addErrorMessage(cast(ulong) fd.loc.linnum, cast(ulong) fd.loc.charnum, KEY,
+							"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
+				
+				member.accept(this);
 			}
+			else if (auto scd = member.isStorageClassDeclaration())
+			{
+				foreach (smember; *scd.decl)
+				{
+					if (auto fd2 = smember.isFuncDeclaration())
+					{
+						if (isInteresting(fd2.ident.toString()) && !isConstFunc(fd2, scd) &&
+							!(fd2.storage_class & STC.disable))
+								addErrorMessage(cast(ulong) fd2.loc.linnum, cast(ulong) fd2.loc.charnum, KEY,
+									"Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.");
+						
+						smember.accept(this);
+					}
+					else
+						smember.accept(this);
+				}
+			}
+			else
+				member.accept(this);
 		}
-
-		d.accept(this);
-
-		if (!inAggregate)
-			constColon = false;
-		if (setConstBlock)
-			constBlock = false;
 	}
 
-private:
-
-	enum string KEY = "dscanner.suspicious.object_const";
-
-	static bool hasConst(const MemberFunctionAttribute[] attributes)
+	override void visit(AST.ClassDeclaration cd)
 	{
-		import std.algorithm : any;
-
-		return attributes.any!(a => a.tokenType == tok!"const"
-				|| a.tokenType == tok!"immutable" || a.tokenType == tok!"inout");
+		visitAggregate(cd);	
 	}
 
-	static bool isInteresting(string name)
+	override void visit(AST.StructDeclaration sd)
+	{
+		visitAggregate(sd);
+	}
+
+	override void visit(AST.InterfaceDeclaration id)
+	{
+		visitAggregate(id);
+	}
+
+	override void visit(AST.UnionDeclaration ud)
+	{
+		visitAggregate(ud);
+	}
+
+	extern(D) private static bool isInteresting(const char[] name)
 	{
 		return name == "opCmp" || name == "toHash" || name == "opEquals"
 			|| name == "toString" || name == "opCast";
 	}
 
-	bool constBlock;
-	bool constColon;
+	/**
+	 * Checks if a function has either one of attributes `const`, `immutable`, `inout`
+	 */
+	private bool isConstFunc(AST.FuncDeclaration fd, AST.StorageClassDeclaration scd = null)
+	{
+		import dmd.astenums : MODFlags, STC;
+		import std.stdio : writeln;
+
+		if (scd && (scd.stc & STC.const_ || scd.stc & STC.immutable_ || scd.stc & STC.wild))
+			return true;
+
+		if(fd.type && (fd.type.mod == MODFlags.const_ ||
+			fd.type.mod == MODFlags.immutable_ || fd.type.mod == MODFlags.wild))
+				return true;
+
+		return false; 
+	}
+
+	private enum KEY = "dscanner.suspicious.object_const";
+	
+	AST.AggregateDeclaration deleteme;
 }
 
 unittest
@@ -109,7 +114,7 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.object_const_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testConsts()
 		{
 			// Will be ok because all are declared const/immutable
@@ -125,7 +130,7 @@ unittest
 					return 1;
 				}
 
-				const hash_t toHash() // ok
+				immutable hash_t toHash() // ok
 				{
 					return 0;
 				}
@@ -143,7 +148,7 @@ unittest
 
 			class Fox
 			{
-				const{ override string toString() { return "foo"; }} // ok
+				inout { override string toString() { return "foo"; } } // ok
 			}
 
 			class Rat
@@ -159,26 +164,22 @@ unittest
 			// Will warn, because none are const
 			class Dog
 			{
-				bool opEquals(Object a, Object b) /+
-				     ^^^^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
+				bool opEquals(Object a, Object b) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return true;
 				}
 
-				int opCmp(Object o) /+
-				    ^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
+				int opCmp(Object o) // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return 1;
 				}
 
-				hash_t toHash() /+
-				       ^^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
+				hash_t toHash() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return 0;
 				}
 
-				string toString() /+
-				       ^^^^^^^^ [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const. +/
+				string toString() // [warn]: Methods 'opCmp', 'toHash', 'opEquals', 'opCast', and/or 'toString' are non-const.
 				{
 					return "Dog";
 				}

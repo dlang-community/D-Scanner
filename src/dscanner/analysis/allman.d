@@ -4,13 +4,10 @@
 
 module dscanner.analysis.allman;
 
-import dparse.lexer;
-import dparse.ast;
 import dscanner.analysis.base;
-import dsymbol.scope_ : Scope;
-
-import std.algorithm;
-import std.range;
+import dmd.tokens : Token, TOK;
+import std.algorithm : canFind, until;
+import std.range : retro;
 
 /**
 Checks for the allman style (braces should be on their own line)
@@ -25,50 +22,85 @@ if (param < 0)
 }
 ------------
 */
-final class AllManCheck : BaseAnalyzer
+extern (C++) class AllManCheck : BaseAnalyzerDmd
 {
 	mixin AnalyzerInfo!"allman_braces_check";
 
-	///
-	this(BaseAnalyzerArguments args)
+	private enum string KEY = "dscanner.style.allman";
+	private enum string MESSAGE = "Braces should be on their own line";
+
+	private Token[] tokens;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
+		lexFile();
+		checkBraces();
+	}
+
+	private void lexFile()
+	{
+		import dscanner.utils : readFile;
+		import dmd.errorsink : ErrorSinkNull;
+		import dmd.globals : global;
+		import dmd.lexer : Lexer;
+
+		auto bytes = readFile(fileName) ~ '\0';
+
+		__gshared ErrorSinkNull errorSinkNull;
+		if (!errorSinkNull)
+			errorSinkNull = new ErrorSinkNull;
+
+		scope lexer = new Lexer(null, cast(char*) bytes, 0, bytes.length, 0, 0,  errorSinkNull, &global.compileEnv);
+
+		do
+		{
+			lexer.nextToken();
+			tokens ~= lexer.token;
+		}
+		while (lexer.token.value != TOK.endOfFile);
+	}
+
+	private void checkBraces()
+	{
 		foreach (i; 1 .. tokens.length - 1)
 		{
-			const curLine = tokens[i].line;
-			const prevTokenLine = tokens[i-1].line;
-			if (tokens[i].type == tok!"{" && curLine == prevTokenLine)
+			const curLine = tokens[i].loc.linnum;
+			const prevTokenLine = tokens[i - 1].loc.linnum;
+
+			if (tokens[i].value == TOK.leftCurly && curLine == prevTokenLine)
 			{
 				// ignore struct initialization
-				if (tokens[i-1].type == tok!"=")
+				if (tokens[i - 1].value == TOK.assign)
 					continue;
+
 				// ignore duplicate braces
-				if (tokens[i-1].type == tok!"{" && tokens[i - 2].line != curLine)
+				if (tokens[i - 1].value == TOK.leftCurly && tokens[i - 2].loc.linnum != curLine)
 					continue;
+
 				// ignore inline { } braces
-				if (curLine != tokens[i + 1].line)
-					addErrorMessage(tokens[i], KEY, MESSAGE);
+				if (curLine != tokens[i + 1].loc.linnum)
+					addErrorMessage(cast(ulong) tokens[i].loc.linnum, cast(ulong) tokens[i].loc.charnum, KEY, MESSAGE);
 			}
-			if (tokens[i].type == tok!"}" && curLine == prevTokenLine)
+
+			if (tokens[i].value == TOK.rightCurly && curLine == prevTokenLine)
 			{
 				// ignore duplicate braces
-				if (tokens[i-1].type == tok!"}" && tokens[i - 2].line != curLine)
+				if (tokens[i-1].value == TOK.rightCurly && tokens[i - 2].loc.linnum != curLine)
 					continue;
+
 				// ignore inline { } braces
-				if (!tokens[0 .. i].retro.until!(t => t.line != curLine).canFind!(t => t.type == tok!"{"))
-					addErrorMessage(tokens[i], KEY, MESSAGE);
+				if (!tokens[0 .. i].retro.until!(t => t.loc.linnum != curLine).canFind!(t => t.value == TOK.leftCurly))
+					addErrorMessage(cast(ulong) tokens[i].loc.linnum, cast(ulong) tokens[i].loc.charnum, KEY, MESSAGE);
 			}
 		}
 	}
-
-	enum string KEY = "dscanner.style.allman";
-	enum string MESSAGE = "Braces should be on their own line";
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
 	import std.format : format;
 	import std.stdio : stderr;
 
@@ -76,11 +108,10 @@ unittest
 	sac.allman_braces_check = Check.enabled;
 
 	// check common allman style violation
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testAllman()
 		{
-			while (true) { /+
-			             ^ [warn]: %s +/
+			while (true) { // [warn]: %s
 				auto f = 1;
 			}
 
@@ -128,7 +159,7 @@ unittest
 	), sac);
 
 	// check struct initialization
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 unittest
 {
 	struct Foo { int a; }
@@ -139,12 +170,11 @@ unittest
 	}, sac);
 
 	// allow duplicate braces
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 unittest
 {{
 }}
 	}, sac);
-
 
 	stderr.writeln("Unittest for Allman passed.");
 }

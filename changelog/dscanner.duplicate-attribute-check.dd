@@ -1,0 +1,2 @@
+Remove the check for duplicate attributes (@property, @safe, @trusted, @system, pure, nothrow).
+This check is no longer necessary since having duplicated attributes is now a compiler error.

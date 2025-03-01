@@ -41,7 +41,12 @@ cd "$DSCANNER_DIR/tests"
 # IDE APIs
 # --------
 # checking that reporting format stays consistent or only gets extended
-diff <(../bin/dscanner --report it/autofix_ide/source_autofix.d | jq -S .) <(jq -S . it/autofix_ide/source_autofix.report.json)
+if [[ $1 == "Windows" ]]; then
+  diff <(../bin/dscanner --report it/autofix_ide/source_autofix.d | jq -S .) <(jq -S . it/autofix_ide/source_autofix_windows.report.json)
+else
+  diff <(../bin/dscanner --report it/autofix_ide/source_autofix.d | jq -S .) <(jq -S . it/autofix_ide/source_autofix.report.json)
+fi
+
 diff <(../bin/dscanner --resolveMessage b16 it/autofix_ide/source_autofix.d | jq -S .) <(jq -S . it/autofix_ide/source_autofix.autofix.json)
 
 # CLI tests
