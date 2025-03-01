@@ -116,6 +116,38 @@ struct NoLintFactory
 		return noLint.nullable;
 	}
 
+	// Transform a string with form "nolint(abc, efg)"
+	// into a NoLint struct
+	static Nullable!NoLint fromString(in string str)
+	{
+		static immutable re = regex(`[\w-_.]+`, "g");
+		auto matches = matchAll(str, re);
+
+		if (!matches)
+			return nullNoLint;
+
+		const udaName = matches.hit;
+		if (udaName != "nolint")
+			return nullNoLint;
+
+		matches.popFront;
+
+		NoLint noLint;
+
+		while (matches)
+		{
+			noLint.pushCheck(matches.hit);
+			matches.popFront;
+		}
+
+		if (!noLint.getDisabledChecks.length)
+			return nullNoLint;
+
+		return noLint.nullable;
+	}
+
+	static nullNoLint = Nullable!NoLint.init;
+
 private:
 	static Nullable!NoLint fromAttribute(const(Attribute) attribute)
 	{
@@ -205,38 +237,6 @@ private:
 		return noLint.nullable;
 
 	}
-
-	// Transform a string with form "nolint(abc, efg)"
-	// into a NoLint struct
-	static Nullable!NoLint fromString(in string str)
-	{
-		static immutable re = regex(`[\w-_.]+`, "g");
-		auto matches = matchAll(str, re);
-
-		if (!matches)
-			return nullNoLint;
-
-		const udaName = matches.hit;
-		if (udaName != "nolint")
-			return nullNoLint;
-
-		matches.popFront;
-
-		NoLint noLint;
-
-		while (matches)
-		{
-			noLint.pushCheck(matches.hit);
-			matches.popFront;
-		}
-
-		if (!noLint.getDisabledChecks.length)
-			return nullNoLint;
-
-		return noLint.nullable;
-	}
-
-	static nullNoLint = Nullable!NoLint.init;
 }
 
 unittest

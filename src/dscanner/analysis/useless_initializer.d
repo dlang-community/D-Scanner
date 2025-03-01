@@ -369,7 +369,8 @@ public:
 	assertAnalyzerWarnings(q{
 		@("nolint(dscanner.useless-initializer)")
 		int a = 0;
-		int a = 0;          /+
+		int a = 0; // @nolint(dscanner.useless-initializer)
+		int a = 0; /+
 		        ^ [warn]: X +/
 
 		@("nolint(dscanner.useless-initializer)")
