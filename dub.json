@@ -18,7 +18,7 @@
     "libddoc": "~>0.8.0",
     "dmd": {
       "repository": "git+https://github.com/dlang/dmd.git",
-      "version": "10eb368c1b8c323e1921e991cb2bd8fce535e9b2"
+      "version": "a4cbc08f5bc1a2f7ce3289103198c473671e94c0"
     }
   },
   "targetPath" : "bin",
