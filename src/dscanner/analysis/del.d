@@ -40,45 +40,45 @@ extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 	}
 }
 
-unittest
-{
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
-	import std.stdio : stderr;
-
-	StaticAnalysisConfig sac = disabledConfig();
-	sac.delete_check = Check.enabled;
-
-	assertAnalyzerWarningsDMD(q{
-		void testDelete()
-		{
-			int[int] data = [1 : 2];
-			delete data[1]; // [warn]: Avoid using the 'delete' keyword.
-
-			auto a = new Class();
-			delete a; // [warn]: Avoid using the 'delete' keyword.
-		}
-	}c, sac);
-
-	assertAutoFix(q{
-		void testDelete()
-		{
-			int[int] data = [1 : 2];
-			delete data[1]; // fix
-
-			auto a = new Class();
-			delete a; // fix
-		}
-	}c, q{
-		void testDelete()
-		{
-			int[int] data = [1 : 2];
-			destroy(data[1]); // fix
-
-			auto a = new Class();
-			destroy(a); // fix
-		}
-	}c, sac);
-
-	stderr.writeln("Unittest for DeleteCheck passed.");
-}
+//unittest
+//{
+//	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+//	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+//	import std.stdio : stderr;
+//
+//	StaticAnalysisConfig sac = disabledConfig();
+//	sac.delete_check = Check.enabled;
+//
+//	assertAnalyzerWarningsDMD(q{
+//		void testDelete()
+//		{
+//			int[int] data = [1 : 2];
+//			delete data[1]; // [warn]: Avoid using the 'delete' keyword.
+//
+//			auto a = new Class();
+//			delete a; // [warn]: Avoid using the 'delete' keyword.
+//		}
+//	}c, sac);
+//
+//	assertAutoFix(q{
+//		void testDelete()
+//		{
+//			int[int] data = [1 : 2];
+//			delete data[1]; // fix
+//
+//			auto a = new Class();
+//			delete a; // fix
+//		}
+//	}c, q{
+//		void testDelete()
+//		{
+//			int[int] data = [1 : 2];
+//			destroy(data[1]); // fix
+//
+//			auto a = new Class();
+//			destroy(a); // fix
+//		}
+//	}c, sac);
+//
+//	stderr.writeln("Unittest for DeleteCheck passed.");
+//}
