@@ -18,37 +18,37 @@
 			"type": "warn",
 			"autofixes": [
 				{
-					"name": "Mark function `const`",
+					"name": "Insert `const`",
 					"replacements": [
 						{
-							"newText": " const",
+							"newText": "const ",
 							"range": [
-								24,
-								24
+								25,
+								25
 							]
 						}
 					]
 				},
 				{
-					"name": "Mark function `inout`",
+					"name": "Insert `inout`",
 					"replacements": [
 						{
-							"newText": " inout",
+							"newText": "inout ",
 							"range": [
-								24,
-								24
+								25,
+								25
 							]
 						}
 					]
 				},
 				{
-					"name": "Mark function `immutable`",
+					"name": "Insert `immutable`",
 					"replacements": [
 						{
-							"newText": " immutable",
+							"newText": "immutable ",
 							"range": [
-								24,
-								24
+								25,
+								25
 							]
 						}
 					]
@@ -71,10 +71,53 @@
 				},
 				{
 					"name": "Wrap '{}' block around 'if'",
-					"replacements": "resolvable"
+					"replacements": [
+						{
+                            "newText": " {\n\t\t\t",
+                            "range": [
+                                69,
+                                69
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                76,
+                                76
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                80,
+                                80
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                82,
+                                82
+                            ]
+                        },
+                        {
+                            "newText": "\t",
+                            "range": [
+                                84,
+                                84
+                            ]
+                        },
+                        {
+                            "newText": "}\n\t",
+                            "range": [
+                                85,
+                                85
+                            ]
+                        }
+                    ]
 				}
 			],
-			"column": 3,
+			"column": 8,
 			"endColumn": 10,
 			"endIndex": 71,
 			"endLine": 8,
@@ -88,8 +131,8 @@
 			"type": "warn"
 		}
 	],
-	"lineOfCodeCount": 3,
-	"statementCount": 4,
+	"lineOfCodeCount": 0,
+	"statementCount": 2,
 	"structCount": 1,
 	"templateCount": 0,
 	"undocumentedPublicSymbols": 0

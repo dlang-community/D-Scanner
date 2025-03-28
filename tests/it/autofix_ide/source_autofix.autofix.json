@@ -1,36 +1,36 @@
 [
 	{
-		"name": "Mark function `const`",
+		"name": "Insert `const`",
 		"replacements": [
 			{
-				"newText": " const",
+				"newText": "const ",
 				"range": [
-					24,
-					24
+					25,
+					25
 				]
 			}
 		]
 	},
 	{
-		"name": "Mark function `inout`",
+		"name": "Insert `inout`",
 		"replacements": [
 			{
-				"newText": " inout",
+				"newText": "inout ",
 				"range": [
-					24,
-					24
+					25,
+					25
 				]
 			}
 		]
 	},
 	{
-		"name": "Mark function `immutable`",
+		"name": "Insert `immutable`",
 		"replacements": [
 			{
-				"newText": " immutable",
+				"newText": "immutable ",
 				"range": [
-					24,
-					24
+					25,
+					25
 				]
 			}
 		]

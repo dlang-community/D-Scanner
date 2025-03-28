@@ -7,94 +7,35 @@ module dscanner.analysis.useless_assert;
 
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
 
 import std.stdio;
-
-auto filterChars(string chars, S)(S str)
-{
-	import std.algorithm.comparison : among;
-	import std.algorithm.iteration : filter;
-	import std.meta : aliasSeqOf;
-	return str.filter!(c => !c.among(aliasSeqOf!chars));
-}
 
 /**
  * Checks for asserts that always succeed
  */
-final class UselessAssertCheck : BaseAnalyzer
+extern(C++) class UselessAssertCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"useless_assert_check";
 
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const AssertExpression ae)
+	override void visit(AST.AssertExp ae)
 	{
-		import std.conv : to;
+		auto ie = ae.e1.isIntegerExp();
+		if (ie && ie.getInteger() != 0)
+			addErrorMessage(cast(ulong) ae.loc.linnum, cast(ulong) ae.loc.charnum, KEY, MESSAGE);
 
-		UnaryExpression unary = cast(UnaryExpression) ae.assertArguments.assertion;
-		if (unary is null)
-			return;
-		if (unary.primaryExpression is null)
-			return;
-		immutable token = unary.primaryExpression.primary;
-		immutable skipSwitch = unary.primaryExpression.arrayLiteral !is null
-			|| unary.primaryExpression.assocArrayLiteral !is null
-			|| unary.primaryExpression.functionLiteralExpression !is null;
-		if (!skipSwitch) switch (token.type)
-		{
-		case tok!"doubleLiteral":
-			if (!token.text.filterChars!"Ll".to!double)
-				return;
-			break;
-		case tok!"floatLiteral":
-			if (!token.text.filterChars!"Ff".to!float)
-				return;
-			break;
-		case tok!"idoubleLiteral":
-		case tok!"ifloatLiteral":
-		case tok!"irealLiteral":
-			return; // `to` doesn't support imaginary numbers
-		case tok!"intLiteral":
-			if (!token.text.to!int)
-				return;
-			break;
-		case tok!"longLiteral":
-			if (!token.text.filterChars!"Ll".to!long)
-				return;
-			break;
-		case tok!"realLiteral":
-			if (!token.text.to!real)
-				return;
-			break;
-		case tok!"uintLiteral":
-			if (!token.text.filterChars!"Uu".to!uint)
-				return;
-			break;
-		case tok!"ulongLiteral":
-			if (!token.text.filterChars!"UuLl".to!ulong)
-				return;
-			break;
-		case tok!"characterLiteral":
-			if (token.text == `'\0'`)
-				return;
-			break;
-		case tok!"dstringLiteral":
-		case tok!"stringLiteral":
-		case tok!"wstringLiteral":
-		case tok!"true":
-			break;
-		default:
-			return;
-		}
-		addErrorMessage(unary, KEY, MESSAGE);
+		auto re = ae.e1.isRealExp();
+		if (re && re.value != 0)
+			addErrorMessage(cast(ulong) ae.loc.linnum, cast(ulong) ae.loc.charnum, KEY, MESSAGE);
+		
+		if (ae.e1.isStringExp() || ae.e1.isArrayLiteralExp() || ae.e1.isAssocArrayLiteralExp())
+			addErrorMessage(cast(ulong) ae.loc.linnum, cast(ulong) ae.loc.charnum, KEY, MESSAGE);
 	}
 
 private:
@@ -108,23 +49,20 @@ unittest
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.format : format;
 
+	alias assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
+
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.useless_assert_check = Check.enabled;
 	assertAnalyzerWarnings(q{
 unittest
 {
-	assert(true); /+
-	       ^^^^ [warn]: %1$s +/
-	assert(1); /+
-	       ^ [warn]: %1$s +/
-	assert([10]); /+
-	       ^^^^ [warn]: %1$s +/
+	assert(true); // [warn]: Assert condition is always true.
+	assert(1); // [warn]: Assert condition is always true.
+	assert([10]); // [warn]: Assert condition is always true.
 	assert(false);
 	assert(0);
 	assert(0.0L);
 }
-
-}c
-			.format(UselessAssertCheck.MESSAGE), sac);
+}c, sac);
 	stderr.writeln("Unittest for UselessAssertCheck passed.");
 }

@@ -6,20 +6,17 @@
 module dscanner.analysis.range;
 
 import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
+import std.string : format;
 
 /**
  * Checks for .. expressions where the left side is larger than the right. This
  * is almost always a mistake.
  */
-final class BackwardsRangeCheck : BaseAnalyzer
+extern(C++) class BackwardsRangeCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"backwards_range_check";
 
 	/// Key for this check in the report output
@@ -29,131 +26,37 @@ final class BackwardsRangeCheck : BaseAnalyzer
 	 * Params:
 	 *     fileName = the name of the file being analyzed
 	 */
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const ForeachStatement foreachStatement)
+	override void visit(AST.IntervalExp ie)
 	{
-		if (foreachStatement.low !is null && foreachStatement.high !is null)
-		{
-			import std.string : format;
+		auto lwr = ie.lwr.isIntegerExp();
+		auto upr = ie.upr.isIntegerExp();
 
-			state = State.left;
-			visit(foreachStatement.low);
-			state = State.right;
-			visit(foreachStatement.high);
-			state = State.ignore;
-			if (hasLeft && hasRight && left > right)
-			{
-				string message = format(
+		if (lwr && upr && lwr.getInteger() > upr.getInteger())
+		{
+			string message = format("%d is larger than %d. This slice is likely incorrect.",
+						lwr.getInteger(), upr.getInteger());
+			addErrorMessage(cast(ulong) ie.loc.linnum, cast(ulong) ie.loc.charnum, KEY, message);
+		}
+			
+	}
+
+	override void visit(AST.ForeachRangeStatement s)
+	{
+		auto lwr = s.lwr.isIntegerExp();
+		auto upr = s.upr.isIntegerExp();
+
+		if (lwr && upr && lwr.getInteger() > upr.getInteger())
+		{
+			string message = format(
 						"%d is larger than %d. Did you mean to use 'foreach_reverse( ... ; %d .. %d)'?",
-						left, right, right, left);
-				auto start = &foreachStatement.low.tokens[0];
-				auto endIncl = &foreachStatement.high.tokens[$ - 1];
-				assert(endIncl >= start);
-				auto tokens = start[0 .. endIncl - start + 1];
-				addErrorMessage(tokens, KEY, message);
-			}
-			hasLeft = false;
-			hasRight = false;
+						lwr.getInteger(), upr.getInteger(), upr.getInteger(), lwr.getInteger());
+			addErrorMessage(cast(ulong) s.loc.linnum, cast(ulong) s.loc.charnum, KEY, message);
 		}
-		foreachStatement.accept(this);
-	}
-
-	override void visit(const AddExpression add)
-	{
-		immutable s = state;
-		state = State.ignore;
-		add.accept(this);
-		state = s;
-	}
-
-	override void visit(const UnaryExpression unary)
-	{
-		if (state != State.ignore && unary.primaryExpression is null)
-			return;
-		else
-			unary.accept(this);
-	}
-
-	override void visit(const PrimaryExpression primary)
-	{
-		import std.conv : to, ConvException;
-
-		if (state == State.ignore || !isNumberLiteral(primary.primary.type))
-			return;
-		if (state == State.left)
-		{
-			try
-				left = parseNumber(primary.primary.text);
-			catch (ConvException e)
-				return;
-			hasLeft = true;
-		}
-		else
-		{
-			try
-				right = parseNumber(primary.primary.text);
-			catch (ConvException e)
-				return;
-			hasRight = true;
-		}
-	}
-
-	override void visit(const Index index)
-	{
-		if (index.low !is null && index.high !is null)
-		{
-			state = State.left;
-			dynamicDispatch(index.low);
-			state = State.right;
-			dynamicDispatch(index.high);
-			state = State.ignore;
-			if (hasLeft && hasRight && left > right)
-			{
-				import std.string : format;
-
-				string message = format("%d is larger than %d. This slice is likely incorrect.",
-						left, right);
-				addErrorMessage(index, KEY, message);
-			}
-			hasLeft = false;
-			hasRight = false;
-		}
-		index.accept(this);
-	}
-
-private:
-	bool hasLeft;
-	bool hasRight;
-	long left;
-	long right;
-	enum State
-	{
-		ignore,
-		left,
-		right
-	}
-
-	State state = State.ignore;
-
-	long parseNumber(string te)
-	{
-		import std.conv : to;
-		import std.regex : ctRegex, replaceAll;
-
-		enum re = ctRegex!("[_uUlL]", "");
-		string t = te.replaceAll(re, "");
-		if (t.length > 2)
-		{
-			if (t[1] == 'x' || t[1] == 'X')
-				return to!long(t[2 .. $], 16);
-			if (t[1] == 'b' || t[1] == 'B')
-				return to!long(t[2 .. $], 2);
-		}
-		return to!long(t);
 	}
 }
 
@@ -163,7 +66,7 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.backwards_range_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testRange()
 		{
 			a = node.tupleof[2..T.length+1]; // ok
@@ -172,12 +75,10 @@ unittest
 			int[] data = [1, 2, 3, 4, 5];
 
 			data = data[1 .. 3]; // ok
-			data = data[3 .. 1]; /+
-			            ^^^^^^ [warn]: 3 is larger than 1. This slice is likely incorrect. +/
+			data = data[3 .. 1]; // [warn]: 3 is larger than 1. This slice is likely incorrect.
 
 			foreach (n; 1 .. 3) { } // ok
-			foreach (n; 3 .. 1) { } /+
-			            ^^^^^^ [warn]: 3 is larger than 1. Did you mean to use 'foreach_reverse( ... ; 1 .. 3)'? +/
+			foreach (n; 3 .. 1) { } // [warn]: 3 is larger than 1. Did you mean to use 'foreach_reverse( ... ; 1 .. 3)'?
 		}
 	}c, sac);
 

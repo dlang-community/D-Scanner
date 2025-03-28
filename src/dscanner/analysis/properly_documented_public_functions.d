@@ -4,15 +4,12 @@
 
 module dscanner.analysis.properly_documented_public_functions;
 
-import dparse.lexer;
-import dparse.ast;
-import dparse.formatter : astFmt = format;
 import dscanner.analysis.base;
-import dscanner.utils : safeAccess;
-
 import std.format : format;
 import std.range.primitives;
-import std.stdio;
+import std.conv : to;
+import std.algorithm.searching : canFind, any, find;
+import dmd.astcodegen;
 
 /**
  * Requires each public function to contain the following ddoc sections
@@ -22,7 +19,7 @@ import std.stdio;
 		- Ddoc params entries without a parameter trigger warnings as well
 	- RETURNS: (except if it's void, only functions)
  */
-final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
+extern(C++) class ProperlyDocumentedPublicFunctions(AST) : BaseAnalyzerDmd
 {
 	enum string MISSING_PARAMS_KEY = "dscanner.style.doc_missing_params";
 	enum string MISSING_PARAMS_MESSAGE = "Parameter %s isn't documented in the `Params` section.";
@@ -39,268 +36,183 @@ final class ProperlyDocumentedPublicFunctions : BaseAnalyzer
 	enum string MISSING_THROW_MESSAGE = "An instance of `%s` is thrown but not documented in the `Throws` section";
 
 	mixin AnalyzerInfo!"properly_documented_public_functions";
+	alias visit = BaseAnalyzerDmd.visit;
 
-	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const Module mod)
+	override void visit(AST.Module m)
 	{
-		islastSeenVisibilityLabelPublic = true;
-		mod.accept(this);
+		super.visit(m);
 		postCheckSeenDdocParams();
 	}
 
-	override void visit(const UnaryExpression decl)
-	{
-		import std.algorithm.searching : canFind;
-
-		const IdentifierOrTemplateInstance iot = safeAccess(decl)
-			.functionCallExpression.unaryExpression.primaryExpression
-			.identifierOrTemplateInstance;
-
-		Type newNamedType(N)(N name)
-		{
-			Type t = new Type;
-			t.type2 = new Type2;
-			t.type2.typeIdentifierPart = new TypeIdentifierPart;
-			t.type2.typeIdentifierPart.identifierOrTemplateInstance = new IdentifierOrTemplateInstance;
-			t.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier = name;
-			return t;
-		}
-
-		if (inThrowExpression && decl.newExpression && decl.newExpression.type &&
-			!thrown.canFind!(a => a == decl.newExpression.type))
-		{
-			thrown ~= decl.newExpression.type;
-		}
-
-		// enforce(condition);
-		if (iot && iot.identifier.text == "enforce")
-		{
-			thrown ~= newNamedType(Token(tok!"identifier", "Exception", 0, 0, 0));
-		}
-		else if (iot && iot.templateInstance && iot.templateInstance.identifier.text == "enforce")
-		{
-			// enforce!Type(condition);
-			if (const TemplateSingleArgument tsa = safeAccess(iot.templateInstance)
-				.templateArguments.templateSingleArgument)
-			{
-				thrown ~= newNamedType(tsa.token);
-			}
-			// enforce!(Type)(condition);
-			else if (const NamedTemplateArgumentList tal = safeAccess(iot.templateInstance)
-				.templateArguments.namedTemplateArgumentList)
-			{
-				if (tal.items.length && tal.items[0].type)
-					thrown ~= tal.items[0].type;
-			}
-		}
-		decl.accept(this);
-	}
-
-	override void visit(const Declaration decl)
-	{
-		import std.algorithm.searching : any;
-		import std.algorithm.iteration : map;
-
-		// skip private symbols
-		enum tokPrivate = tok!"private",
-			 tokProtected = tok!"protected",
-			 tokPackage = tok!"package",
-			 tokPublic = tok!"public";
-
-		// Nested funcs for `Throws`
-		bool decNestedFunc;
-		if (decl.functionDeclaration)
-		{
-			nestedFuncs++;
-			decNestedFunc = true;
-		}
-		scope(exit)
-		{
-			if (decNestedFunc)
-				nestedFuncs--;
-		}
-		if (nestedFuncs > 1)
-		{
-			decl.accept(this);
-			return;
-		}
-
-		if (decl.attributes.length > 0)
-		{
-			const bool isPublic = !decl.attributes.map!`a.attribute`.any!(x => x == tokPrivate ||
-																			   x == tokProtected ||
-																			   x == tokPackage);
-			// recognize label blocks
-			if (!hasDeclaration(decl))
-				islastSeenVisibilityLabelPublic = isPublic;
-
-			if (!isPublic)
-				return;
-		}
-
-		if (islastSeenVisibilityLabelPublic || decl.attributes.map!`a.attribute`.any!(x => x == tokPublic))
-		{
-			// Don't complain about non-documented function declarations
-			if ((decl.functionDeclaration !is null && decl.functionDeclaration.comment.ptr !is null) ||
-				(decl.templateDeclaration !is null && decl.templateDeclaration.comment.ptr !is null) ||
-				decl.mixinTemplateDeclaration !is null ||
-				(decl.classDeclaration !is null && decl.classDeclaration.comment.ptr !is null) ||
-				(decl.structDeclaration !is null && decl.structDeclaration.comment.ptr !is null))
-				decl.accept(this);
-		}
-	}
-
-	override void visit(const TemplateDeclaration decl)
-	{
-		setLastDdocParams(decl.name, decl.comment);
-		checkDdocParams(decl.templateParameters);
-
-		withinTemplate = true;
-		scope(exit) withinTemplate = false;
-		decl.accept(this);
-	}
-
-	override void visit(const MixinTemplateDeclaration decl)
-	{
-		decl.accept(this);
-	}
-
-	override void visit(const StructDeclaration decl)
-	{
-		setLastDdocParams(decl.name, decl.comment);
-		checkDdocParams(decl.templateParameters);
-		decl.accept(this);
-	}
-
-	override void visit(const ClassDeclaration decl)
-	{
-		setLastDdocParams(decl.name, decl.comment);
-		checkDdocParams(decl.templateParameters);
-		decl.accept(this);
-	}
-
-	override void visit(const FunctionDeclaration decl)
-	{
-		import std.algorithm.searching : all, any;
-		import std.array : Appender;
-
-		// ignore header declaration for now
-		if (!decl.functionBody || (!decl.functionBody.specifiedFunctionBody
-			&& !decl.functionBody.shortenedFunctionBody))
-			return;
-
-		if (nestedFuncs == 1)
-			thrown.length = 0;
-		// detect ThrowExpression only if not nothrow
-		if (!decl.attributes.any!(a => a.attribute.text == "nothrow"))
-		{
-			decl.accept(this);
-			if (nestedFuncs == 1 && !hasThrowSection(decl.comment))
-				foreach(t; thrown)
-			{
-				Appender!(char[]) app;
-				astFmt(&app, t);
-				addErrorMessage(decl.name, MISSING_THROW_KEY,
-					MISSING_THROW_MESSAGE.format(app.data));
-			}
-		}
-
-		if (nestedFuncs == 1)
-		{
-			auto comment = setLastDdocParams(decl.name, decl.comment);
-			checkDdocParams(decl.parameters, decl.templateParameters);
-			enum voidType = tok!"void";
-			if (decl.returnType is null || decl.returnType.type2.builtinType != voidType)
-				if (!(comment.isDitto || withinTemplate || comment.sections.any!(s => s.name == "Returns")))
-				{
-					import dscanner.analysis.auto_function : AutoFunctionChecker;
-
-					const(Token)[] typeRange;
-					if (decl.returnType !is null)
-						typeRange = decl.returnType.tokens;
-					else
-						typeRange = AutoFunctionChecker.findAutoReturnType(decl);
-
-					if (!typeRange.length)
-						typeRange = [decl.name];
-					addErrorMessage(typeRange, MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
-				}
-		}
-	}
-
-	// remove thrown Type that are caught
-	override void visit(const TryStatement ts)
+	override void visit(AST.Catch c)
 	{
 		import std.algorithm.iteration : filter;
-		import std.algorithm.searching : canFind;
 		import std.array : array;
 
-		ts.accept(this);
-
-		if (ts.catches)
-			thrown =  thrown.filter!(a => !ts.catches.catches
-							.canFind!(b => b.type == a))
-							.array;
+		thrown = thrown.filter!(a => a != to!string(c.type.toChars())).array;
+		super.visit(c);
 	}
 
-	override void visit(const ThrowExpression ts)
+
+	override void visit(AST.ThrowStatement t)
 	{
-		const wasInThrowExpression = inThrowExpression;
-		inThrowExpression = true;
+		AST.NewExp ne = t.exp.isNewExp();
+		if (ne)
+			thrown ~= to!string(ne.newtype.toChars());
+	
+		super.visit(t);
+	}
+
+	override void visit(AST.FuncDeclaration d)
+	{
+		nestedFunc++;
 		scope (exit)
-			inThrowExpression = wasInThrowExpression;
-		ts.accept(this);
-		inThrowExpression = false;
-	}
+			nestedFunc--;
 
-	alias visit = BaseAnalyzer.visit;
-
-private:
-	bool islastSeenVisibilityLabelPublic;
-	bool withinTemplate;
-	size_t nestedFuncs;
-
-	static struct Function
-	{
-		bool active;
-		Token name;
-		const(string)[] ddocParams;
-		bool[string] params;
-	}
-	Function lastSeenFun;
-
-	bool inThrowExpression;
-	const(Type)[] thrown;
-
-	// find invalid ddoc parameters (i.e. they don't occur in a function declaration)
-	void postCheckSeenDdocParams()
-	{
-		import std.format : format;
-
-		if (lastSeenFun.active)
-		foreach (p; lastSeenFun.ddocParams)
-			if (p !in lastSeenFun.params)
-				addErrorMessage(lastSeenFun.name, NON_EXISTENT_PARAMS_KEY,
-					NON_EXISTENT_PARAMS_MESSAGE.format(p));
-
-		lastSeenFun.active = false;
-	}
-
-	bool hasThrowSection(string commentText)
-	{
-		import std.algorithm.searching : canFind;
+		import std.stdio : writeln, writefln;
+		import std.conv : to;
+		import std.algorithm.searching : canFind, any, find;
+		import dmd.dsymbol : Visibility;
+		import dmd.mtype : Type;
 		import ddoc.comments : parseComment;
+		import std.algorithm.iteration : map;
+		import std.array : array;
 
-		const comment = parseComment(commentText, null);
-		return comment.isDitto || comment.sections.canFind!(s => s.name == "Throws");
+		if (d.comment is null || d.fbody is null || d.visibility.kind != Visibility.Kind.public_)
+		{
+			super.visit(d);
+			return;
+		}
+
+		if (nestedFunc == 1)
+		{
+			thrown.length = 0;
+			string[] params;
+
+			if (d.parameters) foreach (p; *d.parameters)
+				params ~= to!string(p.ident.toString());
+
+			auto comment = setLastDdocParams(d.loc.linnum, d.loc.charnum, to!string(d.comment));
+			checkDdocParams(d.loc.linnum, d.loc.charnum, params, null);
+
+			auto tf = d.type.isTypeFunction();
+			if (tf && tf.next != Type.tvoid && d.comment
+				&& !comment.isDitto && !comment.sections.any!(s => s.name == "Returns"))
+					addErrorMessage(cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum,
+								MISSING_RETURNS_KEY, MISSING_RETURNS_MESSAGE);
+		}
+		
+		super.visit(d);
+		if (nestedFunc == 1)
+			foreach (t; thrown)
+				if (!hasThrowSection(to!string(d.comment)))
+					addErrorMessage(cast(ulong) d.loc.linnum, cast(ulong) d.loc.charnum,
+									MISSING_THROW_KEY, MISSING_THROW_MESSAGE.format(t));
 	}
 
-	auto setLastDdocParams(Token name, string commentText)
+	override void visit(AST.TemplateDeclaration d)
+	{
+		import dmd.dsymbol : Visibility;
+		import ddoc.comments : parseComment;
+		import std.algorithm.iteration : map, filter;
+		import std.algorithm.searching : find, canFind;
+		import std.array : array;
+
+		if (d.comment is null)
+			return;
+
+		// A `template` inside another public `template` declaration will have visibility undefined
+		// Check that as well as it's part of the public template
+		if ((d.visibility.kind != Visibility.Kind.public_)
+			&& !(d.visibility.kind == Visibility.Kind.undefined && withinTemplate))
+				return;
+
+		if (d.visibility.kind == Visibility.Kind.public_)
+		{
+			setLastDdocParams(d.loc.linnum, d.loc.charnum, to!string(d.comment));
+			withinTemplate = true;
+			funcParams.length = 0;
+			templateParams.length = 0;
+		}
+
+		foreach (p; *d.origParameters)
+			if (!canFind(templateParams, to!string(p.ident.toString())))
+				templateParams ~= to!string(p.ident.toString());
+
+		super.visit(d);
+
+		if (d.visibility.kind == Visibility.Kind.public_)
+		{
+			withinTemplate = false;
+			checkDdocParams(d.loc.linnum, d.loc.charnum, funcParams, templateParams);
+		}
+	}
+
+	/** 
+	 * Look for: foo(T)(T x)
+	 * In that case, T does not have to be documented, because x must be.
+	 */
+	override bool visitEponymousMember(AST.TemplateDeclaration d)
+    {
+		import ddoc.comments : parseComment;
+		import std.algorithm.searching : canFind, any, find;
+		import std.algorithm.iteration : map, filter;
+		import std.array : array;
+
+        if (!d.members || d.members.length != 1)
+            return false;
+        AST.Dsymbol onemember = (*d.members)[0];
+        if (onemember.ident != d.ident)
+            return false;
+
+        if (AST.FuncDeclaration fd = onemember.isFuncDeclaration())
+        {
+			const comment = parseComment(to!string(d.comment), null);
+			const paramSection = comment.sections.find!(s => s.name == "Params");
+			auto tf = fd.type.isTypeFunction();
+
+			if (tf)
+				foreach (idx, p; tf.parameterList)
+				{
+
+					if (!paramSection.empty &&
+						!canFind(paramSection[0].mapping.map!(a => a[0]).array, to!string(p.ident.toString())) &&
+						!canFind(funcParams, to!string(p.ident.toString())))
+							funcParams ~= to!string(p.ident.toString());
+
+					lastSeenFun.params[to!string(p.ident.toString())] = true;
+
+					auto ti = p.type.isTypeIdentifier();
+					if (ti is null)
+						continue;
+
+					templateParams = templateParams.filter!(a => a != to!string(ti.ident.toString())).array;
+					lastSeenFun.params[to!string(ti.ident.toString())] = true;
+				}
+            return true;
+        }
+
+        if (AST.AggregateDeclaration ad = onemember.isAggregateDeclaration())
+            return true;
+
+        if (AST.VarDeclaration vd = onemember.isVarDeclaration())
+        {
+            if (d.constraint)
+                return false;
+            
+			if (vd._init)
+                return true;
+        }
+
+        return false;
+    }
+
+	extern(D) auto setLastDdocParams(size_t line, size_t column, string commentText)
 	{
 		import ddoc.comments : parseComment;
 		import std.algorithm.searching : find;
@@ -323,20 +235,28 @@ private:
 			const paramSection = comment.sections.find!(s => s.name == "Params");
 			if (paramSection.empty)
 			{
-				lastSeenFun = Function(true, name, null);
+				lastSeenFun = Function(true, line, column, null);
 			}
 			else
 			{
 				auto ddocParams = paramSection[0].mapping.map!(a => a[0]).array;
-				lastSeenFun = Function(true, name, ddocParams);
+				lastSeenFun = Function(true, line, column, ddocParams);
 			}
 		}
 
 		return comment;
 	}
 
-	void checkDdocParams(const Parameters params,
-						 const TemplateParameters templateParameters = null)
+	/** 
+	 * 
+	 * Params:
+	 *   line = Line of the public declaration verified
+	 *   column = Column of the public declaration verified
+	 *   params = Funcion parameters that must be documented
+	 *   templateParams = Template parameters that must be documented.
+	 *			Can be null if we are looking at a regular FuncDeclaration
+	 */
+	extern(D) void checkDdocParams(size_t line, size_t column, string[] params, string[] templateParams)
 	{
 		import std.array : array;
 		import std.algorithm.searching : canFind, countUntil;
@@ -344,136 +264,73 @@ private:
 		import std.algorithm.mutation : remove;
 		import std.range : indexed, iota;
 
-		// convert templateParameters into a string[] for faster access
-		const(TemplateParameter)[] templateList;
-		if (const tp = templateParameters)
-		if (const tpl = tp.templateParameterList)
-			templateList = tpl.items;
-		string[] tlList = templateList.map!(a => templateParamName(a).text).array;
-
-		// make a copy of all parameters and remove the seen ones later during the loop
-		size_t[] unseenTemplates = templateList.length.iota.array;
-
-		if (lastSeenFun.active && params !is null)
-			foreach (p; params.parameters)
+		if (lastSeenFun.active && !params.empty)
+			foreach (p; params)
 			{
-				string templateName;
 
-				if (auto iot = safeAccess(p).type.type2
-					.typeIdentifierPart.identifierOrTemplateInstance.unwrap)
-				{
-					templateName = iot.identifier.text;
-				}
-				else if (auto iot = safeAccess(p).type.type2.type.type2
-					.typeIdentifierPart.identifierOrTemplateInstance.unwrap)
-				{
-					templateName = iot.identifier.text;
-				}
-
-				const idx = tlList.countUntil(templateName);
-				if (idx >= 0)
-				{
-					unseenTemplates = unseenTemplates.remove(idx);
-					tlList = tlList.remove(idx);
-					// documenting template parameter should be allowed
-					lastSeenFun.params[templateName] = true;
-				}
-
-				if (!lastSeenFun.ddocParams.canFind(p.name.text))
-					addErrorMessage(p.name, MISSING_PARAMS_KEY,
-						format(MISSING_PARAMS_MESSAGE, p.name.text));
+				if (!lastSeenFun.ddocParams.canFind(p))
+					addErrorMessage(line, column, MISSING_PARAMS_KEY,
+						format(MISSING_PARAMS_MESSAGE, p));
 				else
-					lastSeenFun.params[p.name.text] = true;
+					lastSeenFun.params[p] = true;
 			}
 
-		// now check the remaining, not used template parameters
-		auto unseenTemplatesArr = templateList.indexed(unseenTemplates).array;
-		checkDdocParams(unseenTemplatesArr);
+		checkDdocParams(line, column, templateParams);
 	}
 
-	void checkDdocParams(const TemplateParameters templateParams)
-	{
-		if (lastSeenFun.active && templateParams !is null &&
-			templateParams.templateParameterList !is null)
-			checkDdocParams(templateParams.templateParameterList.items);
-	}
-
-	void checkDdocParams(const TemplateParameter[] templateParams)
+	extern(D) void checkDdocParams(size_t line, size_t column, string[] templateParams)
 	{
 		import std.algorithm.searching : canFind;
 		foreach (p; templateParams)
 		{
-			const name = templateParamName(p);
-			assert(name !is Token.init, "Invalid template parameter name."); // this shouldn't happen
-			if (!lastSeenFun.ddocParams.canFind(name.text))
-				addErrorMessage(name, MISSING_PARAMS_KEY,
-					format(MISSING_TEMPLATE_PARAMS_MESSAGE, name.text));
+			if (!lastSeenFun.ddocParams.canFind(p))
+				addErrorMessage(line, column, MISSING_PARAMS_KEY,
+					format(MISSING_TEMPLATE_PARAMS_MESSAGE, p));
 			else
-				lastSeenFun.params[name.text] = true;
+				lastSeenFun.params[p] = true;
 		}
 	}
 
-	static Token templateParamName(const TemplateParameter p)
+	extern(D) bool hasThrowSection(string commentText)
 	{
-		if (p.templateTypeParameter)
-			return p.templateTypeParameter.identifier;
-		if (p.templateValueParameter)
-			return p.templateValueParameter.identifier;
-		if (p.templateAliasParameter)
-			return p.templateAliasParameter.identifier;
-		if (p.templateTupleParameter)
-			return p.templateTupleParameter.identifier;
-		if (p.templateThisParameter)
-			return p.templateThisParameter.templateTypeParameter.identifier;
+		import std.algorithm.searching : canFind;
+		import ddoc.comments : parseComment;
 
-		return Token.init;
+		const comment = parseComment(commentText, null);
+		return comment.isDitto || comment.sections.canFind!(s => s.name == "Throws");
+	}
+	
+	void postCheckSeenDdocParams()
+	{
+		import std.format : format;
+
+		if (lastSeenFun.active)
+		foreach (p; lastSeenFun.ddocParams)
+			if (p !in lastSeenFun.params)
+				addErrorMessage(lastSeenFun.line, lastSeenFun.column, NON_EXISTENT_PARAMS_KEY,
+					NON_EXISTENT_PARAMS_MESSAGE.format(p));
+
+		lastSeenFun.active = false;
 	}
 
-	bool hasDeclaration(const Declaration decl)
+	private enum KEY = "dscanner.performance.enum_array_literal";
+	int nestedFunc;
+	int withinTemplate;
+
+	extern(D) string[] funcParams;
+	extern(D) string[] templateParams;
+	extern(D) string[] thrown;
+
+	static struct Function
 	{
-		import std.meta : AliasSeq;
-		alias properties = AliasSeq!(
-			"aliasDeclaration",
-			"aliasThisDeclaration",
-			"anonymousEnumDeclaration",
-			"attributeDeclaration",
-			"classDeclaration",
-			"conditionalDeclaration",
-			"constructor",
-			"debugSpecification",
-			"destructor",
-			"enumDeclaration",
-			"eponymousTemplateDeclaration",
-			"functionDeclaration",
-			"importDeclaration",
-			"interfaceDeclaration",
-			"invariant_",
-			"mixinDeclaration",
-			"mixinTemplateDeclaration",
-			"postblit",
-			"pragmaDeclaration",
-			"sharedStaticConstructor",
-			"sharedStaticDestructor",
-			"staticAssertDeclaration",
-			"staticConstructor",
-			"staticDestructor",
-			"structDeclaration",
-			"templateDeclaration",
-			"unionDeclaration",
-			"unittest_",
-			"variableDeclaration",
-			"versionSpecification",
-		);
-		if (decl.declarations !is null)
-			return false;
-
-		auto isNull = true;
-		foreach (property; properties)
-			if (mixin("decl." ~ property ~ " !is null"))
-				isNull = false;
-
-		return !isNull;
+		bool active;
+		size_t line, column;
+		// All params documented
+		const(string)[] ddocParams;
+		// Stores actual function params that are also documented
+		bool[string] params;
 	}
+	Function lastSeenFun;
 }
 
 version(unittest)
@@ -481,7 +338,7 @@ version(unittest)
 	import std.stdio : stderr;
 	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
 }
 
 // missing params
@@ -494,73 +351,68 @@ unittest
 		/**
 		Some text
 		*/
-		void foo(int k){} /+
-		             ^ [warn]: %s +/
+		void foo(int k){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_PARAMS_MESSAGE.format("k")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
 		*/
-		void foo(int K)(){} /+
-		             ^ [warn]: %s +/
+		void foo(int K)(){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("K")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("K")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
 		*/
-		struct Foo(Bar){} /+
-		           ^^^ [warn]: %s +/
+		struct Foo(Bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
 		*/
-		class Foo(Bar){} /+
-		          ^^^ [warn]: %s +/
+		class Foo(Bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
 		*/
-		template Foo(Bar){} /+
-		             ^^^ [warn]: %s +/
+		template Foo(Bar){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("Bar")
+	), sac, true);
 
 
 	// test no parameters
 	assertAnalyzerWarnings(q{
 		/** Some text */
 		void foo(){}
-	}c, sac);
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 		/** Some text */
 		struct Foo(){}
-	}c, sac);
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 		/** Some text */
 		class Foo(){}
-	}c, sac);
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 		/** Some text */
 		template Foo(){}
-	}c, sac);
+	}c, sac, true);
 
 }
 
@@ -574,21 +426,19 @@ unittest
 		/**
 		Some text
 		*/
-		int foo(){} /+
-		^^^ [warn]: %s +/
+		int foo(){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_RETURNS_MESSAGE,
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 		/**
 		Some text
 		*/
-		auto foo(){} /+
-		^^^^ [warn]: %s +/
+		auto foo(){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_RETURNS_MESSAGE,
+	), sac, true);
 }
 
 // ignore private
@@ -602,7 +452,7 @@ unittest
 		Some text
 		*/
 		private void foo(int k){}
-	}c, sac);
+	}c, sac, true);
 
 	// with block
 	assertAnalyzerWarnings(q{
@@ -612,16 +462,14 @@ unittest
 		*/
 		private void foo(int k){}
 		///
-		public int bar(){} /+
-		       ^^^ [warn]: %s +/
+		public int bar(){ return 0; } // [warn]: %s
 	public:
 		///
-		int foobar(){} /+
-		^^^ [warn]: %s +/
+		int foobar(){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-		ProperlyDocumentedPublicFunctions.MISSING_RETURNS_MESSAGE,
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_RETURNS_MESSAGE,
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_RETURNS_MESSAGE,
+	), sac, true);
 
 	// with block (template)
 	assertAnalyzerWarnings(q{
@@ -631,16 +479,14 @@ unittest
 		*/
 		private template foo(int k){}
 		///
-		public template bar(T){} /+
-		                    ^ [warn]: %s +/
+		public template bar(T){} // [warn]: %s
 	public:
 		///
-		template foobar(T){} /+
-		                ^ [warn]: %s +/
+		template foobar(T){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
+	), sac, true);
 
 	// with block (struct)
 	assertAnalyzerWarnings(q{
@@ -650,16 +496,14 @@ unittest
 		*/
 		private struct foo(int k){}
 		///
-		public struct bar(T){} /+
-		                  ^ [warn]: %s +/
+		public struct bar(T){} // [warn]: %s
 	public:
 		///
-		struct foobar(T){} /+
-		              ^ [warn]: %s +/
+		struct foobar(T){} // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("T"),
+	), sac, true);
 }
 
 // test parameter names
@@ -677,11 +521,10 @@ unittest
  * Returns:
  * A long description.
  */
-int foo(int k){} /+
-            ^ [warn]: %s +/
+int foo(int k){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_PARAMS_MESSAGE.format("k")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -692,11 +535,10 @@ int foo(int k){} /+
  * Returns:
  * A long description.
  */
-int foo(int k) => k; /+
-            ^ [warn]: %s +/
+int foo(int k) => k; // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_PARAMS_MESSAGE.format("k")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -709,11 +551,10 @@ k = A stupid parameter
 Returns:
 A long description.
 */
-int foo(int k){} /+
-    ^^^ [warn]: %s +/
+int foo(int k){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("val")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).NON_EXISTENT_PARAMS_MESSAGE.format("val")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -724,29 +565,10 @@ Params:
 Returns:
 A long description.
 */
-int foo(int k){} /+
-            ^ [warn]: %s +/
+int foo(int k){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("k")
-	), sac);
-
-	assertAnalyzerWarnings(q{
-/**
-Description.
-
-Params:
-foo =  A stupid parameter
-bad =  A stupid parameter (does not exist)
-foobar  = A stupid parameter
-
-Returns:
-A long description.
-*/
-int foo(int foo, int foobar){} /+
-    ^^^ [warn]: %s +/
-	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("bad")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_PARAMS_MESSAGE.format("k")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -760,11 +582,27 @@ foobar  = A stupid parameter
 Returns:
 A long description.
 */
-struct foo(int foo, int foobar){} /+
-       ^^^ [warn]: %s +/
+int foo(int foo, int foobar){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("bad")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).NON_EXISTENT_PARAMS_MESSAGE.format("bad")
+	), sac, true);
+
+	assertAnalyzerWarnings(q{
+/**
+Description.
+
+Params:
+foo =  A stupid parameter
+bad =  A stupid parameter (does not exist)
+foobar  = A stupid parameter
+
+Returns:
+A long description.
+*/
+struct foo(int foo, int foobar){} // [warn]: %s
+	}c.format(
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).NON_EXISTENT_PARAMS_MESSAGE.format("bad")
+	), sac, true);
 
 	// properly documented
 	assertAnalyzerWarnings(q{
@@ -778,8 +616,8 @@ bar  = A stupid parameter
 Returns:
 A long description.
 */
-int foo(int foo, int bar){}
-	}c, sac);
+int foo(int foo, int bar){ return 0; }
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -793,7 +631,7 @@ Returns:
 A long description.
 */
 struct foo(int foo, int bar){}
-	}c, sac);
+	}c, sac, true);
 }
 
 // support ditto
@@ -812,11 +650,11 @@ unittest
  * Returns:
  * A long description.
  */
-int foo(int k){}
+int foo(int k){ return 0; }
 
 /// ditto
-int bar(int k){}
-	}c, sac);
+int bar(int k){ return 0; }
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -829,11 +667,11 @@ int bar(int k){}
  * Returns:
  * A long description.
  */
-int foo(int k){}
+int foo(int k){ return 0; }
 
 /// ditto
 struct Bar(K){}
-	}c, sac);
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -846,11 +684,11 @@ struct Bar(K){}
  * Returns:
  * A long description.
  */
-int foo(int k){}
+int foo(int k){ return 0; }
 
 /// ditto
-int bar(int f){}
-	}c, sac);
+int bar(int f){ return 0; }
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -862,14 +700,13 @@ int bar(int f){}
  * Returns:
  * A long description.
  */
-int foo(int k){}
+int foo(int k){ return 0; }
 
 /// ditto
-int bar(int bar){} /+
-            ^^^ [warn]: %s +/
+int bar(int bar){ return 0; } // [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_PARAMS_MESSAGE.format("bar")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_PARAMS_MESSAGE.format("bar")
+	), sac, true);
 
 	assertAnalyzerWarnings(q{
 /**
@@ -885,14 +722,13 @@ int bar(int bar){} /+
  * See_Also:
  *	$(REF takeExactly, std,range)
  */
-int foo(int k){} /+
-    ^^^ [warn]: %s +/
+int foo(int k){ return 0; } // [warn]: %s
 
 /// ditto
-int bar(int bar){}
+int bar(int bar){ return 0; }
 	}c.format(
-		ProperlyDocumentedPublicFunctions.NON_EXISTENT_PARAMS_MESSAGE.format("f")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).NON_EXISTENT_PARAMS_MESSAGE.format("f")
+	), sac, true);
 }
 
  // check correct ddoc headers
@@ -912,8 +748,8 @@ unittest
 
 	Returns: Awesome values.
   +/
-string bar(string val){}
-	}c, sac);
+string bar(string val){ return ""; }
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 /++
@@ -927,7 +763,7 @@ string bar(string val){}
 	Returns: Awesome values.
   +/
 template bar(string val){}
-	}c, sac);
+	}c, sac, true);
 
 }
 
@@ -958,7 +794,7 @@ template abcde(Args ...) {
 		/// ....
 	}
 }
-	}c, sac);
+	}c, sac, true);
 }
 
 // Don't force the documentation of the template parameter if it's a used type in the parameter list
@@ -977,7 +813,7 @@ Params:
 Returns: Awesome values.
 +/
 string bar(R)(R r){}
-	}c, sac);
+	}c, sac, true);
 
 	assertAnalyzerWarnings(q{
 /++
@@ -988,11 +824,10 @@ Params:
 
 Returns: Awesome values.
 +/
-string bar(P, R)(R r){}/+
-           ^ [warn]: %s +/
+string bar(P, R)(R r){}// [warn]: %s
 	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_TEMPLATE_PARAMS_MESSAGE.format("P")
-	), sac);
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_TEMPLATE_PARAMS_MESSAGE.format("P")
+	), sac, true);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/601
@@ -1007,7 +842,7 @@ unittest
 		alias p = put!(Unqual!Range);
 		p(items);
 	}
-	}, sac);
+	}, sac, true);
 }
 
 unittest
@@ -1026,7 +861,7 @@ unittest
     +/
 	void put(Range)(const(Range) items) if (canPutConstRange!Range)
 	{}
-	}, sac);
+	}, sac, true);
 }
 
 unittest
@@ -1035,214 +870,75 @@ unittest
 	sac.properly_documented_public_functions = Check.enabled;
 
 	assertAnalyzerWarnings(q{
+class AssertError : Error
+{
+    this(string msg) { super(msg); }
+}
+
 /++
 Throw but likely catched.
 +/
-void bar(){
+void bar1(){
 	try{throw new Exception("bla");throw new Error("bla");}
 	catch(Exception){} catch(Error){}}
-	}c, sac);
-}
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 Simple case
 +/
-void bar(){throw new Exception("bla");} /+
-     ^^^ [warn]: %s +/
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
-	), sac);
-}
+	void bar2(){throw new Exception("bla");} // [warn]: %s
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 Supposed to be documented
 
 Throws: Exception if...
 +/
-void bar(){throw new Exception("bla");}
-	}c.format(
-	), sac);
-}
+void bar3(){throw new Exception("bla");}
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 rethrow
 +/
-void bar(){try throw new Exception("bla"); catch(Exception) throw new Error();} /+
-     ^^^ [warn]: %s +/
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Error")
-	), sac);
-}
+void bar4(){try throw new Exception("bla"); catch(Exception) throw new Error("bla");} // [warn]: %s
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 trust nothrow before everything
 +/
-void bar() nothrow {try throw new Exception("bla"); catch(Exception) assert(0);}
-	}c, sac);
-}
+void bar5() nothrow {try throw new Exception("bla"); catch(Exception) assert(0);}
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 case of throw in nested func
 +/
-void bar() /+
-     ^^^ [warn]: %s +/
+void bar6() // [warn]: %s
 {
 	void foo(){throw new AssertError("bla");}
 	foo();
 }
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
-	), sac);
-}
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 case of throw in nested func but caught
 +/
-void bar()
+void bar7()
 {
 	void foo(){throw new AssertError("bla");}
 	try foo();
 	catch (AssertError){}
 }
-	}c, sac);
-}
 
-unittest
-{
-	StaticAnalysisConfig sac = disabledConfig;
-	sac.properly_documented_public_functions = Check.enabled;
-
-	assertAnalyzerWarnings(q{
 /++
 case of double throw in nested func but only 1 caught
 +/
-void bar() /+
-     ^^^ [warn]: %s +/
+void bar8() // [warn]: %s
 {
 	void foo(){throw new AssertError("bla");throw new Error("bla");}
 	try foo();
 	catch (Error){}
-}
-	}c.format(
-		ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
-	), sac);
-}
-
-unittest
-{
-    StaticAnalysisConfig sac = disabledConfig;
-    sac.properly_documented_public_functions = Check.enabled;
-
-    assertAnalyzerWarnings(q{
-/++
-enforce
-+/
-void bar() /+
-     ^^^ [warn]: %s +/
-{
-    enforce(condition);
-}
-    }c.format(
-        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("Exception")
-    ), sac);
-}
-
-unittest
-{
-    StaticAnalysisConfig sac = disabledConfig;
-    sac.properly_documented_public_functions = Check.enabled;
-
-    assertAnalyzerWarnings(q{
-/++
-enforce
-+/
-void bar() /+
-     ^^^ [warn]: %s +/
-{
-    enforce!AssertError(condition);
-}
-    }c.format(
-        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
-    ), sac);
-}
-
-unittest
-{
-    StaticAnalysisConfig sac = disabledConfig;
-    sac.properly_documented_public_functions = Check.enabled;
-
-    assertAnalyzerWarnings(q{
-/++
-enforce
-+/
-void bar() /+
-     ^^^ [warn]: %s +/
-{
-    enforce!(AssertError)(condition);
-}
-    }c.format(
-        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
-    ), sac);
-}
-
-unittest
-{
-    StaticAnalysisConfig sac = disabledConfig;
-    sac.properly_documented_public_functions = Check.enabled;
-
-    assertAnalyzerWarnings(q{
-/++
-enforce
-+/
-void foo() /+
-     ^^^ [warn]: %s +/
-{
-    void bar()
-    {
-        enforce!AssertError(condition);
-    }
-    bar();
-}
-
-    }c.format(
-        ProperlyDocumentedPublicFunctions.MISSING_THROW_MESSAGE.format("AssertError")
-    ), sac);
+}}c.format(
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_THROW_MESSAGE.format("object.Exception"),
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_THROW_MESSAGE.format("object.Error"),
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_THROW_MESSAGE
+			.format("properly_documented_public_functions.AssertError"),
+		(ProperlyDocumentedPublicFunctions!ASTCodegen).MISSING_THROW_MESSAGE
+			.format("properly_documented_public_functions.AssertError")
+	), sac, true);
 }
 
 // https://github.com/dlang-community/D-Scanner/issues/583
@@ -1254,10 +950,8 @@ unittest
 	assertAnalyzerWarnings(q{
 	/++
 	Implements the homonym function (also known as `accumulate`)
-
 	Returns:
 		the accumulated `result`
-
 	Params:
 		fun = one or more functions
 	+/
@@ -1266,17 +960,15 @@ unittest
 	{
 		/++
 		No-seed version. The first element of `r` is used as the seed's value.
-
 		Params:
 			r = an iterable value as defined by `isIterable`
-
 		Returns:
 			the final result of the accumulator applied to the iterable
 		+/
 		auto reduce(R)(R r){}
 	}
 	}c.format(
-	), sac);
+	), sac, true);
 
 	stderr.writeln("Unittest for ProperlyDocumentedPublicFunctions passed.");
 }
