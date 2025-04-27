@@ -168,7 +168,7 @@ else
 
 	if (help)
 	{
-		printHelp(args[0]);
+		printHelp(args[0], true);
 		return 0;
 	}
 
@@ -250,7 +250,7 @@ else
 	}
 	else if (optionCount < 1)
 	{
-		printHelp(args[0]);
+		printHelp(args[0], false);
 		return 1;
 	}
 
@@ -416,9 +416,10 @@ else
 	return 0;
 }
 
-void printHelp(string programName)
+void printHelp(string programName, bool stdOut)
 {
-	stdout.writefln(`
+	auto f = stdOut ? stdout : stderr;
+	f.writefln(`
     Usage: %1$s <options>
 
 Human-readable output:
