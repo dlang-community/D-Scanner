@@ -66,7 +66,7 @@ override DMD_TEST_FLAGS += -w
 
 DC_DEBUG_FLAGS := -g -Jbin
 
-ifeq ($(DC), $(filter $(DC), dmd ldmd2 gdmd))
+ifneq (,$(findstring dmd, $(DC)))
 	VERSIONS := $(DMD_VERSIONS)
 	DEBUG_VERSIONS := $(DMD_DEBUG_VERSIONS)
 	DC_FLAGS += $(DMD_FLAGS)
