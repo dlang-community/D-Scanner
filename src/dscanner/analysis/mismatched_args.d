@@ -53,7 +53,7 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 		{
 			// The cast is a hack because .array() confuses the compiler's overload
 			// resolution code.
-			const(istring)[] params = sym is null ? [] : sym.argNames[].map!(a => cast() a).array();
+			const(istring)[] params = sym is null ? [] : sym.functionParameters.map!(a => a.name).array();
 			const ArgMismatch[] mismatches = compareArgsToParams(params, args);
 			if (mismatches.length == 0)
 				matched = true;

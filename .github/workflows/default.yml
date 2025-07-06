@@ -7,6 +7,11 @@ on:
     branches:
       - master
 
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   main:
     name: Run all tests
@@ -19,24 +24,14 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [
-          {
-            version: dmd-latest,
-            dmd: dmd
-          },
-          {
-            version: ldc-latest,
-            dmd: ldmd2
-          },
-          {
-            # Install dmd for the associated tools (dub/rdmd)
-            version: dmd-latest,
-            dmd: gdc-12
-          }
+          dmd-latest,
+          ldc-latest,
+          gdc-12,
         ]
         host: [
           ubuntu-22.04,
           macos-latest,
-          windows-latest
+          windows-latest,
         ]
         build: [
           { type: make },
@@ -50,32 +45,13 @@ jobs:
 
         exclude:
           # Restrict GDC to Ubuntu
-          - compiler:
-              dmd: gdc-12
+          - compiler: gdc-12
             host: windows-latest
-          - compiler:
-              dmd: gdc-12
+          - compiler: gdc-12
             host: macos-latest
 
-          # Restrict DMD to macOS latest
-          - compiler:
-              dmd: dmd
-            host: macos-latest
-
-          #  Omit dub builds for GDC because dub rejects the old fronted revision
-          - compiler:
-              dmd: gdc-12
-            build:
-              type: dub
         include:
-          - { do_report: 1, build: { type: dub, version: 'current' }, host: 'ubuntu-22.04', compiler: { version: dmd-latest, dmd: dmd } }
-
-          - compiler:
-              dmd: dmd
-            host: macos-13
-            build:
-              type: 'dub'
-              version: 'current'
+          - { do_report: 1, build: { type: dub, version: 'current' }, host: 'ubuntu-22.04', compiler: dmd-latest }
 
     runs-on: ${{ matrix.host }}
 
@@ -87,27 +63,30 @@ jobs:
            submodules: 'recursive'
            fetch-depth: 0
 
-      # Install the host compiler (DMD or LDC)
-      # Also grabs DMD for GDC to include dub + rdmd
-      - name: Install ${{ matrix.compiler.version }}
-        if: ${{ matrix.compiler.dmd != 'gdc-12' || matrix.build.type == 'dub' }} # Fetch required tools for GDC
-        uses: dlang-community/setup-dlang@v1
-        with:
-          compiler: ${{ matrix.compiler.version }}
+      - name: Install Dlang tools (for gdc)
+        if: ${{ startsWith(matrix.compiler, 'gdc') }}
+        uses: dlang-community/setup-dlang@v2
 
-        # GDC not yet supported by setup-dlang
-      - name: Install GDC via apt-get
-        if: ${{ matrix.compiler.dmd == 'gdc-12' }}
+      # Install the host compiler
+      - name: Install ${{ matrix.compiler }}
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+
+      - name: Setup DFLAGS for gdc
+        if: ${{ startsWith(matrix.compiler, 'gdc') }}
+        # Need to pass -allinst otherwise the build fails
+        # We can't simply use `DFLAGS=-allinst dub` since that
+        # disables unittests.
         run: |
-          sudo apt-get install gdc-12 -y
-          gdc-12 --version
+          cat <<EOF | sudo tee -a /etc/dmd.conf
+          [Environment]
+          DFLAGS=-allinst -q,-Wno-error
+          EOF
 
       # Compile D-Scanner and execute all tests without dub
       - name: Build and test without dub
         if: ${{ matrix.build.type == 'make' }}
-        env:
-          DC: ${{ matrix.compiler.dmd }}
-        shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
             export MFLAGS="-m64"
@@ -122,7 +101,7 @@ jobs:
       - name: Build and test with dub (min or max libdparse test)
         if: ${{ matrix.build.type == 'dub' && matrix.build.version != 'current' }}
         env:
-          DC: ${{ matrix.compiler.dmd }}
+          DC: ${{ env.DMD }}
         run: |
           rdmd ./d-test-utils/test_with_package.d ${{ matrix.build.version }} -- dub build
           rdmd ./d-test-utils/test_with_package.d ${{ matrix.build.version }} -- dub test
@@ -130,19 +109,18 @@ jobs:
       - name: Build and test with dub (with dub.selections.json)
         if: ${{ matrix.build.type == 'dub' && matrix.build.version == 'current' }}
         env:
-          DC: ${{ matrix.compiler.dmd }}
+          DC: ${{ env.DMD }}
         run: |
           dub build
           dub test
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bin-${{matrix.build.type}}-${{matrix.build.version}}-${{ matrix.compiler.dmd }}-${{ matrix.host }}
+          name: bin-${{matrix.build.type}}-${{matrix.build.version}}-${{ matrix.compiler }}-${{ matrix.host }}
           path: bin
 
       # Lint source code using the previously built binary
       - name: Run linter
-        shell: bash
         env:
           REPORT_GITHUB: ${{matrix.do_report}}
         run: |
@@ -161,7 +139,6 @@ jobs:
       - name: Integration Tests
         run: ./it.sh
         working-directory: tests
-        shell: bash
 
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
@@ -173,7 +150,6 @@ jobs:
       - name: Apply D-Scanner to Phobos
         if:  ${{ matrix.build.version != 'min libdparse'}} # Older versions crash with "Invalid UTF..."
         working-directory: phobos
-        shell: bash
         run: |
           for FILE in $(find std -name '*.d');
           do
