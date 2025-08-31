@@ -137,7 +137,7 @@ extern (C++) class UnusedParameterCheck(AST) : BaseAnalyzerDmd
 		}
 	}
 
-	@property private extern (D) ParamSet currentScope()
+	@property private extern (D) ref ParamSet currentScope()
 	{
 		return usedParams[$ - 1];
 	}

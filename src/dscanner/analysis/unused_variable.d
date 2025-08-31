@@ -241,7 +241,7 @@ extern (C++) class UnusedVariableCheck(AST) : BaseAnalyzerDmd
 		}
 	}
 
-	@property private extern (D) VarSet currentScope()
+	@property private extern (D) ref VarSet currentScope()
 	{
 		return usedVars[$ - 1];
 	}
