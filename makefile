@@ -9,36 +9,19 @@ GDC := gdc
 LDC := ldc2
 
 DMD_FRONTEND_SRC := \
-	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
-	$(shell find dmd/compiler/src/dmd/root -name "*.d")\
-	$(shell find dmd/compiler/src/dmd/visitor -name "*.d")\
-	$(shell find dmd/compiler/src/dmd/mangle -name "*.d")\
-	$(shell find dmd/compiler/src/dmd -maxdepth 1 -name "*.d" \
+	$(shell find dmd/compiler/src/dmd -maxdepth 2 -name "*.d" \
 		! -name "mars.d" \
 		! -name "dmsc.d" \
-		! -name "e2ir.d" \
-		! -name "eh.d" \
-		! -name "glue.d" \
-		! -name "iasmdmd.d" \
-		! -name "irstate.d" \
-		! -name "lib.d" \
-		! -name "libelf.d" \
-		! -name "libmach.d" \
-		! -name "libmscoff.d" \
-		! -name "libomf.d" \
-		! -name "objc_glue.d" \
-		! -name "s2ir.d" \
-		! -name "scanelf.d" \
-		! -name "scanmach.d" \
-		! -name "scanmscoff.d" \
-		! -name "scanomf.d" \
-		! -name "tocsym.d" \
-		! -name "toctype.d" \
-		! -name "tocvdebug.d" \
-		! -name "toobj.d" \
-		! -name "todt.d" \
-		! -name "toir.d" \
-	)
+		! -name "*elf*.d" \
+		! -name "*mscoff*.d" \
+		! -name "*mach*.d" \
+		! -name "*dwarfdbginf*.d" \
+		! -path "*/glue/*" \
+		! -path "*/lib/*" \
+		! -path "*/backend/*" \
+		! -path "*/iasm/dmd*" \
+	) \
+
 
 LIB_SRC := \
 	$(shell find containers/src -name "*.d")\

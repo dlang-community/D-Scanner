@@ -2,7 +2,7 @@ module dscanner.analysis.mismatched_args;
 
 import dscanner.analysis.base;
 import std.format : format;
-import dmd.arraytypes : Identifiers;
+import dmd.arraytypes : ArgumentLabels;
 
 /// Checks for mismatched argument and parameter names
 extern (C++) class MismatchedArgumentCheck(AST) : BaseAnalyzerDmd
@@ -87,17 +87,18 @@ extern (C++) class MismatchedArgumentCheck(AST) : BaseAnalyzerDmd
 		}
 	}
 
-	private extern (D) bool[int] getNamedArgsPositions(Identifiers* names, string funcName)
+	private extern (D) bool[int] getNamedArgsPositions(ArgumentLabels* labels, string funcName)
 	{
 		bool[int] namedArgsPositions;
 
-		if (names is null || (funcName in funcsWithParams) is null)
+		if (labels is null || (funcName in funcsWithParams) is null)
 			return namedArgsPositions;
 
 		auto funcParams = funcsWithParams[funcName];
 
-		foreach (name; *names)
+		foreach (label; *labels)
 		{
+			const name = label.name;
 			if (name is null)
 				continue;
 

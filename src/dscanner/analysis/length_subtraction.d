@@ -35,7 +35,7 @@ extern (C++) class LengthSubtractionCheck(AST) : BaseAnalyzerDmd
 		if (left.ident.toString() == "length")
 			addErrorMessage(
 				cast(ulong) left.loc.linnum, cast(ulong) left.loc.charnum, KEY, MSG,
-				[AutoFix.insertionAt(minExpr.loc.fileOffset, "cast(ptrdiff_t) ")]
+				[AutoFix.insertionAt(left.e1.loc.fileOffset, "cast(ptrdiff_t) ")]
 			);
 	}
 }
