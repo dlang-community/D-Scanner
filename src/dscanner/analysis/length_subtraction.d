@@ -5,65 +5,53 @@
 
 module dscanner.analysis.length_subtraction;
 
-import std.stdio;
-
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_;
 
 /**
  * Checks for subtraction from a .length property. This is usually a bug.
  */
-final class LengthSubtractionCheck : BaseAnalyzer
+extern (C++) class LengthSubtractionCheck(AST) : BaseAnalyzerDmd
 {
-	private enum string KEY = "dscanner.suspicious.length_subtraction";
-
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"length_subtraction_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.suspicious.length_subtraction";
+	private enum MSG = "Avoid subtracting from '.length' as it may be unsigned.";
+
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	override void visit(const AddExpression addExpression)
+	override void visit(AST.MinExp minExpr)
 	{
-		if (addExpression.operator == tok!"-")
-		{
-			const UnaryExpression l = cast(const UnaryExpression) addExpression.left;
-			const UnaryExpression r = cast(const UnaryExpression) addExpression.right;
-			if (l is null || r is null)
-				goto end;
-			if (r.primaryExpression is null || r.primaryExpression.primary.type != tok!"intLiteral")
-				goto end;
-			if (l.identifierOrTemplateInstance is null
-					|| l.identifierOrTemplateInstance.identifier.text != "length")
-				goto end;
-			addErrorMessage(addExpression, KEY,
-					"Avoid subtracting from '.length' as it may be unsigned.",
-					[
-						AutoFix.insertionBefore(l.tokens[0], "cast(ptrdiff_t) ", "Cast to ptrdiff_t")
-					]);
-		}
-	end:
-		addExpression.accept(this);
+		super.visit(minExpr);
+
+		auto left = minExpr.e1.isDotIdExp();
+		if (left is null || left.ident is null)
+			return;
+
+		if (left.ident.toString() == "length")
+			addErrorMessage(
+				cast(ulong) left.loc.linnum, cast(ulong) left.loc.charnum, KEY, MSG,
+				[AutoFix.insertionAt(left.e1.loc.fileOffset, "cast(ptrdiff_t) ")]
+			);
 	}
 }
 
 unittest
 {
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.length_subtraction_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testSizeT()
 		{
-			if (i < a.length - 1) /+
-			        ^^^^^^^^^^^^ [warn]: Avoid subtracting from '.length' as it may be unsigned. +/
+			if (i < a.length - 1) // [warn]: Avoid subtracting from '.length' as it may be unsigned.
 				writeln("something");
 		}
 	}c, sac);
@@ -81,5 +69,6 @@ unittest
 				writeln("something");
 		}
 	}c, sac);
+
 	stderr.writeln("Unittest for IfElseSameCheck passed.");
 }

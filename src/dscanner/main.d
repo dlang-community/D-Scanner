@@ -31,6 +31,7 @@ import dscanner.outliner;
 import dscanner.symbol_finder;
 import dscanner.analysis.run;
 import dscanner.analysis.config;
+import dscanner.analysis.autofix : listAutofixes;
 import dscanner.dscanner_version;
 import dscanner.utils;
 
@@ -140,7 +141,7 @@ else
 		// users can use verbose to enable all logs (this will log things like
 		// dsymbol couldn't find some modules due to wrong import paths)
 		static if (__VERSION__ >= 2_101)
-			(cast()sharedLog).logLevel = verbose ? LogLevel.all : LogLevel.error;
+			(cast() sharedLog).logLevel = verbose ? LogLevel.all : LogLevel.error;
 		else
 			globalLogLevel = verbose ? LogLevel.all : LogLevel.error;
 	}
@@ -204,9 +205,9 @@ else
 		if (excludePaths.length)
 		{
 			string[] newArgs = [expanded[0]];
-			foreach(arg; args[1 .. $])
+			foreach (arg; args[1 .. $])
 			{
-				if(!excludePaths.map!(p => arg.isSubpathOf(p))
+				if (!excludePaths.map!(p => arg.isSubpathOf(p))
 								.fold!((a, b) => a || b))
 					newArgs ~= arg;
 			}
@@ -324,11 +325,11 @@ else
 
 		if (autofix)
 		{
-			return .autofix(expandedArgs, config, errorFormat, cache, moduleCache, applySingleFixes) ? 1 : 0;
+			return .autofix(expandedArgs, config, errorFormat, applySingleFixes) ? 1 : 0;
 		}
 		else if (resolveMessage.length)
 		{
-			listAutofixes(config, resolveMessage, usingStdin, usingStdin ? "stdin" : args[1], &cache, moduleCache);
+			listAutofixes(config, resolveMessage, usingStdin, usingStdin ? "stdin" : args[1]);
 			return 0;
 		}
 		else if (report)
@@ -340,19 +341,19 @@ else
 					goto case;
 				case "":
 				case "dscanner":
-					generateReport(expandedArgs, config, cache, moduleCache, reportFile);
+					generateReport(expandedArgs, config, reportFile);
 					break;
 				case "sonarQubeGenericIssueData":
-					generateSonarQubeGenericIssueDataReport(expandedArgs, config, cache, moduleCache, reportFile);
+					generateSonarQubeGenericIssueDataReport(expandedArgs, config, reportFile);
 					break;
 			}
 		}
 		else
-			return analyze(expandedArgs, config, errorFormat, cache, moduleCache, true) ? 1 : 0;
+			return analyze(expandedArgs, config, errorFormat) ? 1 : 0;
 	}
 	else if (syntaxCheck)
 	{
-		return .syntaxCheck(usingStdin ? ["stdin"] : expandedArgs, errorFormat, cache, moduleCache) ? 1 : 0;
+		return .syntaxCheck(usingStdin ? ["stdin"] : expandedArgs, errorFormat) ? 1 : 0;
 	}
 	else
 	{
@@ -387,7 +388,7 @@ else
 		}
 		else if (imports || recursiveImports)
 		{
-			printImports(usingStdin, args, importPaths, &cache, recursiveImports);
+			printImports(usingStdin, args, importPaths, recursiveImports);
 		}
 		else if (ast || outline)
 		{
@@ -599,7 +600,7 @@ string getDefaultConfigurationLocation()
 			configDir = buildPath(configDir, "dscanner", CONFIG_FILE_NAME);
 		return configDir;
 	}
-	else version(Windows)
+	else version (Windows)
 	{
 		string configDir = environment.get("APPDATA", null);
 		enforce(configDir !is null, "%APPDATA% is unset");

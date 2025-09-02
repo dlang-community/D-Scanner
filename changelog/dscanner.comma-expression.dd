@@ -1,0 +1,3 @@
+Remove the check for comma expression check
+	e.g. (int a = 3, a + 7)
+This check is no longer necessary since comma expression have been removed from the D language.

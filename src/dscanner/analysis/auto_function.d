@@ -6,12 +6,8 @@
 module dscanner.analysis.auto_function;
 
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
-
-import std.stdio;
-import std.algorithm : map, filter;
+import std.conv : to;
+import std.algorithm.searching : canFind;
 
 /**
  * Checks for auto functions without return statement.
@@ -20,166 +16,137 @@ import std.algorithm : map, filter;
  * detected by the compiler. However sometimes they can be used as a trick
  * to infer attributes.
  */
-final class AutoFunctionChecker : BaseAnalyzer
+extern (C++) class AutoFunctionChecker(AST) : BaseAnalyzerDmd
 {
-
-private:
-
-	enum string KEY = "dscanner.suspicious.missing_return";
-	enum string MESSAGE = "Auto function without return statement, prefer replacing auto with void";
-	enum string MESSAGE_INSERT = "Auto function without return statement, prefer inserting void to be explicit";
-
-	bool[] _returns;
-	size_t _mixinDepth;
-	string[] _literalWithReturn;
-
-public:
-
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"auto_function_check";
 
+	private bool foundReturn;
+	private bool foundFalseAssert;
+	private bool inMixin;
+	private bool foundReturnLiteral;
+	private string[] literalsWithReturn;
+
+	private enum string KEY = "dscanner.suspicious.missing_return";
+	private enum string MESSAGE = "Auto function without return statement, prefer replacing auto with void";
+	private enum string MESSAGE_INSERT = "Auto function without return statement, prefer inserting void to be explicit";
+
 	///
-	this(BaseAnalyzerArguments args)
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	package static const(Token)[] findAutoReturnType(const(FunctionDeclaration) decl)
+	override void visit(AST.FuncDeclaration d)
 	{
-		const(Token)[] lastAtAttribute;
-		foreach (storageClass; decl.storageClasses)
+		import dmd.astenums : STC, STMT;
+
+		if (d.storage_class & STC.disable || d.fbody is null || (d.fbody && d.fbody.isReturnStatement()))
+			return;
+
+		ulong lineNum = cast(ulong) d.loc.linnum;
+		ulong charNum = cast(ulong) d.loc.charnum;
+
+		auto oldFoundReturn = foundReturn;
+		auto oldFoundFalseAssert = foundFalseAssert;
+
+		foundReturn = false;
+		foundFalseAssert = false;
+		super.visitFuncBody(d);
+
+		if (!foundReturn && !foundFalseAssert)
 		{
-			if (storageClass.token.type == tok!"auto")
-				return storageClass.tokens;
-			else if (storageClass.atAttribute)
-				lastAtAttribute = storageClass.atAttribute.tokens;
-		}
-		return lastAtAttribute;
-	}
-
-	override void visit(const(FunctionDeclaration) decl)
-	{
-		_returns.length += 1;
-		scope(exit) _returns.length -= 1;
-		_returns[$-1] = false;
-
-		auto autoTokens = findAutoReturnType(decl);
-		bool isAtAttribute = autoTokens.length > 1;
-
-		decl.accept(this);
-
-		if (decl.functionBody.specifiedFunctionBody && autoTokens.length && !_returns[$-1])
-		{
-			if (isAtAttribute)
+			if (d.storage_class & STC.auto_)
 			{
-				// highlight on the whitespace between attribute and function name
-				auto tok = autoTokens[$ - 1];
-				auto whitespace = tok.column + (tok.text.length ? tok.text.length : str(tok.type).length);
-				auto whitespaceIndex = tok.index + (tok.text.length ? tok.text.length : str(tok.type).length);
-				addErrorMessage([whitespaceIndex, whitespaceIndex + 1], tok.line, [whitespace, whitespace + 1], KEY, MESSAGE_INSERT,
-					[AutoFix.insertionAt(whitespaceIndex + 1, "void ")]);
+				auto voidStart = extractVoidStartLocation(d);
+
+				addErrorMessage(
+					lineNum, charNum, KEY, MESSAGE,
+					[
+						AutoFix.replacement(voidStart + 1, voidStart + 6, "", "Replace `auto` with `void`")
+							.concat(AutoFix.insertionAt(d.loc.fileOffset, "void "))
+					]
+				);
 			}
-			else
-				addErrorMessage(autoTokens, KEY, MESSAGE,
-					[AutoFix.replacement(autoTokens[0], "", "Replace `auto` with `void`")
-						.concat(AutoFix.insertionAt(decl.name.index, "void "))]);
+			else if (auto returnType = cast(AST.TypeFunction) d.type)
+			{
+				if (returnType.next is null)
+				{
+					addErrorMessage(
+						lineNum, charNum, KEY, MESSAGE_INSERT,
+						[AutoFix.insertionAt(d.loc.fileOffset, "void ")]
+					);
+				}
+			}
 		}
+
+		foundReturn = oldFoundReturn;
+		foundFalseAssert = oldFoundFalseAssert;
 	}
 
-	override void visit(const(ReturnStatement) rst)
+	private auto extractVoidStartLocation(AST.FuncDeclaration d)
 	{
-		if (_returns.length)
-			_returns[$-1] = true;
-		rst.accept(this);
+		import dmd.common.outbuffer : OutBuffer;
+		import dmd.hdrgen : toCBuffer, HdrGenState;
+		import std.string : indexOf;
+
+		OutBuffer buf;
+		HdrGenState hgs;
+		toCBuffer(d, buf, hgs);
+		string funcStr = cast(string) buf.extractSlice();
+		string funcName = cast(string) d.ident.toString();
+		auto funcNameStart = funcStr.indexOf(funcName);
+		auto voidTokenStart = funcStr.indexOf("void");
+		auto voidOffset = funcNameStart - voidTokenStart;
+		return d.loc.fileOffset - voidOffset;
 	}
 
-	override void visit(const(AssertArguments) exp)
+	override void visit(AST.ReturnStatement s)
 	{
-		exp.accept(this);
-		if (_returns.length)
-		{
-			const UnaryExpression u = cast(UnaryExpression) exp.assertion;
-			if (!u)
-				return;
-			const PrimaryExpression p = u.primaryExpression;
-			if (!p)
-				return;
-
-			immutable token = p.primary;
-			if (token.type == tok!"false")
-				_returns[$-1] = true;
-			else if (token.text == "0")
-				_returns[$-1] = true;
-		}
+		foundReturn = true;
 	}
 
-	override void visit(const(MixinExpression) mix)
+	override void visit(AST.AssertExp assertExpr)
 	{
-		++_mixinDepth;
-		mix.accept(this);
-		--_mixinDepth;
+		auto ie = assertExpr.e1.isIntegerExp();
+		if (ie && ie.getInteger() == 0)
+			foundFalseAssert = true;
 	}
 
-	override void visit(const(PrimaryExpression) exp)
+	override void visit(AST.MixinStatement mixinStatement)
 	{
-		exp.accept(this);
-
-		import std.algorithm.searching : canFind;
-
-		if (_returns.length && _mixinDepth)
-		{
-			if (findReturnInLiteral(exp.primary.text))
-			    _returns[$-1] = true;
-			else if (exp.identifierOrTemplateInstance &&
-				_literalWithReturn.canFind(exp.identifierOrTemplateInstance.identifier.text))
-					_returns[$-1] = true;
-		}
+		auto oldInMixin = inMixin;
+		inMixin = true;
+		super.visit(mixinStatement);
+		inMixin = oldInMixin;
 	}
 
-	private bool findReturnInLiteral(const(string) value)
+	override void visit(AST.StringExp stringExpr)
 	{
-		import std.algorithm.searching : find;
-		import std.range : empty;
+		foundReturnLiteral = foundReturnLiteral || canFind(stringExpr.toStringz(), "return");
 
-		return value == "return" || !value.find("return ").empty;
+		if (inMixin)
+			foundReturn = foundReturn || foundReturnLiteral;
 	}
 
-	private bool stringliteralHasReturn(const(NonVoidInitializer) nvi)
+	override void visit(AST.IdentifierExp ie)
 	{
-		bool result;
-		if (!nvi.assignExpression || (cast(UnaryExpression) nvi.assignExpression) is null)
-			return result;
+		if (inMixin)
+			foundReturn = foundReturn || canFind(literalsWithReturn, to!string(ie.ident.toString()));
 
-		const(UnaryExpression) u = cast(UnaryExpression) nvi.assignExpression;
-		if (u.primaryExpression &&
-			u.primaryExpression.primary.type.isStringLiteral &&
-			findReturnInLiteral(u.primaryExpression.primary.text))
-				result = true;
-
-		return result;
+		super.visit(ie);
 	}
 
-	override void visit(const(AutoDeclaration) decl)
+	override void visit(AST.VarDeclaration vd)
 	{
-		decl.accept(this);
+		auto oldFoundReturnLiteral = foundReturnLiteral;
+		foundFalseAssert = false;
+		super.visit(vd);
 
-		foreach(const(AutoDeclarationPart) p; decl.parts)
-			if (p.initializer &&
-				p.initializer.nonVoidInitializer &&
-				stringliteralHasReturn(p.initializer.nonVoidInitializer))
-					_literalWithReturn ~= p.identifier.text.idup;
-	}
+		if (foundReturnLiteral)
+			literalsWithReturn ~= to!string(vd.ident.toString());
 
-	override void visit(const(VariableDeclaration) decl)
-	{
-		decl.accept(this);
-
-		foreach(const(Declarator) d; decl.declarators)
-			if (d.initializer &&
-				d.initializer.nonVoidInitializer &&
-				stringliteralHasReturn(d.initializer.nonVoidInitializer))
-					_literalWithReturn ~= d.name.text.idup;
+		foundReturnLiteral = oldFoundReturnLiteral;
 	}
 }
 
@@ -188,94 +155,62 @@ unittest
 	import std.stdio : stderr;
 	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.auto_function_check = Check.enabled;
-	assertAnalyzerWarnings(q{
-		auto ref doStuff(){} /+
-		^^^^ [warn]: %s +/
-		auto doStuff(){} /+
-		^^^^ [warn]: %s +/
+
+	string MESSAGE = "Auto function without return statement, prefer replacing auto with void";
+	string MESSAGE_INSERT = "Auto function without return statement, prefer inserting void to be explicit";
+
+	assertAnalyzerWarningsDMD(q{
+		auto ref doStuff(){} // [warn]: %s
+		auto doStuff(){} // [warn]: %s
 		@Custom
-		auto doStuff(){} /+
-		^^^^ [warn]: %s +/
-		int doStuff(){auto doStuff(){}} /+
-		              ^^^^ [warn]: %s +/
+		auto doStuff(){} // [warn]: %s
+		int doStuff(){auto doStuff(){}} // [warn]: %s
 		auto doStuff(){return 0;}
 		int doStuff(){/*error but not the aim*/}
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-		AutoFunctionChecker.MESSAGE,
-		AutoFunctionChecker.MESSAGE,
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	}c.format(MESSAGE, MESSAGE, MESSAGE, MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		auto doStuff(){assert(true);} /+
-		^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		auto doStuff(){assert(true);} // [warn]: %s
 		auto doStuff(){assert(false);}
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	}c.format(MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		auto doStuff(){assert(1);} /+
-		^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		auto doStuff(){assert(1);} // [warn]: %s
 		auto doStuff(){assert(0);}
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	}c.format(MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		auto doStuff(){mixin("0+0");} /+
-		^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		auto doStuff(){mixin("0+0");} // [warn]: %s
 		auto doStuff(){mixin("return 0;");}
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	}c.format(MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		auto doStuff(){mixin("0+0");} /+
-		^^^^ [warn]: %s +/
+	assertAnalyzerWarningsDMD(q{
+		auto doStuff(){mixin("0+0");} // [warn]: %s
 		auto doStuff(){mixin("static if (true)" ~ "  return " ~ 0.stringof ~ ";");}
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	}c.format(MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		auto doStuff(){} /+
-		^^^^ [warn]: %s +/
-		extern(C) auto doStuff();
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	assertAnalyzerWarningsDMD(q{
+		auto doStuff(){} // [warn]: %s
+	}c.format(MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		auto doStuff(){} /+
-		^^^^ [warn]: %s +/
-		@disable auto doStuff();
-	}c.format(
-		AutoFunctionChecker.MESSAGE,
-	), sac);
+	assertAnalyzerWarningsDMD(q{
+		auto doStuff(){} // [warn]: %s
+	}c.format(MESSAGE), sac);
 
-	assertAnalyzerWarnings(q{
-		@property doStuff(){} /+
-		         ^ [warn]: %s +/
-		@safe doStuff(){} /+
-		     ^ [warn]: %s +/
-		@disable doStuff();
+	assertAnalyzerWarningsDMD(q{
+		@property doStuff(){} // [warn]: %s
+		@safe doStuff(){} // [warn]: %s
 		@safe void doStuff();
-	}c.format(
-		AutoFunctionChecker.MESSAGE_INSERT,
-		AutoFunctionChecker.MESSAGE_INSERT,
-	), sac);
+	}c.format(MESSAGE_INSERT, MESSAGE_INSERT), sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		enum _genSave = "return true;";
 		auto doStuff(){ mixin(_genSave);}
 	}, sac);
-
 
 	assertAutoFix(q{
 		auto ref doStuff(){} // fix
