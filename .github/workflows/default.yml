@@ -72,7 +72,7 @@ jobs:
 
           - compiler:
               dmd: dmd
-            host: macos-13
+            host: macos-15-intel
             build:
               type: 'dub'
               version: 'current'
