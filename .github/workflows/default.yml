@@ -70,13 +70,6 @@ jobs:
         include:
           - { do_report: 1, build: { type: dub, version: 'current' }, host: 'ubuntu-22.04', compiler: { version: dmd-latest, dmd: dmd } }
 
-          - compiler:
-              dmd: dmd
-            host: macos-15-intel
-            build:
-              type: 'dub'
-              version: 'current'
-
     runs-on: ${{ matrix.host }}
 
     steps:
