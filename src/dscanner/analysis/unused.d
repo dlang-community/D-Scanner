@@ -7,10 +7,10 @@ module dscanner.analysis.unused;
 import dparse.ast;
 import dparse.lexer;
 import dscanner.analysis.base;
-import std.container;
-import std.regex : Regex, regex, matchAll;
 import dsymbol.scope_ : Scope;
 import std.algorithm : all;
+import std.container;
+import std.regex : matchAll, regex, Regex;
 
 /**
  * Checks for unused variables.
@@ -86,10 +86,10 @@ abstract class UnusedIdentifierCheck : BaseAnalyzer
 
 	override void visit(const SwitchStatement switchStatement)
 	{
-		if (switchStatement.expression !is null)
+		if (switchStatement.condition !is null && switchStatement.condition.expression !is null)
 		{
 			interestDepth++;
-			switchStatement.expression.accept(this);
+			switchStatement.condition.expression.accept(this);
 			interestDepth--;
 		}
 		switchStatement.accept(this);

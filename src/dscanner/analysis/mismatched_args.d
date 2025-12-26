@@ -1,12 +1,12 @@
 module dscanner.analysis.mismatched_args;
 
-import dscanner.analysis.base;
-import dscanner.utils : safeAccess;
-import dsymbol.scope_;
-import dsymbol.symbol;
 import dparse.ast;
 import dparse.lexer : tok, Token;
+import dscanner.analysis.base;
+import dscanner.utils : safeAccess;
 import dsymbol.builtin.names;
+import dsymbol.scope_;
+import dsymbol.symbol;
 
 /// Checks for mismatched argument and parameter names
 final class MismatchedArgumentCheck : BaseAnalyzer
@@ -22,8 +22,6 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 	override void visit(const FunctionCallExpression fce)
 	{
 		import std.typecons : scoped;
-		import std.algorithm.iteration : each, map;
-		import std.array : array;
 
 		if (fce.arguments is null)
 			return;
@@ -53,7 +51,7 @@ final class MismatchedArgumentCheck : BaseAnalyzer
 		{
 			// The cast is a hack because .array() confuses the compiler's overload
 			// resolution code.
-			const(istring)[] params = sym is null ? [] : sym.argNames[].map!(a => cast() a).array();
+			const(istring)[] params = sym is null ? [] : sym.argNames;
 			const ArgMismatch[] mismatches = compareArgsToParams(params, args);
 			if (mismatches.length == 0)
 				matched = true;
@@ -251,8 +249,8 @@ unittest
 
 unittest
 {
+	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
 	import dscanner.analysis.helpers : assertAnalyzerWarnings;
-	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();

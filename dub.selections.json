@@ -1,12 +1,12 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"dcd": "0.16.0-beta.2",
+		"dcd": "0.16.2",
 		"dsymbol": "0.13.0",
 		"emsi_containers": "0.9.0",
 		"inifiled": "1.3.3",
 		"libddoc": "0.8.0",
-		"libdparse": "0.25.0",
+		"libdparse": "0.25.1",
 		"stdx-allocator": "2.77.5"
 	}
 }
