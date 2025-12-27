@@ -1,7 +1,7 @@
 module dscanner.analysis.base;
 
 import dparse.ast;
-import dparse.lexer : IdType, str, Token, tok;
+import dparse.lexer : IdType, str, tok, Token;
 import dscanner.analysis.nolint;
 import dsymbol.scope_ : Scope;
 import std.array;
@@ -639,12 +639,13 @@ public:
 		{
 			// case and default statements always open new scopes and close
 			// previous case scopes
-			bool close = switchStack.length && switchStack[$ - 1].inCase;
-			bool b = switchStack[$ - 1].inCase;
-			switchStack[$ - 1].inCase = true;
+			bool wasInCase = switchStack.length && switchStack[$ - 1].inCase;
+			if (switchStack.length)
+				switchStack[$ - 1].inCase = true;
 			scope (exit)
-				switchStack[$ - 1].inCase = b;
-			if (close)
+				if (switchStack.length)
+					switchStack[$ - 1].inCase = wasInCase;
+			if (wasInCase)
 			{
 				popScope();
 				pushScope();
@@ -896,4 +897,53 @@ unittest
 
 		auto isOldScope = void;
 	});
+}
+
+// test previous segfault
+unittest
+{
+	import dparse.lexer : getTokensForParser, LexerConfig, StringCache;
+	import dparse.parser : parseModule;
+	import dparse.rollback_allocator : RollbackAllocator;
+
+	StringCache cache = StringCache(4096);
+	LexerConfig config;
+	RollbackAllocator rba;
+	auto tokens = getTokensForParser(q{
+		module derp;
+
+		void main(string[] args)
+		{
+			foreach
+			switch (x)
+			{
+			case 1:
+				if (y) {
+					continue;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+	}, config, &cache);
+	auto m = parseModule(tokens, "stdin", &rba);
+
+	class TestScopedAnalyzer : ScopedBaseAnalyzer
+	{
+		this()
+		{
+			super(BaseAnalyzerArguments("stdin"));
+		}
+
+		override protected void pushScope()
+		{
+		}
+
+		override protected void popScope()
+		{
+		}
+	}
+
+	new TestScopedAnalyzer().visit(m);
 }
