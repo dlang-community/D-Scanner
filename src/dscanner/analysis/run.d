@@ -754,6 +754,7 @@ private BaseAnalyzer[] getAnalyzersForModuleAndConfig(string fileName,
 		tokens,
 		moduleScope
 	);
+	args.preprocess();
 
 	if (moduleName.shouldRun!AsmStyleCheck(analysisConfig))
 		checks ~= new AsmStyleCheck(args.setSkipTests(

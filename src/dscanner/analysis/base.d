@@ -378,6 +378,29 @@ struct BaseAnalyzerArguments
 	const Scope* sc;
 	bool skipTests = false;
 
+	// auto-generated members:
+	size_t[typeof(Token.line)] lineEndTokenIndices;
+	size_t[typeof(Token.line)] lineStartTokenIndices;
+
+	void preprocess()
+	{
+		if (!tokens.length)
+			return;
+
+		typeof(Token.line) line = -1;
+		foreach (i, t; tokens)
+		{
+			if (t.line != line)
+			{
+				lineStartTokenIndices[t.line] = i;
+				if (i != 0)
+					lineEndTokenIndices[tokens[i - 1].line] = i - 1;
+			}
+		}
+
+		lineEndTokenIndices[tokens[$ - 1].line] = tokens.length - 1;
+	}
+
 	BaseAnalyzerArguments setSkipTests(bool v)
 	{
 		auto ret = this;
@@ -406,6 +429,8 @@ public:
 		this.tokens = args.tokens;
 		this.fileName = args.fileName;
 		this.skipTests = args.skipTests;
+		this.lineEndTokenIndices = args.lineEndTokenIndices;
+		this.lineStartTokenIndices = args.lineStartTokenIndices;
 		_messages = new MessageSet;
 	}
 
@@ -481,6 +506,8 @@ protected:
 	bool inAggregate;
 	bool skipTests;
 	const(Token)[] tokens;
+	size_t[typeof(Token.line)] lineEndTokenIndices;
+	size_t[typeof(Token.line)] lineStartTokenIndices;
 	NoLint noLint;
 
 	template visitTemplate(T)
@@ -496,42 +523,42 @@ protected:
 	deprecated("Use the overload taking start and end locations or a Node instead")
 	void addErrorMessage(size_t line, size_t column, string key, string message)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, [findToken(line, column)]))
 			return;
 		_messages.insert(Message(fileName, line, column, key, message, getName()));
 	}
 
 	void addErrorMessage(const BaseNode node, string key, string message, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, node.tokens))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, node, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token token, string key, string message, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, [token]))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, token, message), key, autofixes);
 	}
 
 	void addErrorMessage(const Token[] tokens, string key, string message, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, tokens))
 			return;
 		addErrorMessage(Message.Diagnostic.from(fileName, tokens, message), key, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t line, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, [findToken(index[0]), findToken(index[1])]))
 			return;
 		addErrorMessage(index, [line, line], columns, key, message, autofixes);
 	}
 
 	void addErrorMessage(size_t[2] index, size_t[2] lines, size_t[2] columns, string key, string message, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, [findToken(index[0]), findToken(index[1])]))
 			return;
 		auto d = Message.Diagnostic.from(fileName, index, lines, columns, message);
 		_messages.insert(Message(d, key, getName(), autofixes));
@@ -539,14 +566,14 @@ protected:
 
 	void addErrorMessage(Message.Diagnostic diagnostic, string key, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, null)) // TODO
 			return;
 		_messages.insert(Message(diagnostic, key, getName(), autofixes));
 	}
 
 	void addErrorMessage(Message.Diagnostic diagnostic, Message.Diagnostic[] supplemental, string key, AutoFix[] autofixes = null)
 	{
-		if (noLint.containsCheck(key))
+		if (checkNoLint(key, null)) // TODO
 			return;
 		_messages.insert(Message(diagnostic, supplemental, key, getName(), autofixes));
 	}
@@ -559,6 +586,59 @@ protected:
 	const(Scope)* sc;
 
 	MessageSet _messages;
+
+	private const Token findToken(typeof(Token.index) index)
+	{
+		return Token.init; // todo
+	}
+
+	private const Token findToken(typeof(Token.line) line, typeof(Token.column) column)
+	{
+		return Token.init; // todo
+	}
+
+	private const Token getLastLineToken(typeof(Token.line) line)
+	{
+		if (auto pi = line in lineEndTokenIndices)
+			return tokens[*pi];
+		return Token.init;
+	}
+
+	private bool checkNoLint(string key, const(Token)[] tokens)
+	{
+		if (noLint.containsCheck(key))
+			return true;
+		if (!tokens.length)
+			return false;
+		auto first = tokens[0].leadingTrivia;
+		auto last = tokens[$ - 1].trailingTrivia;
+		auto line = getLastLineToken(tokens[$ - 1].line).trailingTrivia;
+
+		bool checkComments(typeof(Token.leadingTrivia) tokens)
+		{
+			foreach (token; tokens)
+			{
+				if (token.type == tok!"comment"
+					&& token.text.startsWith(
+						"// @nolint",
+						"// @suppress")) // in use in some projects since this was introduced in code-d
+				{
+					auto nolintUDA = token.text[3 .. $];
+					auto n = NoLintFactory.fromString(nolintUDA);
+					if (!n.isNull && n.get.containsCheck(key))
+						return true;
+				}
+			}
+			return false;
+		}
+
+		if (checkComments(getLastLineToken(tokens[$ - 1].line).trailingTrivia)
+			|| checkComments(tokens[$ - 1].trailingTrivia)
+			|| checkComments(tokens[0].leadingTrivia))
+			return true;
+
+		return false;
+	}
 }
 
 /// Find the token with the given type, otherwise returns the whole range or a user-specified fallback, if set.
