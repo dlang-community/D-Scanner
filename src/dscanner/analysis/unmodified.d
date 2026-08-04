@@ -142,10 +142,42 @@ final class UnmodifiedFinder : BaseAnalyzer
 
 	mixin PartsMightModify!AsmPrimaryExp;
 	mixin PartsMightModify!IndexExpression;
-	mixin PartsMightModify!FunctionCallExpression;
-	mixin PartsMightModify!NewExpression;
 	mixin PartsMightModify!IdentifierOrTemplateChain;
 	mixin PartsMightModify!ReturnStatement;
+
+	override void visit(const FunctionCallExpression functionCallExpression)
+	{
+		interest++;
+		if (functionCallExpression.type !is null)
+			functionCallExpression.type.accept(this);
+		if (functionCallExpression.unaryExpression !is null)
+			functionCallExpression.unaryExpression.accept(this);
+		if (functionCallExpression.templateArguments !is null)
+			functionCallExpression.templateArguments.accept(this);
+		// Arguments may be bound to `ref`/`out` parameters, which modifies
+		// them regardless of their type.
+		callArgument++;
+		if (functionCallExpression.arguments !is null)
+			functionCallExpression.arguments.accept(this);
+		callArgument--;
+		interest--;
+	}
+
+	override void visit(const NewExpression newExpression)
+	{
+		interest++;
+		if (newExpression.newAnonClassExpression !is null)
+			newExpression.newAnonClassExpression.accept(this);
+		if (newExpression.type !is null)
+			newExpression.type.accept(this);
+		callArgument++;
+		if (newExpression.arguments !is null)
+			newExpression.arguments.accept(this);
+		callArgument--;
+		if (newExpression.assignExpression !is null)
+			newExpression.assignExpression.accept(this);
+		interest--;
+	}
 
 	override void visit(const UnaryExpression unary)
 	{
@@ -161,6 +193,13 @@ final class UnmodifiedFinder : BaseAnalyzer
 		}
 		else
 			unary.accept(this);
+
+		// A member access (`a.b`) may require a mutable `a` although it reads
+		// like an expression: the member can be a non-const method or property
+		// (e.g. range accessors) or return a mutable reference. Without
+		// semantic analysis, const-ness of the base cannot be proven.
+		if (unary.identifierOrTemplateInstance !is null)
+			markMemberAccessBase(unary);
 	}
 
 	override void visit(const ForeachStatement foreachStatement)
@@ -210,7 +249,7 @@ private:
 	{
 		size_t index = tree.length - 1;
 		auto vi = VariableInfo(name);
-		if (guaranteeUse == 0)
+		if (guaranteeUse == 0 && callArgument == 0)
 		{
 			auto r = tree[index].equalRange(&vi);
 			if (!r.empty && r.front.isValueType && !inAsm)
@@ -222,6 +261,23 @@ private:
 				break;
 			index--;
 		}
+	}
+
+	void markMemberAccessBase(const UnaryExpression memberAccess)
+	{
+		const UnaryExpression base = memberAccess.unaryExpression;
+		if (base is null)
+			return;
+		if (base.identifierOrTemplateInstance !is null)
+		{
+			// chained access `a.b.c`: descend to the leftmost base
+			markMemberAccessBase(base);
+			return;
+		}
+		if (base.primaryExpression !is null
+				&& base.primaryExpression.identifierOrTemplateInstance !is null)
+			variableMightBeModified(
+					base.primaryExpression.identifierOrTemplateInstance.identifier.text);
 	}
 
 	bool initializedFromNew(const Initializer initializer)
@@ -323,6 +379,8 @@ private:
 
 	int guaranteeUse;
 
+	int callArgument;
+
 	int isImmutable;
 
 	bool inAsm;
@@ -384,6 +442,126 @@ bool isValueTypeSimple(const Type type) pure nothrow @nogc
 
 			size_t i2;
 			foo(i2);
+		}
+	}, sac);
+
+	// a value type passed to a function may be bound to a `ref` parameter
+
+	assertAnalyzerWarnings(q{
+		void mutate(ref int x)
+		{
+			x = 42;
+		}
+
+		int refMutation()
+		{
+			int value = 0;
+			mutate(value);
+			return value;
+		}
+	}, sac);
+
+	// a value type passed to a function may be bound to an `out` parameter
+
+	assertAnalyzerWarnings(q{
+		long produce(out bool createdNow)
+		{
+			createdNow = true;
+			return 1;
+		}
+
+		long outParam()
+		{
+			bool createdNow;
+			immutable id = produce(createdNow);
+			return id + (createdNow ? 1 : 0);
+		}
+	}, sac);
+
+	// range accessors are methods that may not be const-callable, so the
+	// range variable cannot always be const or immutable
+
+	assertAnalyzerWarnings(q{
+		struct SinglePassRange
+		{
+			int i = 0;
+
+			@property bool empty()
+			{
+				return i >= 1;
+			}
+
+			@property int front()
+			{
+				return i;
+			}
+		}
+
+		int rangeAccessors()
+		{
+			auto r = SinglePassRange();
+			if (r.empty)
+				return 0;
+			return r.front;
+		}
+	}, sac);
+
+	// member access on a variable may prevent const or immutable even without
+	// a visible modification, e.g. Nullable.get on a struct holding an array
+
+	assertAnalyzerWarnings(q{
+		struct Document
+		{
+			string name;
+			int[] items;
+		}
+
+		string nullableWithArray()
+		{
+			import std.typecons : Nullable;
+
+			auto doc = Nullable!Document(Document("x", [1, 2]));
+			if (doc.isNull)
+				return "";
+			Document copy = doc.get;
+			copy.name = "y";
+			return copy.name;
+		}
+	}, sac);
+
+	// member access without a call is treated as a potential modification
+	// because the member can be a non-const method or property
+
+	assertAnalyzerWarnings(q{
+		struct Point
+		{
+			int x;
+		}
+
+		int readMember()
+		{
+			Point p;
+			return p.x;
+		}
+	}, sac);
+
+	// simple reads of value types are still reported
+
+	assertAnalyzerWarnings(q{
+		int simpleRead()
+		{
+			int i = 1; /+
+			    ^ [warn]: Variable i is never modified and could have been declared const or immutable. +/
+			return i;
+		}
+	}, sac);
+
+	assertAnalyzerWarnings(q{
+		int readIndex(int[] arr)
+		{
+			int i = 0; /+
+			    ^ [warn]: Variable i is never modified and could have been declared const or immutable. +/
+			return arr[i];
 		}
 	}, sac);
 
