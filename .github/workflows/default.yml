@@ -107,7 +107,8 @@ jobs:
             ./build.bat
             ./build.bat test
           else
-            make "-j$(nproc)" all test
+            NUM_PROC=$(nproc || getconf _NPROCESSORS_ONLN || 1)
+            make "-j$((NUM_PROC / 2))" all test
           fi
 
       # Compile D-Scanner and execute all tests using a specific dependency version
@@ -152,9 +153,19 @@ jobs:
           "./bin/dscanner$EXE" --styleCheck -f "$FORMAT" src
 
       - name: Integration Tests
-        run: ./it.sh
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            ./it.sh Windows
+          else
+            ./it.sh Unix
+          fi
         working-directory: tests
         shell: bash
+
+      - name: Run style checks
+        if: ${{ matrix.compiler.dmd == 'dmd' && matrix.build.type == 'make' }}
+        run: |
+          make style
 
       # Parse phobos to check for failures / crashes / ...
       - name: Checkout Phobos
@@ -164,7 +175,7 @@ jobs:
           path: phobos
 
       - name: Apply D-Scanner to Phobos
-        if:  ${{ matrix.build.version != 'min libdparse'}} # Older versions crash with "Invalid UTF..."
+        if: ${{ matrix.build.version != 'min libdparse'}} # Older versions crash with "Invalid UTF..."
         working-directory: phobos
         shell: bash
         run: |

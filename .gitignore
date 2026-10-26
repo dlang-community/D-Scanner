@@ -11,6 +11,9 @@
 # Sublime Text 2
 *.sublime-workspace
 
+# Idea stuff
+.idea/
+
 # Subversion
 .svn/
 

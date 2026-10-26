@@ -68,7 +68,7 @@ struct StaticAnalysisConfig
 	@INI("Check for use of the deprecated 'delete' keyword")
 	string delete_check = Check.enabled;
 
-	@INI("Check for use of the deprecated floating point operators")
+	@INI("Has no effect, the old floating point operators were removed from D")
 	string float_operator_check = Check.enabled;
 
 	@INI("Check number literals for readability")
@@ -95,7 +95,7 @@ struct StaticAnalysisConfig
 	@INI("Checks for unused function parameters")
 	string unused_parameter_check = Check.enabled;
 
-	@INI("Checks for duplicate attributes")
+	@INI("Has no effect, dmd reports duplicate attributes")
 	string duplicate_attribute = Check.enabled;
 
 	@INI("Checks that opEquals and toHash are both defined or neither are defined")
@@ -119,7 +119,7 @@ struct StaticAnalysisConfig
 	@INI("Checks for poor placement of function attributes")
 	string function_attribute_check = Check.enabled;
 
-	@INI("Checks for use of the comma operator")
+	@INI("Has no effect, dmd reports using the result of a comma expression")
 	string comma_expression_check = Check.enabled;
 
 	@INI("Checks for local imports that are too broad. Only accurate when checking code used with D versions older than 2.071.0")
@@ -128,7 +128,7 @@ struct StaticAnalysisConfig
 	@INI("Checks for variables that could be declared immutable")
 	string could_be_immutable_check = Check.enabled;
 
-	@INI("Checks for redundant expressions in if statements")
+	@INI("Has no effect, the redundant if check is not ported to dmd yet")
 	string redundant_if_check = Check.enabled;
 
 	@INI("Checks for redundant parenthesis")

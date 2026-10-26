@@ -6,6 +6,8 @@
 module dscanner.analysis.helpers;
 
 import core.exception : AssertError;
+import std.file : exists, remove;
+import std.path : dirName;
 import std.stdio;
 import std.string;
 import std.traits;
@@ -13,12 +15,17 @@ import std.traits;
 import dparse.ast;
 import dparse.lexer : tok, Token;
 import dparse.rollback_allocator;
+
 import dscanner.analysis.base;
 import dscanner.analysis.config;
 import dscanner.analysis.run;
-import dsymbol.modulecache : ModuleCache;
-import std.experimental.allocator;
-import std.experimental.allocator.mallocator;
+import dscanner.analysis.rundmd;
+import dscanner.utils : getModuleName;
+
+import dmd.astbase : ASTBase;
+import dmd.astcodegen;
+import dmd.frontend;
+import dmd.parse : Parser;
 
 S between(S)(S value, S before, S after) if (isSomeString!S)
 {
@@ -41,48 +48,163 @@ S after(S)(S value, S separator) if (isSomeString!S)
 	return value[i + separator.length .. $];
 }
 
-string getLineIndentation(scope const(Token)[] tokens, size_t line, const AutoFixFormatting formatting)
-{
-	import std.algorithm : countUntil;
-	import std.array : array;
-	import std.range : repeat;
-	import std.string : lastIndexOfAny;
-
-	auto idx = tokens.countUntil!(a => a.line == line);
-	if (idx == -1 || tokens[idx].column <= 1 || !formatting.indentation.length)
-		return "";
-
-	auto indent = tokens[idx].column - 1;
-	if (formatting.indentation[0] == '\t')
-		return (cast(immutable)'\t').repeat(indent).array;
-	else
-		return (cast(immutable)' ').repeat(indent).array;
-}
+/// EOL inside this project, for tests
+private static immutable fileEol = q{
+};
 
 /**
- * This assert function will analyze the passed in code, get the warnings,
- * and make sure they match the warnings in the comments. Warnings are
- * marked like so if range doesn't matter: // [warn]: Failed to do somethings.
+ * This assert function will analyze the passed in code, get the warnings, and
+ * apply all specified autofixes all at once.
  *
- * To test for start and end column, mark warnings as multi-line comments like
- * this: /+
- * ^^^^^ [warn]: Failed to do somethings. +/
+ * Indicate which autofix to apply by adding a line comment at the end of the
+ * line with the following content: `// fix:0`, where 0 is the index which
+ * autofix to apply. There may only be one diagnostic on a line with this fix
+ * comment. Alternatively you can also just write `// fix` to apply the only
+ * available suggestion.
  */
-void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
+void assertAutoFix(string before, string after, const StaticAnalysisConfig config,
+	string file = __FILE__, size_t line = __LINE__)
+{
+	import std.algorithm : canFind, findSplit, map, sort;
+	import std.conv : to;
+	import std.sumtype : match;
+	import std.typecons : tuple, Tuple;
+	import dscanner.analysis.autofix : improveAutoFixWhitespace;
+
+	MessageSet rawWarnings;
+	auto testFileName = "test.d";
+	File f = File(testFileName, "w");
+	scope(exit)
+	{
+		assert(exists(testFileName));
+		remove(testFileName);
+	}
+
+	f.rawWrite(before);
+	f.close();
+
+	auto dmdModule = parseDmdModule(file, before);
+	rawWarnings = analyzeDmd(testFileName, dmdModule, getModuleName(dmdModule.md), config);
+
+	string[] codeLines = before.splitLines();
+	Tuple!(Message, int)[] toApply;
+	int[] applyLines;
+
+	scope (failure)
+	{
+		if (toApply.length)
+			stderr.writefln("Would have applied these fixes:%(\n- %s%)",
+				toApply.map!"a[0].autofixes[a[1]].name");
+		else
+			stderr.writeln("Did not find any fixes at all up to this point.");
+		stderr.writeln("Found warnings on lines: ", rawWarnings[].map!(a
+			=> a.endLine == 0 ? 0 : a.endLine - 1 + line));
+	}
+
+	foreach (rawWarning; rawWarnings[])
+	{
+		// Skip the warning if it is on line zero
+		immutable size_t rawLine = rawWarning.endLine;
+		if (rawLine == 0)
+		{
+			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s", rawWarning.message);
+			continue;
+		}
+
+		auto fixComment = codeLines[rawLine - 1].findSplit("// fix");
+		if (fixComment[1].length)
+		{
+			applyLines ~= cast(int)rawLine - 1;
+			if (fixComment[2].startsWith(":"))
+			{
+				auto i = fixComment[2][1 .. $].to!int;
+				assert(i >= 0, "can't use negative autofix indices");
+				if (i >= rawWarning.autofixes.length)
+					throw new AssertError("autofix index out of range, diagnostic only has %s autofixes (%s)."
+						.format(rawWarning.autofixes.length, rawWarning.autofixes.map!"a.name"),file, rawLine + line);
+				toApply ~= tuple(rawWarning, i);
+			}
+			else
+			{
+				if (rawWarning.autofixes.length != 1)
+					throw new AssertError("diagnostic has %s autofixes (%s), but expected exactly one."
+						.format(rawWarning.autofixes.length, rawWarning.autofixes.map!"a.name"), file, rawLine + line);
+				toApply ~= tuple(rawWarning, 0);
+			}
+		}
+	}
+
+	foreach (i, codeLine; codeLines)
+		if (!applyLines.canFind(i) && codeLine.canFind("// fix"))
+			throw new AssertError("Missing expected warning for autofix on line %s".format(i + line), file, i + line);
+
+	AutoFix.CodeReplacement[] replacements;
+
+	foreach_reverse (pair; toApply)
+	{
+		Message message = pair[0];
+		AutoFix fix = message.autofixes[pair[1]];
+		replacements ~= fix.expectReplacements;
+	}
+
+	replacements.sort!"a.range[0] < b.range[0]";
+
+	improveAutoFixWhitespace(before, replacements);
+
+	string newCode = before;
+	foreach_reverse (replacement; replacements)
+		newCode = newCode[0 .. replacement.range[0]] ~ replacement.newText ~ newCode[replacement.range[1] .. $];
+
+	if (newCode != after)
+	{
+		bool onlyWhitespaceDiffers = newCode.replace("\t", "").replace(" ", "")
+			== after.replace("\t", "").replace(" ", "").replace("\r", "");
+
+		string formatDisplay(string code)
+		{
+			string ret = code.lineSplitter!(KeepTerminator.yes).map!(a => "\t" ~ a).join;
+			if (onlyWhitespaceDiffers)
+				ret = ret
+					.replace("\r", "\x1B[2m\\r\x1B[m")
+					.replace("\t", "\x1B[2m→   \x1B[m")
+					.replace(" ", "\x1B[2m⸱\x1B[m");
+			return ret;
+		}
+
+		throw new AssertError("Applying autofix didn't yield expected results. Expected:\n"
+			~ formatDisplay(after)
+			~ "\n\nActual:\n"
+			~ formatDisplay(newCode),
+			file, line);
+	}
+}
+
+void assertAnalyzerWarningsDMD(string code, const StaticAnalysisConfig config, bool semantic = false,
 		string file = __FILE__, size_t line = __LINE__)
 {
-	import dscanner.analysis.run : parseModule;
-	import dparse.lexer : StringCache, Token;
+	import dmd.globals : global;
 
-	StringCache cache = StringCache(StringCache.defaultBucketCount);
-	RollbackAllocator r;
-	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) code, &r, defaultErrorFormat, cache, false, tokens);
+	auto testFileName = "test.d";
+	File f = File(testFileName, "w");
+	scope(exit)
+	{
+		assert(exists(testFileName));
+        remove(testFileName);
+	}
 
-	ModuleCache moduleCache;
+	f.rawWrite(code);
+	f.close();
 
-	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens);
+	auto dmdModule = parseDmdModule(file, code);
+
+	if (global.errors > 0)
+		throw new AssertError("Failed to parse DMD module", file);
+
+	if (semantic)
+		dmdModule.fullSemantic();
+
+	MessageSet rawWarnings = analyzeDmd(testFileName, dmdModule, getModuleName(dmdModule.md), config);
+
 	string[] codeLines = code.splitLines();
 
 	struct FoundWarning
@@ -211,142 +333,5 @@ void assertAnalyzerWarnings(string code, const StaticAnalysisConfig config,
 	{
 		immutable string message = "Unexpected warnings:\n" ~ unexpectedWarnings.join("\n");
 		throw new AssertError(message, file, line);
-	}
-}
-
-/// EOL inside this project, for tests
-private static immutable fileEol = q{
-};
-
-/**
- * This assert function will analyze the passed in code, get the warnings, and
- * apply all specified autofixes all at once.
- *
- * Indicate which autofix to apply by adding a line comment at the end of the
- * line with the following content: `// fix:0`, where 0 is the index which
- * autofix to apply. There may only be one diagnostic on a line with this fix
- * comment. Alternatively you can also just write `// fix` to apply the only
- * available suggestion.
- */
-void assertAutoFix(string before, string after, const StaticAnalysisConfig config,
-		const AutoFixFormatting formattingConfig = AutoFixFormatting(AutoFixFormatting.BraceStyle.otbs, "\t", 4, fileEol),
-		string file = __FILE__, size_t line = __LINE__)
-{
-	import dparse.lexer : StringCache, Token;
-	import dscanner.analysis.run : parseModule;
-	import std.algorithm : canFind, findSplit, map, sort;
-	import std.conv : to;
-	import std.sumtype : match;
-	import std.typecons : tuple, Tuple;
-
-	StringCache cache = StringCache(StringCache.defaultBucketCount);
-	RollbackAllocator r;
-	const(Token)[] tokens;
-	const(Module) m = parseModule(file, cast(ubyte[]) before, &r, defaultErrorFormat, cache, false, tokens);
-
-	ModuleCache moduleCache;
-
-	// Run the code and get any warnings
-	MessageSet rawWarnings = analyze("test", m, config, moduleCache, tokens, true, true, formattingConfig);
-	string[] codeLines = before.splitLines();
-
-	Tuple!(Message, int)[] toApply;
-	int[] applyLines;
-
-	scope (failure)
-	{
-		if (toApply.length)
-			stderr.writefln("Would have applied these fixes:%(\n- %s%)",
-				toApply.map!"a[0].autofixes[a[1]].name");
-		else
-			stderr.writeln("Did not find any fixes at all up to this point.");
-		stderr.writeln("Found warnings on lines: ", rawWarnings[].map!(a
-			=> a.endLine == 0 ? 0 : a.endLine - 1 + line));
-	}
-
-	foreach (rawWarning; rawWarnings[])
-	{
-		// Skip the warning if it is on line zero
-		immutable size_t rawLine = rawWarning.endLine;
-		if (rawLine == 0)
-		{
-			stderr.writefln("!!! Skipping warning because it is on line zero:\n%s",
-					rawWarning.message);
-			continue;
-		}
-
-		auto fixComment = codeLines[rawLine - 1].findSplit("// fix");
-		if (fixComment[1].length)
-		{
-			applyLines ~= cast(int)rawLine - 1;
-			if (fixComment[2].startsWith(":"))
-			{
-				auto i = fixComment[2][1 .. $].to!int;
-				assert(i >= 0, "can't use negative autofix indices");
-				if (i >= rawWarning.autofixes.length)
-					throw new AssertError("autofix index out of range, diagnostic only has %s autofixes (%s)."
-						.format(rawWarning.autofixes.length, rawWarning.autofixes.map!"a.name"),
-							file, rawLine + line);
-				toApply ~= tuple(rawWarning, i);
-			}
-			else
-			{
-				if (rawWarning.autofixes.length != 1)
-					throw new AssertError("diagnostic has %s autofixes (%s), but expected exactly one."
-						.format(rawWarning.autofixes.length, rawWarning.autofixes.map!"a.name"),
-							file, rawLine + line);
-				toApply ~= tuple(rawWarning, 0);
-			}
-		}
-	}
-
-	foreach (i, codeLine; codeLines)
-	{
-		if (!applyLines.canFind(i) && codeLine.canFind("// fix"))
-			throw new AssertError("Missing expected warning for autofix on line %s"
-				.format(i + line), file, i + line);
-	}
-
-	AutoFix.CodeReplacement[] replacements;
-
-	foreach_reverse (pair; toApply)
-	{
-		Message message = pair[0];
-		AutoFix fix = message.autofixes[pair[1]];
-		replacements ~= fix.expectReplacements;
-	}
-
-	replacements.sort!"a.range[0] < b.range[0]";
-
-	improveAutoFixWhitespace(before, replacements);
-
-	string newCode = before;
-	foreach_reverse (replacement; replacements)
-	{
-		newCode = newCode[0 .. replacement.range[0]] ~ replacement.newText
-			~ newCode[replacement.range[1] .. $];
-	}
-
-	if (newCode != after)
-	{
-		bool onlyWhitespaceDiffers = newCode.replace("\t", "").replace(" ", "")
-			== after.replace("\t", "").replace(" ", "").replace("\r", "");
-
-		string formatDisplay(string code)
-		{
-			string ret = code.lineSplitter!(KeepTerminator.yes).map!(a => "\t" ~ a).join;
-			if (onlyWhitespaceDiffers)
-				ret = ret
-					.replace("\r", "\x1B[2m\\r\x1B[m")
-					.replace("\t", "\x1B[2m→   \x1B[m")
-					.replace(" ", "\x1B[2m⸱\x1B[m");
-			return ret;
-		}
-
-		throw new AssertError("Applying autofix didn't yield expected results. Expected:\n"
-			~ formatDisplay(after)
-			~ "\n\nActual:\n"
-			~ formatDisplay(newCode),
-			file, line);
 	}
 }

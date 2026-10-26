@@ -37,7 +37,7 @@ class DScannerJsonReporter
 		_issues ~= toIssue(message, isError);
 	}
 
-	string getContent(StatsCollector stats, ulong lineOfCodeCount)
+	string getContent(AST)(StatsCollector!AST stats, ulong lineOfCodeCount)
 	{
 		JSONValue result = [
 			"issues" : JSONValue(_issues.data.map!(e => toJson(e)).array),

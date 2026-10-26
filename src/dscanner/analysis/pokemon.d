@@ -6,11 +6,8 @@
 module dscanner.analysis.pokemon;
 
 import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
 
 /**
  * Checks for Pokémon exception handling, i.e. "gotta' catch 'em all".
@@ -23,62 +20,37 @@ import dsymbol.scope_ : Scope;
  * }
  * ---
  */
-final class PokemonExceptionCheck : BaseAnalyzer
+extern(C++) class PokemonExceptionCheck(AST) : BaseAnalyzerDmd
 {
+	mixin AnalyzerInfo!"exception_check";
+	alias visit = BaseAnalyzerDmd.visit;
+
+	extern(D) this(string fileName, bool skipTests = false)
+	{
+		super(fileName, skipTests);
+	}
+
+	override void visit(AST.Catch c)
+	{
+		// `catch` without a type catches everything
+		if (c.type is null)
+		{
+			addErrorMessage([c.loc.fileOffset, c.loc.fileOffset + "catch".length], KEY, MESSAGE);
+			return;
+		}
+
+		auto typeIdentifier = c.type.isTypeIdentifier();
+		if (typeIdentifier is null)
+			return;
+
+		const typeName = typeIdentifier.ident.toString();
+		if (typeName == "Error" || typeName == "Throwable")
+			addErrorMessage(identifierRange(c.loc.fileOffset, typeName), KEY, MESSAGE);
+	}
+
+private:
 	enum MESSAGE = "Catching Error or Throwable is almost always a bad idea.";
 	enum string KEY = "dscanner.suspicious.catch_em_all";
-	mixin AnalyzerInfo!"exception_check";
-
-	alias visit = BaseAnalyzer.visit;
-
-	this(BaseAnalyzerArguments args)
-	{
-		super(args);
-	}
-
-	override void visit(const LastCatch lc)
-	{
-		addErrorMessage(lc.tokens[0], KEY, MESSAGE);
-		lc.accept(this);
-	}
-
-	bool ignoreType = true;
-
-	override void visit(const Catch c)
-	{
-		ignoreType = false;
-		c.type.accept(this);
-		ignoreType = true;
-
-		c.accept(this);
-	}
-
-	override void visit(const Type2 type2)
-	{
-		if (ignoreType)
-			return;
-
-		if (type2.type !is null)
-		{
-			type2.type.accept(this);
-			return;
-		}
-
-		if (type2.typeIdentifierPart.typeIdentifierPart !is null)
-		{
-			return;
-		}
-		const identOrTemplate = type2.typeIdentifierPart.identifierOrTemplateInstance;
-		if (identOrTemplate.templateInstance !is null)
-		{
-			return;
-		}
-		if (identOrTemplate.identifier.text == "Throwable"
-				|| identOrTemplate.identifier.text == "Error")
-		{
-			addErrorMessage(identOrTemplate, KEY, MESSAGE);
-		}
-	}
 }
 
 unittest
@@ -87,7 +59,7 @@ unittest
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.exception_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
 		void testCatch()
 		{
 			try

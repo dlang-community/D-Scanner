@@ -18,8 +18,8 @@ if %githashsize% == 0 (
 	move /y bin\githash_.txt bin\githash.txt
 )
 
-set DFLAGS=-O -release -Jbin %MFLAGS%
-set TESTFLAGS=-g -w -Jbin
+set DFLAGS=-O -release -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS -version=NoBackend -version=NoMain -Jbin -Jdmd -Jdmd\compiler\src\dmd\res %MFLAGS%
+set TESTFLAGS=-g -w -version=StdLoggerDisableWarning -version=CallbackAPI -version=DMDLIB -version=MARS -version=NoBackend -version=NoMain -Jbin -Jdmd -Jdmd\compiler\src\dmd\res
 set CORE=
 set LIBDPARSE=
 set STD=
@@ -28,6 +28,44 @@ set INIFILED=
 set DSYMBOL=
 set CONTAINERS=
 set LIBDDOC=
+
+set DMD_FRONTEND_DENYLIST=^
+	dmd\compiler\src\dmd\mars.d^
+	dmd\compiler\src\dmd\dmsc.d^
+	dmd\compiler\src\dmd\e2ir.d^
+	dmd\compiler\src\dmd\eh.d^
+	dmd\compiler\src\dmd\glue.d^
+	dmd\compiler\src\dmd\iasmdmd.d^
+	dmd\compiler\src\dmd\irstate.d^
+	dmd\compiler\src\dmd\lib.d^
+	dmd\compiler\src\dmd\libelf.d^
+	dmd\compiler\src\dmd\libmach.d^
+	dmd\compiler\src\dmd\libmscoff.d^
+	dmd\compiler\src\dmd\libomf.d^
+	dmd\compiler\src\dmd\objc_glue.d^
+	dmd\compiler\src\dmd\s2ir.d^
+	dmd\compiler\src\dmd\scanelf.d^
+	dmd\compiler\src\dmd\scanmach.d^
+	dmd\compiler\src\dmd\scanmscoff.d^
+	dmd\compiler\src\dmd\scanomf.d^
+	dmd\compiler\src\dmd\tocsym.d^
+	dmd\compiler\src\dmd\toctype.d^
+	dmd\compiler\src\dmd\tocvdebug.d^
+	dmd\compiler\src\dmd\toobj.d^
+	dmd\compiler\src\dmd\todt.d^
+	dmd\compiler\src\dmd\toir.d
+
+set DMD_FRONTEND_SRC=
+for %%x in (dmd\compiler\src\dmd\common\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\root\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\visitor\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\mangle\*.d) do set DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x
+for %%x in (dmd\compiler\src\dmd\*.d) do (
+    echo "%DMD_FRONTEND_DENYLIST%" | findstr /i /c:"%%x" >nul
+    if errorlevel 1 (
+        set "DMD_FRONTEND_SRC=!DMD_FRONTEND_SRC! %%x"
+    )
+)
 
 for %%x in (src\dscanner\*.d) do set CORE=!CORE! %%x
 for %%x in (src\dscanner\analysis\*.d) do set ANALYSIS=!ANALYSIS! %%x
@@ -45,14 +83,62 @@ for %%x in (containers\src\containers\internal\*.d) do set CONTAINERS=!CONTAINER
 if "%1" == "test" goto test_cmd
 
 @echo on
-%DC% %MFLAGS% %CORE% %STD% %LIBDPARSE% %LIBDDOC% %ANALYSIS% %INIFILED% %DSYMBOL% %CONTAINERS% %DFLAGS% -I"libdparse\src" -I"DCD\dsymbol\src" -I"containers\src" -I"libddoc\src" -I"libddoc\common\source" -ofbin\dscanner.exe
+%DC% %MFLAGS%^
+	%CORE%^
+	%STD%^
+	%LIBDPARSE%^
+	%LIBDDOC%^
+	%ANALYSIS%^
+	%INIFILED%^
+	%DSYMBOL%^
+	%CONTAINERS%^
+	%DMD_FRONTEND_SRC%^
+	%DFLAGS%^
+	-Ilibdparse\src^
+	-IDCD\dsymbol\src^
+	-Icontainers\src^
+	-Ilibddoc\src^
+	-Ilibddoc\common\source^
+	-Idmd\compiler\src^
+	-ofbin\dscanner.exe
 goto eof
 
 :test_cmd
 @echo on
 set TESTNAME="bin\dscanner-unittest"
-%DC% %MFLAGS% %STD% %LIBDPARSE% %LIBDDOC% %INIFILED% %DSYMBOL% %CONTAINERS% -I"libdparse\src" -I"DCD\dsymbol\src" -I"containers\src" -I"libddoc\src" -lib %TESTFLAGS% -of%TESTNAME%.lib
-if exist %TESTNAME%.lib %DC% %MFLAGS% %CORE% %ANALYSIS% %TESTNAME%.lib -I"src" -I"inifiled\source" -I"libdparse\src" -I"DCD\dsymbol\src" -I"containers\src" -I"libddoc\src" -I"libddoc\common\source" -unittest %TESTFLAGS% -of%TESTNAME%.exe
+%DC% %MFLAGS% ^
+	%STD%^
+	%LIBDPARSE%^
+	%LIBDDOC%^
+	%INIFILED%^
+	%DSYMBOL%^
+	%CONTAINERS%^
+	%DMD_FRONTEND_SRC%^
+	-I"libdparse\src"^
+	-I"DCD\dsymbol\src"^
+	-I"containers\src"^
+	-I"libddoc\src"^
+	-I"dmd\compiler\src"^
+	-I"dmd\compiler\src\dmd\res"^
+	%TESTFLAGS%^
+	-lib^
+	-of%TESTNAME%.lib
+if exist %TESTNAME%.lib %DC% %MFLAGS%^
+	%CORE%^
+	%ANALYSIS%^
+	%TESTNAME%.lib^
+	-I"src"^
+	-I"inifiled\source"^
+	-I"libdparse\src"^
+	-I"DCD\dsymbol\src"^
+	-I"containers\src"^
+	-I"libddoc\src"^
+	-I"libddoc\common\source"^
+	-I"dmd\compiler\src"^
+	-I"dmd\compiler\src\dmd\res"^
+	-unittest^
+	%TESTFLAGS%^
+	-of%TESTNAME%.exe
 if exist %TESTNAME%.exe %TESTNAME%.exe
 
 if exist %TESTNAME%.obj del %TESTNAME%.obj

@@ -7,100 +7,103 @@ module dscanner.analysis.incorrect_infinite_range;
 
 import dscanner.analysis.base;
 import dscanner.analysis.helpers;
-import dparse.ast;
-import dparse.lexer;
-
-import std.typecons : Rebindable;
 
 /**
  * Checks for incorrect infinite range definitions
  */
-final class IncorrectInfiniteRangeCheck : BaseAnalyzer
+extern(C++) class IncorrectInfiniteRangeCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
+	// alias visit = BaseAnalyzerDmd!AST.visit;
+	alias visit = BaseAnalyzerDmd.visit;
 
 	mixin AnalyzerInfo!"incorrect_infinite_range_check";
 
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	override void visit(const StructBody structBody)
+	override void visit(AST.StructDeclaration sd)
 	{
-		inStruct++;
-		structBody.accept(this);
-		inStruct--;
+		inAggregate++;
+		super.visit(sd);
+		inAggregate--;
 	}
 
-	override void visit(const FunctionDeclaration fd)
+	override void visit(AST.ClassDeclaration cd)
 	{
-		if (inStruct > 0 && fd.name.text == "empty")
+		inAggregate++;
+		super.visit(cd);
+		inAggregate--;
+	}
+
+	override void visit(AST.FuncDeclaration fd)
+	{
+		import dmd.astenums : Tbool;
+
+		if (!inAggregate)
+			return;
+
+		if (!fd.ident || fd.ident.toString() != "empty")
+			return;
+
+		AST.TypeFunction tf = fd.type.isTypeFunction();
+
+		if (!tf || !tf.next || !tf.next.ty)
+			return;
+
+		AST.ReturnStatement rs = fd.fbody ? fd.fbody.isReturnStatement() : null;
+
+		if (rs)
 		{
-			auto old = parentFunc;
-			parentFunc = fd;
-			fd.accept(this);
-			parentFunc = old;
+			AST.IntegerExp ie = cast(AST.IntegerExp) rs.exp;
+
+			if (ie && ie.getInteger() == 0)
+				addErrorMessage(declarationRange(fd), KEY, MESSAGE);
 		}
+
+		AST.CompoundStatement cs = fd.fbody ? fd.fbody.isCompoundStatement() : null;
+		
+		if (!cs || cs.statements.length == 0)
+			return;
+
+		if (auto rs1 = cs.statements[0].isReturnStatement())
+		{
+			AST.IntegerExp ie = cast(AST.IntegerExp) rs1.exp;
+
+			if (ie && ie.getInteger() == 0)
+				addErrorMessage(declarationRange(fd), KEY, MESSAGE);
+		}
+
+		super.visit(fd);
 	}
 
-	override void visit(const FunctionBody fb)
+	override void visit(AST.UnitTestDeclaration ud)
 	{
-		if (fb.specifiedFunctionBody && fb.specifiedFunctionBody.blockStatement !is null)
-			visit(fb.specifiedFunctionBody.blockStatement);
-		else if (fb.shortenedFunctionBody && fb.shortenedFunctionBody.expression !is null)
-			visitReturnExpression(fb.shortenedFunctionBody.expression);
+		
 	}
 
-	override void visit(const BlockStatement bs)
+	extern (D) private size_t[2] declarationRange(AST.FuncDeclaration fd)
 	{
-		if (bs.declarationsAndStatements is null)
-			return;
-		if (bs.declarationsAndStatements.declarationsAndStatements is null)
-			return;
-		if (bs.declarationsAndStatements.declarationsAndStatements.length != 1)
-			return;
-		visit(bs.declarationsAndStatements);
-	}
+		import dscanner.analysis.source_range : declarationStart;
 
-	override void visit(const ReturnStatement rs)
-	{
-		if (inStruct == 0 || parentFunc == null) // not within a struct yet
-			return;
-		visitReturnExpression(rs.expression);
-	}
-
-	void visitReturnExpression(const Expression expression)
-	{
-		if (!expression || expression.items.length != 1)
-			return;
-		UnaryExpression unary = cast(UnaryExpression) expression.items[0];
-		if (unary is null)
-			return;
-		if (unary.primaryExpression is null)
-			return;
-		if (unary.primaryExpression.primary != tok!"false")
-			return;
-		addErrorMessage(parentFunc.get, KEY, MESSAGE);
-	}
-
-	override void visit(const Unittest u)
-	{
+		return [declarationStart(source, fd.loc.fileOffset), fd.endloc.fileOffset + 1];
 	}
 
 private:
-	uint inStruct;
+	uint inAggregate;
 	enum string KEY = "dscanner.suspicious.incorrect_infinite_range";
 	enum string MESSAGE = "Use `enum bool empty = false;` to define an infinite range.";
-	Rebindable!(const FunctionDeclaration) parentFunc;
 }
 
 unittest
 {
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
 	import std.stdio : stderr;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.format : format;
+	import dmd.astcodegen : ASTCodegen;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.incorrect_infinite_range_check = Check.enabled;
@@ -152,7 +155,7 @@ class C { bool empty() { return false; } } /+
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [warn]: %1$s +/
 
 }c
-			.format(IncorrectInfiniteRangeCheck.MESSAGE), sac);
+			.format(IncorrectInfiniteRangeCheck!ASTCodegen.MESSAGE), sac);
 }
 
 // test for https://github.com/dlang-community/D-Scanner/issues/656
@@ -167,6 +170,7 @@ version(none) struct Foo
 
 unittest
 {
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
 	import std.stdio : stderr;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
 	import std.format : format;

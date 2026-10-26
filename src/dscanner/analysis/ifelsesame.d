@@ -5,95 +5,127 @@
 
 module dscanner.analysis.ifelsesame;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dscanner.analysis.helpers;
-import dsymbol.scope_ : Scope;
+import dmd.hdrgen : toChars;
+import dmd.tokens : EXP, TOK;
+import dscanner.analysis.source_range : extentOf, findToken;
+import std.conv : to;
+import std.string : format;
+import std.typecons : Tuple, tuple;
 
 /**
  * Checks for duplicated code in conditional and logical expressions.
  * $(UL
  * $(LI If statements whose "then" block is the same as the "else" block)
  * $(LI || and && expressions where the left and right are the same)
- * $(LI == expressions where the left and right are the same)
+ * $(LI == and != expressions where the left and right are the same)
+ * $(LI >, <, >=, and <= expressions where the left and right are the same)
+ * $(LI Assignments where the left and right are the same)
  * )
  */
-final class IfElseSameCheck : BaseAnalyzer
+extern (C++) class IfElseSameCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"if_else_same_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum IF_KEY = "dscanner.bugs.if_else_same";
+	private enum IF_MESSAGE = "'Else' branch is identical to 'Then' branch.";
+
+	private enum LOGICAL_EXP_KEY = "dscanner.bugs.logic_operator_operands";
+	private enum LOGICAL_EXP_MESSAGE = "Left side of logical %s is identical to right side.";
+
+	private enum ASSIGN_KEY = "dscanner.bugs.self_assignment";
+	private enum ASSIGN_MESSAGE = "Left side of assignment operation is identical to the right side.";
+
+	private bool inAssignment = false;
+
+	extern (D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const IfStatement ifStatement)
+	override void visit(AST.IfStatement ifStatement)
 	{
-		if (ifStatement.thenStatement && (ifStatement.thenStatement == ifStatement.elseStatement))
+		super.visit(ifStatement);
+
+		if (ifStatement.ifbody is null || ifStatement.elsebody is null)
+			return;
+
+		auto thenBody = to!string(toChars(ifStatement.ifbody));
+		auto elseBody = to!string(toChars(ifStatement.elsebody));
+
+		if (thenBody == elseBody)
+			addErrorMessage([ifStatement.loc.fileOffset, statementEnd(ifStatement.elsebody)], IF_KEY, IF_MESSAGE);
+	}
+
+	override void visit(AST.AssignExp assignExp)
+	{
+		bool oldInAssignment = inAssignment;
+		inAssignment = true;
+		super.visit(assignExp);
+		inAssignment = oldInAssignment;
+	}
+
+	override void visit(AST.CondExp condExp)
+	{
+		super.visit(condExp);
+		if (inAssignment)
+			handleBinaryExpression(condExp);
+	}
+
+	override void visit(AST.LogicalExp logicalExpr)
+	{
+		super.visit(logicalExpr);
+		handleBinaryExpression(logicalExpr);
+	}
+
+	/// End offset of a statement: its closing brace, or its `;`.
+	extern (D) private size_t statementEnd(AST.Statement statement)
+	{
+		if (auto scopeStatement = statement.isScopeStatement())
+			return scopeStatement.endloc.fileOffset + 1;
+		return findToken(source, statement.loc.fileOffset, TOK.semicolon).end;
+	}
+
+	private void handleBinaryExpression(AST.BinExp expr)
+	{
+		auto expr1 = to!string(toChars(expr.e1));
+		auto expr2 = to!string(toChars(expr.e2));
+
+		if (expr1 == expr2)
 		{
-			const(Token)[] tokens = ifStatement.elseStatement.tokens;
-			// extend 1 past, so we include the `else` token
-			tokens = (tokens.ptr - 1)[0 .. tokens.length + 1];
-			addErrorMessage(tokens,
-					IF_ELSE_SAME_KEY, "'Else' branch is identical to 'Then' branch.");
+			auto errorInfo = getErrorInfo(expr.op);
+			addErrorMessage(extentOf(source, expr), errorInfo[0], errorInfo[1]);
 		}
-		ifStatement.accept(this);
 	}
 
-	override void visit(const AssignExpression assignExpression)
+	private extern (D) Tuple!(string, string) getErrorInfo(EXP op)
 	{
-		auto e = cast(const AssignExpression) assignExpression.expression;
-		if (e !is null && assignExpression.operator == tok!"="
-				&& e.ternaryExpression == assignExpression.ternaryExpression)
+		switch (op)
 		{
-			addErrorMessage(assignExpression, SELF_ASSIGNMENT_KEY,
-					"Left side of assignment operatior is identical to the right side.");
+		case EXP.orOr:
+			return tuple(LOGICAL_EXP_KEY, LOGICAL_EXP_MESSAGE.format("or"));
+		case EXP.andAnd:
+			return tuple(LOGICAL_EXP_KEY, LOGICAL_EXP_MESSAGE.format("and"));
+		case EXP.question:
+			return tuple(ASSIGN_KEY, ASSIGN_MESSAGE);
+		default:
+			assert(0);
 		}
-		assignExpression.accept(this);
+
 	}
-
-	override void visit(const AndAndExpression andAndExpression)
-	{
-		if (andAndExpression.left !is null && andAndExpression.right !is null
-				&& andAndExpression.left == andAndExpression.right)
-		{
-			addErrorMessage(andAndExpression.right,
-					LOGIC_OPERATOR_OPERANDS_KEY,
-					"Left side of logical and is identical to right side.");
-		}
-		andAndExpression.accept(this);
-	}
-
-	override void visit(const OrOrExpression orOrExpression)
-	{
-		if (orOrExpression.left !is null && orOrExpression.right !is null
-				&& orOrExpression.left == orOrExpression.right)
-		{
-			addErrorMessage(orOrExpression.right,
-					LOGIC_OPERATOR_OPERANDS_KEY,
-					"Left side of logical or is identical to right side.");
-		}
-		orOrExpression.accept(this);
-	}
-
-private:
-
-	enum string IF_ELSE_SAME_KEY = "dscanner.bugs.if_else_same";
-	enum string SELF_ASSIGNMENT_KEY = "dscanner.bugs.self_assignment";
-	enum string LOGIC_OPERATOR_OPERANDS_KEY = "dscanner.bugs.logic_operator_operands";
 }
 
 unittest
 {
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.if_else_same_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+
+	assertAnalyzerWarningsDMD(q{
 		void testSizeT()
 		{
 			string person = "unknown";
@@ -112,10 +144,29 @@ unittest
 		}
 	}c, sac);
 
-	assertAnalyzerWarnings(q{
+	assertAnalyzerWarningsDMD(q{
+		void testLogicalExp()
+		{
+			int a = 5, b = 5;
+			if (a == b || a == b) // [warn]: Left side of logical or is identical to right side.
+				a = 6;
+			if (a == b && a == b) // [warn]: Left side of logical and is identical to right side.
+				a = 6;
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
+		void testAssignExp()
+		{
+			int a = 5, b = 5;
+			a = b > 5 ? b : b; // [warn]: Left side of assignment operation is identical to the right side.
+		}
+	}c, sac);
+
+	assertAnalyzerWarningsDMD(q{
 		void foo()
 		{
-			if (auto stuff = call())
+			if (auto stuff = call()) {}
 		}
 	}c, sac);
 

@@ -5,55 +5,88 @@
 
 module dscanner.analysis.del;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dsymbol.scope_;
+import dscanner.analysis.source_range : SourceToken;
+import dmd.tokens : TOK;
 
 /**
  * Checks for use of the deprecated 'delete' keyword
  */
-final class DeleteCheck : BaseAnalyzer
+extern(C++) class DeleteCheck(AST) : BaseAnalyzerDmd
 {
-	alias visit = BaseAnalyzer.visit;
-
+	alias visit = BaseAnalyzerDmd.visit;
 	mixin AnalyzerInfo!"delete_check";
 
-	this(BaseAnalyzerArguments args)
+	private enum KEY = "dscanner.deprecated.delete_keyword";
+	private enum MSG = "Avoid using the 'delete' keyword.";
+
+	extern(D) this(string fileName)
 	{
-		super(args);
+		super(fileName);
 	}
 
-	override void visit(const DeleteExpression d)
+	/**
+	 * dmd no longer knows the `delete` keyword and reads `delete a;` as a
+	 * declaration, so the statements are found in the source tokens.
+	 */
+	override void visit(AST.Module m)
 	{
-		addErrorMessage(d.tokens[0], KEY,
-				"Avoid using the 'delete' keyword.",
-				[AutoFix.replacement(d.tokens[0], `destroy(`, "Replace delete with destroy()")
-					.concat(AutoFix.insertionAfter(d.tokens[$ - 1], ")"))]);
-		d.accept(this);
+		import dscanner.analysis.source_range : tokensFrom;
+
+		auto previous = SourceToken(TOK.semicolon);
+		foreach (token; tokensFrom(source, 0))
+		{
+			if (startsStatement(previous.value) && source[token.start .. token.end] == "delete")
+				reportDelete(token);
+			previous = token;
+		}
 	}
 
-	private enum string KEY = "dscanner.deprecated.delete_keyword";
+	extern (D) private void reportDelete(SourceToken deleteToken)
+	{
+		import dscanner.analysis.source_range : tokensFrom;
+		import std.range : drop;
+
+		size_t depth, operandEnd = deleteToken.end;
+		foreach (token; tokensFrom(source, deleteToken.start).drop(1))
+		{
+			if (token.value == TOK.semicolon && depth == 0)
+				break;
+			if (token.value == TOK.leftParenthesis || token.value == TOK.leftBracket)
+				depth++;
+			else if (token.value == TOK.rightParenthesis || token.value == TOK.rightBracket)
+				depth--;
+			operandEnd = token.end;
+		}
+
+		addErrorMessage([deleteToken.start, deleteToken.end], KEY, MSG,
+			[AutoFix.replacement(deleteToken.start, deleteToken.end, `destroy(`, "Replace delete with destroy()")
+				.concat(AutoFix.insertionAt(operandEnd, ")"))]);
+	}
 }
 
 unittest
 {
 	import dscanner.analysis.config : Check, disabledConfig, StaticAnalysisConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings, assertAutoFix;
+	import dscanner.analysis.helpers : assertAnalyzerWarningsDMD, assertAutoFix;
+	import std.stdio : stderr;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.delete_check = Check.enabled;
-	assertAnalyzerWarnings(q{
+	// dmd no longer parses `delete`; `delete data[1]` is a syntax error, so only forms it accepts are used here
+	assertAnalyzerWarningsDMD(q{
 		void testDelete()
 		{
-			int[int] data = [1 : 2];
-			delete data[1]; /+
-			^^^^^^ [warn]: Avoid using the 'delete' keyword. +/
-
 			auto a = new Class();
 			delete a; /+
 			^^^^^^ [warn]: Avoid using the 'delete' keyword. +/
+
+			int* p;
+			if (p) delete *p; /+
+			       ^^^^^^ [warn]: Avoid using the 'delete' keyword. +/
+
+			int delete_;
+			a.delete_();
 		}
 	}c, sac);
 
@@ -78,4 +111,11 @@ unittest
 	}c, sac);
 
 	stderr.writeln("Unittest for DeleteCheck passed.");
+}
+
+private bool startsStatement(TOK previous)
+{
+	return previous == TOK.semicolon || previous == TOK.leftCurly || previous == TOK.rightCurly
+		|| previous == TOK.rightParenthesis || previous == TOK.colon || previous == TOK.else_
+		|| previous == TOK.do_;
 }

@@ -5,85 +5,61 @@
 
 module dscanner.analysis.trust_too_much;
 
-import std.stdio;
-import dparse.ast;
-import dparse.lexer;
 import dscanner.analysis.base;
-import dsymbol.scope_;
+import dscanner.analysis.source_range : declarationStart, findIdentifier;
+import dmd.astenums : STC;
 
 /**
  * Checks that `@trusted` is only applied to a a single function
  */
-final class TrustTooMuchCheck : BaseAnalyzer
+extern(C++) class TrustTooMuchCheck(AST) : BaseAnalyzerDmd
 {
+	mixin AnalyzerInfo!"trust_too_much";
+	alias visit = BaseAnalyzerDmd.visit;
+
 private:
-
-	static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
+	extern(D) static immutable MESSAGE = "Trusting a whole scope is a bad idea, " ~
 		"`@trusted` should only be attached to the functions individually";
-	static immutable string KEY = "dscanner.trust_too_much";
-
-	bool checkAtAttribute = true;
+	extern(D) static immutable string KEY = "dscanner.trust_too_much";
 
 public:
-
-	alias visit = BaseAnalyzer.visit;
-
-	mixin AnalyzerInfo!"trust_too_much";
-
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const AtAttribute d)
+	override void visit(AST.StorageClassDeclaration scd)
 	{
-		if (checkAtAttribute && d.identifier.text == "trusted")
-			addErrorMessage(d, KEY, MESSAGE);
-		d.accept(this);
-	}
-
-	// always applied to function body, so OK
-	override void visit(const MemberFunctionAttribute d)
-	{
-		const oldCheckAtAttribute = checkAtAttribute;
-		checkAtAttribute = false;
-		d.accept(this);
-		checkAtAttribute = oldCheckAtAttribute;
-	}
-
-	// handles `@trusted{}` and old style, leading, atAttribute for single funcs
-	override void visit(const Declaration d)
-	{
-		const oldCheckAtAttribute = checkAtAttribute;
-
-		checkAtAttribute = 	d.functionDeclaration is null && d.unittest_ is null &&
-							d.constructor is null && d.destructor is null &&
-							d.staticConstructor is null && d.staticDestructor is null &&
-							d.sharedStaticConstructor is null && d.sharedStaticDestructor is null;
-		d.accept(this);
-		checkAtAttribute = oldCheckAtAttribute;
-	}
-
-	// issue #588
-	override void visit(const AliasDeclaration d)
-	{
-		const oldCheckAtAttribute = checkAtAttribute;
-		checkAtAttribute = false;
-		d.accept(this);
-		checkAtAttribute = oldCheckAtAttribute;
+		if (scd.stc & STC.trusted)
+		{
+			// with several attributes dmd may locate the declaration after `@trusted`,
+			// and a local declaration has no location, so search from its first member
+			const located = scd.loc.isValid || scd.decl is null || scd.decl.length == 0
+				? scd.loc : (*scd.decl)[0].loc;
+			if (located.isValid)
+			{
+				const trusted = findIdentifier(source, declarationStart(source, located.fileOffset), "trusted");
+				addErrorMessage([trusted.start - "@".length, trusted.end], KEY, MESSAGE);
+			}
+		}
+	
+			super.visit(scd);
 	}
 }
 
 unittest
 {
+	import dmd.astcodegen : ASTCodegen;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
+	import dmd.astcodegen : ASTCodegen;
+	import std.stdio : stderr;
 	import std.format : format;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.trust_too_much = Check.enabled;
-	const msg = TrustTooMuchCheck.MESSAGE;
+	const msg = TrustTooMuchCheck!ASTCodegen.MESSAGE;
 
 	//--- fail cases ---//
 
@@ -159,6 +135,15 @@ unittest
 	@trusted ~this();
 	@trusted this();
 	}c , sac);
+
+	// a local declaration, which dmd gives no location of its own
+	assertAnalyzerWarnings(q{
+	void foo()
+	{
+		@trusted struct S {} /+
+		^^^^^^^^ [warn]: %s +/
+	}
+	}c.format(msg), sac);
 
 	stderr.writeln("Unittest for TrustTooMuchCheck passed.");
 }

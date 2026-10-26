@@ -5,106 +5,102 @@
 module dscanner.analysis.assert_without_msg;
 
 import dscanner.analysis.base;
-import dscanner.utils : safeAccess;
-import dsymbol.scope_ : Scope;
-import dparse.lexer;
-import dparse.ast;
-
+import dscanner.analysis.source_range : balancedEnd, extentOf, findToken;
+import dmd.tokens : TOK;
 import std.stdio;
-import std.algorithm;
 
 /**
  * Check that all asserts have an explanatory message.
  */
-final class AssertWithoutMessageCheck : BaseAnalyzer
+extern(C++) class AssertWithoutMessageCheck(AST) : BaseAnalyzerDmd
 {
-	enum string KEY = "dscanner.style.assert_without_msg";
-	enum string MESSAGE = "An assert should have an explanatory message";
 	mixin AnalyzerInfo!"assert_without_msg";
+	alias visit = BaseAnalyzerDmd.visit;
 
 	///
-	this(BaseAnalyzerArguments args)
+	extern(D) this(string fileName, bool skipTests = false)
 	{
-		super(args);
+		super(fileName, skipTests);
 	}
 
-	override void visit(const AssertExpression expr)
+	// Avoid visiting in/out contracts for this check
+	override void visitFuncBody(AST.FuncDeclaration f)
 	{
-		static if (__traits(hasMember, expr.assertArguments, "messageParts"))
-		{
-			// libdparse 0.22.0+
-			bool hasMessage = expr.assertArguments
-				&& expr.assertArguments.messageParts.length > 0;
-		}
-		else
-			bool hasMessage = expr.assertArguments
-				&& expr.assertArguments.message !is null;
-
-		if (!hasMessage)
-			addErrorMessage(expr, KEY, MESSAGE);
+		if (f.fbody)
+        {
+            f.fbody.accept(this);
+        }
 	}
 
-	override void visit(const FunctionCallExpression expr)
+	override void visit(AST.AssertExp ae)
 	{
-		if (!isStdExceptionImported)
-			return;
+		if (!ae.msg)
+			addErrorMessage(extentOf(source, ae), KEY, MESSAGE);
+	}
 
-		if (const IdentifierOrTemplateInstance iot = safeAccess(expr)
-			.unaryExpression.primaryExpression.identifierOrTemplateInstance)
+	override void visit(AST.StaticAssert ae)
+	{
+		if (!ae.msgs)
 		{
-			auto ident = iot.identifier;
-			if (ident.text == "enforce" && expr.arguments !is null && expr.arguments.namedArgumentList !is null &&
-					expr.arguments.namedArgumentList.items.length < 2)
-				addErrorMessage(expr, KEY, MESSAGE);
+			const assertStart = findToken(source, ae.loc.fileOffset, TOK.assert_).start;
+			const parenthesis = findToken(source, assertStart, TOK.leftParenthesis).start;
+			addErrorMessage([assertStart, balancedEnd(source, parenthesis, parenthesis)], KEY, MESSAGE);
 		}
 	}
 
-	override void visit(const SingleImport sImport)
+	override void visit(AST.CallExp call)
 	{
-		static immutable stdException = ["std", "exception"];
-		if (sImport.identifierChain.identifiers.map!(a => a.text).equal(stdException))
+		super.visit(call);
+
+		auto callee = call.e1.isIdentifierExp();
+		const argumentCount = call.arguments ? call.arguments.length : 0;
+		if (isStdExceptionImported && callee && callee.ident.toString() == "enforce" && argumentCount < 2)
+			addErrorMessage(extentOf(source, call), KEY, MESSAGE);
+	}
+
+	override void visit(AST.Import i)
+	{
+		const isStdException = i.packages.length == 1 && i.packages[0].toString() == "std"
+			&& i.id.toString() == "exception";
+		if (isStdException)
 			isStdExceptionImported = true;
 	}
 
-	// revert the stack after new scopes
-	override void visit(const Declaration decl)
+	// imports only reach the end of the scope they appear in
+	mixin ScopedVisit!(AST.ClassDeclaration);
+	mixin ScopedVisit!(AST.InterfaceDeclaration);
+	mixin ScopedVisit!(AST.StructDeclaration);
+	mixin ScopedVisit!(AST.UnionDeclaration);
+	mixin ScopedVisit!(AST.TemplateDeclaration);
+	mixin ScopedVisit!(AST.FuncDeclaration);
+	mixin ScopedVisit!(AST.UnitTestDeclaration);
+	mixin ScopedVisit!(AST.IfStatement);
+	mixin ScopedVisit!(AST.ScopeStatement);
+
+	private template ScopedVisit(NodeType)
 	{
-		// be careful - ImportDeclarations don't introduce a new scope
-		if (decl.importDeclaration is null)
+		override void visit(NodeType node)
 		{
-			bool tmp = isStdExceptionImported;
-			scope(exit) isStdExceptionImported = tmp;
-			decl.accept(this);
+			const outerImported = isStdExceptionImported;
+			scope (exit)
+				isStdExceptionImported = outerImported;
+			super.visit(node);
 		}
-		else
-			decl.accept(this);
 	}
-
-	mixin ScopedVisit!IfStatement;
-	mixin ScopedVisit!BlockStatement;
-
-	alias visit = BaseAnalyzer.visit;
 
 private:
 	bool isStdExceptionImported;
-
-	template ScopedVisit(NodeType)
-	{
-		override void visit(const NodeType n)
-		{
-			bool tmp = isStdExceptionImported;
-			scope(exit) isStdExceptionImported = tmp;
-			n.accept(this);
-		}
-	}
+	enum string KEY = "dscanner.style.assert_without_msg";
+	enum string MESSAGE = "An assert should have an explanatory message";
 }
 
 unittest
 {
+	import dmd.astcodegen : ASTCodegen;
 	import std.stdio : stderr;
 	import std.format : format;
 	import dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
-	import dscanner.analysis.helpers : assertAnalyzerWarnings;
+	import dscanner.analysis.helpers : assertAnalyzerWarnings = assertAnalyzerWarningsDMD;
 
 	StaticAnalysisConfig sac = disabledConfig();
 	sac.assert_without_msg = Check.enabled;
@@ -116,7 +112,7 @@ unittest
 		^^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(
-		AssertWithoutMessageCheck.MESSAGE,
+		AssertWithoutMessageCheck!ASTCodegen.MESSAGE,
 	), sac);
 
 	assertAnalyzerWarnings(q{
@@ -126,7 +122,7 @@ unittest
 		       ^^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(
-		AssertWithoutMessageCheck.MESSAGE,
+		AssertWithoutMessageCheck!ASTCodegen.MESSAGE,
 	), sac);
 
 	// check for std.exception.enforce
@@ -139,7 +135,7 @@ unittest
 		^^^^^^^^^^ [warn]: %s +/
 	}
 	}c.format(
-		AssertWithoutMessageCheck.MESSAGE,
+		AssertWithoutMessageCheck!ASTCodegen.MESSAGE,
 	), sac);
 
 	// check for std.exception.enforce
@@ -164,6 +160,20 @@ unittest
 		enforce(0); // std.exception not imported yet - could be a user-defined symbol
 	}
 	}c, sac);
+
+	// `i++` contains a literal without a source location
+	assertAnalyzerWarnings(q{
+	unittest {
+		int i;
+		assert(i++ == 0); /+
+		^^^^^^^^^^^^^^^^ [warn]: %s +/
+		assert(i++); /+
+		^^^^^^^^^^^ [warn]: %s +/
+	}
+	}c.format(
+		AssertWithoutMessageCheck!ASTCodegen.MESSAGE,
+		AssertWithoutMessageCheck!ASTCodegen.MESSAGE,
+	), sac);
 
 	stderr.writeln("Unittest for AssertWithoutMessageCheck passed.");
 }

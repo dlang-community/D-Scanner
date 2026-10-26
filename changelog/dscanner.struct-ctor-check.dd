@@ -1,0 +1,19 @@
+Remove the check regarding structs with no arguments constructors.
+
+The check is implemented in constructors.d and it warns against the usage
+of both constructors with all parameters with default values and constructors
+without any arguments, as this might be confusing. This scenario, for structs,
+is no longer D valid code and that's why it is being deprecated.
+
+Let's consider the following code:
+
+---
+struct Dog
+{
+	this() {}
+	this(string name = "doggie") {} // [warn]: This struct constructor can never be called with its default argument.
+}
+---
+
+D-Scanner would throw and error for this particular struct, but this code
+does not compile anymore hence this check is not needed anymore/
